@@ -7,7 +7,9 @@
     "build": "vite build",
     "dev": "vite",
     "start": "electron .",
-    "dev:electron": "concurrently --kill-others \"vite\" \"wait-on http-get://localhost:54321 && cross-env NODE_ENV=development electron .\""
+    "dev:electron": "concurrently --kill-others \"vite\" \"wait-on http-get://localhost:54321 && cross-env NODE_ENV=development electron .\"",
+    "sync": "node sync.cjs",
+    "sync:watch": "node auto_git_watch.cjs"
   },
   "dependencies": {
     "@babel/core": "^8.0.1",
