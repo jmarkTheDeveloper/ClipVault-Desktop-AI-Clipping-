@@ -53,9 +53,17 @@ class YouTubeDownloader:
             'ignoreerrors': False,
             'quiet': True,
             'no_warnings': False,
-            'retries': 10,
-            'extractor_retries': 10,
-            'user_agent': YOUTUBE_USER_AGENT,
+            'retries': 15,
+            'extractor_retries': 15,
+            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'http_chunk_size': 10485760, # 10MB chunk streaming for accelerated speed
+            'concurrent_fragment_downloads': 4,
+            'extractor_args': {
+                'youtube': {
+                    'player_client': ['android', 'ios', 'web'], # Mobile clients are immune to web bot captchas
+                    'player_skip': ['webpage', 'configs'],
+                }
+            },
             'ffmpeg_location': imageio_ffmpeg.get_ffmpeg_exe(),
             'js_runtimes': js_runtimes
         }
