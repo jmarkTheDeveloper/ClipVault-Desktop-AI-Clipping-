@@ -214,29 +214,40 @@ def open_system_folder(data: dict = Body(...)):
 @app.get("/api/video_info")
 def get_video_info(url: str, current_user: dict = Depends(get_current_user)):
     """
-    Extracts video metadata (title, duration, uploader) without downloading.
+    Extracts video metadata (title, duration, uploader, stream_url) without downloading.
+    Uses mobile client spoofing to bypass YouTube bot blocks and provide instant preview stream.
     """
     import yt_dlp
     try:
-        ydl_opts = {'quiet': True, 'no_warnings': True}
+        ydl_opts = {
+            'quiet': True,
+            'no_warnings': True,
+            'skip_download': True,
+            'extractor_args': {
+                'youtube': {
+                    'player_client': ['android', 'web', 'ios'],
+                    'player_skip': ['webpage', 'configs'],
+                }
+            },
+            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
             
             stream_url = None
             formats = info.get("formats", [])
             
-            # Look for progressive MP4 format (video + audio together)
-            # Prefer 360p (format_id 18) for smooth preview loading
+            # Prefer 360p or 720p progressive MP4 for ultra-smooth preview streaming in HTML5 video tag
             for fmt in formats:
                 if fmt.get("ext") == "mp4" and fmt.get("acodec") != "none" and fmt.get("vcodec") != "none":
                     stream_url = fmt.get("url")
-                    if fmt.get("format_id") == "18":
+                    if fmt.get("format_id") in ["18", "22"]:
                         break
             
-            # Fallback to first available URL
+            # Fallback to any direct streamable URL
             if not stream_url and formats:
                 for fmt in formats:
-                    if fmt.get("url"):
+                    if fmt.get("url") and fmt.get("vcodec") != "none":
                         stream_url = fmt.get("url")
                         break
 
@@ -244,7 +255,8 @@ def get_video_info(url: str, current_user: dict = Depends(get_current_user)):
                 "title": info.get("title", "Unknown Video"),
                 "duration": info.get("duration", 0),
                 "author": info.get("uploader", "Unknown Channel"),
-                "stream_url": stream_url
+                "stream_url": stream_url,
+                "url": stream_url
             }
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Failed to fetch video info: {e}")

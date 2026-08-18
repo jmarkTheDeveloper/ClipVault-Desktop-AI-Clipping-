@@ -544,7 +544,7 @@ export function AiClipperScreen({ onBack, onOpenEditor }: Props) {
     };
   }, []);
 
-  // DEBOUNCED & VALIDATED YOUTUBE STREAM RESOLVER (Stops keystroke spam & process freeze)
+  // DEBOUNCED & VALIDATED YOUTUBE STREAM RESOLVER (Loads preview seamlessly)
   useEffect(() => {
     if (!ytUrl.trim()) return;
     const isYtFormat = /[?&]v=([^&]+)|youtu\.be\/([^?&]+)/.test(ytUrl);
@@ -552,17 +552,20 @@ export function AiClipperScreen({ onBack, onOpenEditor }: Props) {
 
     const timer = setTimeout(() => {
       const controller = new AbortController();
-      const fetchTimer = setTimeout(() => controller.abort(), 3000);
+      const fetchTimer = setTimeout(() => controller.abort(), 15000);
       fetch(`http://127.0.0.1:8000/api/video_info?url=${encodeURIComponent(ytUrl)}`, { signal: controller.signal })
         .then(res => res.json())
         .then(data => {
-          if (data.url || data.stream_url) {
-            setActiveVideoUrl(data.url || data.stream_url);
+          if (data && (data.stream_url || data.url)) {
+            const previewUrl = data.stream_url || data.url;
+            setActiveVideoUrl(previewUrl);
           }
         })
-        .catch(() => {})
+        .catch(err => {
+          console.warn("[ClipVault]: Could not fetch remote preview:", err);
+        })
         .finally(() => clearTimeout(fetchTimer));
-    }, 1200);
+    }, 600);
 
     return () => clearTimeout(timer);
   }, [ytUrl]);

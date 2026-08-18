@@ -264,11 +264,20 @@ class FaceTracker:
                     if len(significant_faces) == 1:
                         face_positions.append(significant_faces[0]['center_x'])
                     else:
-                        # Find the leftmost and rightmost person, and center the camera between them
+                        # For podcasts / multi-speaker scenes:
+                        # If speakers are close together, frame both.
+                        # If speakers are wide apart (e.g. podcast table), focus on the primary dominant speaker
+                        # rather than framing empty wall space in the middle!
                         min_x = min(f['center_x'] for f in significant_faces)
                         max_x = max(f['center_x'] for f in significant_faces)
-                        midpoint_x = (min_x + max_x) / 2
-                        face_positions.append(midpoint_x)
+                        span = max_x - min_x
+                        if span < target_width * 0.85:
+                            midpoint_x = (min_x + max_x) / 2
+                            face_positions.append(midpoint_x)
+                        else:
+                            # Focus on the largest/most centered prominent face in this segment
+                            primary_face = max(significant_faces, key=lambda f: f['area'] * f['confidence'])
+                            face_positions.append(primary_face['center_x'])
                 else:
                     face_positions.append(None)
 

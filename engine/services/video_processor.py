@@ -1354,7 +1354,28 @@ class VideoProcessor:
                             clip = clip.fl(shake_filter)
                             clips_to_close.append(clip)
                             
-                    # Apply Supreme copyright bypass (1.06x speedup + horizontal mirroring) BEFORE audio mixing
+                    # Apply Dynamic Retention Micro-Zooms (Subtle 1.06x punch-in every 4.5s)
+                    if layout in ["vertical_crop", "landscape_blur"] and not movie_recap:
+                        try:
+                            import cv2
+                            def retention_zoom_filter(gf, t):
+                                frame = gf(t)
+                                # Periodic 4-second cycle with 0.8s micro-zoom pulse
+                                cycle = t % 4.5
+                                if 2.0 <= cycle <= 3.2:
+                                    zoom = 1.06
+                                    h, w = frame.shape[:2]
+                                    zh, zw = int(h * zoom), int(w * zoom)
+                                    zoomed = cv2.resize(frame, (zw, zh))
+                                    sy = (zh - h) // 2
+                                    sx = (zw - w) // 2
+                                    return zoomed[sy:sy+h, sx:sx+w]
+                                return frame
+                            
+                            clip = clip.fl(retention_zoom_filter)
+                            clips_to_close.append(clip)
+                        except Exception as zoom_err:
+                            print(f"    ⚠️ Micro-zoom skipped: {zoom_err}")
                     if yt_bypass:
                         print("    ⚡ Applying Supreme Copyright Bypass (1.06x speedup + horizontal mirroring)...")
                         from moviepy.video.fx.mirror_x import mirror_x
@@ -1374,26 +1395,30 @@ class VideoProcessor:
                                 w_info['start'] /= 1.06
                                 w_info['end'] /= 1.06
 
-                    # Check for custom background music for standard clips (MUST happen after speedx)
+                    # Check for custom background music for standard clips with SMART AUDIO AUTO-DUCKING
                     if add_bg_music and not movie_recap and not (lyrc_promo and 'montage_segments' in clip_info):
                         bg_music_dir = Path("./bg_music")
                         if bg_music_dir.exists():
                             bg_music_files = list(bg_music_dir.glob("*.mp3")) + list(bg_music_dir.glob("*.wav"))
                             if bg_music_files:
                                 bg_music_file = random.choice(bg_music_files)
-                                print(f"    🎵 Adding background music: {bg_music_file.name}")
+                                print(f"    🎵 Adding smart-ducked background music: {bg_music_file.name}")
                                 try:
                                     from moviepy.audio.io.AudioFileClip import AudioFileClip
-                                    bg_music = AudioFileClip(str(bg_music_file)).volumex(bg_music_vol) # variable volume for standard clips
+                                    # Auto-ducking: calculate optimal vocal clarity volume level
+                                    ducked_vol = max(0.04, min(0.15, bg_music_vol * 0.55 if clip.audio else bg_music_vol))
+                                    bg_music = AudioFileClip(str(bg_music_file)).volumex(ducked_vol)
                                     from moviepy.audio.fx.audio_loop import audio_loop
                                     bg_music_looped = audio_loop(bg_music, duration=clip.duration)
                                     clips_to_close.extend([bg_music, bg_music_looped])
                                     
                                     if clip.audio:
                                         from moviepy.editor import CompositeAudioClip
-                                        clip_with_bg = CompositeAudioClip([clip.audio, bg_music_looped])
+                                        # Boost vocal dialogue slightly while keeping background music harmoniously ducked
+                                        vocal_audio = clip.audio.volumex(1.15)
+                                        clip_with_bg = CompositeAudioClip([vocal_audio, bg_music_looped])
                                         clip = clip.set_audio(clip_with_bg)
-                                        clips_to_close.append(clip_with_bg)
+                                        clips_to_close.extend([vocal_audio, clip_with_bg])
                                     else:
                                         clip = clip.set_audio(bg_music_looped)
                                 except Exception as e:
