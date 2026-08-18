@@ -2,6 +2,10 @@ import os
 import random
 from pathlib import Path
 from moviepy.editor import VideoFileClip, concatenate_videoclips, ColorClip, CompositeVideoClip, AudioFileClip, CompositeAudioClip
+from moviepy.audio.fx.audio_loop import audio_loop
+from moviepy.audio.fx.all import audio_normalize
+from moviepy.video.fx.mirror_x import mirror_x
+from moviepy.video.fx.speedx import speedx
 
 from config import OUTPUT_DIR, TEMP_DIR, GEMINI_API_KEY, BACKGROUNDS_DIR
 from services.youtube_downloader import YouTubeDownloader
@@ -193,7 +197,6 @@ class VideoProcessor:
             audio_path = None
             title = video_path.stem
             try:
-                from moviepy.editor import VideoFileClip
                 with VideoFileClip(str(video_path)) as clip:
                     duration = clip.duration
             except Exception as e:

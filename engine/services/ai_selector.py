@@ -13,7 +13,32 @@ class AISelector:
         self.api_key = api_key
         self.provider = provider
         genai.configure(api_key=self.api_key)
-        self.model = genai.GenerativeModel('gemini-2.5-pro')
+        # Cascade list of modern production models in priority order
+        self.supported_models = [
+            'gemini-2.5-flash',
+            'gemini-2.0-flash',
+            'gemini-1.5-flash',
+            'gemini-1.5-pro',
+            'gemini-2.5-pro',
+            'gemini-pro'
+        ]
+
+    def _generate_with_fallback(self, prompt, generation_config=None):
+        """Tries available Gemini models until one succeeds."""
+        last_error = None
+        for model_name in self.supported_models:
+            try:
+                model = genai.GenerativeModel(model_name)
+                response = model.generate_content(prompt, generation_config=generation_config)
+                return response
+            except Exception as e:
+                last_error = e
+                # If model is deprecated or 404, quietly try next
+                if "404" in str(e) or "not found" in str(e).lower() or "no longer available" in str(e).lower():
+                    continue
+                else:
+                    print(f"⚠️ Gemini model {model_name} attempt note: {e}")
+        raise RuntimeError(f"All Gemini models failed: {last_error}")
 
     def select_clips(self, segments, video_duration, n, target_duration, topic=None):
         """
@@ -134,7 +159,7 @@ Return ONLY valid JSON with EXACT timestamps from the transcript:
             else:
                 print(f"🤖 {self.provider} evaluating transcript & chapters for viral thoughts...")
             
-            response = self.model.generate_content(prompt, generation_config={"response_mime_type": "application/json"})
+            response = self._generate_with_fallback(prompt, generation_config={"response_mime_type": "application/json"})
             data = json.loads(response.text)
             validated_clips = []
             if isinstance(data, list):
@@ -257,7 +282,7 @@ ANALYSIS REPORT:"""
                 contents.extend(frames)
             contents.append(prompt)
             
-            response = self.model.generate_content(contents)
+            response = self._generate_with_fallback(contents)
             return response.text.strip()
         except Exception as e:
             print(f"⚠️ Video inspection analysis failed: {e}")
@@ -267,9 +292,6 @@ ANALYSIS REPORT:"""
         """
         Generates a catchy movie recap script based on the scene transcript, storyboard frames, and global video inspection report.
         """
-        # Calculate dynamic target word counts based on duration.
-        # At 1.2x speaking rate, we want the voiceover to cover the entire duration of the clip (approx 2.9 words/sec).
-        # We set the maximum cap to 5000 words to ensure the narration runs continuously for the entire duration of any video!
         target_words = max(35, min(5000, int(duration_seconds * 2.9)))
         min_words = int(target_words * 0.8)
         max_words = int(target_words * 1.2)
@@ -329,7 +351,7 @@ Conforming to the schema, output the JSON containing the 'scenes' list of object
             
             contents.append(prompt)
             
-            response = self.model.generate_content(
+            response = self._generate_with_fallback(
                 contents,
                 generation_config={
                     "response_mime_type": "application/json",
@@ -347,7 +369,6 @@ Conforming to the schema, output the JSON containing the 'scenes' list of object
         Selects multiple short action highlights (2-4 seconds each) 
         to be spliced together into a fast-paced viral montage (total target_duration).
         """
-        # Format segments
         segments_text = []
         for i, seg in enumerate(segments):
             segments_text.append(f"[{seg['start']:.1f}s-{seg['end']:.1f}s]: {seg['text']}")
@@ -378,9 +399,8 @@ Return ONLY valid JSON:
     }}
   ]
 }}"""
-        # call Gemini model
         try:
-            response = self.model.generate_content(prompt)
+            response = self._generate_with_fallback(prompt)
             # Parse response JSON
             import re
             cleaned = response.text.strip()
