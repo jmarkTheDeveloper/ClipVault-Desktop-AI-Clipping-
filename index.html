@@ -6,19 +6,7 @@
       <meta charset="UTF-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       <title>ClipVault AI</title>
-      <script>
-        window.onerror = function(msg, url, lineNo, columnNo, error) {
-          document.body.innerHTML += '<div style="color:red; font-size:20px; padding: 20px; background: black; word-wrap: break-word;"><b>Crash Error:</b><br/>' + msg + '<br/><br/>' + (error && error.stack ? error.stack : '') + '</div>';
-          return false;
-        };
-        const origError = console.error;
-        console.error = function(...args) {
-          origError.apply(console, args);
-          const msg = args.map(a => typeof a === 'object' && a?.stack ? a.stack : (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ');
-          if (msg.includes('Warning:')) return; // Ignore React warnings
-          document.body.innerHTML += '<div style="color:orange; font-size:18px; padding: 20px; background: #111; word-wrap: break-word;"><b>Console Error:</b><br/>' + msg + '</div>';
-        };
-      </script>
+
       <meta name="description" content="ClipVault offers a user-friendly video editing platform with a comprehensive dashboard and intuitive features, perfect for creators seeking seamless editing experiences." />
       <meta name="robots" content="noindex, nofollow" />
       <style>html, body { height: 100%; margin: 0; } #root { height: 100%; }</style>
