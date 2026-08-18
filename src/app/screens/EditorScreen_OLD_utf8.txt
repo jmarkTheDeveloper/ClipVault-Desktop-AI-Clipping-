@@ -1,0 +1,2188 @@
+﻿import React, { useState, useEffect, useRef, useCallback, useReducer } from "react";
+import {
+  Home, Search, Bell, Plus, Play, Pause, SkipBack, SkipForward,
+  Volume2, Maximize2, Scissors, Type, Music, Smile, Sparkles, Layers,
+  Film, RotateCcw, RotateCw, Download, Share2, Settings, Folder, Star,
+  Clock, Trash2, ChevronRight, Upload, Grid, List, MoreHorizontal, Eye,
+  EyeOff, ArrowLeft, ZoomIn, ZoomOut, FlipHorizontal, Palette, Cloud,
+  Users, Crown, Monitor, ChevronDown, Minus, LayoutTemplate, Smartphone, VolumeX,
+  AlignCenter, Bold, Italic, Check, X, Loader2, Link2, Crop, Wand2, Zap
+} from "lucide-react";
+import * as ContextMenu from '@radix-ui/react-context-menu';
+import { Rnd } from 'react-rnd';
+
+import { GlassCard, GreenBtn, PropGroup, PropRow, SliderRow } from '../components/SharedUI';
+import type { VideoClip, AudioClip, TextClip, EditorState, SelectedType } from '../utils/types';
+import { GOOGLE_FONTS, INITIAL_STATE, makeVideoClip, makeTextClip, buildFilterCSS, buildTransformCSS, fmt, G, MEDIA_LIBRARY, AUDIO_LIBRARY, FILTER_PRESETS, ANIM_IN_OPTIONS, ANIM_OUT_OPTIONS, saveLibraries } from '../utils/types';
+
+const audioCtxMap = new WeakMap<HTMLVideoElement, any>();
+let globalAudioCtx: AudioContext | null = null;
+
+// "Ã¢Â¬"Ã¢Â¬"Ã¢Â¬ EDITOR "Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬
+const LEFT_TOOLS = [
+  { id: "ai", icon: Wand2, label: "AI Magic" },
+  { id: "media", icon: Film, label: "Media" },
+  { id: "audio", icon: Music, label: "Audio" },
+  { id: "text", icon: Type, label: "Text" },
+  { id: "effects", icon: Sparkles, label: "Effects" },
+  { id: "filters", icon: Palette, label: "Filters" },
+  { id: "transitions", icon: Layers, label: "Transitions" },
+  { id: "animation", icon: Zap, label: "Animation" },
+];
+
+const RIGHT_TABS = ["Basic", "Adjust", "Speed", "Color"];
+const PX_PER_SEC_BASE = 60;
+
+const TrimStartIcon = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M8 18V6h3" />
+    <path d="M8 18h3" />
+    <path d="M15 12H8" />
+  </svg>
+);
+const TrimSplitIcon = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M10 6v12" />
+    <path d="M14 6v12" />
+    <path d="M10 6H8" />
+    <path d="M10 18H8" />
+    <path d="M14 6h2" />
+    <path d="M14 18h2" />
+    <path d="M12 4v16" strokeDasharray="2 2" strokeOpacity="0.5" />
+  </svg>
+);
+const TrimEndIcon = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M16 18V6h-3" />
+    <path d="M16 18h-3" />
+    <path d="M9 12h7" />
+  </svg>
+);
+
+export function EditorScreen({ onBack }: { onBack: () => void }) {
+  const [layoutMode, setLayoutMode] = useState("split");
+
+  const [showCropBoxes, setShowCropBoxes] = useState(false);
+  const [isFullScreen, setIsFullScreen] = useState(false);
+  const [videoTrackExpanded, setVideoTrackExpanded] = useState(true);
+
+  const [previewDevice, setPreviewDevice] = useState<"phone" | "tablet" | "laptop">("phone");
+  const [showDevicePreview, setShowDevicePreview] = useState(true);
+  const [, forceRender] = useReducer(x => x + 1, 0);
+  const deleteSelectedRef = useRef<(() => void) | undefined>(undefined);
+  const [hoverTime, setHoverTime] = useState<number | null>(null);
+
+  // Inject Google Fonts
+  useEffect(() => {
+    const link = document.createElement("link");
+    link.href = "https://fonts.googleapis.com/css2?" + GOOGLE_FONTS.map(f => `family=${f.replace(/ /g, '+')}:ital,wght@0,400;0,700;1,400;1,700`).join("&") + "&display=swap";
+    link.rel = "stylesheet";
+    document.head.appendChild(link);
+    return () => { document.head.removeChild(link); };
+  }, []);
+
+  const [previewPos, setPreviewPos] = useState({ x: -1, y: -1 }); // -1 = auto-positioned by Rnd
+
+  // Trimming / Moving state
+  const dragState = useRef<{ type: "move" | "trim-L" | "trim-R" | null; clipId: number; clipType: SelectedType; startX: number; startY: number; origStart: number; origDur: number; origTrack: number }>({ type: null, clipId: -1, clipType: null, startX: 0, startY: 0, origStart: 0, origDur: 0, origTrack: 0 });
+
+
+  const pollingIntervalRef = useRef<any>(null);
+  const exportIntervalRef = useRef<any>(null);
+
+  const stateRef = useRef<any>({});
+
+
+  const drawFrame = useCallback(() => {
+    const canvas = document.getElementById('liveCanvas') as HTMLCanvasElement | null;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const { history: _hist, histIdx: _hIdx, currentTime: _cTime } = stateRef.current;
+    const curState = _hist ? _hist[_hIdx] : null;
+    let vTime = _cTime || 0;
+
+    const activeVideoClips = curState?.clips?.filter((c: any) => vTime >= c.startTime && vTime < c.startTime + c.duration).sort((a: any, b: any) => (a.track || 0) - (b.track || 0)) || [];
+    const currentActiveVideo = activeVideoClips[0];
+    
+    const video = currentActiveVideo ? document.getElementById(`videoPlayer_${currentActiveVideo.id}`) as HTMLVideoElement : null;
+
+    if (!video) {
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        return;
+    }
+
+    const vW = video.videoWidth || 1920;
+    const vH = video.videoHeight || 1080;
+
+    const rect = video.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
+
+    const scaleX = vW / rect.width;
+    const scaleY = vH / rect.height;
+
+    const topCrop = currentActiveVideo?.cropTop ?? { x: 20, y: 10, width: 200, height: 200 };
+    const middleCrop = currentActiveVideo?.cropMiddle ?? { x: 20, y: 130, width: 200, height: 200 };
+    const bottomCrop = currentActiveVideo?.cropBottom ?? { x: 20, y: 250, width: 200, height: 200 };
+
+    const tc = {
+      x: topCrop.x * scaleX, y: topCrop.y * scaleY,
+      w: topCrop.width * scaleX, h: topCrop.height * scaleY
+    };
+
+    const bc = {
+      x: bottomCrop.x * scaleX, y: bottomCrop.y * scaleY,
+      w: bottomCrop.width * scaleX, h: bottomCrop.height * scaleY
+    };
+
+    const mc = {
+      x: middleCrop.x * scaleX, y: middleCrop.y * scaleY,
+      w: middleCrop.width * scaleX, h: middleCrop.height * scaleY
+    };
+
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Apply CSS filters from activeVideoClip
+
+
+    const currentActiveTexts = curState?.textClips?.filter((c: any) => vTime >= c.startTime && vTime < c.startTime + c.duration) ?? [];
+
+    if (currentActiveVideo) {
+      ctx.filter = buildFilterCSS(currentActiveVideo as any);
+    } else {
+      ctx.filter = "none";
+    }
+
+
+
+    if (layoutMode === "vertical" || layoutMode === "centered" || layoutMode === "spotlight") {
+      if (currentActiveVideo && tc.w > 0 && tc.h > 0) {
+        const dAspect = canvas.width / canvas.height;
+        const sAspect = tc.w / tc.h;
+        let dw = canvas.width, dh = canvas.height, dx = 0, dy = 0;
+        if (sAspect > dAspect) {
+          const scale = canvas.height / tc.h;
+          dw = tc.w * scale;
+          dx = (canvas.width - dw) / 2;
+        } else {
+          const scale = canvas.width / tc.w;
+          dh = tc.h * scale;
+          dy = (canvas.height - dh) / 2;
+        }
+        ctx.drawImage(video, tc.x, tc.y, tc.w, tc.h, dx, dy, dw, dh);
+      }
+    } else if (layoutMode === "split") {
+      const halfHeight = canvas.height / 2;
+      if (currentActiveVideo) {
+        if (tc.w > 0 && tc.h > 0) ctx.drawImage(video, tc.x, tc.y, tc.w, tc.h, 0, 0, canvas.width, halfHeight);
+        if (bc.w > 0 && bc.h > 0) ctx.drawImage(video, bc.x, bc.y, bc.w, bc.h, 0, halfHeight, canvas.width, halfHeight);
+      }
+      ctx.fillStyle = 'rgba(255,255,255,0.2)';
+      ctx.fillRect(0, halfHeight - 2, canvas.width, 4);
+
+      ctx.filter = "none"; // reset filter for text
+      currentActiveTexts.forEach((tc: any) => {
+        ctx.font = `${tc.fontStyle || 'normal'} ${tc.fontWeight || 'normal'} ${tc.fontSize}px "${tc.fontFamily || 'Inter'}"`;
+        ctx.fillStyle = tc.color || '#ffffff';
+        ctx.textAlign = 'left';
+        ctx.fillText(tc.text, (tc.x / 100) * canvas.width, (tc.y / 100) * canvas.height);
+      });
+
+    } else if (layoutMode === "trio") {
+      const thirdHeight = canvas.height / 3;
+      if (currentActiveVideo) {
+        if (tc.w > 0 && tc.h > 0) ctx.drawImage(video, tc.x, tc.y, tc.w, tc.h, 0, 0, canvas.width, thirdHeight);
+        if (mc.w > 0 && mc.h > 0) ctx.drawImage(video, mc.x, mc.y, mc.w, mc.h, 0, thirdHeight, canvas.width, thirdHeight);
+        if (bc.w > 0 && bc.h > 0) ctx.drawImage(video, bc.x, bc.y, bc.w, bc.h, 0, thirdHeight * 2, canvas.width, thirdHeight);
+      }
+      ctx.fillStyle = 'rgba(255,255,255,0.2)';
+      ctx.fillRect(0, thirdHeight - 2, canvas.width, 4);
+      ctx.fillRect(0, thirdHeight * 2 - 2, canvas.width, 4);
+    }
+  }, [layoutMode]);
+
+
+
+  // "Ã¢Â¬"Ã¢Â¬ History / state "Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬
+  const [history, setHistory] = useState<EditorState[]>(() => {
+    try {
+      const s = localStorage.getItem("clipvault_history");
+      if (s) return JSON.parse(s);
+    } catch(e) {}
+    return [INITIAL_STATE];
+  });
+  const [histIdx, setHistIdx] = useState<number>(() => {
+    try {
+      const s = localStorage.getItem("clipvault_histIdx");
+      if (s) return parseInt(s, 10) || 0;
+    } catch(e) {}
+    return 0;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("clipvault_history", JSON.stringify(history));
+    localStorage.setItem("clipvault_histIdx", JSON.stringify(histIdx));
+  }, [history, histIdx]);
+
+  const currentState = history[histIdx] ?? INITIAL_STATE;
+  const { clips, audioClips, textClips } = currentState;
+
+
+
+
+
+
+  useEffect(() => {
+    const onGlobalMouseMove = (e: MouseEvent) => {
+      const state = dragState.current;
+      if (!state.type) return;
+      const dx = (e.clientX - state.startX) / pxPerSecRef.current;
+
+      let setter: any;
+      if (state.clipType === "video") setter = updateVideoClip;
+      else if (state.clipType === "audio") setter = updateAudioClip;
+      else if (state.clipType === "text") setter = updateTextClip;
+      if (!setter) return;
+
+      const allOtherClips = [...clips, ...audioClips, ...textClips].filter((c: any) => c.id !== state.clipId);
+
+      if (state.type === "move") {
+        const dy = e.clientY - state.startY;
+        const deltaTrack = Math.round(dy / 44);
+        let newTrack = Math.max(0, state.origTrack + deltaTrack);
+        let desiredStart = Math.max(0, state.origStart + dx);
+
+        const peers = allOtherClips.filter((c: any) => (c.track || 0) === newTrack);
+        const overlap = peers.find((c: any) => desiredStart < c.startTime + c.duration && desiredStart + state.origDur > c.startTime);
+
+        if (overlap) {
+          const snapLeft = overlap.startTime - state.origDur;
+          const snapRight = overlap.startTime + overlap.duration;
+          
+          const validLeft = snapLeft >= 0 && !peers.find((c: any) => snapLeft < c.startTime + c.duration && snapLeft + state.origDur > c.startTime);
+          const validRight = !peers.find((c: any) => snapRight < c.startTime + c.duration && snapRight + state.origDur > c.startTime);
+          
+          if (validLeft && validRight) {
+            desiredStart = Math.abs(desiredStart - snapLeft) < Math.abs(desiredStart - snapRight) ? snapLeft : snapRight;
+          } else if (validLeft) {
+            desiredStart = snapLeft;
+          } else if (validRight) {
+            desiredStart = snapRight;
+          } else {
+            newTrack = state.origTrack;
+            desiredStart = state.origStart; 
+          }
+        }
+        setter(state.clipId, { startTime: desiredStart, track: newTrack }, true);
+      } else if (state.type === "trim-L") {
+        let newStart = Math.max(0, state.origStart + dx);
+        
+        const peers = allOtherClips.filter((c: any) => (c.track || 0) === state.origTrack);
+        const blockLeft = peers.filter((c: any) => c.startTime + c.duration <= state.origStart).sort((a: any, b: any) => b.startTime - a.startTime)[0];
+        if (blockLeft && newStart < blockLeft.startTime + blockLeft.duration) {
+           newStart = blockLeft.startTime + blockLeft.duration;
+        }
+        
+        const newDur = Math.max(0.5, state.origDur - (newStart - state.origStart));
+        setter(state.clipId, { startTime: newStart, duration: newDur }, true);
+      } else if (state.type === "trim-R") {
+        let newDur = Math.max(0.5, state.origDur + dx);
+        const desiredEnd = state.origStart + newDur;
+        
+        const peers = allOtherClips.filter((c: any) => (c.track || 0) === state.origTrack);
+        const blockRight = peers.filter((c: any) => c.startTime >= state.origStart + state.origDur).sort((a: any, b: any) => a.startTime - b.startTime)[0];
+        
+        if (blockRight && desiredEnd > blockRight.startTime) {
+           newDur = blockRight.startTime - state.origStart;
+        }
+        setter(state.clipId, { duration: newDur }, true);
+      }
+    };
+    const onGlobalMouseUp = () => {
+      if (dragState.current.type) dragState.current.type = null;
+    };
+    window.addEventListener("mousemove", onGlobalMouseMove);
+    window.addEventListener("mouseup", onGlobalMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", onGlobalMouseMove);
+      window.removeEventListener("mouseup", onGlobalMouseUp);
+    };
+  }, [clips, audioClips, textClips]);
+
+  const push = useCallback((s: EditorState, overwriteCurrent = false) => {
+    if (overwriteCurrent) {
+      setHistory(h => [...h.slice(0, histIdx), s]);
+    } else {
+      setHistory((h) => [...h.slice(0, histIdx + 1), s]);
+      setHistIdx((i) => i + 1);
+    }
+  }, [histIdx]);
+
+  const undo = () => { if (histIdx > 0) setHistIdx((i) => i - 1); };
+  const redo = () => { if (histIdx < history.length - 1) setHistIdx((i) => i + 1); };
+
+  // "Ã¢Â¬"Ã¢Â¬ Playback "Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬
+  const [currentTime, setCurrentTime] = useState(0);
+  // Sync state to ref for drawFrame
+  useEffect(() => {
+    stateRef.current = { history, histIdx, currentTime };
+  }, [history, histIdx, currentTime]);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const totalDuration = Math.max(
+    30,
+    ...clips.map((c: VideoClip) => c.startTime + c.duration),
+    ...audioClips.map((c: AudioClip) => c.startTime + c.duration),
+    ...textClips.map((c: TextClip) => c.startTime + c.duration),
+  );
+  const totalDurRef = useRef(totalDuration);
+  totalDurRef.current = totalDuration;
+
+  useEffect(() => {
+    let rafId: number;
+    let lastTime = performance.now();
+    let lastReactUpdate = 0;
+    
+    // Get all current video elements
+    const getVideos = () => document.querySelectorAll<HTMLVideoElement>("video[id^='videoPlayer_']");
+
+    if (isPlaying) {
+      getVideos().forEach(v => v.play().catch(e => console.error("Play blocked", e)));
+      
+      let accumulatedDelta = 0;
+      let lastReactUpdate = 0;
+      const updateLoop = (time: number) => {
+        const delta = (time - lastTime) / 1000;
+        lastTime = time;
+        accumulatedDelta += delta;
+        
+        if (time - lastReactUpdate > 33) { // ~30fps React state updates
+          setCurrentTime((prev) => {
+             let nextTime = prev + accumulatedDelta;
+             if (nextTime >= totalDurRef.current) {
+               setIsPlaying(false);
+               nextTime = totalDurRef.current;
+               getVideos().forEach(v => v.pause());
+             }
+             return nextTime;
+          });
+          accumulatedDelta = 0;
+          lastReactUpdate = time;
+        }
+
+        drawFrame();
+        rafId = requestAnimationFrame(updateLoop);
+      };
+      rafId = requestAnimationFrame(updateLoop);
+    } else {
+      getVideos().forEach(v => v.pause());
+    }
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+    };
+  }, [isPlaying, drawFrame, clips]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const active = document.activeElement;
+      if (active && (
+        active.tagName === "INPUT" ||
+        active.tagName === "TEXTAREA" ||
+        active.getAttribute("contenteditable") === "true"
+      )) {
+        return;
+      }
+      if (e.code === "Space") {
+        e.preventDefault();
+        setIsPlaying((p) => !p);
+      }
+      if (e.code === "Backspace" || e.code === "Delete") {
+        e.preventDefault();
+        deleteSelectedRef.current?.();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  // "Ã¢Â¬"Ã¢Â¬ Timeline "Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬
+  const [zoomLevel, setZoomLevel] = useState(100);
+  const pxPerSec = (PX_PER_SEC_BASE * zoomLevel) / 100;
+  const pxPerSecRef = useRef(pxPerSec);
+  useEffect(() => { pxPerSecRef.current = pxPerSec; }, [pxPerSec]);
+  const zoomTargetRef = useRef({ active: false, time: 0, offsetX: 0 });
+  const targetZoomRef = useRef(100);
+  const zoomAnimRef = useRef<number | null>(null);
+  const timelineRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (zoomTargetRef.current.active && timelineRef.current) {
+      const { time, offsetX } = zoomTargetRef.current;
+      const newScrollLeft = (time * pxPerSec) - offsetX;
+      timelineRef.current.scrollLeft = newScrollLeft;
+    }
+  }, [pxPerSec]);
+
+  useEffect(() => {
+    const el = timelineRef.current;
+    if (!el) return;
+    const handleWheel = (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        
+        const delta = -(e.deltaY * 0.03);
+        targetZoomRef.current = Math.max(10, Math.min(1000, targetZoomRef.current + delta));
+        
+        const rect = el.getBoundingClientRect();
+        const offsetX = e.clientX - rect.left;
+        const timeAtCursor = (el.scrollLeft + offsetX) / pxPerSecRef.current;
+        zoomTargetRef.current = { active: true, time: timeAtCursor, offsetX };
+
+        if (!zoomAnimRef.current) {
+          const animateZoom = () => {
+             setZoomLevel(currentZoom => {
+                const diff = targetZoomRef.current - currentZoom;
+                if (Math.abs(diff) < 0.5) {
+                   zoomTargetRef.current.active = false;
+                   zoomAnimRef.current = null;
+                   return targetZoomRef.current;
+                }
+                zoomAnimRef.current = requestAnimationFrame(animateZoom);
+                return currentZoom + diff * 0.2; // lerp speed
+             });
+          };
+          zoomAnimRef.current = requestAnimationFrame(animateZoom);
+        }
+      } else {
+        if (Math.abs(e.deltaY) > 0 && Math.abs(e.deltaX) === 0 && !e.shiftKey) {
+          if (el.scrollHeight <= el.clientHeight) {
+            e.preventDefault();
+            el.scrollLeft += e.deltaY;
+          }
+        }
+      }
+    };
+    el.addEventListener("wheel", handleWheel, { passive: false });
+    return () => el.removeEventListener("wheel", handleWheel);
+  }, []);
+  const isDragging = useRef(false);
+  const isPanning = useRef(false);
+  const lastPanX = useRef(0);
+
+  const seekTo = useCallback((clientX: number) => {
+    if (!timelineRef.current) return;
+    const rect = timelineRef.current.getBoundingClientRect();
+    const scrollLeft = timelineRef.current.scrollLeft;
+    const rawX = clientX - rect.left + scrollLeft; // label width is outside now
+    const t = Math.max(0, Math.min(rawX / pxPerSec, totalDurRef.current));
+    setCurrentTime(t);
+  }, [pxPerSec]);
+
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => { 
+      if (isPanning.current) {
+        if (timelineRef.current) {
+          const dx = e.clientX - lastPanX.current;
+          timelineRef.current.scrollLeft -= dx;
+          lastPanX.current = e.clientX;
+        }
+        return;
+      }
+      if (isDragging.current) seekTo(e.clientX); 
+    };
+    const onUp = () => { isDragging.current = false; isPanning.current = false; };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
+  }, [seekTo]);
+
+  // Auto-scroll timeline to keep playhead visible
+  useEffect(() => {
+    if (!timelineRef.current) return;
+    const playheadX = currentTime * pxPerSec;
+    const { scrollLeft, clientWidth } = timelineRef.current;
+    const labelW = 80;
+    const visibleLeft = scrollLeft;
+    const visibleRight = scrollLeft + clientWidth - labelW;
+    if (playheadX < visibleLeft || playheadX > visibleRight - 40) {
+      timelineRef.current.scrollLeft = Math.max(0, playheadX - (clientWidth - labelW) / 2);
+    }
+  }, [currentTime, pxPerSec]);
+
+  // "Ã¢Â¬"Ã¢Â¬ Selection "Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬
+  const [selectedId, setSelectedId] = useState<number | null>(clips[0]?.id ?? null);
+  const [selectedType, setSelectedType] = useState<SelectedType>("video");
+  const [activeTool, setActiveTool] = useState("media");
+  const [activeRightTab, setActiveRightTab] = useState("basic");
+  const [showLayoutPanel, setShowLayoutPanel] = useState(false);
+  const [timelineTool, setTimelineTool] = useState<"select" | "cut" | "move" | "trim">("select");
+  const [ytUrl, setYtUrl] = useState("");
+  const [ytLoading, setYtLoading] = useState(false);
+  const [ytAudioUrl, setYtAudioUrl] = useState("");
+  const [ytAudioLoading, setYtAudioLoading] = useState(false);
+
+
+  const selectedClip = selectedType === "video" ? clips.find((c: VideoClip) => c.id === selectedId) ?? null
+    : selectedType === "audio" ? audioClips.find((c: AudioClip) => c.id === selectedId) ?? null
+      : selectedType === "text" ? textClips.find((c: TextClip) => c.id === selectedId) ?? null
+        : null;
+
+  // "Ã¢Â¬"Ã¢Â¬ Clip operations "Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬
+  const updateVideoClip = (id: number, updates: Partial<VideoClip>, overwriteCurrent = false) => {
+    push({ clips: clips.map((c: VideoClip) => c.id === id ? { ...c, ...updates } : c), audioClips, textClips }, overwriteCurrent);
+  };
+  const updateAudioClip = (id: number, updates: Partial<AudioClip>, overwriteCurrent = false) => {
+    push({ clips, audioClips: audioClips.map((c: AudioClip) => c.id === id ? { ...c, ...updates } : c), textClips }, overwriteCurrent);
+  };
+  const updateTextClip = (id: number, updates: Partial<TextClip>, overwriteCurrent = false) => {
+    push({ clips, audioClips, textClips: textClips.map((c: TextClip) => c.id === id ? { ...c, ...updates } : c) }, overwriteCurrent);
+  };
+
+  const addMediaToTimeline = (mediaId: number, dropTime?: number) => {
+    const lastEnd = clips.reduce((m: number, c: VideoClip) => Math.max(m, c.startTime + c.duration), 0);
+    const startTime = dropTime !== undefined ? dropTime : lastEnd;
+    const newClip = makeVideoClip(mediaId, startTime);
+    push({ clips: [...clips, newClip], audioClips, textClips });
+    setSelectedId(newClip.id);
+    setSelectedType("video");
+  };
+
+  const addAudioToTimeline = (audioId: number) => {
+    const src = AUDIO_LIBRARY.find((a: { id: number }) => a.id === audioId)!;
+    const lastEnd = audioClips.reduce((m: number, c: AudioClip) => Math.max(m, c.startTime + c.duration), 0);
+    const newClip: AudioClip = { id: Date.now(), type: "audio", name: src.name, artist: src.artist, startTime: lastEnd, duration: src.duration, volume: 80, track: 2 };
+    push({ clips, audioClips: [...audioClips, newClip], textClips });
+    setSelectedId(newClip.id);
+    setSelectedType("audio");
+  };
+
+  const addTextToTimeline = () => {
+    const newClip = makeTextClip(currentTime);
+    push({ clips, audioClips, textClips: [...textClips, newClip] });
+    setSelectedId(newClip.id);
+    setSelectedType("text");
+    setActiveTool("text");
+    setActiveRightTab("basic");
+  };
+
+  const deleteSelected = () => {
+    if (selectedId == null) return;
+    if (selectedType === "video") push({ clips: clips.filter((c: VideoClip) => c.id !== selectedId), audioClips, textClips });
+    if (selectedType === "audio") push({ clips, audioClips: audioClips.filter((c: AudioClip) => c.id !== selectedId), textClips });
+    if (selectedType === "text") push({ clips, audioClips, textClips: textClips.filter((c: TextClip) => c.id !== selectedId) });
+    setSelectedId(null);
+    setSelectedType(null);
+  };
+  deleteSelectedRef.current = deleteSelected;
+
+  const duplicateSelected = () => {
+    if (selectedId == null) return;
+    if (selectedType === "video") {
+      const orig = clips.find((c: VideoClip) => c.id === selectedId);
+      if (!orig) return;
+      const copy: VideoClip = { ...orig, id: Date.now(), startTime: orig.startTime + orig.duration };
+      push({ clips: [...clips, copy], audioClips, textClips });
+      setSelectedId(copy.id);
+    }
+    if (selectedType === "audio") {
+      const orig = audioClips.find((c: AudioClip) => c.id === selectedId);
+      if (!orig) return;
+      const copy: AudioClip = { ...orig, id: Date.now(), startTime: orig.startTime + orig.duration };
+      push({ clips, audioClips: [...audioClips, copy], textClips });
+      setSelectedId(copy.id);
+    }
+    if (selectedType === "text") {
+      const orig = textClips.find((c: TextClip) => c.id === selectedId);
+      if (!orig) return;
+      const copy: TextClip = { ...orig, id: Date.now(), startTime: orig.startTime + orig.duration, x: orig.x + 5, y: orig.y + 5 };
+      push({ clips, audioClips, textClips: [...textClips, copy] });
+      setSelectedId(copy.id);
+    }
+  };
+
+  const splitAtPlayhead = () => {
+    let changed = false;
+    const newClips = [...clips];
+    const newAudio = [...audioClips];
+    const newText = [...textClips];
+    
+    const splitArr = (arr: any[]) => {
+      for (let i = arr.length - 1; i >= 0; i--) {
+        const c = arr[i];
+        if (selectedId && c.id !== selectedId) continue;
+        if (currentTime > c.startTime && currentTime < c.startTime + c.duration) {
+          const leftDur = currentTime - c.startTime;
+          const rightDur = c.duration - leftDur;
+          const left = { ...c, duration: leftDur };
+          const right = { ...c, id: Date.now() + Math.random(), startTime: currentTime, duration: rightDur };
+          arr.splice(i, 1, left, right);
+          changed = true;
+        }
+      }
+    };
+    
+    if (!selectedId || selectedType === "video") splitArr(newClips);
+    if (!selectedId || selectedType === "audio") splitArr(newAudio);
+    if (!selectedId || selectedType === "text") splitArr(newText);
+    
+    if (changed) push({ clips: newClips, audioClips: newAudio, textClips: newText });
+  };
+
+  const trimStartToPlayhead = () => {
+    let changed = false;
+    const newClips = [...clips];
+    const newAudio = [...audioClips];
+    const newText = [...textClips];
+    
+    const trimArr = (arr: any[]) => {
+      for (let i = 0; i < arr.length; i++) {
+        const c = arr[i];
+        if (selectedId && c.id !== selectedId) continue;
+        if (currentTime > c.startTime && currentTime < c.startTime + c.duration) {
+          const cutAmount = currentTime - c.startTime;
+          arr[i] = { ...c, startTime: currentTime, duration: c.duration - cutAmount };
+          changed = true;
+        }
+      }
+    };
+    
+    if (!selectedId || selectedType === "video") trimArr(newClips);
+    if (!selectedId || selectedType === "audio") trimArr(newAudio);
+    if (!selectedId || selectedType === "text") trimArr(newText);
+    
+    if (changed) push({ clips: newClips, audioClips: newAudio, textClips: newText });
+  };
+
+  const trimEndToPlayhead = () => {
+    let changed = false;
+    const newClips = [...clips];
+    const newAudio = [...audioClips];
+    const newText = [...textClips];
+    
+    const trimArr = (arr: any[]) => {
+      for (let i = 0; i < arr.length; i++) {
+        const c = arr[i];
+        if (selectedId && c.id !== selectedId) continue;
+        if (currentTime > c.startTime && currentTime < c.startTime + c.duration) {
+          const newDur = currentTime - c.startTime;
+          arr[i] = { ...c, duration: newDur };
+          changed = true;
+        }
+      }
+    };
+    
+    if (!selectedId || selectedType === "video") trimArr(newClips);
+    if (!selectedId || selectedType === "audio") trimArr(newAudio);
+    if (!selectedId || selectedType === "text") trimArr(newText);
+    
+    if (changed) push({ clips: newClips, audioClips: newAudio, textClips: newText });
+  };
+
+  // "Ã¢Â¬"Ã¢Â¬ Export modal "Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬
+  const [showExport, setShowExport] = useState(false);
+  const [exportProgress, setExportProgress] = useState(0);
+  const [exportDone, setExportDone] = useState(false);
+
+  const closeExportModal = () => {
+    setShowExport(false);
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+    if (exportIntervalRef.current) {
+      clearInterval(exportIntervalRef.current);
+      exportIntervalRef.current = null;
+    }
+  };
+
+  const startPollingStatus = (taskId: string) => {
+    setExportProgress(0);
+    setExportDone(false);
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+    }
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`http://localhost:8000/api/status/${taskId}`);
+        const data = await res.json();
+
+        if (data.status === "completed") {
+          setExportProgress(100);
+          setExportDone(true);
+          clearInterval(interval);
+          pollingIntervalRef.current = null;
+        } else if (data.status === "failed") {
+          clearInterval(interval);
+          pollingIntervalRef.current = null;
+          closeExportModal();
+          alert("Clipping failed: " + data.error);
+        } else {
+          setExportProgress((p) => {
+            const next = p + 3;
+            return next > 95 ? 95 : next;
+          });
+        }
+      } catch (e) {
+        setExportProgress((p) => {
+          const next = p + 5;
+          if (next >= 100) {
+            clearInterval(interval);
+            pollingIntervalRef.current = null;
+            setExportDone(true);
+            return 100;
+          }
+          return next;
+        });
+      }
+    }, 2000);
+    pollingIntervalRef.current = interval;
+  };
+
+  const startExport = async () => {
+    const ytInput = document.getElementById('ytInput') as HTMLInputElement | null;
+    const url = ytInput?.value;
+    if (!url) return alert('Please enter a YouTube video URL first!');
+
+    const payload = {
+      url,
+      layout: layoutMode,
+      top_crop: topCrop,
+      middle_crop: layoutMode === 'trio' ? middleCrop : null,
+      bottom_crop: (layoutMode === 'split' || layoutMode === 'trio') ? bottomCrop : null,
+      caption_style: "sigma_pink",
+      num_clips: 1
+    };
+
+    setShowExport(true);
+    setExportProgress(0);
+    setExportDone(false);
+
+    try {
+      const res = await fetch('http://localhost:8000/api/process', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.task_id) {
+        startPollingStatus(data.task_id);
+      } else {
+        alert('Failed to start export: ' + JSON.stringify(data));
+      }
+    } catch (err) {
+      startSimulatedExport();
+    }
+  };
+
+  const startSimulatedExport = () => {
+    setExportProgress(0);
+    setExportDone(false);
+    if (exportIntervalRef.current) {
+      clearInterval(exportIntervalRef.current);
+    }
+    let p = 0;
+    const id = setInterval(() => {
+      p += Math.random() * 12 + 3;
+      if (p >= 100) {
+        p = 100;
+        clearInterval(id);
+        exportIntervalRef.current = null;
+        setExportDone(true);
+      }
+      setExportProgress(Math.round(p));
+    }, 200);
+    exportIntervalRef.current = id;
+  };
+
+  // "Ã¢Â¬"Ã¢Â¬ Canvas text drag "Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬
+  const draggingTextId = useRef<number | null>(null);
+  const dragOffset = useRef({ x: 0, y: 0 });
+
+  const handleTextMouseDown = (e: React.MouseEvent, id: number, curX: number, curY: number) => {
+    e.stopPropagation();
+    setSelectedId(id);
+    setSelectedType("text");
+    draggingTextId.current = id;
+    dragOffset.current = { x: e.clientX - curX * 5.6, y: e.clientY - curY * 4.5 };
+  };
+
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      if (draggingTextId.current == null) return;
+      const container = document.getElementById("canvas-preview");
+      if (!container) return;
+      const rect = container.getBoundingClientRect();
+      const newX = Math.max(5, Math.min(95, ((e.clientX - rect.left) / rect.width) * 100));
+      const newY = Math.max(5, Math.min(95, ((e.clientY - rect.top) / rect.height) * 100));
+      updateTextClip(draggingTextId.current, { x: newX, y: newY });
+    };
+    const onUp = () => { draggingTextId.current = null; };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // mount-only Ã¢ draggingTextId is a ref, no re-subscription needed
+
+  // "Ã¢Â¬"Ã¢Â¬ Canvas "Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬
+  const activeVideoClips = clips.filter((c: VideoClip) => currentTime >= c.startTime && currentTime < c.startTime + c.duration).sort((a: any, b: any) => (a.track || 0) - (b.track || 0));
+  const activeVideoClip = activeVideoClips.find((c: any) => c.id === selectedId) || activeVideoClips[activeVideoClips.length - 1];
+  const topCrop = activeVideoClip?.cropTop ?? { x: 20, y: 10, width: 200, height: 200 };
+  const middleCrop = activeVideoClip?.cropMiddle ?? { x: 20, y: 130, width: 200, height: 200 };
+  const bottomCrop = activeVideoClip?.cropBottom ?? { x: 20, y: 250, width: 200, height: 200 };
+  const activeTextClips = textClips.filter((c: TextClip) => currentTime >= c.startTime && currentTime < c.startTime + c.duration);
+
+  // Global Volume Sync via Web Audio API
+  useEffect(() => {
+    const videos = document.querySelectorAll<HTMLVideoElement>("video[id^='videoPlayer_']");
+    videos.forEach(video => {
+       const clipId = Number(video.id.split('_')[1]);
+       const clip = activeVideoClips.find((c: any) => c.id === clipId);
+       
+       if (!clip) {
+          video.muted = true;
+       } else {
+          video.muted = false;
+          const targetVol = typeof clip.volume === 'number' ? clip.volume / 100 : 1.0;
+          
+          if (targetVol > 1.0) {
+             // Needs amplification via Web Audio API
+             video.volume = 1.0;
+             if (!globalAudioCtx) {
+                globalAudioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+             }
+             if (globalAudioCtx.state === 'suspended') {
+                globalAudioCtx.resume().catch(e => console.warn("AudioContext resume blocked:", e));
+             }
+             let nodes = audioCtxMap.get(video);
+             if (!nodes) {
+                try {
+                  const source = globalAudioCtx.createMediaElementSource(video);
+                  const gainNode = globalAudioCtx.createGain();
+                  source.connect(gainNode);
+                  gainNode.connect(globalAudioCtx.destination);
+                  nodes = { source, gainNode };
+                  audioCtxMap.set(video, nodes);
+                } catch(e) { console.error("Audio Routing Failed (CORS/Dupe):", e); }
+             }
+             if (nodes) nodes.gainNode.gain.value = targetVol;
+          } else {
+             // Native HTML5 volume
+             video.volume = targetVol;
+             const nodes = audioCtxMap.get(video);
+             if (nodes) {
+                nodes.gainNode.gain.value = 1.0;
+             }
+          }
+       }
+    });
+  }, [activeVideoClips]);
+
+  // Sync video time to timeline
+  useEffect(() => {
+    const videos = document.querySelectorAll<HTMLVideoElement>("video[id^='videoPlayer_']");
+    videos.forEach(video => {
+       const clipId = Number(video.id.split('_')[1]);
+       const clip = activeVideoClips.find((c: any) => c.id === clipId);
+       if (clip) {
+         // Use relative time: if video is at timeline time `currentTime`, it should play its frame at `currentTime - clip.startTime`.
+         const expectedTime = Math.max(0, currentTime - clip.startTime + ((clip as any).trimStart || 0));
+         
+         if (isPlaying && video.paused) {
+           video.play().catch(e => console.warn("Sync play blocked:", e));
+         }
+
+         if (Math.abs(video.currentTime - expectedTime) > 0.2) {
+           video.currentTime = expectedTime;
+           if (!isPlaying) drawFrame();
+         }
+       }
+    });
+  }, [currentTime, drawFrame, activeVideoClips, isPlaying]);
+
+  const panelBg = "rgba(6,6,6,0.97)";
+  const panelBorder = "rgba(0,230,118,0.07)";
+
+  // "Ã¢Â¬"Ã¢Â¬ Render "Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬
+  return (
+    <div className="h-screen flex flex-col font-['Inter',sans-serif] overflow-hidden" style={{ background: "#050505" }}>
+      {/* Topbar */}
+      <header className="h-12 flex items-center justify-between px-4 pr-[140px] flex-shrink-0 z-20 relative" style={{ background: panelBg, borderBottom: `1px solid ${panelBorder}`, backdropFilter: "blur(20px)", WebkitAppRegion: "drag" } as any}>
+        <div className="flex items-center gap-3">
+          <button onClick={onBack} className="flex items-center gap-1.5 text-sm transition-colors hover:text-white" style={{ WebkitAppRegion: "no-drag", color: "#5a5a5a" } as any}>
+            <ArrowLeft className="w-4 h-4" />Back
+          </button>
+          <div className="w-px h-5" style={{ background: "rgba(255,255,255,0.07)" }} />
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 rounded-lg flex items-center justify-center" style={{ background: "linear-gradient(135deg, #00e676, #00a854)" }}>
+              <Film className="w-3 h-3 text-black" strokeWidth={2.5} />
+            </div>
+            <input defaultValue="Summer Vlog 2024" className="bg-transparent text-white text-sm font-semibold outline-none hover:bg-white/[0.03] focus:bg-white/[0.04] px-2 rounded-lg transition-all" style={{ WebkitAppRegion: "no-drag" } as any} />
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={undo} disabled={histIdx <= 0} className="p-2 rounded-lg transition-all hover:bg-white/[0.05] disabled:opacity-30" style={{ WebkitAppRegion: "no-drag", color: "#5a5a5a" } as any}><RotateCcw className="w-4 h-4" /></button>
+          <button onClick={redo} disabled={histIdx >= history.length - 1} className="p-2 rounded-lg transition-all hover:bg-white/[0.05] disabled:opacity-30" style={{ WebkitAppRegion: "no-drag", color: "#5a5a5a" } as any}><RotateCw className="w-4 h-4" /></button>
+          <div className="w-px h-5 mx-1" style={{ background: "rgba(255,255,255,0.07)" }} />
+          <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-all hover:bg-white/[0.05]" style={{ color: "#5a5a5a", WebkitAppRegion: "no-drag" } as any}>
+            <Share2 className="w-4 h-4" />Share
+          </button>
+          <div style={{ WebkitAppRegion: "no-drag" } as any}><GreenBtn size="sm" onClick={() => { setShowExport(true); startExport(); }}>
+            <Download className="w-3.5 h-3.5" />Export
+          </GreenBtn></div>
+        </div>
+      </header>
+
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left Toolbar */}
+        <div className="w-16 flex flex-col items-center py-4 flex-shrink-0 z-10 border-r border-white/5 relative" style={{ background: panelBg }}>
+          {[
+            { id: "media", icon: Film, label: "Media" },
+            { id: "audio", icon: Music, label: "Audio" },
+            { id: "text", icon: Type, label: "Text" },
+            { id: "effects", icon: Wand2, label: "Effects" },
+            { id: "filters", icon: SlidersHorizontal, label: "Filters" },
+            { id: "transitions", icon: Layers, label: "Transitions" }
+          ].map(t => (
+            <button key={t.id} onClick={() => setActiveTool(t.id as any)} className="w-12 h-12 rounded-xl mb-2 flex flex-col items-center justify-center gap-1 transition-all group relative" style={activeTool === t.id ? { background: "rgba(0,230,118,0.1)", color: G } : { color: "#666" }}>
+              <t.icon className="w-4 h-4 transition-transform group-hover:scale-110" />
+              <span className="text-[8px] font-medium">{t.label}</span>
+              {activeTool === t.id && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full" style={{ background: G, boxShadow: "0 0 10px rgba(0,230,118,0.5)" }} />}
+            </button>
+          ))}
+        </div>
+
+        {/* Tool Panel */}
+        <div className="w-[340px] flex flex-col flex-shrink-0 z-10 border-r border-white/5" style={{ background: panelBg }}>
+          <div className="p-4 border-b border-white/5 flex items-center justify-between">
+            <h2 className="text-white font-bold capitalize">{activeTool}</h2>
+          </div>
+          <div className="flex-1 overflow-y-auto no-scrollbar">
+            {activeTool === "media" && (
+              <div className="p-3 space-y-5">
+                {/* Search */}
+                <div className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)" }}>
+                  <Search className="w-3.5 h-3.5 text-neutral-500" />
+                  <input type="text" placeholder="Search media..." className="bg-transparent outline-none flex-1 text-white placeholder-neutral-500" />
+                </div>
+
+                {/* Upload Buttons */}
+                <div>
+                  <div className="grid grid-cols-1 gap-2 mb-4">
+                    <button onClick={() => {
+                      const fileInput = document.createElement('input');
+                      fileInput.type = 'file';
+                      fileInput.accept = 'video/*,image/*';
+                      fileInput.onchange = (e) => {
+                        const file = (e.target as HTMLInputElement).files?.[0];
+                        if (file) {
+                          const url = URL.createObjectURL(file);
+                          const newId = 1000 + MEDIA_LIBRARY.length;
+                          (MEDIA_LIBRARY as any).push({ id: newId, type: "video", name: file.name, thumb: url, duration: 10, url: url });
+                          saveLibraries();
+                          forceRender();
+                        }
+                      };
+                      fileInput.click();
+                    }} className="h-[80px] rounded-xl flex flex-col items-center justify-center gap-2 transition-all group" style={{ background: "rgba(255,255,255,0.02)", border: "1px dashed rgba(255,255,255,0.1)" }}>
+                      <div className="w-7 h-7 rounded-full flex items-center justify-center transition-all group-hover:scale-110 group-hover:shadow-[0_0_15px_rgba(255,255,255,0.1)]" style={{ background: "rgba(255,255,255,0.05)" }}>
+                        <Upload className="w-3.5 h-3.5" style={{ color: "#aaa" }} />
+                      </div>
+                      <span className="text-[9px] text-center px-2" style={{ color: "#5a5a5a" }}>Upload</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* YouTube URL import */}
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: "#2a2a2a" }}>YouTube Link</p>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-1.5 rounded-lg px-2.5 py-2" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
+                      <Link2 className="w-3 h-3 flex-shrink-0" style={{ color: "#404040" }} />
+                      <input
+                        id="ytInput"
+                        value={ytUrl}
+                        onChange={(e) => setYtUrl(e.target.value)}
+                        placeholder="Paste YouTube URL..."
+                        className="flex-1 bg-transparent text-xs text-white outline-none placeholder-[#404040] min-w-0"
+                        onFocus={(e) => (e.currentTarget.parentElement!.style.borderColor = "rgba(0,230,118,0.3)")}
+                        onBlur={(e) => (e.currentTarget.parentElement!.style.borderColor = "rgba(255,255,255,0.07)")} />
+                    </div>
+                    <GreenBtn size="sm" className="w-full justify-center" onClick={async () => {
+                      if (!ytUrl) return;
+                      setYtLoading(true);
+                      try {
+                        const res = await fetch(`http://localhost:8000/api/download_video?url=${encodeURIComponent(ytUrl)}`);
+                        const data = await res.json();
+                        if (data.url) {
+                          const ytMatch = ytUrl.match(/[?&]v=([^&]+)|youtu\.be\/([^?&]+)/);
+                          const ytId = ytMatch ? (ytMatch[1] || ytMatch[2]) : null;
+                          const thumbUrl = ytId ? `https://img.youtube.com/vi/${ytId}/0.jpg` : "https://via.placeholder.com/160x90";
+                          const newId = 2000 + MEDIA_LIBRARY.length;
+                          (MEDIA_LIBRARY as any).push({
+                            id: newId,
+                            type: "video",
+                            name: data.title || "YouTube Video",
+                            thumb: thumbUrl,
+                            duration: data.duration || 60,
+                            url: data.url
+                          });
+                          saveLibraries();
+                          addMediaToTimeline(newId);
+                          const video = document.getElementById('videoPlayer') as HTMLVideoElement | null;
+                          if (video) { video.src = data.url; video.load(); }
+                          setYtUrl(""); // Clear input
+                        } else {
+                          alert("Download failed: " + (data.detail || "Failed to get stream URL"));
+                        }
+                      } catch (e) { alert('Backend offline or error - ' + e); }
+                      finally { setYtLoading(false); }
+                    }}>
+                      {ytLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
+                      {ytLoading ? 'Loading...' : 'Load Video'}
+                    </GreenBtn>
+                  </div>
+                </div>
+
+                {/* Library */}
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: "#2a2a2a" }}>Library</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {MEDIA_LIBRARY.map((item: typeof MEDIA_LIBRARY[number]) => (
+                      <div key={item.id} className="group cursor-grab active:cursor-grabbing"
+                        draggable={true}
+                        onDragStart={(e) => e.dataTransfer.setData("application/json", JSON.stringify({ type: "media", id: item.id }))}
+                        onClick={() => addMediaToTimeline(item.id)}>
+                        <div className="relative rounded-xl overflow-hidden aspect-video" style={{ background: "#0a0a0a" }}>
+                          <div className="absolute top-1 right-1 bg-red-500 rounded-full w-4 h-4 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 hover:bg-red-600" onClick={(e) => {
+                            e.stopPropagation();
+                            const idx = MEDIA_LIBRARY.findIndex((m: any) => m.id === item.id);
+                            if (idx > -1) {
+                              MEDIA_LIBRARY.splice(idx, 1);
+                              saveLibraries();
+                              if (history[histIdx]?.clips.some((c: any) => c.mediaId === item.id)) {
+                                push({ clips: history[histIdx]!.clips.filter((c: any) => c.mediaId !== item.id), audioClips: history[histIdx]!.audioClips, textClips: history[histIdx]!.textClips });
+                              }
+                              forceRender();
+                            }
+                          }}><span className="text-white text-[10px] leading-none" style={{ marginTop: '-1px' }}>Ã—</span></div>
+                          <img src={item.thumb} alt={item.name} className="w-full h-full object-cover" />
+                          {item.type === "video" && (
+                            <div className="absolute bottom-1 right-1 text-white text-[9px] px-1 rounded font-mono" style={{ background: "rgba(0,0,0,0.8)" }}>{item.duration}s</div>
+                          )}
+                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: "rgba(0,230,118,0.15)" }}>
+                            <Plus className="w-5 h-5" style={{ color: G }} />
+                          </div>
+                        </div>
+                        <p className="text-[10px] mt-1 truncate" style={{ color: "#5a5a5a" }}>{item.name}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTool === "audio" && (
+              <div className="p-3 space-y-4">
+                {/* YouTube URL import for Audio */}
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: "#2a2a2a" }}>YouTube Link</p>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-1.5 rounded-lg px-2.5 py-2" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
+                      <Link2 className="w-3 h-3 flex-shrink-0" style={{ color: "#404040" }} />
+                      <input
+                        id="ytAudioInput"
+                        value={ytAudioUrl}
+                        onChange={(e) => setYtAudioUrl(e.target.value)}
+                        placeholder="Paste YouTube URL..."
+                        className="flex-1 bg-transparent text-xs text-white outline-none placeholder-[#404040] min-w-0"
+                        onFocus={(e) => (e.currentTarget.parentElement!.style.borderColor = "rgba(0,230,118,0.3)")}
+                        onBlur={(e) => (e.currentTarget.parentElement!.style.borderColor = "rgba(255,255,255,0.07)")} />
+                    </div>
+                    <GreenBtn size="sm" className="w-full justify-center" onClick={async () => {
+                      if (!ytAudioUrl) return;
+                      setYtAudioLoading(true);
+                      try {
+                        const res = await fetch(`http://localhost:8000/api/download_audio?url=${encodeURIComponent(ytAudioUrl)}`);
+                        const data = await res.json();
+                        if (data.url) {
+                          const newId = 3000 + (AUDIO_LIBRARY as any).length;
+                          (AUDIO_LIBRARY as any).push({
+                            id: newId,
+                            type: "audio",
+                            name: data.title || "YouTube Audio",
+                            artist: data.author || "Unknown Channel",
+                            duration: data.duration || 60,
+                            url: data.url
+                          });
+                          saveLibraries();
+                          addAudioToTimeline(newId);
+
+                          // Preload it in the UI hidden audio element if needed, though timeline handles it mostly.
+                          setYtAudioUrl(""); // Clear input
+                        } else {
+                          alert("Download failed: " + (data.detail || "Failed to get audio stream URL"));
+                        }
+                      } catch (e) { alert('Backend offline or error - ' + e); }
+                      finally { setYtAudioLoading(false); }
+                    }}>
+                      {ytAudioLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
+                      {ytAudioLoading ? 'Extracting...' : 'Extract Audio'}
+                    </GreenBtn>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: "#2a2a2a" }}>Library</p>
+                  <div className="space-y-1">
+                    {AUDIO_LIBRARY.map((track: typeof AUDIO_LIBRARY[number]) => (
+                      <div key={track.id} className="flex items-center gap-2.5 px-2 py-2.5 rounded-xl cursor-grab active:cursor-grabbing group transition-all hover:bg-white/[0.03]"
+                        draggable={true}
+                        onDragStart={(e) => e.dataTransfer.setData("application/json", JSON.stringify({ type: "audio", id: track.id }))}
+                        onClick={() => addAudioToTimeline(track.id)}>
+                        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "rgba(0,230,118,0.1)", border: "1px solid rgba(0,230,118,0.2)" }}>
+                          <Music className="w-4 h-4" style={{ color: G }} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white text-xs font-medium truncate">{track.name}</p>
+                          <p className="text-[10px] truncate" style={{ color: "#5a5a5a" }}>{track.artist} Â· {fmt(track.duration)}</p>
+                        </div>
+                        <Plus className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: G }} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTool === "text" && (
+              <div className="p-3 space-y-2">
+                <p className="text-[10px] font-bold uppercase tracking-widest px-1 mb-3" style={{ color: "#2a2a2a" }}>Text Presets</p>
+                {["Large Heading", "Subtitle", "Body Text", "Caption", "Bold Quote", "Lower Third"].map((t) => (
+                  <div key={t} onClick={addTextToTimeline}
+                    className="px-3 py-2.5 rounded-xl cursor-pointer transition-all hover:bg-white/[0.04]"
+                    style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.05)" }}>
+                    <p className="text-white text-xs">{t}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {activeTool === "filters" && (
+              <div className="p-3 grid grid-cols-2 gap-2">
+                {FILTER_PRESETS.map((f: typeof FILTER_PRESETS[number]) => (
+                  <button key={f.id}
+                    onClick={() => selectedType === "video" && selectedId && updateVideoClip(selectedId, { filterPreset: f.id })}
+                    className="group cursor-pointer">
+                    <div className="relative rounded-xl overflow-hidden aspect-video border-2 transition-all"
+                      style={{ background: "#0a0a0a", borderColor: (selectedClip as VideoClip)?.filterPreset === f.id ? G : "transparent" }}>
+                      <img src={activeVideoClip?.thumb || MEDIA_LIBRARY[0]?.thumb || ""} alt={f.name}
+                        className="w-full h-full object-cover"
+                        style={{ filter: f.css || "none" }} />
+                    </div>
+                    <p className="text-[10px] mt-1 text-center" style={{ color: "#5a5a5a" }}>{f.name}</p>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {activeTool === "effects" && (
+              <div className="p-3 space-y-1">
+                {["Glitch", "VHS Tape", "Film Grain", "Motion Blur", "Shake", "Light Leak", "Mirror", "Bokeh"].map((fx) => (
+                  <div key={fx} className="flex items-center justify-between px-3 py-2 rounded-xl cursor-pointer group transition-all hover:bg-white/[0.03]">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(0,230,118,0.06)" }}>
+                        <Sparkles className="w-3.5 h-3.5" style={{ color: G }} />
+                      </div>
+                      <span className="text-white text-xs">{fx}</span>
+                    </div>
+                    <Plus className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: G }} />
+                  </div>
+                ))}
+              </div>
+            )}
+
+
+            {activeTool === "transitions" && (
+              <div className="flex flex-col items-center justify-center h-48 gap-3 px-4">
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: "rgba(0,230,118,0.06)", border: "1px solid rgba(0,230,118,0.15)" }}>
+                  {activeTool === "transitions" && <Layers className="w-6 h-6" style={{ color: G }} />}
+                </div>
+                <p className="text-xs text-center" style={{ color: "#5a5a5a" }}>
+                  Browse {activeTool} from the cloud
+                </p>
+              </div>
+            )}
+
+            {activeTool === "animation" && (
+              <div className="p-4 space-y-4">
+                <h3 className="text-sm font-semibold mb-4 text-white">Clip Animations</h3>
+                {!selectedClip || (selectedType !== "video" && selectedType !== "text") ? (
+                  <p className="text-xs text-zinc-500 text-center mt-8">Select a video or text clip on the timeline to animate.</p>
+                ) : (
+                  <div className="space-y-4 overflow-y-auto pb-12 scrollbar-hide">
+                    {([["In Animation", "animIn", ANIM_IN_OPTIONS], ["Out Animation", "animOut", ANIM_OUT_OPTIONS]] as const).map(([label, key, opts]) => (
+                      <PropGroup key={key} label={label}>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {opts.map((a: string) => {
+                            const val = (selectedClip as any)[key];
+                            const setter = selectedType === "video" ? updateVideoClip : updateTextClip;
+                            return (
+                              <button key={a} onClick={() => setter(selectedClip.id, { [key]: a })}
+                                className="py-2 rounded-xl text-[11px] border transition-all truncate px-1"
+                                style={val === a ? { background: "rgba(0,230,118,0.08)", borderColor: "rgba(0,230,118,0.3)", color: G } : { background: "rgba(255,255,255,0.03)", borderColor: "rgba(255,255,255,0.06)", color: "#5a5a5a" }}>
+                                {a}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </PropGroup>
+                    ))}
+                    {selectedType === "video" && (
+                      <>
+                        <PropGroup label="Keyframes">
+                          <p className="text-[10px] text-zinc-500 text-center py-2">Click on canvas to add keyframe points</p>
+                          <button className="w-full py-2 rounded-xl text-xs border transition-all" style={{ background: "rgba(0,230,118,0.04)", borderColor: "rgba(0,230,118,0.15)", color: G }}>+ Add Keyframe at Playhead</button>
+                        </PropGroup>
+                        <PropGroup label="Easing">
+                          <div className="grid grid-cols-2 gap-1.5">
+                            {["Linear", "Ease", "Ease In", "Ease Out", "Spring", "Bounce"].map((ease) => (
+                              <button key={ease} className="py-2 rounded-xl text-xs border transition-all" style={{ background: "rgba(255,255,255,0.03)", borderColor: "rgba(255,255,255,0.06)", color: "#5a5a5a" }}>{ease}</button>
+                            ))}
+                          </div>
+                        </PropGroup>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Center */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Top Controls Row */}
+          <div className="h-12 flex items-center justify-between px-6 flex-shrink-0" style={{ background: "#030303", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+            {/* Left side: Hide Crops */}
+            <div>
+              <button
+                onClick={() => setShowCropBoxes(p => !p)}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all"
+                style={{ background: showCropBoxes ? "rgba(0,230,118,0.12)" : "rgba(0,0,0,0.7)", color: showCropBoxes ? G : "#888", border: `1px solid ${showCropBoxes ? "rgba(0,230,118,0.35)" : "rgba(255,255,255,0.1)"}`, backdropFilter: "blur(8px)" }}>
+                <Crop className="w-3 h-3" />
+                {showCropBoxes ? "Hide Crops" : "Show Crops"}
+              </button>
+            </div>
+            {/* Right side: Layout & Preview */}
+            <div className="flex items-center gap-2 relative">
+              <button
+                onClick={() => setShowLayoutPanel(p => !p)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
+                style={{ background: showLayoutPanel ? "rgba(0,230,118,0.12)" : "rgba(0,0,0,0.7)", color: showLayoutPanel ? G : "#aaa", border: `1px solid ${showLayoutPanel ? "rgba(0,230,118,0.35)" : "rgba(255,255,255,0.1)"}`, backdropFilter: "blur(8px)" }}>
+                <LayoutTemplate className="w-3.5 h-3.5" />
+                Layout: <span className="capitalize">{layoutMode}</span>
+              </button>
+              <button
+                onClick={() => setShowDevicePreview(!showDevicePreview)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
+                style={{ background: showDevicePreview ? "rgba(0,230,118,0.12)" : "rgba(0,0,0,0.7)", color: showDevicePreview ? G : "#aaa", border: `1px solid ${showDevicePreview ? "rgba(0,230,118,0.35)" : "rgba(255,255,255,0.1)"}`, backdropFilter: "blur(8px)" }}>
+                <Smartphone className="w-3.5 h-3.5" />
+                Preview: <span className="capitalize">{showDevicePreview ? "On" : "Off"}</span>
+              </button>
+
+              {showLayoutPanel && (
+                <div className="absolute top-10 right-0 rounded-xl p-1.5 shadow-2xl z-50" style={{ background: "rgba(10,10,10,0.97)", border: "1px solid rgba(255,255,255,0.09)", backdropFilter: "blur(12px)", minWidth: 160 }}>
+                  {[{ id: "vertical", label: "Vertical (9:16)" }, { id: "split", label: "Split Screen" }, { id: "trio", label: "Trio (3 panels)" }, { id: "spotlight", label: "Spotlight" }, { id: "centered", label: "Centered" }].map(m => (
+                    <button key={m.id} onClick={() => { setLayoutMode(m.id); setShowLayoutPanel(false); }}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition-all"
+                      style={{ color: layoutMode === m.id ? G : "#aaa", background: layoutMode === m.id ? "rgba(0,230,118,0.08)" : "transparent" }}>
+                      {layoutMode === m.id && <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: G }} />}
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Canvas / Video Crop Editor */}
+          <ContextMenu.Root>
+            <ContextMenu.Trigger asChild>
+              <div className="flex-1 relative flex items-center justify-center overflow-hidden p-6" style={{ background: "#030303" }}>
+            <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: "linear-gradient(rgba(0,230,118,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(0,230,118,0.015) 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
+
+            {/* Video Player + Rnd Crop Selectors */}
+            <div className={`group relative transition-all duration-300 ${isFullScreen ? "fixed inset-4 z-[100] rounded-2xl flex items-center justify-center bg-black/95 backdrop-blur-md border border-zinc-700 shadow-[0_0_50px_rgba(0,0,0,0.8)]" : "w-full h-full bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden shadow-2xl"}`}>
+              {activeVideoClips.map((clip: any) => {
+                const mediaItem = MEDIA_LIBRARY.find(m => m.id === clip.mediaId);
+                const srcUrl = mediaItem && 'url' in mediaItem ? mediaItem.url : undefined;
+                return (
+                  <video 
+                    key={clip.id}
+                    id={`videoPlayer_${clip.id}`} 
+                    src={srcUrl}
+                    autoPlay={isPlaying}
+                    className="w-full h-full object-contain transition-transform absolute inset-0" 
+                    loop 
+                    onLoadedData={drawFrame} 
+                    onSeeked={drawFrame}
+                    onSeeking={drawFrame}
+                    style={{
+                      transform: buildTransformCSS(clip),
+                      opacity: (clip.opacity ?? 100) / 100,
+                      filter: buildFilterCSS(clip),
+                      mixBlendMode: clip.blendMode as any,
+                      zIndex: clip.track || 0
+                    }} 
+                  />
+                );
+              })}
+
+              {/* Ghost Controls Overlay */}
+              <div className="absolute inset-0 flex items-center justify-center gap-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/40 z-40 pointer-events-none">
+                <div className="pointer-events-auto flex items-center gap-6">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setCurrentTime(c => Math.max(0, c - 5)); }}
+                    className="w-12 h-12 rounded-full border border-white/30 flex items-center justify-center text-white/70 hover:text-white hover:border-white hover:bg-white/10 transition-all backdrop-blur-sm shadow-lg">
+                    <SkipBack className="w-5 h-5 -ml-1" />
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setIsPlaying(!isPlaying); }}
+                    className="w-16 h-16 rounded-full border border-white/30 flex items-center justify-center text-white/70 hover:text-white hover:border-white hover:bg-white/10 transition-all backdrop-blur-sm shadow-lg">
+                    {isPlaying ? <Pause className="w-7 h-7" /> : <Play className="w-7 h-7 ml-1" />}
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setCurrentTime(c => Math.min(totalDurRef.current || totalDuration, c + 5)); }}
+                    className="w-12 h-12 rounded-full border border-white/30 flex items-center justify-center text-white/70 hover:text-white hover:border-white hover:bg-white/10 transition-all backdrop-blur-sm shadow-lg">
+                    <SkipForward className="w-5 h-5 ml-1" />
+                  </button>
+                </div>
+              </div>
+
+
+              {/* Top Crop  only when showCropBoxes is enabled */}
+              {showCropBoxes && (
+                <Rnd key={isFullScreen ? 'fs' : 'inline'}
+                  disableDragging={false}
+                  enableResizing={true}
+                  dragAxis="both"
+                  bounds="parent"
+                  lockAspectRatio={layoutMode === "vertical" ? 9 / 16 : false}
+                  size={{ width: topCrop.width, height: topCrop.height }}
+                  position={{ x: topCrop.x, y: topCrop.y }}
+                  onDragStop={(e, d) => activeVideoClip && updateVideoClip(activeVideoClip.id, { cropTop: { ...topCrop, x: d.x, y: d.y } }, true)}
+                  onResizeStop={(e, dir, ref, delta, pos) => activeVideoClip && updateVideoClip(activeVideoClip.id, {
+                    cropTop: { width: parseFloat(ref.style.width), height: parseFloat(ref.style.height), ...pos }
+                  }, true)}
+                  className="border-2 border-[#00e676] bg-[#00e676]/20 z-50 shadow-[0_0_15px_rgba(0,230,118,0.5)]">
+                  <div className="absolute top-0 left-0 bg-[#00e676] text-black text-[10px] px-1 font-bold">TOP CROP</div>
+                </Rnd>
+              )}
+
+              {/* Middle Crop (Trio Layout Only + showCropBoxes) */}
+              {showCropBoxes && layoutMode === "trio" && (
+                <Rnd key={isFullScreen ? 'fs' : 'inline'}
+                  bounds="parent"
+                  size={{ width: middleCrop.width, height: middleCrop.height }}
+                  position={{ x: middleCrop.x, y: middleCrop.y }}
+                  onDragStop={(e, d) => activeVideoClip && updateVideoClip(activeVideoClip.id, { cropMiddle: { ...middleCrop, x: d.x, y: d.y } }, true)}
+                  onResizeStop={(_e, _dir, ref, _delta, pos) => activeVideoClip && updateVideoClip(activeVideoClip.id, {
+                    cropMiddle: { width: parseFloat(ref.style.width), height: parseFloat(ref.style.height), ...pos }
+                  }, true)}
+                  className="border-2 border-amber-400 bg-amber-400/20 z-50 shadow-[0_0_15px_rgba(251,191,36,0.5)]">
+                  <div className="absolute top-0 left-0 bg-amber-400 text-black text-[10px] px-1 font-bold">MIDDLE CROP</div>
+                </Rnd>
+              )}
+
+              {/* Bottom Crop (Split / Trio + showCropBoxes) */}
+              {showCropBoxes && (layoutMode === "split" || layoutMode === "trio") && (
+                <Rnd key={isFullScreen ? 'fs' : 'inline'}
+                  bounds="parent"
+                  size={{ width: bottomCrop.width, height: bottomCrop.height }}
+                  position={{ x: bottomCrop.x, y: bottomCrop.y }}
+                  onDragStop={(e, d) => activeVideoClip && updateVideoClip(activeVideoClip.id, { cropBottom: { ...bottomCrop, x: d.x, y: d.y } }, true)}
+                  onResizeStop={(e, dir, ref, delta, pos) => activeVideoClip && updateVideoClip(activeVideoClip.id, {
+                    cropBottom: { width: parseFloat(ref.style.width), height: parseFloat(ref.style.height), ...pos }
+                  }, true)}
+                  className="border-2 border-purple-500 bg-purple-500/20 z-50 shadow-[0_0_15px_rgba(168,85,247,0.5)]">
+                  <div className="absolute top-0 left-0 bg-purple-500 text-white text-[10px] px-1 font-bold">BOTTOM CROP</div>
+                </Rnd>
+              )}
+            </div>
+
+            </div>
+            </ContextMenu.Trigger>
+            <ContextMenu.Portal>
+              <ContextMenu.Content className="min-w-[160px] rounded-xl overflow-hidden p-1 shadow-2xl z-[200] backdrop-blur-xl" style={{ background: "rgba(20,20,20,0.85)", border: "1px solid rgba(255,255,255,0.1)" }}>
+                <ContextMenu.Item 
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs cursor-pointer outline-none hover:bg-white/10 transition-colors"
+                  style={{ color: "#ff4444" }}
+                  disabled={selectedId == null}
+                  onSelect={(e) => { 
+                    e.preventDefault(); 
+                    deleteSelectedRef.current?.(); 
+                  }}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Delete Selected
+                </ContextMenu.Item>
+              </ContextMenu.Content>
+            </ContextMenu.Portal>
+          </ContextMenu.Root>
+
+          {/* Playback bar */}
+          <div className="h-12 flex items-center justify-between px-4 flex-shrink-0" style={{ background: panelBg, borderTop: `1px solid ${panelBorder}` }}>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setCurrentTime(0)} className="p-1.5 rounded-lg hover:bg-white/[0.05] transition-colors" style={{ color: "#5a5a5a" }}>
+                <SkipBack className="w-4 h-4" />
+              </button>
+              <button onClick={() => setIsPlaying(!isPlaying)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center transition-all"
+                style={{ background: "rgba(0,230,118,0.1)", border: "1px solid rgba(0,230,118,0.2)" }}>
+                {isPlaying
+                  ? <Pause className="w-4 h-4" style={{ color: G }} />
+                  : <Play className="w-4 h-4 fill-current ml-0.5" style={{ color: G }} />}
+              </button>
+              <button onClick={() => setCurrentTime(totalDuration)} className="p-1.5 rounded-lg hover:bg-white/[0.05] transition-colors" style={{ color: "#5a5a5a" }}>
+                <SkipForward className="w-4 h-4" />
+              </button>
+              <span className="text-xs font-mono ml-2" style={{ color: "#5a5a5a" }}>
+                {fmt(currentTime)} / {fmt(totalDuration)}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setIsFullScreen(!isFullScreen)} className="p-1.5 rounded-lg hover:bg-white/[0.05] transition-colors" style={{ color: "#5a5a5a" }}>
+                {isFullScreen ? <ZoomOut className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+
+          {/* Timeline */}
+          <div className="h-[190px] flex-shrink-0 flex flex-col overflow-hidden" style={{ background: "rgba(5,5,5,0.98)", borderTop: `1px solid ${panelBorder}` }}>
+            {/* Toolbar */}
+            <div className="flex items-center justify-between px-3 py-2 flex-shrink-0" style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+              {/* Left: Mode tools */}
+              <div className="flex items-center gap-0.5">
+                {([
+                  { id: "select", icon: ArrowLeft, label: "Select" },
+                  { id: "move", icon: Grid, label: "Move" },
+                  { id: "trim", icon: ZoomIn, label: "Trim" },
+                ] as const).map(({ id, icon: Icon, label }) => (
+                  <button key={id}
+                    onClick={() => setTimelineTool(id)}
+                    className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs transition-all"
+                    style={timelineTool === id
+                      ? { color: G, background: "rgba(0,230,118,0.08)", border: `1px solid rgba(0,230,118,0.2)` }
+                      : { color: "#5a5a5a", border: "1px solid transparent" }}>
+                    <Icon className="w-3 h-3" />{label}
+                  </button>
+                ))}
+                <div className="w-px h-4 mx-1" style={{ background: "rgba(255,255,255,0.06)" }} />
+                
+                {/* Quick Trim Tools */}
+                {[
+                  { id: "trim-start", icon: TrimStartIcon, label: "Trim Start", action: trimStartToPlayhead },
+                  { id: "split", icon: TrimSplitIcon, label: "Split", action: splitAtPlayhead },
+                  { id: "trim-end", icon: TrimEndIcon, label: "Trim End", action: trimEndToPlayhead },
+                ].map(({ id, icon: Icon, label, action }) => (
+                  <button key={id} onClick={action} title={label}
+                    className="flex items-center justify-center w-8 h-8 rounded-lg transition-all hover:bg-white/[0.04]"
+                    style={{ color: "#5a5a5a" }}>
+                    <Icon className="w-4 h-4" />
+                  </button>
+                ))}
+
+                <div className="w-px h-4 mx-1" style={{ background: "rgba(255,255,255,0.06)" }} />
+                {[
+                  { icon: Trash2, label: "Delete", action: deleteSelected, needsSel: true },
+                  { icon: CopyIcon, label: "Duplicate", action: duplicateSelected, needsSel: true },
+                  { icon: FlipHorizontal, label: "Flip", action: () => selectedId && selectedType === "video" && updateVideoClip(selectedId, { flipH: !(selectedClip as VideoClip)?.flipH }), needsSel: true },
+                  { icon: RotateCcw, label: "Undo", action: undo, needsSel: false },
+                  { icon: RotateCw, label: "Redo", action: redo, needsSel: false },
+                ].map(({ icon: Icon, label, action, needsSel }) => (
+                  <button key={label} onClick={action}
+                    className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs transition-all hover:bg-white/[0.04] disabled:opacity-25"
+                    style={{ color: "#5a5a5a" }}
+                    disabled={needsSel && selectedId == null}>
+                    <Icon className="w-3 h-3" />{label}
+                  </button>
+                ))}
+              </div>
+              {/* Right: Zoom */}
+              <div className="flex items-center gap-1.5">
+                <button onClick={() => setZoomLevel((z) => Math.max(10, z - 25))} className="p-1 rounded transition-colors hover:bg-white/[0.05]" style={{ color: "#5a5a5a" }}>
+                  <Minus className="w-3.5 h-3.5" />
+                </button>
+                <span className="text-xs font-mono" style={{ color: "#5a5a5a" }}>{Math.round(zoomLevel)}%</span>
+                <button onClick={() => setZoomLevel((z) => Math.min(1000, z + 25))} className="p-1 rounded transition-colors hover:bg-white/[0.05]" style={{ color: "#5a5a5a" }}>
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Tracks */}
+            <div className="flex flex-1 overflow-hidden select-none">
+              {/* Scrollable area */}
+              <div ref={timelineRef} className="flex-1 overflow-x-auto overflow-y-auto scrollbar-hide relative"
+                onContextMenu={(e) => e.preventDefault()}
+                onMouseDown={(e) => {
+                  if (e.button === 2) {
+                    isPanning.current = true;
+                    lastPanX.current = e.clientX;
+                    return;
+                  }
+                  setIsPlaying(false);
+                  isDragging.current = true; 
+                  seekTo(e.clientX); 
+                }}
+                onMouseMove={(e) => {
+                  if (isDragging.current) return;
+                  const rect = timelineRef.current?.getBoundingClientRect();
+                  if (!rect) return;
+                  const scrollLeft = timelineRef.current?.scrollLeft || 0;
+                  const rawX = e.clientX - rect.left + scrollLeft;
+                  const t = Math.max(0, Math.min(rawX / pxPerSec, totalDurRef.current || totalDuration));
+                  setHoverTime(t);
+                }}
+                onMouseLeave={() => setHoverTime(null)}
+                onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const rect = timelineRef.current?.getBoundingClientRect();
+                  const scrollLeft = timelineRef.current?.scrollLeft || 0;
+                  const scrollTop = timelineRef.current?.scrollTop || 0;
+                  if (!rect) return;
+                  const rawX = e.clientX - rect.left + scrollLeft;
+                  const dropTime = Math.max(0, rawX / pxPerSec);
+                  
+                  // Compute track index based on Y drop position (ruler is 20px, track is 44px)
+                  const rawY = e.clientY - rect.top + scrollTop - 20; 
+                  const dropTrack = Math.max(0, Math.floor(rawY / 44));
+
+                  if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    Array.from(e.dataTransfer.files).forEach(file => {
+                      if (file.type.startsWith('video/') || file.type.startsWith('image/')) {
+                        const url = URL.createObjectURL(file);
+                        const newId = Date.now() + Math.floor(Math.random() * 1000);
+                        MEDIA_LIBRARY.push({
+                          id: newId, type: "video", name: file.name, thumb: url, duration: 60, url: url
+                        });
+                        saveLibraries();
+                        const newClip = makeVideoClip(newId, dropTime);
+                        newClip.track = dropTrack;
+                        push({ clips: [...clips, newClip], audioClips, textClips });
+                        setSelectedId(newClip.id); setSelectedType("video");
+                        const video = document.getElementById('videoPlayer') as HTMLVideoElement | null;
+                        if (video) { video.src = url; video.load(); }
+                      }
+                    });
+                    return;
+                  }
+
+                  try {
+                    const data = JSON.parse(e.dataTransfer.getData("application/json"));
+                    if (data.type === "media") {
+                      const newClip = makeVideoClip(data.id, dropTime);
+                      newClip.track = dropTrack;
+                      push({ clips: [...clips, newClip], audioClips, textClips });
+                    }
+                    else if (data.type === "audio") {
+                      const src = AUDIO_LIBRARY.find((a: any) => a.id === data.id);
+                      if (src) {
+                        const newClip = { id: Date.now(), type: "audio" as const, name: src.name, artist: src.artist, startTime: dropTime, duration: src.duration, volume: 80, track: dropTrack };
+                        push({ clips, audioClips: [...audioClips, newClip], textClips });
+                      }
+                    }
+                  } catch (err) {}
+                }}>
+                <div className="relative" style={{ minWidth: totalDuration * pxPerSec + 40, minHeight: '100%' }}>
+                {/* Ruler */}
+                <div className="h-5 sticky top-0 z-40 flex items-end" style={{ background: "#030303", borderBottom: "1px solid rgba(255,255,255,0.04)" }}
+                  onMouseDown={(e) => { e.stopPropagation(); setIsPlaying(false); isDragging.current = true; seekTo(e.clientX); }}>
+                  {Array.from({ length: Math.ceil(totalDuration / 5) + 1 }).map((_, i) => (
+                    <div key={i} className="absolute flex-shrink-0" style={{ left: i * 5 * pxPerSec }}>
+                      <div className="w-px h-2" style={{ background: "#2a2a2a" }} />
+                      <span className="absolute top-0 left-1 text-[9px] font-mono" style={{ color: "#333" }}>{fmt(i * 5)}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Playhead */}
+                <div className="absolute top-0 bottom-0 w-px z-50 pointer-events-none"
+                  style={{ left: currentTime * pxPerSec, background: G, boxShadow: `0 0 8px ${G}` }}>
+                  <div className="w-3 h-3 rounded-full absolute top-1 -left-1.5 cursor-ew-resize pointer-events-auto"
+                    style={{ background: G, boxShadow: `0 0 8px ${G}` }}
+                    onMouseDown={(e) => { e.stopPropagation(); setIsPlaying(false); isDragging.current = true; }} />
+                </div>
+
+                {/* Hover Playhead */}
+                {hoverTime !== null && Math.abs(hoverTime - currentTime) > 0.1 && (
+                  <div className="absolute top-0 bottom-0 w-px z-30 pointer-events-none"
+                    style={{ left: hoverTime * pxPerSec, background: "rgba(255,255,255,0.3)" }}>
+                    <div className="absolute top-6 -left-4 px-1.5 py-0.5 rounded text-[9px] font-mono shadow-md whitespace-nowrap"
+                      style={{ background: "#2563eb", color: "#fff" }}>
+                      {fmt(hoverTime)}
+                    </div>
+                  </div>
+                )}
+
+                {/* Unified Tracks Canvas */}
+                <div className="relative" style={{ marginTop: 20 }}>
+                  {(() => {
+                    const allClips = [...clips, ...audioClips, ...textClips];
+                    const maxTrack = allClips.reduce((m, c) => Math.max(m, c.track || 0), 0);
+                    const trackRows = Array.from({ length: Math.max(20, maxTrack + 2) });
+
+                    return (
+                      <>
+                        {/* Draw track backgrounds */}
+                        {trackRows.map((_, i) => (
+                          <div key={`bg-${i}`} className="absolute left-0 right-0 h-[44px]" style={{ top: i * 44, borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
+                            {/* Track Label */}
+                            <span className="absolute left-2 top-1.5 text-[9px] font-bold opacity-20 pointer-events-none" style={{ color: "#fff" }}>T{i}</span>
+                          </div>
+                        ))}
+                        
+                        {/* Draw clips */}
+                        {clips.map((clip: any) => {
+                          const endTime = clip.startTime + clip.duration;
+                          const nextClip = clips.find((c: any) => (c.track || 0) === (clip.track || 0) && Math.abs(c.startTime - endTime) < 0.05);
+                          return (
+                          <React.Fragment key={clip.id}>
+                            <div
+                              onMouseDown={(e) => {
+                                if (e.button === 2) return;
+                                e.stopPropagation();
+                                setSelectedId(clip.id); setSelectedType("video"); setActiveRightTab("basic");
+                                dragState.current = { type: "move", clipId: clip.id, clipType: "video", startX: e.clientX, startY: e.clientY, origStart: clip.startTime, origDur: clip.duration, origTrack: clip.track || 0 };
+                              }}
+                              className="absolute rounded-lg overflow-hidden cursor-grab active:cursor-grabbing transition-colors border-2 z-20"
+                              style={{
+                                height: 32,
+                                top: (clip.track || 0) * 44 + 6,
+                                left: clip.startTime * pxPerSec,
+                                width: Math.max(24, clip.duration * pxPerSec - 2),
+                                borderColor: selectedId === clip.id ? G : "rgba(255,255,255,0.1)",
+                                boxShadow: selectedId === clip.id ? `0 0 10px rgba(0,230,118,0.3)` : "none",
+                              }}>
+                              <div className="absolute inset-0 opacity-70 pointer-events-none" 
+                                   style={{ backgroundImage: `url(${clip.thumb})`, backgroundSize: `auto 100%`, backgroundRepeat: 'repeat-x', backgroundPosition: 'left center' }} />
+                              <div className="absolute inset-0 flex items-center px-1.5 pointer-events-none" style={{ background: "linear-gradient(to right, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100px)" }}>
+                                <span className="text-white text-[9px] font-medium truncate drop-shadow">{clip.name}</span>
+                              </div>
+                              {selectedId === clip.id && selectedType === "video" && (
+                                <>
+                                  <div className="absolute left-0 top-0 bottom-0 w-4 bg-white cursor-ew-resize z-30 flex items-center justify-center border-r border-black/20 hover:bg-gray-100 transition-colors"
+                                    onMouseDown={(e) => { e.stopPropagation(); dragState.current = { type: "trim-L", clipId: clip.id, clipType: "video", startX: e.clientX, startY: e.clientY, origStart: clip.startTime, origDur: clip.duration, origTrack: clip.track || 0 }; }}>
+                                    <div className="w-0.5 h-4 bg-black/30 rounded-full" />
+                                  </div>
+                                  <div className="absolute right-0 top-0 bottom-0 w-4 bg-white cursor-ew-resize z-30 flex items-center justify-center border-l border-black/20 hover:bg-gray-100 transition-colors"
+                                    onMouseDown={(e) => { e.stopPropagation(); dragState.current = { type: "trim-R", clipId: clip.id, clipType: "video", startX: e.clientX, startY: e.clientY, origStart: clip.startTime, origDur: clip.duration, origTrack: clip.track || 0 }; }}>
+                                    <div className="w-0.5 h-4 bg-black/30 rounded-full" />
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                            
+                            {/* Transition Plus Button */}
+                            {nextClip && (
+                               <button 
+                                 onClick={(e) => {
+                                   e.stopPropagation();
+                                   setActiveTool("transitions");
+                                   // In a full implementation, this would also select this specific transition point 
+                                 }}
+                                 className="absolute z-30 w-5 h-5 bg-white border border-gray-300 rounded-sm shadow-md flex items-center justify-center hover:bg-gray-100 transition-colors"
+                                 style={{ 
+                                    top: (clip.track || 0) * 44 + 12, 
+                                    left: endTime * pxPerSec - 10 
+                                 }}
+                                 title="Add Transition"
+                               >
+                                 <Plus className="w-3.5 h-3.5 text-black" />
+                               </button>
+                            )}
+                          </React.Fragment>
+                          );
+                        })}
+
+                        {audioClips.map((clip: any) => (
+                          <div key={clip.id}
+                            onMouseDown={(e) => {
+                              if (e.button === 2) return;
+                              e.stopPropagation();
+                              setSelectedId(clip.id); setSelectedType("audio"); setActiveRightTab("basic");
+                              dragState.current = { type: "move", clipId: clip.id, clipType: "audio", startX: e.clientX, startY: e.clientY, origStart: clip.startTime, origDur: clip.duration, origTrack: clip.track || 0 };
+                            }}
+                            className="absolute h-8 rounded-lg cursor-grab active:cursor-grabbing border-2 flex items-center px-2 overflow-hidden z-20"
+                            style={{
+                              top: (clip.track || 0) * 44 + 6,
+                              left: clip.startTime * pxPerSec,
+                              width: Math.max(24, clip.duration * pxPerSec - 2),
+                              background: "rgba(0,230,118,0.05)",
+                              borderColor: selectedId === clip.id ? G : "rgba(0,230,118,0.2)",
+                              boxShadow: selectedId === clip.id ? `0 0 10px rgba(0,230,118,0.3)` : "none",
+                            }}>
+                            <div className="absolute inset-x-1 inset-y-1 flex items-center gap-[1px] overflow-hidden pointer-events-none">
+                              {Array.from({ length: Math.floor(clip.duration * pxPerSec / 3) }).map((_, i) => (
+                                <div key={i} className="flex-shrink-0 w-px rounded-full" style={{ background: G, opacity: 0.5, height: `${10 + Math.abs(Math.sin(i * 0.5) * 10)}px` }} />
+                              ))}
+                            </div>
+                            <span className="absolute left-1.5 top-0.5 text-[9px] font-medium pointer-events-none" style={{ color: G }}>{clip.name}</span>
+                            {selectedId === clip.id && selectedType === "audio" && (
+                              <>
+                                <div className="absolute left-0 top-0 bottom-0 w-3 bg-white cursor-ew-resize z-30 flex items-center justify-center border-r border-black/20 hover:bg-gray-100 transition-colors"
+                                  onMouseDown={(e) => { e.stopPropagation(); dragState.current = { type: "trim-L", clipId: clip.id, clipType: "audio", startX: e.clientX, startY: e.clientY, origStart: clip.startTime, origDur: clip.duration, origTrack: clip.track || 0 }; }}>
+                                  <div className="w-0.5 h-3 bg-black/30 rounded-full" />
+                                </div>
+                                <div className="absolute right-0 top-0 bottom-0 w-3 bg-white cursor-ew-resize z-30 flex items-center justify-center border-l border-black/20 hover:bg-gray-100 transition-colors"
+                                  onMouseDown={(e) => { e.stopPropagation(); dragState.current = { type: "trim-R", clipId: clip.id, clipType: "audio", startX: e.clientX, startY: e.clientY, origStart: clip.startTime, origDur: clip.duration, origTrack: clip.track || 0 }; }}>
+                                  <div className="w-0.5 h-3 bg-black/30 rounded-full" />
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        ))}
+
+                        {textClips.map((clip: any) => (
+                          <div key={clip.id}
+                            onMouseDown={(e) => {
+                              if (e.button === 2) return;
+                              e.stopPropagation();
+                              setSelectedId(clip.id); setSelectedType("text"); setActiveRightTab("basic");
+                              dragState.current = { type: "move", clipId: clip.id, clipType: "text", startX: e.clientX, startY: e.clientY, origStart: clip.startTime, origDur: clip.duration, origTrack: clip.track || 0 };
+                            }}
+                            className="absolute h-8 rounded-lg cursor-grab active:cursor-grabbing border-2 flex items-center px-2 overflow-hidden z-20"
+                            style={{
+                              top: (clip.track || 0) * 44 + 6,
+                              left: clip.startTime * pxPerSec,
+                              width: Math.max(24, clip.duration * pxPerSec - 2),
+                              background: "rgba(255,255,255,0.03)",
+                              borderColor: selectedId === clip.id ? G : "rgba(255,255,255,0.12)",
+                              boxShadow: selectedId === clip.id ? `0 0 10px rgba(0,230,118,0.3)` : "none",
+                            }}>
+                            <Type className="w-2.5 h-2.5 mr-1 flex-shrink-0 pointer-events-none" style={{ color: "#888" }} />
+                            <span className="text-[9px] truncate pointer-events-none" style={{ color: "#888" }}>{clip.text}</span>
+                            {selectedId === clip.id && selectedType === "text" && (
+                              <>
+                                <div className="absolute left-0 top-0 bottom-0 w-2 bg-green-500 cursor-ew-resize z-30 opacity-70 hover:opacity-100"
+                                  onMouseDown={(e) => { e.stopPropagation(); dragState.current = { type: "trim-L", clipId: clip.id, clipType: "text", startX: e.clientX, startY: e.clientY, origStart: clip.startTime, origDur: clip.duration, origTrack: clip.track || 0 }; }} />
+                                <div className="absolute right-0 top-0 bottom-0 w-2 bg-green-500 cursor-ew-resize z-30 opacity-70 hover:opacity-100"
+                                  onMouseDown={(e) => { e.stopPropagation(); dragState.current = { type: "trim-R", clipId: clip.id, clipType: "text", startX: e.clientX, startY: e.clientY, origStart: clip.startTime, origDur: clip.duration, origTrack: clip.track || 0 }; }} />
+                              </>
+                            )}
+                          </div>
+                        ))}
+                      </>
+                    )
+                  })()}
+                  {clips.length === 0 && audioClips.length === 0 && textClips.length === 0 && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none mt-10">
+                      <span className="text-[10px]" style={{ color: "#555" }}>Drag media here to create tracks</span>
+                    </div>
+                  )}
+                </div>
+                </div>
+              </div>
+
+
+              <button onClick={() => setIsFullScreen(!isFullScreen)} className="p-1.5 rounded-lg hover:bg-white/[0.05] transition-colors absolute top-2 right-2" style={{ color: "#5a5a5a", zIndex: 30 }}>
+                {isFullScreen ? <ZoomOut className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Right panel */}
+        <div className="w-[290px] flex-shrink-0 flex flex-col overflow-hidden z-10" style={{ background: "rgba(8,8,8,0.97)", borderLeft: `1px solid ${panelBorder}` }}>
+          <div className="flex overflow-x-auto scrollbar-hide flex-shrink-0" style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+            {RIGHT_TABS.map((tab) => (
+              <button key={tab} onClick={() => setActiveRightTab(tab.toLowerCase())}
+                className="flex-shrink-0 px-2.5 py-3 text-[11px] font-semibold border-b-2 transition-all"
+                style={activeRightTab === tab.toLowerCase() ? { color: G, borderColor: G } : { color: "#404040", borderColor: "transparent" }}>
+                {tab}
+              </button>
+            ))}
+          </div>
+
+          {selectedId == null ? (
+            <div className="flex-1 flex flex-col items-center justify-center gap-3 px-6">
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: "rgba(0,230,118,0.04)", border: "1px solid rgba(0,230,118,0.1)" }}>
+                <SlidersHorizontal className="w-5 h-5" style={{ color: "#2a2a2a" }} />
+              </div>
+              <p className="text-xs text-center" style={{ color: "#404040" }}>Select a clip on the timeline to edit its properties</p>
+            </div>
+          ) : (
+            <div className="flex-1 overflow-y-auto scrollbar-hide p-4 space-y-5">
+              {/* VIDEO clip properties */}
+              {selectedType === "video" && (() => {
+                const vc = selectedClip as VideoClip;
+                if (!vc) return null;
+                return (
+                  <>
+                    {activeRightTab === "basic" && (
+                      <>
+                        <PropGroup label="Transform">
+                          <PropRow label="X" value={vc.x} unit="px" onChange={(v: string) => updateVideoClip(vc.id, { x: Number(v) })} />
+                          <PropRow label="Y" value={vc.y} unit="px" onChange={(v: string) => updateVideoClip(vc.id, { y: Number(v) })} />
+                          <PropRow label="ScaleX" value={vc.scaleX} unit="x" onChange={(v: string) => updateVideoClip(vc.id, { scaleX: Number(v) })} />
+                          <PropRow label="ScaleY" value={vc.scaleY} unit="x" onChange={(v: string) => updateVideoClip(vc.id, { scaleY: Number(v) })} />
+                          <PropRow label="Rot" value={vc.rotation} unit="deg" onChange={(v: string) => updateVideoClip(vc.id, { rotation: Number(v) })} />
+                        </PropGroup>
+                        <PropGroup label="Opacity & Blend">
+                          <SliderRow label="Opacity" value={vc.opacity} min={0} max={100} onChange={(v: number) => updateVideoClip(vc.id, { opacity: v })} />
+                          <select value={vc.blendMode} onChange={(e) => updateVideoClip(vc.id, { blendMode: e.target.value })}
+                            className="w-full rounded-lg px-3 py-2 text-xs text-white outline-none mt-1"
+                            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                            {["normal", "multiply", "screen", "overlay", "soft-light", "hard-light", "color-dodge", "darken", "lighten"].map((m) => (
+                              <option key={m} value={m} style={{ background: "#111" }}>{m.charAt(0).toUpperCase() + m.slice(1).replace("-", " ")}</option>
+                            ))}
+                          </select>
+                        </PropGroup>
+                        <PropGroup label="Flip">
+                          <div className="flex gap-2">
+                            <button onClick={() => updateVideoClip(vc.id, { flipH: !vc.flipH })}
+                              className="flex-1 flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs transition-all"
+                              style={{ background: vc.flipH ? "rgba(0,230,118,0.1)" : "rgba(255,255,255,0.03)", color: vc.flipH ? G : "#5a5a5a", border: `1px solid ${vc.flipH ? "rgba(0,230,118,0.3)" : "rgba(255,255,255,0.06)"}` }}>
+                              <FlipHorizontal className="w-3.5 h-3.5" />H-Flip
+                            </button>
+                            <button onClick={() => updateVideoClip(vc.id, { flipV: !vc.flipV })}
+                              className="flex-1 flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs transition-all"
+                              style={{ background: vc.flipV ? "rgba(0,230,118,0.1)" : "rgba(255,255,255,0.03)", color: vc.flipV ? G : "#5a5a5a", border: `1px solid ${vc.flipV ? "rgba(0,230,118,0.3)" : "rgba(255,255,255,0.06)"}` }}>
+                              <FlipHorizontal className="w-3.5 h-3.5 rotate-90" />V-Flip
+                            </button>
+                          </div>
+                        </PropGroup>
+                        <PropGroup label="Position Timing">
+                          <PropRow label="Start" value={fmt(vc.startTime)} unit="s" onChange={(v: string) => updateVideoClip(vc.id, { startTime: Math.max(0, Number(v) || vc.startTime) })} />
+                          <PropRow label="Dur" value={Math.round(vc.duration * 10) / 10} unit="s" onChange={(v: string) => updateVideoClip(vc.id, { duration: Math.max(0.1, Number(v)) })} />
+                        </PropGroup>
+                        <PropGroup label="Volume">
+                          <SliderRow label="Volume" value={(vc as any).volume ?? 100} min={0} max={1000}
+                            onChange={(v: number) => updateVideoClip(vc.id, { volume: v } as any)} />
+                        </PropGroup>
+                      </>
+                    )}
+                    {activeRightTab === "adjust" && (
+                      <>
+                        <PropGroup label="Light">
+                          {([
+                            ["Brightness", "brightness"], ["Contrast", "contrast"],
+                            ["Exposure", "exposure"], ["Highlights", "highlights"], ["Shadows", "shadows"],
+                          ] as [string, keyof VideoClip][]).map(([label, key]) => (
+                            <SliderRow key={key} label={label} value={vc[key] as number}
+                              onChange={(v: number) => updateVideoClip(vc.id, { [key]: v })} />
+                          ))}
+                        </PropGroup>
+                        <PropGroup label="Color">
+                          {([
+                            ["Saturation", "saturation"], ["Temperature", "temperature"], ["Tint", "tint"],
+                          ] as [string, keyof VideoClip][]).map(([label, key]) => (
+                            <SliderRow key={key} label={label} value={vc[key] as number}
+                              onChange={(v: number) => updateVideoClip(vc.id, { [key]: v })} />
+                          ))}
+                        </PropGroup>
+                        <PropGroup label="Detail">
+                          {([
+                            ["Sharpness", "sharpness"], ["Vignette", "vignette"],
+                          ] as [string, keyof VideoClip][]).map(([label, key]) => (
+                            <SliderRow key={key} label={label} value={vc[key] as number}
+                              onChange={(v: number) => updateVideoClip(vc.id, { [key]: v })} />
+                          ))}
+                        </PropGroup>
+                        <PropGroup label="Noise Reduction">
+                          <SliderRow label="Noise" value={0} min={0} max={100} onChange={() => { }} />
+                          <SliderRow label="Grain" value={0} min={0} max={100} onChange={() => { }} />
+                        </PropGroup>
+                      </>
+                    )}
+                    {activeRightTab === "speed" && (
+                      <div className="space-y-5">
+                        <PropGroup label="Preset Speed">
+                          <div className="grid grid-cols-4 gap-1.5 mb-3">
+                            {[0.25, 0.5, 1, 1.5, 2, 3, 4, 8].map((s) => (
+                              <button key={s} onClick={() => updateVideoClip(vc.id, { speed: s, duration: MEDIA_LIBRARY.find((m: typeof MEDIA_LIBRARY[number]) => m.id === vc.mediaId)!.duration / s })}
+                                className="py-2 rounded-lg text-[10px] font-semibold border transition-all"
+                                style={Math.abs(vc.speed - s) < 0.01 ? { background: "rgba(0,230,118,0.1)", borderColor: "rgba(0,230,118,0.4)", color: G } : { background: "rgba(255,255,255,0.03)", borderColor: "rgba(255,255,255,0.06)", color: "#5a5a5a" }}>
+                                {s}
+                              </button>
+                            ))}
+                          </div>
+                          <SliderRow label="Custom" value={Math.round(vc.speed * 100)} min={5} max={800}
+                            onChange={(v: number) => {
+                              const speed = v / 100;
+                              updateVideoClip(vc.id, { speed, duration: MEDIA_LIBRARY.find((m: typeof MEDIA_LIBRARY[number]) => m.id === vc.mediaId)!.duration / speed });
+                            }} />
+                        </PropGroup>
+                        <PropGroup label="Time Remap">
+                          <div className="space-y-2">
+                            {["Linear", "Ease In", "Ease Out", "Ease In/Out", "Hold"].map((mode) => (
+                              <button key={mode}
+                                className="w-full flex items-center justify-between py-2 px-3 rounded-xl text-xs border transition-all"
+                                style={{ background: "rgba(255,255,255,0.025)", borderColor: "rgba(255,255,255,0.06)", color: "#5a5a5a" }}>
+                                <span>{mode}</span>
+                                <span className="text-[9px] opacity-50">Click to apply</span>
+                              </button>
+                            ))}
+                          </div>
+                        </PropGroup>
+                        <PropGroup label="Reverse">
+                          <button
+                            className="w-full py-2 rounded-xl text-xs border transition-all"
+                            style={{ background: "rgba(255,255,255,0.03)", borderColor: "rgba(255,255,255,0.07)", color: "#5a5a5a" }}>
+                            "Ã¢ Reverse Clip
+                          </button>
+                        </PropGroup>
+                      </div>
+                    )}
+
+                    {activeRightTab === "color" && (
+                      <div className="space-y-4">
+                        <PropGroup label="Color Grading">
+                          <SliderRow label="Hue" value={50} min={0} max={100} onChange={() => { }} />
+                          <SliderRow label="Warmth" value={50} min={0} max={100} onChange={() => { }} />
+                          <SliderRow label="Cool" value={50} min={0} max={100} onChange={() => { }} />
+                          <SliderRow label="Vibrance" value={50} min={0} max={100} onChange={() => { }} />
+                          <SliderRow label="Gamma" value={50} min={0} max={100} onChange={() => { }} />
+                        </PropGroup>
+                        <PropGroup label="White Balance">
+                          <SliderRow label="Color Temp" value={50} min={0} max={100} onChange={() => { }} />
+                          <SliderRow label="Tint" value={50} min={0} max={100} onChange={() => { }} />
+                        </PropGroup>
+                        <PropGroup label="Creative LUT">
+                          <div className="grid grid-cols-2 gap-1.5">
+                            {["Cinematic", "Vintage", "Neon", "Matte", "Faded", "Noir", "Arctic", "Amber"].map((lut) => (
+                              <button key={lut}
+                                className="py-2 rounded-xl text-xs border transition-all"
+                                style={{ background: "rgba(255,255,255,0.03)", borderColor: "rgba(255,255,255,0.07)", color: "#5a5a5a" }}>
+                                {lut}
+                              </button>
+                            ))}
+                          </div>
+                        </PropGroup>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+
+              {/* TEXT clip properties */}
+              {selectedType === "text" && (() => {
+                const tc = selectedClip as TextClip;
+                if (!tc) return null;
+                return (
+                  <>
+                    {activeRightTab === "basic" && (
+                      <>
+                        <PropGroup label="Content">
+                          <textarea value={tc.text} onChange={(e) => updateTextClip(tc.id, { text: e.target.value })}
+                            rows={2}
+                            className="w-full rounded-lg px-3 py-2 text-xs text-white outline-none resize-none transition-all"
+                            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}
+                            onFocus={(e) => (e.target.style.borderColor = "rgba(0,230,118,0.35)")}
+                            onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.06)")} />
+                        </PropGroup>
+                        <PropGroup label="Position">
+                          <PropRow label="X" value={Math.round(tc.x)} unit="%" onChange={(v: string) => updateTextClip(tc.id, { x: Number(v) })} />
+                          <PropRow label="Y" value={Math.round(tc.y)} unit="%" onChange={(v: string) => updateTextClip(tc.id, { y: Number(v) })} />
+                        </PropGroup>
+                        <PropGroup label="Style">
+
+                          <PropRow label="Font" value={tc.fontFamily || "Inter"} unit="" onChange={(v: string) => updateTextClip(tc.id, { fontFamily: v })} />
+                          <select className="w-full rounded-lg px-3 py-2 text-xs text-white outline-none mb-3" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}
+                            value={tc.fontFamily || "Inter"} onChange={(e) => updateTextClip(tc.id, { fontFamily: e.target.value })}>
+                            {GOOGLE_FONTS.map(f => <option key={f} value={f} style={{ color: "#000" }}>{f}</option>)}
+                          </select>
+                          <PropRow label="Size" value={tc.fontSize} unit="px" onChange={(v: string) => updateTextClip(tc.id, { fontSize: Number(v) })} />
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs w-8 flex-shrink-0" style={{ color: "#404040" }}>Color</span>
+                            <input type="color" value={tc.color} onChange={(e) => updateTextClip(tc.id, { color: e.target.value })}
+                              className="w-8 h-7 rounded cursor-pointer border-0 bg-transparent" />
+                            <span className="text-xs font-mono" style={{ color: "#5a5a5a" }}>{tc.color}</span>
+                          </div>
+                          <div className="flex gap-2">
+                            <button onClick={() => updateTextClip(tc.id, { fontWeight: tc.fontWeight === "700" ? "400" : "700" })}
+                              className="p-2 rounded-lg text-xs transition-all"
+                              style={tc.fontWeight === "700" ? { background: "rgba(0,230,118,0.1)", color: G, border: "1px solid rgba(0,230,118,0.3)" } : { background: "rgba(255,255,255,0.03)", color: "#5a5a5a", border: "1px solid rgba(255,255,255,0.06)" }}>
+                              <Bold className="w-3.5 h-3.5" />
+                            </button>
+                            <button onClick={() => updateTextClip(tc.id, { fontStyle: tc.fontStyle === "italic" ? "normal" : "italic" })}
+                              className="p-2 rounded-lg text-xs transition-all"
+                              style={tc.fontStyle === "italic" ? { background: "rgba(0,230,118,0.1)", color: G, border: "1px solid rgba(0,230,118,0.3)" } : { background: "rgba(255,255,255,0.03)", color: "#5a5a5a", border: "1px solid rgba(255,255,255,0.06)" }}>
+                              <Italic className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </PropGroup>
+                        <PropGroup label="Duration">
+                          <PropRow label="Start" value={fmt(tc.startTime)} unit="s" onChange={(v: string) => updateTextClip(tc.id, { startTime: Number(v) || tc.startTime })} />
+                          <PropRow label="Dur" value={tc.duration} unit="s" onChange={(v: string) => updateTextClip(tc.id, { duration: Math.max(0.5, Number(v)) })} />
+                        </PropGroup>
+                      </>
+                    )}
+
+                  </>
+                );
+              })()}
+
+              {/* AUDIO clip properties */}
+              {selectedType === "audio" && (() => {
+                const ac = selectedClip as AudioClip;
+                if (!ac) return null;
+                return (
+                  <>
+                    {activeRightTab === "basic" && (
+                      <>
+                        <PropGroup label="Track Info">
+                          <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: "rgba(0,230,118,0.05)", border: "1px solid rgba(0,230,118,0.15)" }}>
+                            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "rgba(0,230,118,0.1)" }}>
+                              <Music className="w-4 h-4" style={{ color: G }} />
+                            </div>
+                            <div>
+                              <p className="text-white text-xs font-semibold">{ac.name}</p>
+                              <p className="text-[10px]" style={{ color: "#5a5a5a" }}>{ac.artist} Â· {fmt(ac.duration)}</p>
+                            </div>
+                          </div>
+                        </PropGroup>
+                        <PropGroup label="Volume">
+                          <SliderRow label="Volume" value={ac.volume} min={0} max={100} onChange={(v: number) => updateAudioClip(ac.id, { volume: v })} />
+                        </PropGroup>
+                        <PropGroup label="Position">
+                          <PropRow label="Start" value={fmt(ac.startTime)} unit="" onChange={() => { }} />
+                          <PropRow label="Dur" value={fmt(ac.duration)} unit="" onChange={() => { }} />
+                        </PropGroup>
+                      </>
+                    )}
+                  </>
+                );
+              })()}
+            </div>
+          )}
+        </div>
+      </div>
+
+
+      {/* Draggable Device Preview (Global) */}
+      {showDevicePreview && (() => {
+        type DevInfo = { w: number; h: number; aspect: string; label: string };
+        const deviceSizes = {
+          phone: { w: 260, h: 460, aspect: "9/16", label: "Phone" },
+          tablet: { w: 400, h: 300, aspect: "4/3", label: "Tablet" },
+          laptop: { w: 520, h: 330, aspect: "16/9", label: "Laptop" },
+        } as const satisfies Record<string, DevInfo>;
+        const dev: DevInfo = (deviceSizes as any)[previewDevice] ?? deviceSizes.phone;
+        return (
+          <Rnd
+            size={{ width: dev.w, height: dev.h + 20 }}
+            position={previewPos.x !== -1 ? previewPos : undefined}
+            onDragStop={(e, d) => setPreviewPos({ x: d.x, y: d.y })}
+            enableResizing={false}
+            bounds="window"
+            className="z-50 group"
+            style={{ position: "absolute" }}
+          >
+            <div className="absolute -top-9 left-1/2 -translate-x-1/2 flex items-center gap-1 p-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: "rgba(10,10,10,0.95)", border: "1px solid rgba(255,255,255,0.1)", backdropFilter: "blur(10px)" }}>
+              <span className="text-[9px] font-bold px-1.5 whitespace-nowrap" style={{ color: G }}>Live Preview</span>
+              <div className="w-px h-3 mx-0.5" style={{ background: "rgba(255,255,255,0.1)" }} />
+              {(["phone", "tablet", "laptop"] as const).map(d => (
+                <button key={d} onClick={() => setPreviewDevice(d)}
+                  className="text-[8px] px-2 py-1 rounded transition-all whitespace-nowrap"
+                  style={previewDevice === d ? { background: "rgba(0,230,118,0.15)", color: G } : { color: "#777" }}>
+                  {d === "phone" ? "Phone" : d === "tablet" ? "Tablet" : "Laptop"}
+                </button>
+              ))}
+            </div>
+
+            <div className="w-full h-full flex flex-col rounded-2xl overflow-hidden shadow-[0_0_30px_rgba(0,230,118,0.3)] cursor-move" style={{ background: "rgba(0,0,0,0.92)", border: "1px solid rgba(255,255,255,0.18)" }}>
+              {/* Canvas */}
+              <div className="flex-1 overflow-hidden pointer-events-none">
+                <canvas id="liveCanvas"
+                  width={previewDevice === "laptop" ? 1280 : previewDevice === "tablet" ? 1024 : 720}
+                  height={previewDevice === "laptop" ? 720 : previewDevice === "tablet" ? 768 : 1280}
+                  className="w-full h-full object-cover" />
+              </div>
+              <div className="text-center py-1 flex-shrink-0" style={{ background: "rgba(0,0,0,0.7)" }}>
+                <span className="text-[8px]" style={{ color: "#555" }}>{dev.label} {dev.aspect}</span>
+              </div>
+            </div>
+          </Rnd>
+        );
+      })()}
+
+      {/* Export modal */}
+      {showExport && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)" }}
+          onClick={() => exportDone && closeExportModal()}>
+          <GlassCard className="w-[380px] p-8 text-center" glow onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-5"
+              style={{ background: exportDone ? "linear-gradient(135deg, #00e676, #00a854)" : "rgba(0,230,118,0.1)", border: "1px solid rgba(0,230,118,0.3)" }}>
+              {exportDone ? <Check className="w-7 h-7 text-black" /> : <Download className="w-7 h-7" style={{ color: G }} />}
+            </div>
+            <h3 className="text-white font-bold text-lg mb-1">{exportDone ? "Export Complete!" : "Exporting Video"}</h3>
+            <p className="text-sm mb-6" style={{ color: "#5a5a5a" }}>
+              {exportDone ? "Your video has been exported successfully." : `Processing... ${exportProgress}%`}
+            </p>
+
+            {!exportDone && exportProgress === 0 && (
+              <div className="mb-6 text-left space-y-3">
+                <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#2a2a2a" }}>Export Settings</p>
+                <select className="w-full rounded-lg px-3 py-2 text-xs text-white outline-none" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                  <option value="1080" style={{ color: "#000" }}>1080p (High Quality)</option>
+                  <option value="720" style={{ color: "#000" }}>720p (Fast Export)</option>
+                  <option value="4k" style={{ color: "#000" }}>4K (Ultra HD)</option>
+                </select>
+              </div>
+            )}
+            {!exportDone && exportProgress > 0 && (
+              <div className="w-full rounded-full h-2 mb-6" style={{ background: "rgba(255,255,255,0.08)" }}>
+                <div className="h-2 rounded-full transition-all duration-200" style={{ width: `${exportProgress}%`, background: "linear-gradient(90deg, #00e676, #00a854)", boxShadow: "0 0 12px rgba(0,230,118,0.5)" }} />
+              </div>
+            )}
+            <div className="flex gap-3">
+              {exportDone ? (
+                <>
+                  <GreenBtn className="flex-1" onClick={() => closeExportModal()}>Done</GreenBtn>
+                  <button className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all"
+                    style={{ background: "rgba(255,255,255,0.04)", color: "#e8e8e8", border: "1px solid rgba(255,255,255,0.07)" }}
+                    onClick={() => closeExportModal()}>
+                    Share
+                  </button>
+                </>
+              ) : (
+                <button className="flex-1 py-2.5 rounded-xl text-sm font-semibold" style={{ background: "rgba(255,255,255,0.04)", color: "#5a5a5a", border: "1px solid rgba(255,255,255,0.07)" }}
+                  onClick={() => closeExportModal()}>
+                  Cancel
+                </button>
+              )}
+            </div>
+          </GlassCard>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CopyIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <rect width="14" height="14" x="8" y="8" rx="2" />
+      <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+    </svg>
+  );
+}
+
+function SlidersHorizontal(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <line x1="21" x2="14" y1="4" y2="4" /><line x1="10" x2="3" y1="4" y2="4" />
+      <line x1="21" x2="12" y1="12" y2="12" /><line x1="8" x2="3" y1="12" y2="12" />
+      <line x1="21" x2="16" y1="20" y2="20" /><line x1="12" x2="3" y1="20" y2="20" />
+      <line x1="14" x2="14" y1="2" y2="6" /><line x1="8" x2="8" y1="10" y2="14" /><line x1="16" x2="16" y1="18" y2="22" />
+    </svg>
+  );
+}
+
+
+
