@@ -269,7 +269,13 @@ export function AiClipperScreen({ onBack, onOpenEditor }: Props) {
   
   // CUSTOM STORAGE & OUTPUT FOLDER STATE
   const [customFolderName, setCustomFolderName] = useState("");
-  const [customOutputDir, setCustomOutputDir] = useState("");
+  const [customOutputDir, setCustomOutputDir] = useState(() => {
+    try {
+      return localStorage.getItem("clipvault_custom_output_dir") || "";
+    } catch {
+      return "";
+    }
+  });
   const [lastOutputFolder, setLastOutputFolder] = useState("");
   const [exportNotice, setExportNotice] = useState("");
 
@@ -538,7 +544,7 @@ export function AiClipperScreen({ onBack, onOpenEditor }: Props) {
     };
   }, []);
 
-  // DEBOUNCED & VALIDATED YOUTUBE STREAM RESOLVER (Stops keystroke spam & process freeze)
+  // DEBOUNCED & VALIDATED YOUTUBE STREAM RESOLVER (Loads preview seamlessly)
   useEffect(() => {
     if (!ytUrl.trim()) return;
     const isYtFormat = /[?&]v=([^&]+)|youtu\.be\/([^?&]+)/.test(ytUrl);
@@ -546,17 +552,20 @@ export function AiClipperScreen({ onBack, onOpenEditor }: Props) {
 
     const timer = setTimeout(() => {
       const controller = new AbortController();
-      const fetchTimer = setTimeout(() => controller.abort(), 3000);
+      const fetchTimer = setTimeout(() => controller.abort(), 15000);
       fetch(`http://127.0.0.1:8000/api/video_info?url=${encodeURIComponent(ytUrl)}`, { signal: controller.signal })
         .then(res => res.json())
         .then(data => {
-          if (data.url || data.stream_url) {
-            setActiveVideoUrl(data.url || data.stream_url);
+          if (data && (data.stream_url || data.url)) {
+            const previewUrl = data.stream_url || data.url;
+            setActiveVideoUrl(previewUrl);
           }
         })
-        .catch(() => {})
+        .catch(err => {
+          console.warn("[ClipVault]: Could not fetch remote preview:", err);
+        })
         .finally(() => clearTimeout(fetchTimer));
-    }, 1200);
+    }, 600);
 
     return () => clearTimeout(timer);
   }, [ytUrl]);
@@ -737,6 +746,11 @@ export function AiClipperScreen({ onBack, onOpenEditor }: Props) {
         const selected = await (window as any).electronAPI.selectDirectory(customOutputDir);
         if (selected) {
           setCustomOutputDir(selected);
+          setLastOutputFolder(selected);
+          try {
+            localStorage.setItem("clipvault_custom_output_dir", selected);
+          } catch {}
+          loadVaultClips();
         }
       }
     } catch (err) {
@@ -1041,7 +1055,7 @@ export function AiClipperScreen({ onBack, onOpenEditor }: Props) {
       <div className="relative z-10 flex-1 flex overflow-hidden">
 
         {/* LEFT COLUMN: Controls & Settings OR Crop Editor */}
-        <div className="w-[520px] flex-shrink-0 border-r border-white/5 overflow-y-auto scrollbar-hide px-8 py-6 bg-[#070707] flex flex-col">
+        <div className="w-[520px] flex-shrink-0 border-r border-white/5 overflow-y-auto px-8 py-6 bg-[#070707] flex flex-col">
           
           {cropModalOpen !== "none" ? (
             <div className="w-full flex-1 flex flex-col space-y-6 animate-fadeIn">
@@ -2416,11 +2430,23 @@ export function AiClipperScreen({ onBack, onOpenEditor }: Props) {
               </div>
 
               {/* Current Storage Path */}
-              <div className="bg-[#111] border border-white/10 rounded-xl px-3 py-2 flex items-center justify-between gap-2 overflow-hidden">
+              <div className="bg-[#111] border border-white/10 rounded-xl px-3 py-1.5 flex items-center justify-between gap-2 overflow-hidden">
                 <span className="text-[10px] text-gray-500 font-bold uppercase shrink-0">Saved In:</span>
-                <span className="text-xs font-mono text-amber-400/90 truncate" title={lastOutputFolder || "engine/clips"}>
-                  {lastOutputFolder || "C:\\...\\engine\\clips"}
-                </span>
+                <button
+                  type="button"
+                  onClick={() => openOutputFolder()}
+                  title="Click to open this folder in Windows Explorer"
+                  className="text-xs font-mono text-amber-400 hover:text-amber-300 underline truncate max-w-[240px] text-left cursor-pointer"
+                >
+                  {customOutputDir || lastOutputFolder || "Default (engine/clips)"}
+                </button>
+                <button
+                  type="button"
+                  onClick={chooseCustomDirectory}
+                  className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/15 text-[10px] font-bold text-gray-300 hover:text-white border border-white/10 shrink-0 transition-colors cursor-pointer"
+                >
+                  Change
+                </button>
               </div>
             </div>
 

@@ -2,6 +2,10 @@ import os
 import random
 from pathlib import Path
 from moviepy.editor import VideoFileClip, concatenate_videoclips, ColorClip, CompositeVideoClip, AudioFileClip, CompositeAudioClip
+from moviepy.audio.fx.audio_loop import audio_loop
+from moviepy.audio.fx.all import audio_normalize
+from moviepy.video.fx.mirror_x import mirror_x
+from moviepy.video.fx.speedx import speedx
 
 from config import OUTPUT_DIR, TEMP_DIR, GEMINI_API_KEY, BACKGROUNDS_DIR
 from services.youtube_downloader import YouTubeDownloader
@@ -1354,7 +1358,29 @@ class VideoProcessor:
                             clip = clip.fl(shake_filter)
                             clips_to_close.append(clip)
                             
-                    # Apply Supreme copyright bypass (1.06x speedup + horizontal mirroring) BEFORE audio mixing
+                    # Apply Dynamic Retention Micro-Zooms (Subtle 1.06x punch-in every 4.5s)
+                    if layout in ["vertical_crop", "landscape_blur"] and not movie_recap:
+                        try:
+                            import cv2
+                            def retention_zoom_filter(gf, t):
+                                frame = gf(t)
+                                # Periodic 4-second cycle with 0.8s micro-zoom pulse
+                                cycle = t % 4.5
+                                if 2.0 <= cycle <= 3.2:
+                                    zoom = 1.06
+                                    h, w = frame.shape[:2]
+                                    zh, zw = int(h * zoom), int(w * zoom)
+                                    zoomed = cv2.resize(frame, (zw, zh))
+                                    sy = (zh - h) // 2
+                                    sx = (zw - w) // 2
+                                    return zoomed[sy:sy+h, sx:sx+w]
+                                return frame
+                            
+                            clip = clip.fl(retention_zoom_filter)
+                            clips_to_close.append(clip)
+                        except Exception as zoom_err:
+                            print(f"    ⚠️ Micro-zoom skipped: {zoom_err}")
+
                     if yt_bypass:
                         print("    ⚡ Applying Supreme Copyright Bypass (1.06x speedup + horizontal mirroring)...")
                         from moviepy.video.fx.mirror_x import mirror_x
@@ -1374,26 +1400,30 @@ class VideoProcessor:
                                 w_info['start'] /= 1.06
                                 w_info['end'] /= 1.06
 
-                    # Check for custom background music for standard clips (MUST happen after speedx)
+                    # Check for custom background music for standard clips with SMART AUDIO AUTO-DUCKING
                     if add_bg_music and not movie_recap and not (lyrc_promo and 'montage_segments' in clip_info):
                         bg_music_dir = Path("./bg_music")
                         if bg_music_dir.exists():
                             bg_music_files = list(bg_music_dir.glob("*.mp3")) + list(bg_music_dir.glob("*.wav"))
                             if bg_music_files:
                                 bg_music_file = random.choice(bg_music_files)
-                                print(f"    🎵 Adding background music: {bg_music_file.name}")
+                                print(f"    🎵 Adding smart-ducked background music: {bg_music_file.name}")
                                 try:
                                     from moviepy.audio.io.AudioFileClip import AudioFileClip
-                                    bg_music = AudioFileClip(str(bg_music_file)).volumex(bg_music_vol) # variable volume for standard clips
+                                    # Auto-ducking: calculate optimal vocal clarity volume level
+                                    ducked_vol = max(0.04, min(0.15, bg_music_vol * 0.55 if clip.audio else bg_music_vol))
+                                    bg_music = AudioFileClip(str(bg_music_file)).volumex(ducked_vol)
                                     from moviepy.audio.fx.audio_loop import audio_loop
                                     bg_music_looped = audio_loop(bg_music, duration=clip.duration)
                                     clips_to_close.extend([bg_music, bg_music_looped])
                                     
                                     if clip.audio:
                                         from moviepy.editor import CompositeAudioClip
-                                        clip_with_bg = CompositeAudioClip([clip.audio, bg_music_looped])
+                                        # Boost vocal dialogue slightly while keeping background music harmoniously ducked
+                                        vocal_audio = clip.audio.volumex(1.15)
+                                        clip_with_bg = CompositeAudioClip([vocal_audio, bg_music_looped])
                                         clip = clip.set_audio(clip_with_bg)
-                                        clips_to_close.append(clip_with_bg)
+                                        clips_to_close.extend([vocal_audio, clip_with_bg])
                                     else:
                                         clip = clip.set_audio(bg_music_looped)
                                 except Exception as e:
@@ -1441,22 +1471,49 @@ class VideoProcessor:
                     output_path = target_dir / filename
 
                     import multiprocessing
-                    thread_count = max(1, multiprocessing.cpu_count() - 2)
+                    # Cap thread count to leave dedicated CPU cores free for Windows DWM and Electron GUI
+                    thread_count = min(4, max(1, multiprocessing.cpu_count() // 2))
                     
-                    # Use high quality H.264 CPU encoder
-                    best_codec = 'libx264'
-                    best_preset = 'veryfast'
+                    try:
+                        import torch
+                        has_cuda = torch.cuda.is_available()
+                    except ImportError:
+                        has_cuda = False
+                        
+                    has_amd = False
+                    if not has_cuda:
+                        try:
+                            import subprocess
+                            output = subprocess.check_output(
+                                ['powershell', '-NoProfile', '-Command', 'Get-CimInstance Win32_VideoController | Select-Object -ExpandProperty Name'],
+                                text=True
+                            )
+                            if 'AMD' in output or 'Radeon' in output:
+                                has_amd = True
+                        except Exception:
+                            pass
 
-                    print(f"    🚀 Encoding with crystal-clear CPU encoder ({best_codec}, preset: {best_preset}, {thread_count} threads)...")
-                    
-                    # Generic params that work across all encoders
-                    ffmpeg_params = ['-pix_fmt', 'yuv420p', '-threads', str(thread_count), '-movflags', '+faststart', '-tune', 'film']
-                    if quality.lower() in ['4k', '8k']:
-                        ffmpeg_params.extend(['-crf', '16', '-b:v', '45M', '-maxrate', '65M', '-bufsize', '90M'])
-                    elif quality.lower() == '1080p':
-                        ffmpeg_params.extend(['-crf', '17', '-b:v', '18M', '-maxrate', '28M', '-bufsize', '40M'])
-                    else: # 720p
-                        ffmpeg_params.extend(['-crf', '19', '-b:v', '8M', '-maxrate', '12M', '-bufsize', '16M'])
+                    if has_cuda:
+                        best_codec = 'h264_nvenc'
+                        best_preset = 'p6' # high quality preset for nvenc
+                        print(f"    🚀 Encoding with ultra-fast GPU encoder ({best_codec}, preset: {best_preset})...")
+                        ffmpeg_params = ['-pix_fmt', 'yuv420p', '-movflags', '+faststart', '-cq', '19', '-rc', 'vbr', '-b:v', '0']
+                    elif has_amd:
+                        best_codec = 'h264_amf'
+                        best_preset = 'quality' # high quality preset for amf
+                        print(f"    🚀 Encoding with AMD hardware acceleration ({best_codec})...")
+                        ffmpeg_params = ['-pix_fmt', 'yuv420p', '-movflags', '+faststart', '-rc', 'cqp', '-qp_i', '18', '-qp_p', '18']
+                    else:
+                        best_codec = 'libx264'
+                        best_preset = 'veryfast'
+                        print(f"    🚀 Encoding with crystal-clear CPU encoder ({best_codec}, preset: {best_preset}, {thread_count} threads)...")
+                        ffmpeg_params = ['-pix_fmt', 'yuv420p', '-threads', str(thread_count), '-movflags', '+faststart', '-tune', 'film']
+                        if quality.lower() in ['4k', '8k']:
+                            ffmpeg_params.extend(['-crf', '16', '-b:v', '45M', '-maxrate', '65M', '-bufsize', '90M'])
+                        elif quality.lower() == '1080p':
+                            ffmpeg_params.extend(['-crf', '17', '-b:v', '18M', '-maxrate', '28M', '-bufsize', '40M'])
+                        else: # 720p
+                            ffmpeg_params.extend(['-crf', '19', '-b:v', '8M', '-maxrate', '12M', '-bufsize', '16M'])
                     
                     from proglog import ProgressBarLogger
                     class MyBarLogger(ProgressBarLogger):
@@ -1491,12 +1548,13 @@ class VideoProcessor:
                                         
                     my_logger = MyBarLogger(progress_callback, i, len(clip_specs)) if progress_callback else None
                     
+                    render_fps = 60 if has_cuda else 30
                     clip.write_videofile(
                         str(output_path),
                         codec=best_codec,
                         audio_codec='aac',
                         preset=best_preset,
-                        fps=30,
+                        fps=render_fps,
                         ffmpeg_params=ffmpeg_params,
                         verbose=False,  
                         logger=my_logger,
@@ -1504,10 +1562,17 @@ class VideoProcessor:
                         remove_temp=True,
                         threads=thread_count
                     )
-                    print(f"    ✅ Video encoding complete")
+                    print(f"    ✅ Video encoding complete ({render_fps} FPS)")
                     output_files.append(str(output_path))
                     print(f"    ✅ Saved: {filename}")
                     
+                    # Force Python memory cleanup immediately to keep PC memory light and fast
+                    import gc
+                    try:
+                        clip.close()
+                    except Exception:
+                        pass
+                    gc.collect()
                     # Save title and description metadata file in a dedicated subfolder
                     metadata_dir = target_dir / "metadata"
                     metadata_dir.mkdir(exist_ok=True)

@@ -21,27 +21,32 @@ class WhisperSingleton:
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
-            cls._instance._load_model()
         return cls._instance
 
     def _load_model(self):
         """Loads the faster-whisper model with optimized settings."""
         if self._model is None:
-            print(f"Loading faster-whisper model ({WHISPER_MODEL})... (one time only)")
+            # Upgrade to 'medium' model automatically if on GPU for better accuracy, otherwise use config
+            model_size = "medium" if HAS_CUDA and WHISPER_MODEL == "base" else WHISPER_MODEL
+            print(f"Loading faster-whisper model ({model_size})... (one time only)")
+            
+            import multiprocessing
+            optimal_threads = min(3, max(1, multiprocessing.cpu_count() // 2))
+            
             try:
                 # Check if CUDA is available
                 compute_type = "float16" if HAS_CUDA else "int8"
                 device = "cuda" if HAS_CUDA else "cpu"
                 
-                # Set environment variable to reduce memory usage
-                os.environ["OMP_NUM_THREADS"] = "1"
+                # Set environment variable to reduce memory usage on multi-core CPU
+                os.environ["OMP_NUM_THREADS"] = str(optimal_threads if device == "cpu" else "1")
                 
                 # Load the model with optimized settings
                 self._model = WhisperModel(
-                    WHISPER_MODEL,
+                    model_size,
                     device=device,
                     compute_type=compute_type,
-                    cpu_threads=4,  # Limit CPU threads to prevent overload
+                    cpu_threads=optimal_threads if device == "cpu" else 4,  
                     num_workers=1    # Single worker to prevent model duplicate RAM loading and thread thrashing
                 )
                 print(f"✅ faster-whisper model loaded and cached on: {device} with {compute_type} precision")
@@ -52,7 +57,7 @@ class WhisperSingleton:
                     WHISPER_MODEL,
                     device="cpu",
                     compute_type="int8",
-                    cpu_threads=2,
+                    cpu_threads=max(2, optimal_threads // 2),
                     num_workers=1
                 )
 
@@ -71,6 +76,7 @@ class WhisperSingleton:
         """
         print("🎵 Transcribing video...")
         try:
+            self._load_model()
             lang_label = f"forcing language '{language}'" if language else "auto-detecting language"
             print(f"⏳ Initializing transcription with faster-whisper ({lang_label})...")
             segments, info = self._model.transcribe(

@@ -18,7 +18,7 @@ protocol.registerSchemesAsPrivileged([
   { scheme: 'local', privileges: { bypassCSP: true, supportFetchAPI: true, corsEnabled: true, stream: true } }
 ]);
 
-// Enable GPU and hardware video decoding for smooth 60fps 4K playback
+// Enable GPU and hardware video decoding for smooth playback and lag-free UI
 app.commandLine.appendSwitch('disable-http-cache');
 app.commandLine.appendSwitch('enable-accelerated-video-decode');
 app.commandLine.appendSwitch('enable-gpu-rasterization');

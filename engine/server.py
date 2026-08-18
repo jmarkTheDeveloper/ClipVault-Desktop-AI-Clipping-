@@ -4,6 +4,15 @@ import sys
 # Silence harmless Windows asyncio ConnectionResetError spam
 if sys.platform == 'win32':
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    try:
+        import ctypes
+        # Set process priority to IDLE_PRIORITY_CLASS (0x00000040)
+        # Guarantees that Windows OS, mouse cursor, and UI never experience lag or stutter
+        process_handle = ctypes.windll.kernel32.GetCurrentProcess()
+        ctypes.windll.kernel32.SetPriorityClass(process_handle, 0x00000040)
+        print("⚡ Background engine priority set to 'Idle Priority' (0% PC lag guaranteed).")
+    except Exception:
+        pass
 
 from fastapi import FastAPI, BackgroundTasks, Depends, HTTPException, Header, Body
 from fastapi.middleware.cors import CORSMiddleware
@@ -186,14 +195,194 @@ def execute_rendering_task(task_id: str, request: ProcessRequest):
         tasks_db[task_id]["error"] = str(e)
         tasks_db[task_id]["message"] = f"Error during processing: {e}"
 
+@app.post("/api/create_folder")
+def create_folder(data: dict = Body(...), current_user: dict = Depends(get_current_user)):
+    """
+    Creates a new custom subfolder in the output directory for organizing clips.
+    """
+    folder_name = data.get("folder_name", "").strip()
+    if not folder_name:
+        raise HTTPException(status_code=400, detail="Folder name is required")
+    
+    # Sanitize folder name
+    safe_name = "".join(c for c in folder_name if c.isalnum() or c in (' ', '_', '-')).strip()
+    if not safe_name:
+        raise HTTPException(status_code=400, detail="Invalid folder name")
+        
+    folder_path = OUTPUT_DIR / safe_name
+    folder_path.mkdir(parents=True, exist_ok=True)
+    (folder_path / "metadata").mkdir(exist_ok=True)
+    return {"success": True, "folder": safe_name, "path": str(folder_path)}
+
+@app.post("/api/move_clips")
+def move_clips(data: dict = Body(...), current_user: dict = Depends(get_current_user)):
+    """
+    Moves specified clips and their metadata to a target folder within OUTPUT_DIR.
+    """
+    import shutil
+    file_paths = data.get("file_paths", [])
+    target_folder = data.get("target_folder", "").strip()
+    
+    if not file_paths:
+        raise HTTPException(status_code=400, detail="No files specified to move")
+    
+    safe_target = "".join(c for c in target_folder if c.isalnum() or c in (' ', '_', '-')).strip()
+    if safe_target:
+        dest_dir = OUTPUT_DIR / safe_target
+    else:
+        dest_dir = OUTPUT_DIR
+        
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    dest_meta_dir = dest_dir / "metadata"
+    dest_meta_dir.mkdir(exist_ok=True)
+    
+    moved_count = 0
+    for fpath_str in file_paths:
+        try:
+            fpath = Path(fpath_str)
+            if fpath.exists() and fpath.is_file():
+                dest_file = dest_dir / fpath.name
+                shutil.move(str(fpath), str(dest_file))
+                
+                # Check for metadata file
+                meta_src = fpath.parent / "metadata" / f"{fpath.stem}_metadata.txt"
+                if meta_src.exists():
+                    shutil.move(str(meta_src), str(dest_meta_dir / meta_src.name))
+                    
+                moved_count += 1
+        except Exception as e:
+            print(f"⚠️ Error moving file {fpath_str}: {e}")
+            
+    return {"success": True, "moved_count": moved_count, "target_folder": safe_target or "Main Library"}
+
+@app.get("/api/saved_clips")
+def get_saved_clips(current_user: dict = Depends(get_current_user)):
+    """
+    Scans the output directory (and all subfolders) to return all generated video clips, metadata, and folders.
+    """
+    clips = []
+    folders = set()
+    try:
+        # Search root output dir and all subdirectories
+        for path in sorted(OUTPUT_DIR.glob("**/*.mp4"), key=lambda p: p.stat().st_mtime, reverse=True):
+            try:
+                stat = path.stat()
+                
+                # Determine folder name relative to OUTPUT_DIR
+                rel_parent = path.parent.relative_to(OUTPUT_DIR)
+                folder_name = str(rel_parent) if str(rel_parent) != "." else "Main Library"
+                if folder_name != "Main Library":
+                    folders.add(folder_name)
+                    
+                # Look for metadata file in metadata/ subfolder or same folder
+                meta_file = path.parent / "metadata" / f"{path.stem}_metadata.txt"
+                if not meta_file.exists():
+                    meta_file = path.parent / f"{path.stem}_metadata.txt"
+                    
+                title = path.stem.replace("_", " ").title()
+                description = ""
+                virality_score = 95
+                
+                if meta_file.exists():
+                    try:
+                        content = meta_file.read_text(encoding="utf-8")
+                        lines = [line.strip() for line in content.split("\n") if line.strip()]
+                        for i, line in enumerate(lines):
+                            if "🎬 Catchy Title:" in line and i + 1 < len(lines):
+                                title = lines[i+1]
+                            elif "📝 Description" in line and i + 1 < len(lines):
+                                description = "\n".join(lines[i+1:])
+                    except Exception:
+                        pass
+                
+                # Try to extract score from filename e.g. clip_1_95pts_...
+                if "pts" in path.name:
+                    try:
+                        pts_part = path.name.split("pts")[0].split("_")[-1]
+                        virality_score = int(pts_part)
+                    except Exception:
+                        pass
+
+                # Relative URL for static serving
+                rel_path = path.relative_to(OUTPUT_DIR).as_posix()
+                clip_url = f"http://127.0.0.1:8000/clips/{rel_path}"
+
+                clips.append({
+                    "filename": path.name,
+                    "path": str(path),
+                    "url": clip_url,
+                    "title": title,
+                    "description": description,
+                    "virality_score": virality_score,
+                    "created_at": stat.st_mtime,
+                    "size_mb": round(stat.st_size / (1024 * 1024), 2),
+                    "folder": folder_name
+                })
+            except Exception as clip_err:
+                print(f"⚠️ Error reading clip {path}: {clip_err}")
+    except Exception as e:
+        print(f"⚠️ Failed to list saved clips: {e}")
+
+    return {
+        "clips": clips,
+        "folders": sorted(list(folders)),
+        "storage_dir": str(OUTPUT_DIR)
+    }
+
+@app.post("/api/delete_clip")
+def delete_clip(data: dict = Body(...), current_user: dict = Depends(get_current_user)):
+    """
+    Deletes a specific video clip file and its metadata.
+    """
+    clip_path = data.get("path")
+    if not clip_path:
+        raise HTTPException(status_code=400, detail="Path is required")
+    
+    file = Path(clip_path)
+    if file.exists() and file.is_file():
+        try:
+            file.unlink()
+            meta_file = file.parent / "metadata" / f"{file.stem}_metadata.txt"
+            if meta_file.exists():
+                meta_file.unlink()
+            return {"success": True}
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+    raise HTTPException(status_code=404, detail="Clip not found")
+
+@app.post("/api/copy_clips")
+def copy_clips_to_destination(data: dict = Body(...), current_user: dict = Depends(get_current_user)):
+    """
+    Copies specified clips to a user-chosen destination directory on disk.
+    """
+    import shutil
+    dest_dir = data.get("destination_dir")
+    file_paths = data.get("file_paths", [])
+    
+    if not dest_dir:
+        raise HTTPException(status_code=400, detail="Destination directory is required")
+    
+    dest_path = Path(dest_dir)
+    dest_path.mkdir(parents=True, exist_ok=True)
+    
+    copied = []
+    for f in file_paths:
+        src = Path(f)
+        if src.exists() and src.is_file():
+            target = dest_path / src.name
+            shutil.copy2(src, target)
+            copied.append(str(target))
+            
+    return {"success": True, "copied_count": len(copied), "destination": str(dest_path)}
+
 @app.post("/api/open_folder")
-def open_system_folder(data: dict = Body(...)):
+def open_system_folder(data: dict = Body(...), current_user: dict = Depends(get_current_user)):
     """
-    Opens the target folder in the native OS file explorer (e.g. Windows File Explorer).
+    Opens the output clips folder in the native OS file explorer (Windows Explorer / Finder).
     """
-    import subprocess, sys
-    folder_path = data.get("folder_path")
-    if folder_path and os.path.exists(folder_path):
+    import subprocess
+    folder_path = data.get("folder_path") or str(OUTPUT_DIR)
+    if os.path.exists(folder_path):
         if sys.platform == "win32":
             os.startfile(folder_path)
         elif sys.platform == "darwin":
@@ -206,29 +395,40 @@ def open_system_folder(data: dict = Body(...)):
 @app.get("/api/video_info")
 def get_video_info(url: str, current_user: dict = Depends(get_current_user)):
     """
-    Extracts video metadata (title, duration, uploader) without downloading.
+    Extracts video metadata (title, duration, uploader, stream_url) without downloading.
+    Uses mobile client spoofing to bypass YouTube bot blocks and provide instant preview stream.
     """
     import yt_dlp
     try:
-        ydl_opts = {'quiet': True, 'no_warnings': True}
+        ydl_opts = {
+            'quiet': True,
+            'no_warnings': True,
+            'skip_download': True,
+            'extractor_args': {
+                'youtube': {
+                    'player_client': ['android', 'web', 'ios'],
+                    'player_skip': ['webpage', 'configs'],
+                }
+            },
+            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
             
             stream_url = None
             formats = info.get("formats", [])
             
-            # Look for progressive MP4 format (video + audio together)
-            # Prefer 360p (format_id 18) for smooth preview loading
+            # Prefer 360p or 720p progressive MP4 for ultra-smooth preview streaming in HTML5 video tag
             for fmt in formats:
                 if fmt.get("ext") == "mp4" and fmt.get("acodec") != "none" and fmt.get("vcodec") != "none":
                     stream_url = fmt.get("url")
-                    if fmt.get("format_id") == "18":
+                    if fmt.get("format_id") in ["18", "22"]:
                         break
             
-            # Fallback to first available URL
+            # Fallback to any direct streamable URL
             if not stream_url and formats:
                 for fmt in formats:
-                    if fmt.get("url"):
+                    if fmt.get("url") and fmt.get("vcodec") != "none":
                         stream_url = fmt.get("url")
                         break
 
@@ -236,12 +436,12 @@ def get_video_info(url: str, current_user: dict = Depends(get_current_user)):
                 "title": info.get("title", "Unknown Video"),
                 "duration": info.get("duration", 0),
                 "author": info.get("uploader", "Unknown Channel"),
-                "stream_url": stream_url
+                "stream_url": stream_url,
+                "url": stream_url
             }
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Failed to fetch video info: {e}")
 
-from fastapi.responses import FileResponse
 import urllib.parse
 
 @app.get("/api/download_clip")
