@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Build & output clips
+dist/
+build/
+clips/
+engine/clips/
+*.mp4
+*.mkv
+*.webm
+*.avi
+temp/
+scratch/
+repo_work/
+temp_repo_clone/
+
+# Logs & OS / Editor files
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+.env
+*.env
