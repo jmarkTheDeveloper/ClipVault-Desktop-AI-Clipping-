@@ -31,7 +31,7 @@ class WhisperSingleton:
             print(f"Loading faster-whisper model ({model_size})... (one time only)")
             
             import multiprocessing
-            optimal_threads = max(2, multiprocessing.cpu_count() - 2)
+            optimal_threads = min(3, max(1, multiprocessing.cpu_count() // 2))
             
             try:
                 # Check if CUDA is available

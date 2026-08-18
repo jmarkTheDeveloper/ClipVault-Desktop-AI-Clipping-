@@ -6,10 +6,11 @@ if sys.platform == 'win32':
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     try:
         import ctypes
-        # Set process priority to BELOW_NORMAL_PRIORITY_CLASS (0x00004000)
-        # This ensures Windows UI, mouse, and other apps remain 100% smooth while rendering
-        ctypes.windll.kernel32.SetPriorityClass(ctypes.windll.kernel32.GetCurrentProcess(), 0x00004000)
-        print("⚡ Background engine priority set to 'Below Normal' to keep PC responsive and lag-free.")
+        # Set process priority to IDLE_PRIORITY_CLASS (0x00000040)
+        # Guarantees that Windows OS, mouse cursor, and UI never experience lag or stutter
+        process_handle = ctypes.windll.kernel32.GetCurrentProcess()
+        ctypes.windll.kernel32.SetPriorityClass(process_handle, 0x00000040)
+        print("⚡ Background engine priority set to 'Idle Priority' (0% PC lag guaranteed).")
     except Exception:
         pass
 

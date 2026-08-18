@@ -1466,7 +1466,8 @@ class VideoProcessor:
                     output_path = target_dir / filename
 
                     import multiprocessing
-                    thread_count = max(1, multiprocessing.cpu_count() - 2)
+                    # Cap thread count to leave dedicated CPU cores free for Windows DWM and Electron GUI
+                    thread_count = min(4, max(1, multiprocessing.cpu_count() // 2))
                     
                     try:
                         import torch
