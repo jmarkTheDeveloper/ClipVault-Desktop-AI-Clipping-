@@ -170,13 +170,21 @@ python qa_check.py
 
 ---
 
-## 📄 License
+## 💖 Support & Sponsorship
 
-Distributed under the **MIT License**. See `LICENSE` for more information.
+If you find ClipVault useful or want to support ongoing open-source development, you can support me on Patreon!
+
+<div align="center">
+
+[![Patreon](https://img.shields.io/badge/Patreon-Support_on_Patreon-FF424D?style=for-the-badge&logo=patreon&logoColor=white)](https://patreon.com/jmarkTheDeveloper?utm_medium=unknown&utm_source=join_link&utm_campaign=creatorshare_creator&utm_content=copyLink)
+[![GitHub](https://img.shields.io/badge/GitHub-Follow_@jmarkTheDeveloper-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/jmarkTheDeveloper)
+
+<p><sub>Built with 💚 by <b><a href="https://github.com/jmarkTheDeveloper">jmarkTheDeveloper</a></b> — Computer Science Student at National University Philippines.</sub></p>
+
+</div>
 
 ---
 
-<div align="center">
-  <sub>Built with ❤️ by <a href="https://github.com/jmarkTheDeveloper">jmarkTheDeveloper</a> and the ClipVault Community.</sub>
-</div>
-  
+## 📄 License
+
+Distributed under the **MIT License**. See `LICENSE` for more information.
