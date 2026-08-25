@@ -69,13 +69,6 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
       .then((r) => r.json())
       .then((d) => setEngineOnline(d.status === "ok"))
       .catch(() => setEngineOnline(false));
-
-    try {
-      const accepted = localStorage.getItem("clipvault_compliance_accepted") === "true";
-      if (!accepted) {
-        setShowPrivacyModal(true);
-      }
-    } catch {}
   }, []);
 
   const features = [
@@ -1011,6 +1004,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                       } catch {}
                       setComplianceAccepted(true);
                       setShowPrivacyModal(false);
+                      onSelect("ai-clipper");
                     }}
                     style={{
                       padding: "8px 22px",
@@ -1025,7 +1019,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                       transition: "all 0.15s",
                     }}
                   >
-                    Accept & Continue
+                    Accept & Launch Studio
                   </button>
                 </div>
               ) : (
@@ -1033,6 +1027,38 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                   <span style={{ fontSize: 11, color: G, display: "flex", alignItems: "center", gap: 5, fontFamily: "'Geist Mono', monospace" }}>
                     <CheckCircle2 style={{ width: 13, height: 13 }} /> Compliance Accepted
                   </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      try {
+                        localStorage.removeItem("clipvault_compliance_accepted");
+                      } catch {}
+                      setComplianceAccepted(false);
+                      setAgreedCheckbox(false);
+                    }}
+                    style={{
+                      padding: "5px 10px",
+                      borderRadius: 6,
+                      fontSize: 10.5,
+                      color: "rgba(255,255,255,0.4)",
+                      background: "transparent",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      cursor: "pointer",
+                      fontFamily: "'Geist Mono', monospace",
+                      transition: "all 0.15s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = "#ff667a";
+                      e.currentTarget.style.borderColor = "rgba(255,102,122,0.3)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = "rgba(255,255,255,0.4)";
+                      e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)";
+                    }}
+                    title="Reset compliance state for testing"
+                  >
+                    Reset Acceptance
+                  </button>
                   <button
                     type="button"
                     onClick={() => setShowPrivacyModal(false)}
