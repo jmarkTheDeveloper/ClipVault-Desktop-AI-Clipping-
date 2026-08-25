@@ -120,7 +120,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
             letterSpacing: "0.12em", background: "rgba(0,230,118,0.08)",
             color: G, border: "1px solid rgba(0,230,118,0.2)",
           }}>
-            V2.0 PRO
+            V1.0
           </span>
         </div>
 
