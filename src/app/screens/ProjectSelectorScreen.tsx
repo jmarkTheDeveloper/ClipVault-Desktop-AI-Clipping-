@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Check,
   ChevronRight,
@@ -16,6 +16,7 @@ import {
   FileCheck,
   ExternalLink,
   CheckCircle2,
+  ArrowDown,
 } from "lucide-react";
 
 const G = "#00e676";
@@ -62,7 +63,10 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
   });
   const [showPrivacyModal, setShowPrivacyModal] = useState<boolean>(false);
   const [complianceTab, setComplianceTab] = useState<string>("all");
-  const [agreedCheckbox, setAgreedCheckbox] = useState<boolean>(false);
+  const [hasScrolledToBottom, setHasScrolledToBottom] = useState<boolean>(false);
+  const [showScrollPrompt, setShowScrollPrompt] = useState<boolean>(false);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const documentPaneRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetch("http://127.0.0.1:8000/api/health")
@@ -70,6 +74,22 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
       .then((d) => setEngineOnline(d.status === "ok"))
       .catch(() => setEngineOnline(false));
   }, []);
+
+  // 5-second inactivity timer for scroll down prompt
+  useEffect(() => {
+    if (showPrivacyModal && !complianceAccepted && !hasScrolledToBottom) {
+      setShowScrollPrompt(false);
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+      scrollTimeoutRef.current = setTimeout(() => {
+        setShowScrollPrompt(true);
+      }, 5000);
+    } else {
+      setShowScrollPrompt(false);
+    }
+    return () => {
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+    };
+  }, [showPrivacyModal, complianceAccepted, hasScrolledToBottom, complianceTab]);
 
   const features = [
     "Active Speaker Face Tracking (9:16)",
@@ -121,6 +141,10 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
         @keyframes wfDotPulse {
           0%, 100% { transform: scale(1);   opacity: 1;   }
           50%       { transform: scale(1.35); opacity: 0.7; }
+        }
+        @keyframes wfBouncePrompt {
+          0%, 100% { transform: translateY(0); }
+          50%       { transform: translateY(6px); }
         }
         @media (max-width: 900px) {
           .wf-split-layout { grid-template-columns: 1fr !important; gap: 20px !important; }
@@ -589,7 +613,11 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
             justifyContent: "center",
             padding: 24,
           }}
-          onClick={() => setShowPrivacyModal(false)}
+          onClick={() => {
+            if (complianceAccepted) {
+              setShowPrivacyModal(false);
+            }
+          }}
         >
           <div
             style={{
@@ -657,33 +685,36 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setShowPrivacyModal(false)}
-                style={{
-                  width: 30,
-                  height: 30,
-                  borderRadius: 7,
-                  background: "rgba(255,255,255,0.04)",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  color: "rgba(255,255,255,0.5)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  cursor: "pointer",
-                  transition: "all 0.15s",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = "#fff";
-                  e.currentTarget.style.background = "rgba(255,255,255,0.1)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = "rgba(255,255,255,0.5)";
-                  e.currentTarget.style.background = "rgba(255,255,255,0.04)";
-                }}
-              >
-                <X style={{ width: 15, height: 15 }} />
-              </button>
+              {/* Close (X) button ONLY visible if the user has already accepted the compliance terms */}
+              {complianceAccepted && (
+                <button
+                  type="button"
+                  onClick={() => setShowPrivacyModal(false)}
+                  style={{
+                    width: 30,
+                    height: 30,
+                    borderRadius: 7,
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    color: "rgba(255,255,255,0.5)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
+                    transition: "all 0.15s",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = "#fff";
+                    e.currentTarget.style.background = "rgba(255,255,255,0.1)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = "rgba(255,255,255,0.5)";
+                    e.currentTarget.style.background = "rgba(255,255,255,0.04)";
+                  }}
+                >
+                  <X style={{ width: 15, height: 15 }} />
+                </button>
+              )}
             </div>
 
             {/* First-Time Notice Banner */}
@@ -795,6 +826,21 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
 
               {/* Right Document Pane */}
               <div
+                ref={documentPaneRef}
+                onScroll={(e) => {
+                  const el = e.currentTarget;
+                  const isBottom = el.scrollHeight - el.scrollTop - el.clientHeight <= 40;
+                  if (isBottom) {
+                    setHasScrolledToBottom(true);
+                    setShowScrollPrompt(false);
+                  } else if (!hasScrolledToBottom) {
+                    setShowScrollPrompt(false);
+                    if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+                    scrollTimeoutRef.current = setTimeout(() => {
+                      setShowScrollPrompt(true);
+                    }, 5000);
+                  }
+                }}
                 style={{
                   padding: "24px 30px",
                   overflowY: "auto",
@@ -942,6 +988,34 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
               </div>
             </div>
 
+            {/* 5-Second Inactivity Scroll Prompt */}
+            {showScrollPrompt && !hasScrolledToBottom && !complianceAccepted && (
+              <div
+                style={{
+                  position: "absolute",
+                  bottom: 68,
+                  right: 28,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "8px 16px",
+                  borderRadius: 999,
+                  background: "rgba(18, 18, 22, 0.95)",
+                  border: "1px solid rgba(0, 230, 118, 0.4)",
+                  boxShadow: "0 8px 32px rgba(0, 0, 0, 0.85), 0 0 16px rgba(0, 230, 118, 0.25)",
+                  color: "#fff",
+                  fontSize: 11.5,
+                  fontWeight: 700,
+                  animation: "wfBouncePrompt 1.8s infinite ease-in-out",
+                  zIndex: 40,
+                  pointerEvents: "none",
+                }}
+              >
+                <ArrowDown style={{ width: 13, height: 13, color: G }} />
+                <span>Read and scroll down to proceed</span>
+              </div>
+            )}
+
             {/* Modal Footer */}
             <div
               style={{
@@ -984,42 +1058,43 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
               </div>
 
               {!complianceAccepted ? (
-                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                  <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 11.5, color: "rgba(255,255,255,0.85)", userSelect: "none" }}>
-                    <input
-                      type="checkbox"
-                      checked={agreedCheckbox}
-                      onChange={(e) => setAgreedCheckbox(e.target.checked)}
-                      style={{ width: 15, height: 15, accentColor: G, cursor: "pointer" }}
-                    />
-                    <span>I have reviewed & agree to the Local BYOK Privacy Policy & MIT License</span>
-                  </label>
+                <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                  {!hasScrolledToBottom ? (
+                    <div style={{ display: "flex", alignItems: "center", gap: 7, color: "rgba(255,255,255,0.48)", fontSize: 11.5, fontFamily: "'Geist Mono', monospace" }}>
+                      <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#f59e0b", boxShadow: "0 0 6px #f59e0b" }} />
+                      <span>Scroll to bottom to unlock accept</span>
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", alignItems: "center", gap: 7, color: G, fontSize: 11.5, fontWeight: 600 }}>
+                      <CheckCircle2 style={{ width: 14, height: 14, color: G }} />
+                      <span>Review Completed & Verified</span>
+                    </div>
+                  )}
 
                   <button
                     type="button"
-                    disabled={!agreedCheckbox}
+                    disabled={!hasScrolledToBottom}
                     onClick={() => {
                       try {
                         localStorage.setItem("clipvault_compliance_accepted", "true");
                       } catch {}
                       setComplianceAccepted(true);
                       setShowPrivacyModal(false);
-                      onSelect("ai-clipper");
                     }}
                     style={{
-                      padding: "8px 22px",
+                      padding: "8px 24px",
                       borderRadius: 8,
                       fontWeight: 700,
                       fontSize: 12,
-                      color: agreedCheckbox ? "#000" : "rgba(0,0,0,0.4)",
-                      background: agreedCheckbox ? G : "rgba(0,230,118,0.3)",
+                      color: hasScrolledToBottom ? "#000" : "rgba(0,0,0,0.35)",
+                      background: hasScrolledToBottom ? G : "rgba(0,230,118,0.22)",
                       border: "none",
-                      cursor: agreedCheckbox ? "pointer" : "not-allowed",
-                      boxShadow: agreedCheckbox ? "0 0 20px rgba(0,230,118,0.3)" : "none",
+                      cursor: hasScrolledToBottom ? "pointer" : "not-allowed",
+                      boxShadow: hasScrolledToBottom ? "0 0 20px rgba(0,230,118,0.35)" : "none",
                       transition: "all 0.15s",
                     }}
                   >
-                    Accept & Launch Studio
+                    Accept & Continue
                   </button>
                 </div>
               ) : (
@@ -1034,7 +1109,8 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                         localStorage.removeItem("clipvault_compliance_accepted");
                       } catch {}
                       setComplianceAccepted(false);
-                      setAgreedCheckbox(false);
+                      setHasScrolledToBottom(false);
+                      setShowScrollPrompt(false);
                     }}
                     style={{
                       padding: "5px 10px",
