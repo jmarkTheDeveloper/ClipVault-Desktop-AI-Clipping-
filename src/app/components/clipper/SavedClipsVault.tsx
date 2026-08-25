@@ -653,13 +653,14 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
                 setRenameModalState((prev) => ({ ...prev, newName: e.target.value }))
               }
               onKeyDown={(e) => {
+                e.stopPropagation();
                 if (e.key === "Enter" && onRenameFolder) {
                   onRenameFolder(renameModalState.oldFolder, renameModalState.newName);
                   setRenameModalState({ isOpen: false, oldFolder: "", newName: "" });
                 }
               }}
               placeholder="Enter new folder name..."
-              className="w-full rounded-xl px-4 py-2.5 text-xs text-white bg-black/50 border border-white/15 outline-none focus:border-amber-400"
+              className="w-full rounded-xl px-4 py-2.5 text-xs text-white bg-black/60 border border-white/20 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/50 cursor-text select-text pointer-events-auto shadow-inner"
             />
             <div className="flex justify-end gap-2 pt-2">
               <button

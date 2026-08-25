@@ -19,6 +19,11 @@
           letter-spacing: -0.01em;
         } 
         #root { height: 100%; }
+        input, textarea, select {
+          -webkit-user-select: text !important;
+          user-select: text !important;
+          pointer-events: auto !important;
+        }
       </style>
       <script>
         window.process = { env: { NODE_ENV: 'development' } };
