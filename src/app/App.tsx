@@ -49,7 +49,8 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
 export type Screen =
   | "project-select"
   | "ai-clipper"
-  | "movie-recapper";
+  | "movie-recapper"
+  | "saved-vault";
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>("project-select");
@@ -61,14 +62,22 @@ export default function App() {
           <ProjectSelectorScreen
             onBack={() => {}}
             onSelect={(mode) => {
-              if (mode === "ai-clipper")     setScreen("ai-clipper");
+              if (mode === "ai-clipper") setScreen("ai-clipper");
               else if (mode === "movie-recapper") setScreen("movie-recapper");
+              else if (mode === "saved-vault") setScreen("saved-vault");
             }}
           />
         )}
-        {screen === "ai-clipper"     && (
+        {screen === "ai-clipper" && (
           <AiClipperScreen 
             onBack={() => setScreen("project-select")} 
+            initialViewMode="setup"
+          />
+        )}
+        {screen === "saved-vault" && (
+          <AiClipperScreen 
+            onBack={() => setScreen("project-select")} 
+            initialViewMode="vault"
           />
         )}
         {screen === "movie-recapper" && <MovieRecapperScreen onBack={() => setScreen("project-select")} />}

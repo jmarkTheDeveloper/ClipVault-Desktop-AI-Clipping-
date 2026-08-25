@@ -13,6 +13,7 @@ import type { ViewMode, ClipMetadata, CropBox, EngineOption } from "../component
 interface Props {
   onBack: () => void;
   onOpenEditor?: (url: string) => void;
+  initialViewMode?: ViewMode;
 }
 
 const AI_ENGINES: EngineOption[] = [
@@ -22,9 +23,9 @@ const AI_ENGINES: EngineOption[] = [
   { id: "openai_sora", name: "OpenAI Sora / GPT-4o", desc: "General Video & Subtitle Model", category: "general" },
 ];
 
-export const AiClipperScreen: React.FC<Props> = ({ onBack }) => {
+export const AiClipperScreen: React.FC<Props> = ({ onBack, initialViewMode = "setup" }) => {
   // Navigation & View States
-  const [viewMode, setViewMode] = useState<ViewMode>("setup");
+  const [viewMode, setViewMode] = useState<ViewMode>(initialViewMode);
   const [showKeySettings, setShowKeySettings] = useState(false);
   const [selectedEngine, setSelectedEngine] = useState("higgsfield");
   const [byokMode, setByokMode] = useState<"developer" | "custom">("developer");
