@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Check, ChevronRight, Zap, Film, FolderOpen } from "lucide-react";
+import { Check, ChevronRight, Zap, Film, FolderOpen, Cpu, HardDrive, Layers } from "lucide-react";
 
 export type Mode = "ai-clipper" | "movie-recapper" | "saved-vault";
 
@@ -8,11 +8,8 @@ interface Props {
   onSelect: (mode: Mode) => void;
 }
 
-// ── ACCENT ───────────────────────────────────────────────────────────────────
-const G = "#00e676";
-
-// ── LOGO ─────────────────────────────────────────────────────────────────────
-function Logo({ size = 36 }: { size?: number }) {
+// ── CUSTOM VECTOR BRAND LOGO ──────────────────────────────────────────────────
+function Logo({ size = 30 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
       <defs>
@@ -36,23 +33,32 @@ function Logo({ size = 36 }: { size?: number }) {
   );
 }
 
-const WORKFLOW_PRESETS: Record<
-  Mode,
+interface WorkflowCardData {
+  id: Mode;
+  num: string;
+  badge: string;
+  icon: React.ComponentType<{ style?: React.CSSProperties; className?: string }>;
+  title: string;
+  accent: string;
+  accentBg: string;
+  accentBorder: string;
+  glowColor: string;
+  desc: string;
+  features: string[];
+  btnText: string;
+}
+
+const WORKFLOWS: WorkflowCardData[] = [
   {
-    num: string;
-    badge: string;
-    icon: React.ComponentType<{ style?: React.CSSProperties }>;
-    title: string;
-    desc: string;
-    features: string[];
-    btnText: string;
-  }
-> = {
-  "ai-clipper": {
+    id: "ai-clipper",
     num: "01",
     badge: "Viral Short-Form Engine",
     icon: Zap,
     title: "AI Video Clipper",
+    accent: "#fbbf24",
+    accentBg: "rgba(251,191,36,0.08)",
+    accentBorder: "rgba(251,191,36,0.25)",
+    glowColor: "rgba(251,191,36,0.35)",
     desc: "Paste YouTube links or import local media. AI detects high-retention viral hooks, tracks speaker faces, and crafts 9:16 Shorts with dynamic subtitles.",
     features: [
       "Active Speaker Face Tracking (9:16)",
@@ -63,11 +69,16 @@ const WORKFLOW_PRESETS: Record<
     ],
     btnText: "Launch Studio",
   },
-  "movie-recapper": {
+  {
+    id: "movie-recapper",
     num: "02",
     badge: "AI Narrator Engine",
     icon: Film,
     title: "Movie Recapper",
+    accent: "#c084fc",
+    accentBg: "rgba(192,132,252,0.08)",
+    accentBorder: "rgba(192,132,252,0.25)",
+    glowColor: "rgba(192,132,252,0.35)",
     desc: "Transform full-length movies, trailers, and series into suspenseful recap shorts with AI narrator voices and cinematic background soundtracks.",
     features: [
       "5 AI Narrator Voices (Edge TTS)",
@@ -78,11 +89,16 @@ const WORKFLOW_PRESETS: Record<
     ],
     btnText: "Launch Recapper",
   },
-  "saved-vault": {
+  {
+    id: "saved-vault",
     num: "03",
     badge: "Windows Explorer Sync",
     icon: FolderOpen,
     title: "Saved Clips Vault",
+    accent: "#00e676",
+    accentBg: "rgba(0,230,118,0.08)",
+    accentBorder: "rgba(0,230,118,0.25)",
+    glowColor: "rgba(0,230,118,0.35)",
     desc: "Manage, organize, duplicate, and export your generated viral clips. Nested folder hierarchy directly synced with your Windows desktop directory.",
     features: [
       "Real-time Windows File Explorer Mirror",
@@ -93,14 +109,19 @@ const WORKFLOW_PRESETS: Record<
     ],
     btnText: "Open Saved Vault",
   },
-};
+];
 
-// ── WORKFLOW SCREEN ───────────────────────────────────────────────────────────
-export function ProjectSelectorScreen({
-  onBack = () => {},
-  onSelect,
-}: Props) {
-  const [activeWorkflow, setActiveWorkflow] = useState<Mode>("ai-clipper");
+const DOTS = [
+  { s: 3, t: "14%", l: "10%", delay: 0, dur: 5 },
+  { s: 2, t: "68%", l: "6%", delay: 1.2, dur: 4 },
+  { s: 4, t: "18%", l: "88%", delay: 0.5, dur: 6 },
+  { s: 2, t: "78%", l: "92%", delay: 2, dur: 4.5 },
+  { s: 3, t: "46%", l: "4%", delay: 0.8, dur: 5.5 },
+  { s: 2, t: "35%", l: "96%", delay: 1.5, dur: 3.8 },
+];
+
+export function ProjectSelectorScreen({ onBack, onSelect }: Props) {
+  const [hovered, setHovered] = useState<Mode | null>(null);
   const [engineOnline, setEngineOnline] = useState(true);
 
   useEffect(() => {
@@ -110,39 +131,17 @@ export function ProjectSelectorScreen({
       .catch(() => setEngineOnline(false));
   }, []);
 
-  const dots = [
-    { s: 3, t: "16%", l: "12%", delay: 0, dur: 5 },
-    { s: 2, t: "70%", l: "8%", delay: 1.2, dur: 4 },
-    { s: 4, t: "22%", l: "83%", delay: 0.5, dur: 6 },
-    { s: 2, t: "74%", l: "87%", delay: 2, dur: 4.5 },
-    { s: 3, t: "50%", l: "3%", delay: 0.8, dur: 5.5 },
-    { s: 2, t: "36%", l: "93%", delay: 1.5, dur: 3.8 },
-  ];
-
-  const current = WORKFLOW_PRESETS[activeWorkflow];
-  const CurrentIcon = current.icon;
-
-  const handleLaunch = () => {
-    onSelect(activeWorkflow);
-  };
-
-  const handleSkip = () => {
-    if (onBack) onBack();
-    else onSelect("ai-clipper");
-  };
-
   return (
     <div
-      className="min-h-screen flex flex-col overflow-y-auto select-none"
-      style={{ background: "#050505", fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+      className="h-screen w-screen flex flex-col overflow-hidden select-none relative"
+      style={{
+        background: "#050505",
+        fontFamily: "'Plus Jakarta Sans', sans-serif",
+      }}
     >
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
 
-        @keyframes wfGlowPulse {
-          0%, 100% { box-shadow: 0 0 40px rgba(0,230,118,0.07), 0 0 0 1px rgba(0,230,118,0.14); }
-          50%       { box-shadow: 0 0 90px rgba(0,230,118,0.17), 0 0 0 1px rgba(0,230,118,0.34); }
-        }
         @keyframes wfOrbitCW {
           from { transform: rotate(0deg); }
           to   { transform: rotate(360deg); }
@@ -151,77 +150,72 @@ export function ProjectSelectorScreen({
           from { transform: rotate(0deg); }
           to   { transform: rotate(-360deg); }
         }
-        @keyframes wfIconGlow {
-          0%, 100% { box-shadow: 0 0 10px rgba(0,230,118,0.08); }
-          50%       { box-shadow: 0 0 28px rgba(0,230,118,0.28); }
-        }
         @keyframes wfScanDown {
-          0%   { top: -1px; opacity: 0; }
-          6%   { opacity: 1; }
-          92%  { opacity: 0.5; }
+          0%   { top: -2px; opacity: 0; }
+          8%   { opacity: 1; }
+          90%  { opacity: 0.5; }
           100% { top: 100%; opacity: 0; }
         }
         @keyframes wfAmbient {
-          0%, 100% { opacity: 0.07; transform: translate(-50%, -50%) scale(1); }
-          50%       { opacity: 0.14; transform: translate(-50%, -50%) scale(1.1); }
-        }
-        @keyframes wfFeatIn {
-          from { opacity: 0; transform: translateX(-7px); }
-          to   { opacity: 1; transform: translateX(0); }
+          0%, 100% { opacity: 0.06; transform: translate(-50%, -50%) scale(1); }
+          50%       { opacity: 0.12; transform: translate(-50%, -50%) scale(1.08); }
         }
         @keyframes wfFloatDot {
-          0%, 100% { transform: translateY(0);    opacity: 0.25; }
-          50%       { transform: translateY(-12px); opacity: 0.65; }
+          0%, 100% { transform: translateY(0); opacity: 0.2; }
+          50%       { transform: translateY(-10px); opacity: 0.6; }
         }
       `}</style>
 
-      {/* ── Header ── */}
+      {/* ── Top Header ── */}
       <header
         style={{
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "0 32px",
-          height: 56,
-          background: "rgba(5,5,5,0.97)",
-          borderBottom: "1px solid rgba(255,255,255,0.05)",
-          backdropFilter: "blur(12px)",
-          position: "sticky",
-          top: 0,
-          zIndex: 10,
+          padding: "0 28px",
+          height: 52,
+          background: "rgba(5,5,5,0.98)",
+          borderBottom: "1px solid rgba(255,255,255,0.06)",
+          backdropFilter: "blur(16px)",
+          position: "relative",
+          zIndex: 20,
           flexShrink: 0,
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Logo size={26} />
-          <span style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 900, fontSize: 20, letterSpacing: "-0.03em", color: "#fff" }}>
-            Clip<span style={{ color: G }}>Vault</span>
-          </span>
-          <span
-            style={{
-              padding: "2px 8px",
-              borderRadius: 6,
-              fontSize: 9,
-              fontWeight: 700,
-              letterSpacing: "0.12em",
-              background: "rgba(0,230,118,0.08)",
-              color: G,
-              border: "1px solid rgba(0,230,118,0.18)",
-            }}
-          >
-            V2.0 PRO
-          </span>
+          <Logo size={28} />
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 900, fontSize: 18, letterSpacing: "-0.03em", color: "#fff" }}>
+              Clip<span style={{ color: "#00e676" }}>Vault</span> Studio
+            </span>
+            <span
+              style={{
+                padding: "2px 7px",
+                borderRadius: 6,
+                fontSize: 9,
+                fontWeight: 800,
+                letterSpacing: "0.1em",
+                background: "rgba(0,230,118,0.08)",
+                color: "#00e676",
+                border: "1px solid rgba(0,230,118,0.2)",
+                textTransform: "uppercase",
+              }}
+            >
+              V2.0 PRO
+            </span>
+          </div>
         </div>
+
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div
             style={{
               display: "flex",
               alignItems: "center",
               gap: 6,
-              padding: "6px 12px",
-              borderRadius: 8,
-              background: "rgba(255,255,255,0.025)",
-              border: "1px solid rgba(255,255,255,0.055)",
+              padding: "5px 12px",
+              borderRadius: 999,
+              background: "rgba(255,255,255,0.03)",
+              border: "1px solid rgba(255,255,255,0.06)",
             }}
           >
             <div
@@ -229,26 +223,28 @@ export function ProjectSelectorScreen({
                 width: 6,
                 height: 6,
                 borderRadius: "50%",
-                background: engineOnline ? G : "#ef4444",
-                boxShadow: engineOnline ? `0 0 8px ${G}` : "0 0 8px #ef4444",
+                background: engineOnline ? "#00e676" : "#ef4444",
+                boxShadow: engineOnline ? "0 0 8px #00e676" : "0 0 8px #ef4444",
               }}
             />
-            <span style={{ color: "rgba(255,255,255,0.35)", fontFamily: "'JetBrains Mono', monospace", fontSize: 10 }}>
+            <span style={{ color: "rgba(255,255,255,0.4)", fontFamily: "'JetBrains Mono', monospace", fontSize: 10 }}>
               {engineOnline ? "Local Engine Online (127.0.0.1:8000)" : "Engine Offline"}
             </span>
           </div>
+
           <div
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 6,
-              padding: "6px 12px",
-              borderRadius: 8,
-              background: "rgba(255,255,255,0.025)",
-              border: "1px solid rgba(255,255,255,0.055)",
-              color: "rgba(255,255,255,0.28)",
+              gap: 5,
+              padding: "5px 12px",
+              borderRadius: 999,
+              background: "rgba(251,191,36,0.08)",
+              border: "1px solid rgba(251,191,36,0.2)",
+              color: "#fbbf24",
               fontFamily: "'JetBrains Mono', monospace",
               fontSize: 10,
+              fontWeight: 700,
             }}
           >
             ⚡ Hardware Accelerated
@@ -256,39 +252,40 @@ export function ProjectSelectorScreen({
         </div>
       </header>
 
-      {/* ── Main ── */}
+      {/* ── Main Production Workflow Screen (Engineered to 100% Fit Viewport) ── */}
       <main
         style={{
           flex: 1,
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          justifyContent: "center",
-          padding: "48px 24px",
+          justifyContent: "space-between",
+          padding: "16px 28px 14px",
           position: "relative",
           overflow: "hidden",
+          minHeight: 0,
         }}
       >
-        {/* Ambient glow */}
+        {/* Ambient radial glow backdrop */}
         <div
           style={{
             position: "absolute",
-            width: 680,
-            height: 680,
+            width: 750,
+            height: 750,
             borderRadius: "50%",
-            background: "radial-gradient(circle, rgba(0,230,118,0.055) 0%, transparent 62%)",
-            top: "50%",
+            background: "radial-gradient(circle, rgba(0,230,118,0.05) 0%, rgba(251,191,36,0.02) 45%, transparent 70%)",
+            top: "45%",
             left: "50%",
             pointerEvents: "none",
             animationName: "wfAmbient",
-            animationDuration: "5s",
+            animationDuration: "6s",
             animationTimingFunction: "ease-in-out",
             animationIterationCount: "infinite",
           }}
         />
 
         {/* Floating micro-dots */}
-        {dots.map((p, i) => (
+        {DOTS.map((p, i) => (
           <div
             key={i}
             style={{
@@ -298,7 +295,7 @@ export function ProjectSelectorScreen({
               top: p.t,
               left: p.l,
               borderRadius: "50%",
-              background: G,
+              background: i % 2 === 0 ? "#00e676" : "#fbbf24",
               pointerEvents: "none",
               animationName: "wfFloatDot",
               animationDuration: `${p.dur}s`,
@@ -309,336 +306,399 @@ export function ProjectSelectorScreen({
           />
         ))}
 
-        {/* Section label */}
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-          <div style={{ height: 1, width: 24, background: "rgba(0,230,118,0.3)" }} />
-          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.24em", textTransform: "uppercase", color: "rgba(0,230,118,0.45)" }}>
-            Production Workflow
-          </span>
-          <div style={{ height: 1, width: 24, background: "rgba(0,230,118,0.3)" }} />
-        </div>
-
-        {/* Heading */}
-        <h1
-          style={{
-            fontFamily: "'Outfit', sans-serif",
-            fontWeight: 900,
-            textAlign: "center",
-            fontSize: "clamp(32px, 4.5vw, 54px)",
-            letterSpacing: "-0.04em",
-            lineHeight: 1,
-            margin: "0 0 16px",
-          }}
-        >
-          <span style={{ color: "#fff" }}>Select Your Production</span>
-          <br />
-          <span style={{ color: G }}>Workflow</span>
-        </h1>
-
-        <p
-          style={{
-            textAlign: "center",
-            color: "rgba(255,255,255,0.22)",
-            fontSize: 14,
-            lineHeight: 1.75,
-            maxWidth: 440,
-            margin: "0 0 32px",
-          }}
-        >
-          Paste a YouTube link or import local footage. AI detects viral hooks, tracks speaker faces, and auto-exports 9:16 Shorts.
-        </p>
-
-        {/* Workflow Switcher Pills (Optional Quick Tabs) */}
-        <div style={{ display: "flex", gap: 8, marginBottom: 24, zIndex: 10 }}>
-          {(["ai-clipper", "movie-recapper", "saved-vault"] as Mode[]).map((mode) => (
-            <button
-              key={mode}
-              type="button"
-              onClick={() => setActiveWorkflow(mode)}
-              style={{
-                padding: "5px 14px",
-                borderRadius: 999,
-                fontSize: 11,
-                fontWeight: 700,
-                cursor: "pointer",
-                transition: "all 0.2s ease",
-                border: activeWorkflow === mode ? `1px solid rgba(0,230,118,0.4)` : "1px solid rgba(255,255,255,0.06)",
-                background: activeWorkflow === mode ? "rgba(0,230,118,0.12)" : "rgba(255,255,255,0.02)",
-                color: activeWorkflow === mode ? G : "rgba(255,255,255,0.35)",
-              }}
-            >
-              {mode === "ai-clipper" && "⚡ AI Video Clipper"}
-              {mode === "movie-recapper" && "🍿 Movie Recapper"}
-              {mode === "saved-vault" && "💾 Saved Vault"}
-            </button>
-          ))}
-        </div>
-
-        {/* ── Card ── */}
-        <div
-          style={{
-            position: "relative",
-            overflow: "hidden",
-            width: "min(500px, 100%)",
-            background: "#0b0b0b",
-            borderRadius: 20,
-            padding: "36px 40px",
-            animationName: "wfGlowPulse",
-            animationDuration: "3.2s",
-            animationTimingFunction: "ease-in-out",
-            animationIterationCount: "infinite",
-          }}
-        >
-          {/* Scan line */}
-          <div
-            style={{
-              position: "absolute",
-              left: 0,
-              right: 0,
-              height: 1,
-              pointerEvents: "none",
-              background: "linear-gradient(90deg, transparent 0%, rgba(0,230,118,0.45) 25%, rgba(0,230,118,0.85) 50%, rgba(0,230,118,0.45) 75%, transparent 100%)",
-              animationName: "wfScanDown",
-              animationDuration: "3.5s",
-              animationTimingFunction: "ease-in-out",
-              animationIterationCount: "infinite",
-            }}
-          />
-
-          {/* Top row */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 32 }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "6px 12px",
-                borderRadius: 999,
-                background: "rgba(0,230,118,0.07)",
-                border: "1px solid rgba(0,230,118,0.18)",
-              }}
-            >
-              <CurrentIcon style={{ width: 12, height: 12, color: G }} />
-              <span style={{ fontSize: 12, fontWeight: 700, color: G }}>{current.badge}</span>
-            </div>
-            <span
-              style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 30,
-                fontWeight: 700,
-                color: "rgba(255,255,255,0.04)",
-                letterSpacing: "-0.05em",
-                lineHeight: 1,
-              }}
-            >
-              {current.num}
+        {/* Hero Header Section */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", zIndex: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+            <div style={{ height: 1, width: 22, background: "rgba(0,230,118,0.4)" }} />
+            <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(0,230,118,0.6)" }}>
+              PRODUCTION WORKFLOW
             </span>
+            <div style={{ height: 1, width: 22, background: "rgba(0,230,118,0.4)" }} />
           </div>
 
-          {/* Animated icon */}
-          <div style={{ position: "relative", width: 88, height: 88, marginBottom: 32 }}>
-            {/* Outer orbit ring */}
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                borderRadius: "50%",
-                border: "1px dashed rgba(0,230,118,0.14)",
-                animationName: "wfOrbitCW",
-                animationDuration: "9s",
-                animationTimingFunction: "linear",
-                animationIterationCount: "infinite",
-              }}
-            >
-              <div
-                style={{
-                  position: "absolute",
-                  width: 5,
-                  height: 5,
-                  borderRadius: "50%",
-                  top: -2.5,
-                  left: "50%",
-                  marginLeft: -2.5,
-                  background: G,
-                  boxShadow: `0 0 7px ${G}`,
-                }}
-              />
-            </div>
-            {/* Inner orbit ring */}
-            <div
-              style={{
-                position: "absolute",
-                inset: 14,
-                borderRadius: "50%",
-                border: "1px dashed rgba(0,230,118,0.08)",
-                animationName: "wfOrbitCCW",
-                animationDuration: "4.5s",
-                animationTimingFunction: "linear",
-                animationIterationCount: "infinite",
-              }}
-            >
-              <div
-                style={{
-                  position: "absolute",
-                  width: 3,
-                  height: 3,
-                  borderRadius: "50%",
-                  bottom: -1.5,
-                  left: "50%",
-                  marginLeft: -1.5,
-                  background: "rgba(0,230,118,0.55)",
-                }}
-              />
-            </div>
-            {/* Icon tile */}
-            <div
-              style={{
-                position: "absolute",
-                inset: 24,
-                borderRadius: 14,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                background: "rgba(0,230,118,0.07)",
-                border: "1px solid rgba(0,230,118,0.24)",
-                animationName: "wfIconGlow",
-                animationDuration: "2.2s",
-                animationTimingFunction: "ease-in-out",
-                animationIterationCount: "infinite",
-              }}
-            >
-              <CurrentIcon style={{ width: 18, height: 18, color: G }} />
-            </div>
-          </div>
-
-          {/* Title + description */}
-          <h2
+          <h1
             style={{
               fontFamily: "'Outfit', sans-serif",
               fontWeight: 900,
-              fontSize: 26,
+              textAlign: "center",
+              fontSize: "clamp(24px, 2.5vw, 36px)",
               letterSpacing: "-0.03em",
-              color: "#fff",
-              margin: "0 0 8px",
+              lineHeight: 1.1,
+              margin: "0 0 6px",
             }}
           >
-            {current.title}
-          </h2>
-          <p style={{ color: "rgba(255,255,255,0.28)", fontSize: 13.5, lineHeight: 1.7, margin: "0 0 32px" }}>
-            {current.desc}
-          </p>
+            <span style={{ color: "#fff" }}>Select Your </span>
+            <span style={{ color: "#fbbf24" }}>Production</span>{" "}
+            <span style={{ color: "#00e676" }}>Workflow</span>
+          </h1>
 
-          {/* Feature list */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 32 }}>
-            {current.features.map((feat, i) => (
-              <div
-                key={feat}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  animationName: "wfFeatIn",
-                  animationDuration: "0.45s",
-                  animationFillMode: "both",
-                  animationDelay: `${i * 0.07}s`,
-                }}
-              >
-                <div
-                  style={{
-                    width: 16,
-                    height: 16,
-                    borderRadius: "50%",
-                    flexShrink: 0,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    background: "rgba(0,230,118,0.09)",
-                    border: "1px solid rgba(0,230,118,0.22)",
-                  }}
-                >
-                  <Check style={{ width: 9, height: 9, color: G }} />
-                </div>
-                <span style={{ fontSize: 14, color: "rgba(255,255,255,0.42)" }}>{feat}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* Separator */}
-          <div style={{ height: 1, background: "rgba(255,255,255,0.04)", marginBottom: 24 }} />
-
-          {/* Launch button */}
-          <button
-            onClick={handleLaunch}
+          <p
             style={{
-              width: "100%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "16px 20px",
-              borderRadius: 12,
-              fontWeight: 800,
-              fontSize: 14,
-              color: "#000",
-              background: G,
-              border: "none",
-              cursor: "pointer",
-              fontFamily: "'Outfit', sans-serif",
-              letterSpacing: "-0.01em",
-              transition: "all 0.2s ease",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.boxShadow = "0 0 40px rgba(0,230,118,0.5)";
-              e.currentTarget.style.transform = "translateY(-2px)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.boxShadow = "none";
-              e.currentTarget.style.transform = "none";
+              textAlign: "center",
+              color: "rgba(255,255,255,0.35)",
+              fontSize: 12,
+              lineHeight: 1.5,
+              maxWidth: 620,
+              margin: 0,
+              fontWeight: 500,
             }}
           >
-            <span>{current.btnText}</span>
-            <div
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: "50%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                background: "rgba(0,0,0,0.18)",
-              }}
-            >
-              <ChevronRight style={{ width: 16, height: 16 }} />
-            </div>
-          </button>
+            Create high-retention viral shorts, AI-narrated cinema recaps, and manage your media library with zero PC lag.
+          </p>
         </div>
 
-        {/* Skip link */}
-        <button
-          onClick={handleSkip}
+        {/* ── 3 Widescreen Cards Grid ── */}
+        <div
           style={{
-            marginTop: 32,
-            fontSize: 13,
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            color: "rgba(255,255,255,0.17)",
-            transition: "color 0.2s",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.color = "rgba(255,255,255,0.5)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.color = "rgba(255,255,255,0.17)";
+            display: "grid",
+            gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+            gap: 18,
+            width: "100%",
+            maxWidth: 1220,
+            zIndex: 10,
+            flex: 1,
+            minHeight: 0,
+            margin: "12px 0",
           }}
         >
-          Skip — go to home dashboard →
-        </button>
+          {WORKFLOWS.map((w) => {
+            const Icon = w.icon;
+            const isHovered = hovered === w.id;
+
+            return (
+              <div
+                key={w.id}
+                onClick={() => onSelect(w.id)}
+                onMouseEnter={() => setHovered(w.id)}
+                onMouseLeave={() => setHovered(null)}
+                style={{
+                  position: "relative",
+                  overflow: "hidden",
+                  background: isHovered ? "#0f0f13" : "#09090b",
+                  borderRadius: 18,
+                  padding: "20px 22px",
+                  border: `1px solid ${isHovered ? w.accentBorder : "rgba(255,255,255,0.06)"}`,
+                  boxShadow: isHovered
+                    ? `0 0 35px ${w.glowColor}, 0 0 0 1px ${w.accent}`
+                    : "0 4px 20px rgba(0,0,0,0.5)",
+                  transform: isHovered ? "translateY(-3px)" : "none",
+                  transition: "all 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
+                  cursor: "pointer",
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "space-between",
+                }}
+              >
+                {/* Sweeping Laser Scanline */}
+                <div
+                  style={{
+                    position: "absolute",
+                    left: 0,
+                    right: 0,
+                    height: 1,
+                    pointerEvents: "none",
+                    background: `linear-gradient(90deg, transparent 0%, ${w.accent} 50%, transparent 100%)`,
+                    animationName: "wfScanDown",
+                    animationDuration: "3.2s",
+                    animationTimingFunction: "ease-in-out",
+                    animationIterationCount: "infinite",
+                    opacity: isHovered ? 1 : 0.35,
+                  }}
+                />
+
+                {/* Top Badge & Number Row */}
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        padding: "3.5px 9px",
+                        borderRadius: 999,
+                        background: w.accentBg,
+                        border: `1px solid ${w.accentBorder}`,
+                      }}
+                    >
+                      <span style={{ fontSize: 10, fontWeight: 700, color: w.accent }}>
+                        {w.badge}
+                      </span>
+                    </div>
+                    <span
+                      style={{
+                        fontFamily: "'JetBrains Mono', monospace",
+                        fontSize: 18,
+                        fontWeight: 700,
+                        color: isHovered ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.06)",
+                        transition: "color 0.2s",
+                      }}
+                    >
+                      {w.num}
+                    </span>
+                  </div>
+
+                  {/* Animated Orbital Icon */}
+                  <div style={{ position: "relative", width: 54, height: 54, marginBottom: 14 }}>
+                    {/* Outer orbit ring */}
+                    <div
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        borderRadius: "50%",
+                        border: `1px dashed ${w.accentBorder}`,
+                        animationName: "wfOrbitCW",
+                        animationDuration: "8s",
+                        animationTimingFunction: "linear",
+                        animationIterationCount: "infinite",
+                      }}
+                    >
+                      <div
+                        style={{
+                          position: "absolute",
+                          width: 4,
+                          height: 4,
+                          borderRadius: "50%",
+                          top: -2,
+                          left: "50%",
+                          marginLeft: -2,
+                          background: w.accent,
+                          boxShadow: `0 0 5px ${w.accent}`,
+                        }}
+                      />
+                    </div>
+
+                    {/* Inner orbit ring */}
+                    <div
+                      style={{
+                        position: "absolute",
+                        inset: 8,
+                        borderRadius: "50%",
+                        border: `1px dashed rgba(255,255,255,0.08)`,
+                        animationName: "wfOrbitCCW",
+                        animationDuration: "4s",
+                        animationTimingFunction: "linear",
+                        animationIterationCount: "infinite",
+                      }}
+                    >
+                      <div
+                        style={{
+                          position: "absolute",
+                          width: 2.5,
+                          height: 2.5,
+                          borderRadius: "50%",
+                          bottom: -1.25,
+                          left: "50%",
+                          marginLeft: -1.25,
+                          background: w.accent,
+                        }}
+                      />
+                    </div>
+
+                    {/* Icon Tile */}
+                    <div
+                      style={{
+                        position: "absolute",
+                        inset: 12,
+                        borderRadius: 10,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        background: w.accentBg,
+                        border: `1px solid ${w.accentBorder}`,
+                      }}
+                    >
+                      <Icon style={{ width: 16, height: 16, color: w.accent }} />
+                    </div>
+                  </div>
+
+                  {/* Title & Description */}
+                  <h2
+                    style={{
+                      fontFamily: "'Outfit', sans-serif",
+                      fontWeight: 900,
+                      fontSize: 18,
+                      letterSpacing: "-0.03em",
+                      color: "#fff",
+                      margin: "0 0 5px",
+                    }}
+                  >
+                    {w.title}
+                  </h2>
+                  <p
+                    style={{
+                      color: "rgba(255,255,255,0.4)",
+                      fontSize: 11,
+                      lineHeight: 1.5,
+                      margin: "0 0 12px",
+                      fontWeight: 400,
+                    }}
+                  >
+                    {w.desc}
+                  </p>
+
+                  {/* Feature Checklist */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+                    {w.features.map((feat) => (
+                      <div key={feat} style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                        <div
+                          style={{
+                            width: 14,
+                            height: 14,
+                            borderRadius: "50%",
+                            flexShrink: 0,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            background: w.accentBg,
+                            border: `1px solid ${w.accentBorder}`,
+                          }}
+                        >
+                          <Check style={{ width: 8, height: 8, color: w.accent }} />
+                        </div>
+                        <span style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", fontWeight: 500 }}>
+                          {feat}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Bottom Launch Button */}
+                <div style={{ paddingTop: 12, marginTop: 12, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSelect(w.id);
+                    }}
+                    style={{
+                      width: "100%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "10px 14px",
+                      borderRadius: 10,
+                      fontWeight: 800,
+                      fontSize: 12,
+                      color: "#000",
+                      background: w.accent,
+                      border: "none",
+                      cursor: "pointer",
+                      fontFamily: "'Outfit', sans-serif",
+                      letterSpacing: "-0.01em",
+                      boxShadow: isHovered ? `0 0 20px ${w.glowColor}` : "none",
+                      transition: "all 0.2s ease",
+                    }}
+                  >
+                    <span>{w.btnText}</span>
+                    <div
+                      style={{
+                        width: 22,
+                        height: 22,
+                        borderRadius: "50%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        background: "rgba(0,0,0,0.18)",
+                      }}
+                    >
+                      <ChevronRight style={{ width: 13, height: 13 }} />
+                    </div>
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* ── Bottom Hardware Telemetry Bar ── */}
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 10,
+            zIndex: 10,
+            flexShrink: 0,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "4px 10px",
+              borderRadius: 6,
+              background: "rgba(255,255,255,0.02)",
+              border: "1px solid rgba(255,255,255,0.05)",
+              color: "rgba(255,255,255,0.38)",
+              fontSize: 10.5,
+              fontFamily: "'JetBrains Mono', monospace",
+            }}
+          >
+            <Zap style={{ width: 11, height: 11, color: "#fbbf24" }} />
+            <span>0% PC Lag (Idle Priority Engine)</span>
+          </div>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "4px 10px",
+              borderRadius: 6,
+              background: "rgba(255,255,255,0.02)",
+              border: "1px solid rgba(255,255,255,0.05)",
+              color: "rgba(255,255,255,0.38)",
+              fontSize: 10.5,
+              fontFamily: "'JetBrains Mono', monospace",
+            }}
+          >
+            <Cpu style={{ width: 11, height: 11, color: "#00e676" }} />
+            <span>Intel QSV / NVENC / AMF</span>
+          </div>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "4px 10px",
+              borderRadius: 6,
+              background: "rgba(255,255,255,0.02)",
+              border: "1px solid rgba(255,255,255,0.05)",
+              color: "rgba(255,255,255,0.38)",
+              fontSize: 10.5,
+              fontFamily: "'JetBrains Mono', monospace",
+            }}
+          >
+            <Layers style={{ width: 11, height: 11, color: "#c084fc" }} />
+            <span>SIL OFL Viral Fonts</span>
+          </div>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "4px 10px",
+              borderRadius: 6,
+              background: "rgba(255,255,255,0.02)",
+              border: "1px solid rgba(255,255,255,0.05)",
+              color: "rgba(255,255,255,0.38)",
+              fontSize: 10.5,
+              fontFamily: "'JetBrains Mono', monospace",
+            }}
+          >
+            <HardDrive style={{ width: 11, height: 11, color: "#38bdf8" }} />
+            <span>Smart Stream Slicing (yt-dlp)</span>
+          </div>
+        </div>
       </main>
     </div>
   );
 }
 
 export default ProjectSelectorScreen;
+
 
 
 
