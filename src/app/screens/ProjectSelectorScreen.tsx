@@ -253,7 +253,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                 <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
                   <span style={{ fontSize: 13 }}>🇵🇭</span>
                   <span style={{ fontSize: 11.5, fontWeight: 700, color: "#fff" }}>
-                    Built by <span style={{ color: G }}>Jae Mark</span>
+                    Built by <span style={{ color: G }}>jmarkTheDeveloper</span>
                   </span>
                   <span
                     style={{
