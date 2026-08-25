@@ -306,6 +306,12 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
           ) : layout === "custom_split" ? (
             /* Custom Split Screen Preview (Top & Bottom Crop Boxes) */
             <div className="w-full h-full flex flex-col relative select-none bg-black">
+              {/* HUD Badge */}
+              <div className="absolute top-10 left-3 z-30 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-amber-400/40 text-[9px] font-bold text-amber-400 flex items-center gap-1 shadow-lg">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                ✂️ Custom Split (9:16)
+              </div>
+
               {/* Top Viewport */}
               <div className="w-full h-1/2 relative overflow-hidden border-b-2 border-amber-400/50">
                 <CroppedVideo
@@ -368,6 +374,12 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
           ) : layout === "gameplay_bg" ? (
             /* Satisfying Gameplay Split (Speaker Top, Gameplay Bottom) */
             <div className="w-full h-full flex flex-col relative select-none bg-black">
+              {/* HUD Badge */}
+              <div className="absolute top-10 left-3 z-30 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-amber-400/40 text-[9px] font-bold text-amber-400 flex items-center gap-1 shadow-lg">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                🎮 Gameplay Split (9:16)
+              </div>
+
               {/* Speaker Top Viewport */}
               <div className="w-full h-1/2 relative overflow-hidden border-b-2 border-amber-400/30">
                 {activeVideoUrl ? (
@@ -449,14 +461,15 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
               />
             </div>
           ) : (
-            /* Standard Vertical / Blur / Fit Viewports */
+            /* Standard 9:16 Vertical Crop / Blur / Fit Viewports */
             <div className="w-full h-full relative flex items-center justify-center overflow-hidden bg-black select-none">
               {activeVideoUrl ? (
                 layout === "landscape_blur" ? (
-                  <>
+                  /* 2. Landscape + Blurred Canvas (9:16) */
+                  <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center">
                     <video
                       src={activeVideoUrl}
-                      className="absolute inset-0 w-full h-full object-cover filter blur-xl scale-125 opacity-50 pointer-events-none"
+                      className="absolute inset-0 w-full h-full object-cover filter blur-2xl scale-125 opacity-60 pointer-events-none"
                       autoPlay
                       loop
                       muted={true}
@@ -474,33 +487,95 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                       onTimeUpdate={handleTimeUpdate}
                       onLoadedMetadata={handleLoadedMetadata}
                     />
-                  </>
-                ) : layout === "fill_crop" ? (
-                  <video
-                    ref={videoRef}
-                    src={activeVideoUrl}
-                    poster={posterUrl || undefined}
-                    className="w-full h-full object-cover relative z-10 pointer-events-none"
-                    autoPlay
-                    loop
-                    muted={isMuted}
-                    playsInline
-                    onTimeUpdate={handleTimeUpdate}
-                    onLoadedMetadata={handleLoadedMetadata}
-                  />
+                    <div className="absolute top-10 left-3 z-20 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-white/20 text-[9px] font-bold text-white/80 flex items-center gap-1 shadow-lg">
+                      🌫️ Blurred Canvas (9:16)
+                    </div>
+                  </div>
+                ) : layout === "landscape_fit" ? (
+                  /* 3. Landscape Fit / Letterbox (9:16) */
+                  <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center">
+                    <video
+                      ref={videoRef}
+                      src={activeVideoUrl}
+                      poster={posterUrl || undefined}
+                      className="w-full max-h-full object-contain relative z-10 pointer-events-none"
+                      autoPlay
+                      loop
+                      muted={isMuted}
+                      playsInline
+                      onTimeUpdate={handleTimeUpdate}
+                      onLoadedMetadata={handleLoadedMetadata}
+                    />
+                    <div className="absolute top-10 left-3 z-20 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-white/20 text-[9px] font-bold text-white/80 flex items-center gap-1 shadow-lg">
+                      📺 Letterbox (9:16)
+                    </div>
+                  </div>
                 ) : (
-                  <video
-                    ref={videoRef}
-                    src={activeVideoUrl}
-                    poster={posterUrl || undefined}
-                    className="w-full h-full object-contain relative z-10 pointer-events-none"
-                    autoPlay
-                    loop
-                    muted={isMuted}
-                    playsInline
-                    onTimeUpdate={handleTimeUpdate}
-                    onLoadedMetadata={handleLoadedMetadata}
-                  />
+                  /* 1. Auto Face-Tracking (9:16) - Full Vertical Cover Crop */
+                  <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center">
+                    <video
+                      ref={videoRef}
+                      src={activeVideoUrl}
+                      poster={posterUrl || undefined}
+                      className="w-full h-full object-cover object-center relative z-10 pointer-events-none"
+                      autoPlay
+                      loop
+                      muted={isMuted}
+                      playsInline
+                      onTimeUpdate={handleTimeUpdate}
+                      onLoadedMetadata={handleLoadedMetadata}
+                    />
+                    <div className="absolute top-10 left-3 z-20 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-amber-400/40 text-[9px] font-bold text-amber-400 flex items-center gap-1 shadow-lg">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                      🎯 9:16 Face Tracking Active
+                    </div>
+                  </div>
+                )
+              ) : youtubeId ? (
+                /* Fallback for YouTube Stream before stream slicing is cached */
+                layout === "landscape_blur" ? (
+                  <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center">
+                    <iframe
+                      src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=1&loop=1&playlist=${youtubeId}&controls=0&modestbranding=1&rel=0&playsinline=1`}
+                      title="YouTube Blur Background"
+                      className="absolute inset-0 w-full h-full object-cover filter blur-2xl scale-150 opacity-60 pointer-events-none"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    />
+                    <iframe
+                      src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=${isMuted ? 1 : 0}&loop=1&playlist=${youtubeId}&controls=0&modestbranding=1&rel=0&playsinline=1`}
+                      title="YouTube Foreground"
+                      className="w-full h-[56.25%] object-contain relative z-10 pointer-events-none shadow-2xl"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    />
+                    <div className="absolute top-10 left-3 z-20 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-white/20 text-[9px] font-bold text-white/80 flex items-center gap-1 shadow-lg">
+                      🌫️ Blurred Canvas (9:16)
+                    </div>
+                  </div>
+                ) : layout === "landscape_fit" ? (
+                  <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center">
+                    <iframe
+                      src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=${isMuted ? 1 : 0}&loop=1&playlist=${youtubeId}&controls=0&modestbranding=1&rel=0&playsinline=1`}
+                      title="YouTube Letterbox"
+                      className="w-full h-[56.25%] object-contain relative z-10 pointer-events-none"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    />
+                    <div className="absolute top-10 left-3 z-20 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-white/20 text-[9px] font-bold text-white/80 flex items-center gap-1 shadow-lg">
+                      📺 Letterbox (9:16)
+                    </div>
+                  </div>
+                ) : (
+                  <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center">
+                    <iframe
+                      src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=${isMuted ? 1 : 0}&loop=1&playlist=${youtubeId}&controls=0&modestbranding=1&rel=0&playsinline=1`}
+                      title="YouTube 9:16 Face Tracking Preview"
+                      className="w-full h-full object-cover pointer-events-none scale-175"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    />
+                    <div className="absolute top-10 left-3 z-20 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-amber-400/40 text-[9px] font-bold text-amber-400 flex items-center gap-1 shadow-lg">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                      🎯 9:16 Face Tracking Active
+                    </div>
+                  </div>
                 )
               ) : (
                 <div className="text-center p-6 text-gray-500">
@@ -513,7 +588,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
               )}
 
               {/* Video Controls Overlay */}
-              {activeVideoUrl && (
+              {hasMedia && (
                 <div className="absolute top-3 right-3 z-30 flex items-center gap-1.5 pointer-events-auto">
                   <button
                     type="button"
