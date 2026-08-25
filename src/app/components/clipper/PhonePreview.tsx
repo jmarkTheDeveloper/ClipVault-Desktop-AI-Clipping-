@@ -144,6 +144,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
   gameplayBgVideo = "",
 }) => {
   const youtubeId = extractYouTubeId(ytUrl);
+  const posterUrl = youtubeId ? `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg` : "";
   const hasMedia = Boolean(activeVideoUrl || youtubeId);
 
   const containerRef = useRef<HTMLDivElement | null>(null);
