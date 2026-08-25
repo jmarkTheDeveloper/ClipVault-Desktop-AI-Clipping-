@@ -126,27 +126,26 @@ export function ProjectSelectorScreen({
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "0 32px",
-          height: 54,
+          padding: "0 24px",
+          height: 46,
           background: "rgba(5,5,5,0.97)",
           borderBottom: "1px solid rgba(255,255,255,0.05)",
           backdropFilter: "blur(12px)",
-          position: "sticky",
-          top: 0,
+          position: "relative",
           zIndex: 20,
           flexShrink: 0,
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Logo size={26} />
-          <span style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 900, fontSize: 20, letterSpacing: "-0.03em", color: "#fff" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <Logo size={24} />
+          <span style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 900, fontSize: 18, letterSpacing: "-0.03em", color: "#fff" }}>
             Clip<span style={{ color: G }}>Vault</span>
           </span>
           <span
             style={{
-              padding: "2px 8px",
-              borderRadius: 6,
-              fontSize: 9,
+              padding: "1px 7px",
+              borderRadius: 5,
+              fontSize: 8.5,
               fontWeight: 700,
               letterSpacing: "0.12em",
               background: "rgba(0,230,118,0.08)",
@@ -157,28 +156,28 @@ export function ProjectSelectorScreen({
             V2.0 PRO
           </span>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <div
             style={{
               display: "flex",
               alignItems: "center",
               gap: 6,
-              padding: "5px 12px",
-              borderRadius: 8,
+              padding: "4px 10px",
+              borderRadius: 6,
               background: "rgba(255,255,255,0.025)",
               border: "1px solid rgba(255,255,255,0.055)",
             }}
           >
             <div
               style={{
-                width: 6,
-                height: 6,
+                width: 5,
+                height: 5,
                 borderRadius: "50%",
                 background: engineOnline ? G : "#ef4444",
-                boxShadow: engineOnline ? `0 0 8px ${G}` : "0 0 8px #ef4444",
+                boxShadow: engineOnline ? `0 0 7px ${G}` : "0 0 7px #ef4444",
               }}
             />
-            <span style={{ color: "rgba(255,255,255,0.35)", fontFamily: "'JetBrains Mono', monospace", fontSize: 10 }}>
+            <span style={{ color: "rgba(255,255,255,0.35)", fontFamily: "'JetBrains Mono', monospace", fontSize: 9.5 }}>
               {engineOnline ? "Local Engine Online (127.0.0.1:8000)" : "Engine Offline"}
             </span>
           </div>
@@ -186,14 +185,14 @@ export function ProjectSelectorScreen({
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 6,
-              padding: "5px 12px",
-              borderRadius: 8,
+              gap: 5,
+              padding: "4px 10px",
+              borderRadius: 6,
               background: "rgba(255,255,255,0.025)",
               border: "1px solid rgba(255,255,255,0.055)",
               color: "rgba(255,255,255,0.28)",
               fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 10,
+              fontSize: 9.5,
             }}
           >
             ⚡ Hardware Accelerated
@@ -201,7 +200,7 @@ export function ProjectSelectorScreen({
         </div>
       </header>
 
-      {/* ── Main Production Workflow Screen (Centered Single Card) ── */}
+      {/* ── Main Production Workflow Screen (Centered Single Card - 100% Fit) ── */}
       <main
         style={{
           flex: 1,
@@ -209,7 +208,7 @@ export function ProjectSelectorScreen({
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          padding: "24px 20px",
+          padding: "10px 16px",
           position: "relative",
           minHeight: 0,
         }}
@@ -218,8 +217,8 @@ export function ProjectSelectorScreen({
         <div
           style={{
             position: "absolute",
-            width: 680,
-            height: 680,
+            width: 600,
+            height: 600,
             borderRadius: "50%",
             background: "radial-gradient(circle, rgba(0,230,118,0.055) 0%, transparent 62%)",
             top: "50%",
@@ -255,12 +254,12 @@ export function ProjectSelectorScreen({
         ))}
 
         {/* Section label */}
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-          <div style={{ height: 1, width: 24, background: "rgba(0,230,118,0.3)" }} />
-          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.24em", textTransform: "uppercase", color: "rgba(0,230,118,0.45)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+          <div style={{ height: 1, width: 20, background: "rgba(0,230,118,0.3)" }} />
+          <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(0,230,118,0.45)" }}>
             Production Workflow
           </span>
-          <div style={{ height: 1, width: 24, background: "rgba(0,230,118,0.3)" }} />
+          <div style={{ height: 1, width: 20, background: "rgba(0,230,118,0.3)" }} />
         </div>
 
         {/* Heading */}
@@ -269,14 +268,13 @@ export function ProjectSelectorScreen({
             fontFamily: "'Outfit', sans-serif",
             fontWeight: 900,
             textAlign: "center",
-            fontSize: "clamp(28px, 3.5vw, 44px)",
-            letterSpacing: "-0.04em",
+            fontSize: "clamp(22px, 2.5vw, 32px)",
+            letterSpacing: "-0.03em",
             lineHeight: 1.05,
-            margin: "0 0 10px",
+            margin: "0 0 4px",
           }}
         >
-          <span style={{ color: "#fff" }}>Select Your Production</span>
-          <br />
+          <span style={{ color: "#fff" }}>Select Your Production </span>
           <span style={{ color: G }}>Workflow</span>
         </h1>
 
@@ -284,10 +282,10 @@ export function ProjectSelectorScreen({
           style={{
             textAlign: "center",
             color: "rgba(255,255,255,0.25)",
-            fontSize: 13,
-            lineHeight: 1.6,
-            maxWidth: 460,
-            margin: "0 0 24px",
+            fontSize: 11.5,
+            lineHeight: 1.45,
+            maxWidth: 440,
+            margin: "0 0 12px",
           }}
         >
           Paste a YouTube link or import local footage. AI detects viral hooks, tracks speaker faces, and auto-exports 9:16 Shorts.
@@ -298,10 +296,10 @@ export function ProjectSelectorScreen({
           style={{
             position: "relative",
             overflow: "hidden",
-            width: "min(480px, 94vw)",
+            width: "min(430px, 94vw)",
             background: "#0b0b0b",
-            borderRadius: 20,
-            padding: "28px 34px",
+            borderRadius: 16,
+            padding: "18px 24px",
             animationName: "wfGlowPulse",
             animationDuration: "3.2s",
             animationTimingFunction: "ease-in-out",
@@ -326,27 +324,27 @@ export function ProjectSelectorScreen({
           />
 
           {/* Top row */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 22 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
             <div
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 7,
-                padding: "5px 11px",
+                gap: 6,
+                padding: "3.5px 9px",
                 borderRadius: 999,
                 background: "rgba(0,230,118,0.07)",
                 border: "1px solid rgba(0,230,118,0.18)",
               }}
             >
-              <Zap style={{ width: 12, height: 12, color: G }} />
-              <span style={{ fontSize: 11, fontWeight: 700, color: G }}>Viral Short-Form Engine</span>
+              <Zap style={{ width: 11, height: 11, color: G }} />
+              <span style={{ fontSize: 10, fontWeight: 700, color: G }}>Viral Short-Form Engine</span>
             </div>
             <span
               style={{
                 fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 26,
+                fontSize: 22,
                 fontWeight: 700,
-                color: "rgba(255,255,255,0.04)",
+                color: "rgba(255,255,255,0.06)",
                 letterSpacing: "-0.05em",
                 lineHeight: 1,
               }}
@@ -356,14 +354,14 @@ export function ProjectSelectorScreen({
           </div>
 
           {/* Animated icon */}
-          <div style={{ position: "relative", width: 72, height: 72, marginBottom: 22 }}>
+          <div style={{ position: "relative", width: 52, height: 52, marginBottom: 12 }}>
             {/* Outer orbit ring */}
             <div
               style={{
                 position: "absolute",
                 inset: 0,
                 borderRadius: "50%",
-                border: "1px dashed rgba(0,230,118,0.14)",
+                border: "1px dashed rgba(0,230,118,0.16)",
                 animationName: "wfOrbitCW",
                 animationDuration: "9s",
                 animationTimingFunction: "linear",
@@ -373,14 +371,14 @@ export function ProjectSelectorScreen({
               <div
                 style={{
                   position: "absolute",
-                  width: 5,
-                  height: 5,
+                  width: 4,
+                  height: 4,
                   borderRadius: "50%",
-                  top: -2.5,
+                  top: -2,
                   left: "50%",
-                  marginLeft: -2.5,
+                  marginLeft: -2,
                   background: G,
-                  boxShadow: `0 0 7px ${G}`,
+                  boxShadow: `0 0 6px ${G}`,
                 }}
               />
             </div>
@@ -388,9 +386,9 @@ export function ProjectSelectorScreen({
             <div
               style={{
                 position: "absolute",
-                inset: 12,
+                inset: 8,
                 borderRadius: "50%",
-                border: "1px dashed rgba(0,230,118,0.08)",
+                border: "1px dashed rgba(0,230,118,0.09)",
                 animationName: "wfOrbitCCW",
                 animationDuration: "4.5s",
                 animationTimingFunction: "linear",
@@ -400,12 +398,12 @@ export function ProjectSelectorScreen({
               <div
                 style={{
                   position: "absolute",
-                  width: 3,
-                  height: 3,
+                  width: 2.5,
+                  height: 2.5,
                   borderRadius: "50%",
-                  bottom: -1.5,
+                  bottom: -1.25,
                   left: "50%",
-                  marginLeft: -1.5,
+                  marginLeft: -1.25,
                   background: "rgba(0,230,118,0.55)",
                 }}
               />
@@ -414,12 +412,12 @@ export function ProjectSelectorScreen({
             <div
               style={{
                 position: "absolute",
-                inset: 18,
-                borderRadius: 12,
+                inset: 12,
+                borderRadius: 10,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                background: "rgba(0,230,118,0.07)",
+                background: "rgba(0,230,118,0.08)",
                 border: "1px solid rgba(0,230,118,0.24)",
                 animationName: "wfIconGlow",
                 animationDuration: "2.2s",
@@ -427,7 +425,7 @@ export function ProjectSelectorScreen({
                 animationIterationCount: "infinite",
               }}
             >
-              <Zap style={{ width: 17, height: 17, color: G }} />
+              <Zap style={{ width: 14, height: 14, color: G }} />
             </div>
           </div>
 
@@ -436,37 +434,37 @@ export function ProjectSelectorScreen({
             style={{
               fontFamily: "'Outfit', sans-serif",
               fontWeight: 900,
-              fontSize: 23,
+              fontSize: 19,
               letterSpacing: "-0.03em",
               color: "#fff",
-              margin: "0 0 6px",
+              margin: "0 0 3px",
             }}
           >
             AI Video Clipper
           </h2>
-          <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 12.5, lineHeight: 1.6, margin: "0 0 24px" }}>
+          <p style={{ color: "rgba(255,255,255,0.32)", fontSize: 11.5, lineHeight: 1.45, margin: "0 0 12px" }}>
             Paste YouTube links or import local media. AI detects high-retention viral hooks, tracks speaker faces, and crafts 9:16 Shorts with dynamic subtitles.
           </p>
 
           {/* Feature list */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 9, marginBottom: 24 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
             {features.map((feat, i) => (
               <div
                 key={feat}
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: 10,
+                  gap: 8,
                   animationName: "wfFeatIn",
                   animationDuration: "0.45s",
                   animationFillMode: "both",
-                  animationDelay: `${i * 0.07}s`,
+                  animationDelay: `${i * 0.05}s`,
                 }}
               >
                 <div
                   style={{
-                    width: 15,
-                    height: 15,
+                    width: 13,
+                    height: 13,
                     borderRadius: "50%",
                     flexShrink: 0,
                     display: "flex",
@@ -476,50 +474,52 @@ export function ProjectSelectorScreen({
                     border: "1px solid rgba(0,230,118,0.22)",
                   }}
                 >
-                  <Check style={{ width: 8.5, height: 8.5, color: G }} />
+                  <Check style={{ width: 7.5, height: 7.5, color: G }} />
                 </div>
-                <span style={{ fontSize: 13, color: "rgba(255,255,255,0.45)", fontWeight: 500 }}>{feat}</span>
+                <span style={{ fontSize: 11.5, color: "rgba(255,255,255,0.48)", fontWeight: 500 }}>{feat}</span>
               </div>
             ))}
           </div>
 
           {/* Separator */}
-          <div style={{ height: 1, background: "rgba(255,255,255,0.04)", marginBottom: 20 }} />
+          <div style={{ height: 1, background: "rgba(255,255,255,0.05)", marginBottom: 12 }} />
 
           {/* Launch button */}
           <button
+            type="button"
             onClick={handleLaunch}
             style={{
               width: "100%",
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              padding: "14px 18px",
-              borderRadius: 12,
+              padding: "11px 16px",
+              borderRadius: 10,
               fontWeight: 800,
-              fontSize: 13.5,
+              fontSize: 12.5,
               color: "#000",
               background: G,
               border: "none",
               cursor: "pointer",
               fontFamily: "'Outfit', sans-serif",
               letterSpacing: "-0.01em",
+              boxShadow: "0 0 25px rgba(0,230,118,0.35)",
               transition: "all 0.2s ease",
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.boxShadow = "0 0 40px rgba(0,230,118,0.5)";
-              e.currentTarget.style.transform = "translateY(-2px)";
+              e.currentTarget.style.boxShadow = "0 0 40px rgba(0,230,118,0.6)";
+              e.currentTarget.style.transform = "translateY(-1px)";
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.boxShadow = "none";
+              e.currentTarget.style.boxShadow = "0 0 25px rgba(0,230,118,0.35)";
               e.currentTarget.style.transform = "none";
             }}
           >
             <span>Launch Studio</span>
             <div
               style={{
-                width: 26,
-                height: 26,
+                width: 22,
+                height: 22,
                 borderRadius: "50%",
                 display: "flex",
                 alignItems: "center",
@@ -527,28 +527,29 @@ export function ProjectSelectorScreen({
                 background: "rgba(0,0,0,0.18)",
               }}
             >
-              <ChevronRight style={{ width: 15, height: 15 }} />
+              <ChevronRight style={{ width: 13, height: 13 }} />
             </div>
           </button>
         </div>
 
         {/* Skip link */}
         <button
+          type="button"
           onClick={handleSkip}
           style={{
-            marginTop: 20,
-            fontSize: 12.5,
+            marginTop: 10,
+            fontSize: 11.5,
             background: "none",
             border: "none",
             cursor: "pointer",
-            color: "rgba(255,255,255,0.22)",
+            color: "rgba(255,255,255,0.25)",
             transition: "color 0.2s",
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.color = "rgba(255,255,255,0.6)";
+            e.currentTarget.style.color = "rgba(255,255,255,0.65)";
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.color = "rgba(255,255,255,0.22)";
+            e.currentTarget.style.color = "rgba(255,255,255,0.25)";
           }}
         >
           Skip — go to home dashboard →
