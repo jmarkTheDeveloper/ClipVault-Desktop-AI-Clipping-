@@ -573,7 +573,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
               onMouseEnter={(e) => { const el = e.currentTarget; el.style.boxShadow = "0 0 44px rgba(0,230,118,0.6)"; el.style.transform = "translateY(-1px)"; }}
               onMouseLeave={(e) => { const el = e.currentTarget; el.style.boxShadow = "0 0 24px rgba(0,230,118,0.32)"; el.style.transform = "none"; }}
             >
-              <span>{complianceAccepted ? "Launch Studio" : "Review Terms & Launch Studio"}</span>
+              <span>Launch Studio</span>
               <div style={{ width: 24, height: 24, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.2)" }}>
                 <ChevronRight style={{ width: 14, height: 14 }} />
               </div>
@@ -1011,7 +1011,6 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                       } catch {}
                       setComplianceAccepted(true);
                       setShowPrivacyModal(false);
-                      onSelect("ai-clipper");
                     }}
                     style={{
                       padding: "8px 22px",
@@ -1026,7 +1025,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                       transition: "all 0.15s",
                     }}
                   >
-                    Accept & Launch Studio
+                    Accept & Continue
                   </button>
                 </div>
               ) : (
