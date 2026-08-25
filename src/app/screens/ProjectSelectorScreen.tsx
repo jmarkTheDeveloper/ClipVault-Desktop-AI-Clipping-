@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Check, ChevronRight, Zap, Sparkles, Cpu, HardDrive } from "lucide-react";
+import { Check, ChevronRight, Zap, Github, Heart } from "lucide-react";
 
 const G = "#00e676";
 
@@ -235,20 +235,109 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
               ))}
             </div>
 
-            {/* Skip action */}
-            <button
-              type="button"
-              onClick={() => (onBack ? onBack() : onSelect("ai-clipper"))}
+            {/* Developer Profile & Support Banner */}
+            <div
               style={{
-                fontSize: 12, background: "none", border: "none",
-                cursor: "pointer", color: "rgba(255,255,255,0.25)", transition: "color 0.2s",
-                display: "flex", alignItems: "center", gap: 5, padding: 0,
+                width: "100%",
+                maxWidth: 420,
+                padding: "11px 14px",
+                borderRadius: 12,
+                background: "rgba(255,255,255,0.02)",
+                border: "1px solid rgba(255,255,255,0.06)",
+                display: "flex",
+                flexDirection: "column",
+                gap: 7,
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.65)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.25)"; }}
             >
-              Skip — go to home dashboard →
-            </button>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                  <span style={{ fontSize: 13 }}>🇵🇭</span>
+                  <span style={{ fontSize: 11.5, fontWeight: 700, color: "#fff" }}>
+                    Built by <span style={{ color: G }}>Jae Mark</span>
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 9,
+                      padding: "1px 6px",
+                      borderRadius: 4,
+                      background: "rgba(0,230,118,0.08)",
+                      color: G,
+                      fontWeight: 600,
+                    }}
+                  >
+                    CS Student
+                  </span>
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                  <a
+                    href="https://github.com/jmarkTheDeveloper"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                      fontSize: 10.5,
+                      fontWeight: 600,
+                      color: "rgba(255,255,255,0.75)",
+                      textDecoration: "none",
+                      padding: "3.5px 8px",
+                      borderRadius: 6,
+                      background: "rgba(255,255,255,0.04)",
+                      border: "1px solid rgba(255,255,255,0.08)",
+                      transition: "all 0.2s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = "#fff";
+                      e.currentTarget.style.borderColor = "rgba(255,255,255,0.25)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = "rgba(255,255,255,0.75)";
+                      e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)";
+                    }}
+                  >
+                    <Github style={{ width: 11, height: 11 }} />
+                    <span>GitHub</span>
+                  </a>
+
+                  <a
+                    href="https://patreon.com/jmarkTheDeveloper"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                      fontSize: 10.5,
+                      fontWeight: 600,
+                      color: "#ff667a",
+                      textDecoration: "none",
+                      padding: "3.5px 8px",
+                      borderRadius: 6,
+                      background: "rgba(255,102,122,0.08)",
+                      border: "1px solid rgba(255,102,122,0.22)",
+                      transition: "all 0.2s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "rgba(255,102,122,0.16)";
+                      e.currentTarget.style.color = "#ff8595";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "rgba(255,102,122,0.08)";
+                      e.currentTarget.style.color = "#ff667a";
+                    }}
+                  >
+                    <Heart style={{ width: 11, height: 11, fill: "#ff667a" }} />
+                    <span>Support</span>
+                  </a>
+                </div>
+              </div>
+
+              <p style={{ fontSize: 10.5, color: "rgba(255,255,255,0.35)", margin: 0, lineHeight: 1.4 }}>
+                Computer Science student at National University Philippines building open-source AI tools.
+              </p>
+            </div>
           </div>
 
           {/* Right Column: Studio Card */}
