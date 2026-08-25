@@ -572,7 +572,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                 </button>
               </div>
 
-              <div className="space-y-1.5 pt-1">
+              <div className="space-y-2 pt-1">
                 <div className="flex items-center justify-between">
                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
                     Save into Subfolder / Batch
@@ -581,38 +581,71 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                     <button
                       type="button"
                       onClick={() => setCustomFolderName("")}
-                      className="text-[9px] text-amber-400/80 hover:text-amber-300 underline"
+                      className="text-[9px] text-amber-400/80 hover:text-amber-300 underline cursor-pointer"
                     >
-                      Clear
+                      Reset to Main Library
                     </button>
                   )}
                 </div>
+
+                {/* Subfolder Dropdown Selector */}
+                <select
+                  value={customFolderName || ""}
+                  onChange={(e) => setCustomFolderName(e.target.value)}
+                  className="w-full rounded-lg px-3 py-2 text-xs text-white bg-black/50 border border-white/15 outline-none focus:border-amber-400 cursor-pointer"
+                >
+                  <option value="">📁 Main Library (Root Directory)</option>
+                  {vaultFolders
+                    .filter((f) => f && f !== "Main Library" && f !== "all" && f !== "root")
+                    .map((folder) => (
+                      <option key={folder} value={folder}>
+                        📁 {folder}
+                      </option>
+                    ))}
+                </select>
+
+                {/* Quick Pick Chips for All Existing Folders */}
+                {vaultFolders.filter((f) => f && f !== "all").length > 0 && (
+                  <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                    <span className="text-[9px] text-gray-500 font-bold uppercase">Folders:</span>
+                    <button
+                      type="button"
+                      onClick={() => setCustomFolderName("")}
+                      className={`text-[10px] px-2 py-0.5 rounded-md font-bold transition-all border cursor-pointer ${
+                        !customFolderName
+                          ? "bg-amber-400/20 text-amber-400 border-amber-400/40 shadow-sm"
+                          : "bg-white/5 text-gray-400 border-white/5 hover:border-white/20 hover:text-white"
+                      }`}
+                    >
+                      📁 Main Library
+                    </button>
+                    {vaultFolders
+                      .filter((f) => f && f !== "Main Library" && f !== "all" && f !== "root")
+                      .map((folder) => (
+                        <button
+                          key={folder}
+                          type="button"
+                          onClick={() => setCustomFolderName(folder)}
+                          className={`text-[10px] px-2 py-0.5 rounded-md font-bold transition-all border cursor-pointer ${
+                            customFolderName === folder
+                              ? "bg-amber-400/20 text-amber-400 border-amber-400/40 shadow-sm"
+                              : "bg-white/5 text-gray-400 border-white/5 hover:border-white/20 hover:text-white"
+                          }`}
+                        >
+                          📁 {folder}
+                        </button>
+                      ))}
+                  </div>
+                )}
+
+                {/* Custom Folder Name Input (to type a new subfolder) */}
                 <input
                   type="text"
                   value={customFolderName}
                   onChange={(e) => setCustomFolderName(e.target.value)}
-                  placeholder="e.g. Highlights, Podcasts (Creates folder)"
-                  className="w-full rounded-lg px-3 py-1.5 text-xs text-white bg-black/30 border border-white/10 outline-none focus:border-amber-400 placeholder-gray-600 transition-colors"
+                  placeholder="Or type a new folder name (e.g. Movies, Gaming)..."
+                  className="w-full rounded-lg px-3 py-1.5 text-xs text-white bg-black/30 border border-white/10 outline-none focus:border-amber-400 placeholder-gray-600 transition-colors select-text cursor-text pointer-events-auto shadow-inner"
                 />
-                {vaultFolders.length > 1 && (
-                  <div className="flex items-center gap-1.5 flex-wrap pt-1">
-                    <span className="text-[9px] text-gray-500 font-bold uppercase">Quick Pick:</span>
-                    {vaultFolders.map((folder) => (
-                      <button
-                        key={folder}
-                        type="button"
-                        onClick={() => setCustomFolderName(folder === "Main Library" ? "" : folder)}
-                        className={`text-[10px] px-2 py-0.5 rounded-md font-bold transition-all border cursor-pointer ${
-                          customFolderName === folder || (!customFolderName && folder === "Main Library")
-                            ? "bg-amber-400/20 text-amber-400 border-amber-400/40"
-                            : "bg-white/5 text-gray-400 border-white/5 hover:border-white/20 hover:text-white"
-                        }`}
-                      >
-                        📁 {folder}
-                      </button>
-                    ))}
-                  </div>
-                )}
               </div>
             </div>
 
