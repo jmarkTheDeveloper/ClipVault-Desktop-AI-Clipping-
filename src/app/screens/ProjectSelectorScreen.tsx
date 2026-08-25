@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Check, ChevronRight, Zap, Github, Heart } from "lucide-react";
+import { Check, ChevronRight, Zap, Github, Heart, ShieldCheck, Lock, Scale, AlertTriangle, X } from "lucide-react";
 
 const G = "#00e676";
 
@@ -36,6 +36,7 @@ function Logo({ size = 24 }: { size?: number }) {
 
 export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
   const [engineOnline, setEngineOnline] = useState(true);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
   useEffect(() => {
     fetch("http://127.0.0.1:8000/api/health")
@@ -124,8 +125,40 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
           </span>
         </div>
 
-        {/* Status pills (safely positioned away from Windows window buttons) */}
+        {/* Status pills & Privacy Button (safely positioned away from Windows window buttons) */}
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <button
+            type="button"
+            onClick={() => setShowPrivacyModal(true)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 5,
+              padding: "4px 9px",
+              borderRadius: 6,
+              background: "rgba(255,255,255,0.03)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              color: "rgba(255,255,255,0.55)",
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: 9.5,
+              cursor: "pointer",
+              transition: "all 0.2s",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = "#fff";
+              e.currentTarget.style.borderColor = "rgba(0,230,118,0.35)";
+              e.currentTarget.style.background = "rgba(0,230,118,0.08)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = "rgba(255,255,255,0.55)";
+              e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)";
+              e.currentTarget.style.background = "rgba(255,255,255,0.03)";
+            }}
+          >
+            <ShieldCheck style={{ width: 11, height: 11, color: G }} />
+            <span>Privacy & BYOK Security</span>
+          </button>
+
           <div style={{
             display: "flex", alignItems: "center", gap: 6, padding: "4px 9px",
             borderRadius: 6, background: "rgba(255,255,255,0.03)",
@@ -338,6 +371,30 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                 Computer Science student at National University Philippines building open-source AI tools.
               </p>
             </div>
+
+            {/* Privacy & Compliance Trigger Link */}
+            <button
+              type="button"
+              onClick={() => setShowPrivacyModal(true)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 5,
+                fontSize: 10.5,
+                color: "rgba(255,255,255,0.35)",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                padding: 0,
+                marginTop: 2,
+                transition: "color 0.2s",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = "rgba(0,230,118,0.9)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.35)"; }}
+            >
+              <ShieldCheck style={{ width: 12, height: 12, color: G }} />
+              <span>Privacy Policy, BYOK Compliance & MIT License</span>
+            </button>
           </div>
 
           {/* Right Column: Studio Card */}
@@ -482,6 +539,250 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
           </div>
         </div>
       </main>
+
+      {/* ── Privacy, BYOK Compliance & License Modal ── */}
+      {showPrivacyModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 100,
+            background: "rgba(0,0,0,0.85)",
+            backdropFilter: "blur(14px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 20,
+          }}
+          onClick={() => setShowPrivacyModal(false)}
+        >
+          <div
+            style={{
+              position: "relative",
+              width: "min(640px, 94vw)",
+              maxHeight: "88vh",
+              background: "#0c0c0e",
+              border: "1px solid rgba(0,230,118,0.25)",
+              borderRadius: 20,
+              boxShadow: "0 25px 80px rgba(0,0,0,0.9), 0 0 40px rgba(0,230,118,0.1)",
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "18px 24px",
+                borderBottom: "1px solid rgba(255,255,255,0.06)",
+                background: "rgba(255,255,255,0.015)",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 10,
+                    background: "rgba(0,230,118,0.1)",
+                    border: "1px solid rgba(0,230,118,0.25)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <ShieldCheck style={{ width: 18, height: 18, color: G }} />
+                </div>
+                <div>
+                  <h3 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 16, fontWeight: 900, color: "#fff", margin: 0 }}>
+                    Privacy, Security & Compliance
+                  </h3>
+                  <p style={{ fontSize: 10.5, color: "rgba(255,255,255,0.4)", margin: "2px 0 0" }}>
+                    Local-First Architecture • BYOK Security • MIT License
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowPrivacyModal(false)}
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: 8,
+                  background: "rgba(255,255,255,0.05)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  color: "rgba(255,255,255,0.6)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "#fff";
+                  e.currentTarget.style.background = "rgba(255,255,255,0.12)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "rgba(255,255,255,0.6)";
+                  e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+                }}
+              >
+                <X style={{ width: 15, height: 15 }} />
+              </button>
+            </div>
+
+            {/* Modal Scrollable Content */}
+            <div
+              style={{
+                padding: "20px 24px",
+                overflowY: "auto",
+                display: "flex",
+                flexDirection: "column",
+                gap: 16,
+                fontSize: 12,
+                lineHeight: 1.55,
+                color: "rgba(255,255,255,0.65)",
+              }}
+            >
+              {/* Section 1: BYOK & Local API Key Storage */}
+              <div
+                style={{
+                  padding: "14px 16px",
+                  borderRadius: 12,
+                  background: "rgba(0,230,118,0.04)",
+                  border: "1px solid rgba(0,230,118,0.18)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 6,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 7, color: G, fontWeight: 700, fontSize: 13 }}>
+                  <Lock style={{ width: 14, height: 14 }} />
+                  <span>1. BYOK (Bring Your Own Key) & 100% Local Storage</span>
+                </div>
+                <p style={{ margin: 0 }}>
+                  ClipVault operates under a strict <strong>zero-telemetry, local-first</strong> security policy. Any API key you configure (e.g. OpenAI, Anthropic Claude, Google Gemini, Groq, or DeepSeek) is stored <strong>only on your local computer</strong> (within your Windows Local AppData and encrypted browser storage).
+                </p>
+                <p style={{ margin: 0, color: "rgba(255,255,255,0.45)", fontSize: 11 }}>
+                  • <strong>No central tracking server</strong> ever receives or logs your API credentials.<br />
+                  • API requests are sent <strong>directly</strong> from your PC to the respective AI provider endpoints over encrypted HTTPS.
+                </p>
+              </div>
+
+              {/* Section 2: On-Device Processing */}
+              <div
+                style={{
+                  padding: "14px 16px",
+                  borderRadius: 12,
+                  background: "rgba(255,255,255,0.02)",
+                  border: "1px solid rgba(255,255,255,0.06)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 6,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 7, color: "#fff", fontWeight: 700, fontSize: 13 }}>
+                  <ShieldCheck style={{ width: 14, height: 14, color: G }} />
+                  <span>2. On-Device Media Processing & Privacy</span>
+                </div>
+                <p style={{ margin: 0 }}>
+                  All video slicing (yt-dlp), computer vision face tracking (OpenCV), Whisper transcription, and subtitle compositing (FFmpeg) run <strong>100% locally on your machine's CPU/GPU hardware</strong>. Your original video footage, audio streams, and exported MP4 files are never uploaded to any ClipVault database.
+                </p>
+              </div>
+
+              {/* Section 3: Limitation of Liability */}
+              <div
+                style={{
+                  padding: "14px 16px",
+                  borderRadius: 12,
+                  background: "rgba(239,68,68,0.04)",
+                  border: "1px solid rgba(239,68,68,0.2)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 6,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 7, color: "#ef4444", fontWeight: 700, fontSize: 13 }}>
+                  <AlertTriangle style={{ width: 14, height: 14 }} />
+                  <span>3. Disclaimer of Liability & User Responsibility</span>
+                </div>
+                <p style={{ margin: 0 }}>
+                  ClipVault Studio is provided <strong>"AS IS"</strong> without warranties of any kind. By using ClipVault, you acknowledge and agree that:
+                </p>
+                <ul style={{ margin: 0, paddingLeft: 18, fontSize: 11.5, color: "rgba(255,255,255,0.55)", display: "flex", flexDirection: "column", gap: 4 }}>
+                  <li><strong>API Usage & Billing:</strong> You are solely responsible for monitoring your own AI provider rate limits, token consumption, and monthly billing costs. ClipVault is not responsible for any unexpected charges or billing overages on third-party APIs.</li>
+                  <li><strong>Content & Copyright:</strong> You are solely responsible for ensuring you have the legal right or fair-use authorization to clip and repurpose any media or stream downloaded via yt-dlp.</li>
+                  <li><strong>No Liability for Data Loss:</strong> ClipVault and its author (jmarkTheDeveloper) shall not be liable for any accidental data loss, hardware overheating, or system crashes resulting from media processing.</li>
+                </ul>
+              </div>
+
+              {/* Section 4: Licenses */}
+              <div
+                style={{
+                  padding: "14px 16px",
+                  borderRadius: 12,
+                  background: "rgba(255,255,255,0.02)",
+                  border: "1px solid rgba(255,255,255,0.06)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 6,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 7, color: "#fff", fontWeight: 700, fontSize: 13 }}>
+                  <Scale style={{ width: 14, height: 14, color: G }} />
+                  <span>4. Open Source License (MIT)</span>
+                </div>
+                <p style={{ margin: 0, fontSize: 11, color: "rgba(255,255,255,0.5)" }}>
+                  Permission is hereby granted, free of charge, to any person obtaining a copy of this software to use, copy, modify, and distribute the software subject to the standard MIT License conditions.
+                </p>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "flex-end",
+                gap: 10,
+                padding: "14px 24px",
+                borderTop: "1px solid rgba(255,255,255,0.06)",
+                background: "rgba(255,255,255,0.015)",
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setShowPrivacyModal(false)}
+                style={{
+                  padding: "8px 20px",
+                  borderRadius: 8,
+                  fontWeight: 700,
+                  fontSize: 12,
+                  color: "#000",
+                  background: G,
+                  border: "none",
+                  cursor: "pointer",
+                  boxShadow: "0 0 16px rgba(0,230,118,0.25)",
+                  transition: "all 0.2s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.boxShadow = "0 0 24px rgba(0,230,118,0.5)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.boxShadow = "0 0 16px rgba(0,230,118,0.25)";
+                }}
+              >
+                I Understand & Agree
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
