@@ -15,6 +15,7 @@ import {
   Key,
   FileCheck,
   ExternalLink,
+  CheckCircle2,
 } from "lucide-react";
 
 const G = "#00e676";
@@ -52,14 +53,29 @@ function Logo({ size = 24 }: { size?: number }) {
 
 export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
   const [engineOnline, setEngineOnline] = useState(true);
-  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [complianceAccepted, setComplianceAccepted] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("clipvault_compliance_accepted") === "true";
+    } catch {
+      return false;
+    }
+  });
+  const [showPrivacyModal, setShowPrivacyModal] = useState<boolean>(false);
   const [complianceTab, setComplianceTab] = useState<string>("all");
+  const [agreedCheckbox, setAgreedCheckbox] = useState<boolean>(false);
 
   useEffect(() => {
     fetch("http://127.0.0.1:8000/api/health")
       .then((r) => r.json())
       .then((d) => setEngineOnline(d.status === "ok"))
       .catch(() => setEngineOnline(false));
+
+    try {
+      const accepted = localStorage.getItem("clipvault_compliance_accepted") === "true";
+      if (!accepted) {
+        setShowPrivacyModal(true);
+      }
+    } catch {}
   }, []);
 
   const features = [
@@ -77,9 +93,9 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
   ];
 
   return (
-    <div style={{ height: "100vh", width: "100vw", display: "flex", flexDirection: "column", overflow: "hidden", background: "#050505", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+    <div style={{ height: "100vh", width: "100vw", display: "flex", flexDirection: "column", overflow: "hidden", background: "#050505", fontFamily: "'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
 
         @keyframes wfGlowPulse {
           0%, 100% { box-shadow: 0 0 0 1px rgba(0,230,118,0.14), 0 30px 80px rgba(0,0,0,0.8); }
@@ -130,13 +146,14 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
         {/* Brand */}
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <Logo size={22} />
-          <span style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 900, fontSize: 17, letterSpacing: "-0.03em", color: "#fff" }}>
+          <span style={{ fontFamily: "'Space Grotesk', 'Geist', sans-serif", fontWeight: 800, fontSize: 17, letterSpacing: "-0.03em", color: "#fff" }}>
             Clip<span style={{ color: G }}>Vault</span>
           </span>
           <span style={{
             padding: "2px 7px", borderRadius: 5, fontSize: 8.5, fontWeight: 700,
             letterSpacing: "0.12em", background: "rgba(0,230,118,0.08)",
             color: G, border: "1px solid rgba(0,230,118,0.2)",
+            fontFamily: "'Geist Mono', monospace",
           }}>
             V1.0
           </span>
@@ -153,10 +170,10 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
               gap: 5,
               padding: "4px 9px",
               borderRadius: 6,
-              background: "rgba(255,255,255,0.03)",
-              border: "1px solid rgba(255,255,255,0.08)",
-              color: "rgba(255,255,255,0.55)",
-              fontFamily: "'JetBrains Mono', monospace",
+              background: complianceAccepted ? "rgba(0,230,118,0.06)" : "rgba(255,255,255,0.03)",
+              border: complianceAccepted ? "1px solid rgba(0,230,118,0.25)" : "1px solid rgba(255,255,255,0.08)",
+              color: complianceAccepted ? G : "rgba(255,255,255,0.55)",
+              fontFamily: "'Geist Mono', 'JetBrains Mono', monospace",
               fontSize: 9.5,
               cursor: "pointer",
               transition: "all 0.2s",
@@ -164,16 +181,16 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
             onMouseEnter={(e) => {
               e.currentTarget.style.color = "#fff";
               e.currentTarget.style.borderColor = "rgba(0,230,118,0.35)";
-              e.currentTarget.style.background = "rgba(0,230,118,0.08)";
+              e.currentTarget.style.background = "rgba(0,230,118,0.1)";
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.color = "rgba(255,255,255,0.55)";
-              e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)";
-              e.currentTarget.style.background = "rgba(255,255,255,0.03)";
+              e.currentTarget.style.color = complianceAccepted ? G : "rgba(255,255,255,0.55)";
+              e.currentTarget.style.borderColor = complianceAccepted ? "1px solid rgba(0,230,118,0.25)" : "rgba(255,255,255,0.08)";
+              e.currentTarget.style.background = complianceAccepted ? "rgba(0,230,118,0.06)" : "rgba(255,255,255,0.03)";
             }}
           >
             <ShieldCheck style={{ width: 11, height: 11, color: G }} />
-            <span>Privacy & BYOK Security</span>
+            <span>{complianceAccepted ? "Privacy & BYOK Active" : "Privacy & BYOK Security"}</span>
           </button>
 
           <div style={{
@@ -188,7 +205,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
               animationName: "wfDotPulse", animationDuration: "2s",
               animationTimingFunction: "ease-in-out", animationIterationCount: "infinite",
             }} />
-            <span style={{ color: "rgba(255,255,255,0.38)", fontFamily: "'JetBrains Mono', monospace", fontSize: 9.5 }}>
+            <span style={{ color: "rgba(255,255,255,0.38)", fontFamily: "'Geist Mono', monospace", fontSize: 9.5 }}>
               {engineOnline ? "Local Engine Online (127.0.0.1:8000)" : "Engine Offline"}
             </span>
           </div>
@@ -196,7 +213,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
             display: "flex", alignItems: "center", gap: 5, padding: "4px 9px",
             borderRadius: 6, background: "rgba(255,255,255,0.03)",
             border: "1px solid rgba(255,255,255,0.06)",
-            color: "rgba(255,255,255,0.32)", fontFamily: "'JetBrains Mono', monospace", fontSize: 9.5,
+            color: "rgba(255,255,255,0.32)", fontFamily: "'Geist Mono', monospace", fontSize: 9.5,
           }}>
             ⚡ Hardware Accelerated
           </div>
@@ -275,7 +292,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                   padding: "10px 12px", borderRadius: 10,
                   background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.055)",
                 }}>
-                  <div style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 900, fontSize: 18, color: G, lineHeight: 1 }}>
+                  <div style={{ fontFamily: "'Space Grotesk', 'Geist', sans-serif", fontWeight: 800, fontSize: 18, color: G, lineHeight: 1 }}>
                     {s.value}
                   </div>
                   <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginTop: 3, fontWeight: 500 }}>
@@ -313,6 +330,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                       background: "rgba(0,230,118,0.08)",
                       color: G,
                       fontWeight: 600,
+                      fontFamily: "'Geist Mono', monospace",
                     }}
                   >
                     CS Student
@@ -360,13 +378,13 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                       alignItems: "center",
                       gap: 4,
                       fontSize: 10.5,
-                      fontWeight: 600,
+                      fontWeight: 700,
                       color: "#ff667a",
                       textDecoration: "none",
-                      padding: "3.5px 8px",
+                      padding: "3.5px 9px",
                       borderRadius: 6,
                       background: "rgba(255,102,122,0.08)",
-                      border: "1px solid rgba(255,102,122,0.22)",
+                      border: "1px solid rgba(255,102,122,0.2)",
                       transition: "all 0.2s",
                     }}
                     onMouseEnter={(e) => {
@@ -451,7 +469,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                 <span style={{ fontSize: 10.5, fontWeight: 700, color: G }}>Viral Short-Form Engine</span>
               </div>
               <span style={{
-                fontFamily: "'JetBrains Mono', monospace", fontSize: 24, fontWeight: 700,
+                fontFamily: "'Geist Mono', monospace", fontSize: 24, fontWeight: 700,
                 color: "rgba(255,255,255,0.06)", letterSpacing: "-0.05em", lineHeight: 1,
               }}>
                 01
@@ -483,31 +501,32 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                   <div style={{
                     position: "absolute", width: 3, height: 3, borderRadius: "50%",
                     bottom: -1.5, left: "50%", marginLeft: -1.5,
-                    background: "rgba(0,230,118,0.6)",
+                    background: "#2cf590", boxShadow: "0 0 4px #2cf590",
                   }} />
                 </div>
                 <div style={{
-                  position: "absolute", inset: 13, borderRadius: 10,
+                  position: "absolute", inset: 12, borderRadius: "50%",
+                  background: "radial-gradient(circle, rgba(0,230,118,0.18) 0%, rgba(0,0,0,0.4) 100%)",
+                  border: "1px solid rgba(0,230,118,0.32)",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  background: "rgba(0,230,118,0.08)", border: "1px solid rgba(0,230,118,0.26)",
-                  animationName: "wfIconGlow", animationDuration: "2.4s",
+                  animationName: "wfIconGlow", animationDuration: "3s",
                   animationTimingFunction: "ease-in-out", animationIterationCount: "infinite",
                 }}>
-                  <Zap style={{ width: 15, height: 15, color: G }} />
+                  <Zap style={{ width: 14, height: 14, color: G, fill: G }} />
                 </div>
               </div>
 
-              {/* Title */}
+              {/* Title & Desc */}
               <div>
                 <h2 style={{
-                  fontFamily: "'Outfit', sans-serif", fontWeight: 900,
-                  fontSize: 20, letterSpacing: "-0.03em", color: "#fff", margin: "0 0 2px",
+                  fontFamily: "'Space Grotesk', 'Geist', sans-serif", fontWeight: 800, fontSize: 20,
+                  color: "#fff", letterSpacing: "-0.03em", margin: "0 0 4px",
                 }}>
                   AI Video Clipper
                 </h2>
-                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", fontWeight: 500 }}>
+                <p style={{ fontSize: 11.5, color: "rgba(255,255,255,0.4)", margin: 0, fontWeight: 500 }}>
                   Face tracking 9:16 Shorts with dynamic subtitles
-                </span>
+                </p>
               </div>
             </div>
 
@@ -537,18 +556,24 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
             {/* Launch button */}
             <button
               type="button"
-              onClick={() => onSelect("ai-clipper")}
+              onClick={() => {
+                if (!complianceAccepted) {
+                  setShowPrivacyModal(true);
+                  return;
+                }
+                onSelect("ai-clipper");
+              }}
               style={{
                 width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
                 padding: "12px 18px", borderRadius: 10, border: "none", cursor: "pointer",
                 background: G, color: "#000", fontSize: 13, fontWeight: 800,
-                fontFamily: "'Outfit', sans-serif", letterSpacing: "-0.01em",
+                fontFamily: "'Space Grotesk', 'Geist', sans-serif", letterSpacing: "-0.01em",
                 boxShadow: "0 0 24px rgba(0,230,118,0.32)", transition: "all 0.2s ease",
               }}
               onMouseEnter={(e) => { const el = e.currentTarget; el.style.boxShadow = "0 0 44px rgba(0,230,118,0.6)"; el.style.transform = "translateY(-1px)"; }}
               onMouseLeave={(e) => { const el = e.currentTarget; el.style.boxShadow = "0 0 24px rgba(0,230,118,0.32)"; el.style.transform = "none"; }}
             >
-              <span>Launch Studio</span>
+              <span>{complianceAccepted ? "Launch Studio" : "Review Terms & Launch Studio"}</span>
               <div style={{ width: 24, height: 24, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.2)" }}>
                 <ChevronRight style={{ width: 14, height: 14 }} />
               </div>
@@ -617,14 +642,14 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                 </div>
                 <div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
-                    <h3 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 17, fontWeight: 800, color: "#fff", margin: 0 }}>
+                    <h3 style={{ fontFamily: "'Space Grotesk', 'Geist', sans-serif", fontSize: 17, fontWeight: 800, color: "#fff", margin: 0 }}>
                       Security, BYOK Privacy & Compliance Center
                     </h3>
                     <span style={{
                       padding: "2px 6px",
                       borderRadius: 4,
                       fontSize: 8.5,
-                      fontFamily: "'JetBrains Mono', monospace",
+                      fontFamily: "'Geist Mono', monospace",
                       fontWeight: 700,
                       background: "rgba(0,230,118,0.1)",
                       color: G,
@@ -667,6 +692,16 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                 <X style={{ width: 15, height: 15 }} />
               </button>
             </div>
+
+            {/* First-Time Notice Banner */}
+            {!complianceAccepted && (
+              <div style={{ padding: "8px 24px", background: "rgba(0,230,118,0.06)", borderBottom: "1px solid rgba(0,230,118,0.15)", display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 11, color: "rgba(255,255,255,0.7)", flexShrink: 0 }}>
+                <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <ShieldCheck style={{ width: 13, height: 13, color: G }} />
+                  <span><strong>First-Time Security Review:</strong> Please review and confirm the local BYOK security & compliance terms before launching ClipVault.</span>
+                </span>
+              </div>
+            )}
 
             {/* Modal Body: 2-Column Widescreen Split */}
             <div style={{ flex: 1, display: "grid", gridTemplateColumns: "240px 1fr", overflow: "hidden" }}>
@@ -955,32 +990,75 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                 </span>
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <button
-                  type="button"
-                  onClick={() => setShowPrivacyModal(false)}
-                  style={{
-                    padding: "8px 22px",
-                    borderRadius: 8,
-                    fontWeight: 700,
-                    fontSize: 12,
-                    color: "#000",
-                    background: G,
-                    border: "none",
-                    cursor: "pointer",
-                    boxShadow: "0 0 20px rgba(0,230,118,0.25)",
-                    transition: "all 0.15s",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.boxShadow = "0 0 30px rgba(0,230,118,0.45)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.boxShadow = "0 0 20px rgba(0,230,118,0.25)";
-                  }}
-                >
-                  I Understand & Agree
-                </button>
-              </div>
+              {!complianceAccepted ? (
+                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 11.5, color: "rgba(255,255,255,0.85)", userSelect: "none" }}>
+                    <input
+                      type="checkbox"
+                      checked={agreedCheckbox}
+                      onChange={(e) => setAgreedCheckbox(e.target.checked)}
+                      style={{ width: 15, height: 15, accentColor: G, cursor: "pointer" }}
+                    />
+                    <span>I have reviewed & agree to the Local BYOK Privacy Policy & MIT License</span>
+                  </label>
+
+                  <button
+                    type="button"
+                    disabled={!agreedCheckbox}
+                    onClick={() => {
+                      try {
+                        localStorage.setItem("clipvault_compliance_accepted", "true");
+                      } catch {}
+                      setComplianceAccepted(true);
+                      setShowPrivacyModal(false);
+                      onSelect("ai-clipper");
+                    }}
+                    style={{
+                      padding: "8px 22px",
+                      borderRadius: 8,
+                      fontWeight: 700,
+                      fontSize: 12,
+                      color: agreedCheckbox ? "#000" : "rgba(0,0,0,0.4)",
+                      background: agreedCheckbox ? G : "rgba(0,230,118,0.3)",
+                      border: "none",
+                      cursor: agreedCheckbox ? "pointer" : "not-allowed",
+                      boxShadow: agreedCheckbox ? "0 0 20px rgba(0,230,118,0.3)" : "none",
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    Accept & Launch Studio
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <span style={{ fontSize: 11, color: G, display: "flex", alignItems: "center", gap: 5, fontFamily: "'Geist Mono', monospace" }}>
+                    <CheckCircle2 style={{ width: 13, height: 13 }} /> Compliance Accepted
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowPrivacyModal(false)}
+                    style={{
+                      padding: "7px 20px",
+                      borderRadius: 8,
+                      fontWeight: 600,
+                      fontSize: 12,
+                      color: "#fff",
+                      background: "rgba(255,255,255,0.08)",
+                      border: "1px solid rgba(255,255,255,0.12)",
+                      cursor: "pointer",
+                      transition: "all 0.15s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "rgba(255,255,255,0.14)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "rgba(255,255,255,0.08)";
+                    }}
+                  >
+                    Close
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
