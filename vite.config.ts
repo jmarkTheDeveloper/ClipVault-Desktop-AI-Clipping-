@@ -51,7 +51,15 @@ export default defineConfig({
         '**/dist/**',
         '**/electron/**',
         '**/.git/**',
-        '**/engine/**'
+        '**/engine/**',
+        '**/clips/**',
+        '**/temp/**',
+        '**/backgrounds/**',
+        '**/outputs/**',
+        '**/*.mp4',
+        '**/*.txt',
+        '**/*.wav',
+        '**/*.m4a'
       ]
     }
   }

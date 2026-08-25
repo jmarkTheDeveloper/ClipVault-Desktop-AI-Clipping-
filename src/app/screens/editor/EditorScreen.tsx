@@ -57,15 +57,13 @@ function EditorLayout({ onBack, initialVideoUrl }: { onBack: () => void, initial
       if (existing) {
         addVideoClip(existing.id);
       } else {
-        const newId = Date.now();
-        MEDIA_LIBRARY.push({
-          id: newId,
+        addVideoClip({
+          id: Date.now(),
           url: initialVideoUrl,
           name: "Imported Short",
           type: "video",
-          duration: 60, // Fallback duration, will be updated when loaded
+          duration: 60,
         });
-        addVideoClip(newId);
       }
     }
   }, [initialVideoUrl, addVideoClip]);

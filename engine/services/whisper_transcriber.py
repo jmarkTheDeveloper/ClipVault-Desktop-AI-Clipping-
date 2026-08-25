@@ -62,13 +62,14 @@ class WhisperSingleton:
                 )
 
 
-    def transcribe(self, video_path, language=None):
+    def transcribe(self, video_path, language=None, progress_callback=None):
         """
         Transcribes the audio from a video file.
 
         Args:
             video_path (str): The path to the video file.
             language (str, optional): Language code to force transcription.
+            progress_callback (callable, optional): Callback to report progress.
 
         Returns:
             tuple: A tuple containing a list of words with timestamps, the full
@@ -89,7 +90,8 @@ class WhisperSingleton:
                 temperature=0,  # Disable sampling for deterministic results
                 language=language
             )
-            print(f"✅ Audio processing complete. Detected language: {info.language} (probability: {info.language_probability:.2f})")
+            total_dur = getattr(info, 'duration', 0.0) or 1.0
+            print(f"✅ Audio loaded ({total_dur:.1f}s). Detected language: {info.language}")
             
             # Process segments and words
             words = []
@@ -102,8 +104,9 @@ class WhisperSingleton:
             print("⏳ Processing transcription segments...")
             for segment in segments:
                 segment_count += 1
-                if segment_count % 10 == 0:
-                    print(f"⏳ Processed {segment_count} segments so far...")
+                if progress_callback and segment_count % 3 == 0:
+                    pct = min(38, 20 + int((segment.end / max(1.0, total_dur)) * 18))
+                    progress_callback(f"Transcribing audio with Whisper ({int(segment.end)}s / {int(total_dur)}s)...", pct)
                     
                 segments_list.append({
                     'id': segment.id,

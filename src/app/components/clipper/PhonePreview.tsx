@@ -1,0 +1,630 @@
+import React, { useState, useEffect, useRef } from "react";
+import {
+  Upload,
+  Volume2,
+  VolumeX,
+  Move,
+  Loader2,
+  Gamepad2,
+  Play,
+  Pause,
+  RotateCcw,
+  RotateCw,
+  Clock,
+  Pin,
+  Flag,
+  XCircle,
+} from "lucide-react";
+import type { CropBox } from "./types";
+import { extractYouTubeId } from "./types";
+
+interface PhonePreviewProps {
+  activeVideoUrl: string;
+  ytUrl?: string;
+  loadingPreview?: boolean;
+  isProcessing: boolean;
+  progress: number;
+  layout: string;
+  isMuted: boolean;
+  setIsMuted: (val: boolean) => void;
+  videoRef: React.RefObject<HTMLVideoElement | null>;
+  addCaptions: boolean;
+  captionYPct: number;
+  isDraggingCaption: boolean;
+  startCaptionDrag: (e: React.MouseEvent) => void;
+  selectedEffectId: string;
+  cropTop: CropBox;
+  cropBottom: CropBox;
+  startTs?: string;
+  setStartTs?: (ts: string) => void;
+  endTs?: string;
+  setEndTs?: (ts: string) => void;
+  onCancel?: () => void;
+  gameplayBgVideo?: string;
+}
+
+function formatTime(seconds: number): string {
+  if (isNaN(seconds) || seconds < 0) return "00:00";
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  if (h > 0) {
+    return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  }
+  return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+}
+
+const CroppedVideo: React.FC<{
+  src: string;
+  youtubeId: string | null;
+  crop: CropBox;
+  isMuted: boolean;
+  onTimeUpdate?: (e: React.SyntheticEvent<HTMLVideoElement>) => void;
+  onLoadedMetadata?: (e: React.SyntheticEvent<HTMLVideoElement>) => void;
+  label?: string;
+}> = ({ src, youtubeId, crop, isMuted, onTimeUpdate, onLoadedMetadata, label }) => {
+  const cropW = Math.max(20, crop.width);
+  const cropH = Math.max(20, crop.height);
+  const scaleW = 456 / cropW;
+  const scaleH = 256 / cropH;
+  const leftP = -(crop.x / cropW) * 100;
+  const topP = -(crop.y / cropH) * 100;
+
+  if (src) {
+    return (
+      <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center select-none">
+        <video
+          src={src}
+          autoPlay
+          loop
+          muted={isMuted}
+          playsInline
+          onTimeUpdate={onTimeUpdate}
+          onLoadedMetadata={onLoadedMetadata}
+          className="pointer-events-none"
+          style={{
+            position: "absolute",
+            width: `${scaleW * 100}%`,
+            height: `${scaleH * 100}%`,
+            maxWidth: "none",
+            maxHeight: "none",
+            left: `${leftP}%`,
+            top: `${topP}%`,
+            objectFit: "cover",
+            transform: "translateZ(0)",
+            willChange: "transform",
+          }}
+        />
+      </div>
+    );
+  }
+
+  if (youtubeId) {
+    return (
+      <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center select-none">
+        <iframe
+          src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=${isMuted ? 1 : 0}&loop=1&playlist=${youtubeId}&controls=0&modestbranding=1&rel=0&playsinline=1`}
+          title="YouTube Crop Preview"
+          className="w-full h-full object-cover pointer-events-none scale-125"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full h-full flex items-center justify-center text-xs text-gray-500 font-bold">
+      {label || "No Video"}
+    </div>
+  );
+};
+
+export const PhonePreview: React.FC<PhonePreviewProps> = ({
+  activeVideoUrl,
+  ytUrl = "",
+  loadingPreview = false,
+  isProcessing,
+  progress,
+  layout,
+  isMuted,
+  setIsMuted,
+  videoRef,
+  addCaptions,
+  captionYPct,
+  isDraggingCaption,
+  startCaptionDrag,
+  selectedEffectId,
+  cropTop,
+  cropBottom,
+  startTs = "",
+  setStartTs,
+  endTs = "",
+  setEndTs,
+  onCancel,
+  gameplayBgVideo = "",
+}) => {
+  const youtubeId = extractYouTubeId(ytUrl);
+  const hasMedia = Boolean(activeVideoUrl || youtubeId);
+
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const lastUpdateTimeRef = useRef<number>(0);
+
+  // Playback & Scrubber States
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+
+  // Synchronized seek on active video elements within the phone container
+  const seekAllVideos = (timeInSeconds: number) => {
+    const vids = containerRef.current?.querySelectorAll("video") || [];
+    vids.forEach((vid) => {
+      try {
+        vid.currentTime = Math.max(0, Math.min(timeInSeconds, vid.duration || 0));
+      } catch {}
+    });
+    setCurrentTime(timeInSeconds);
+  };
+
+  const togglePlayAll = () => {
+    const vids = containerRef.current?.querySelectorAll("video") || [];
+    if (isPlaying) {
+      vids.forEach((v) => {
+        try {
+          v.pause();
+        } catch {}
+      });
+      setIsPlaying(false);
+    } else {
+      vids.forEach((v) => {
+        try {
+          v.play();
+        } catch {}
+      });
+      setIsPlaying(true);
+    }
+  };
+
+  const seekRelative = (deltaSeconds: number) => {
+    seekAllVideos(Math.max(0, Math.min(duration || 100, currentTime + deltaSeconds)));
+  };
+
+  const jumpSeconds = seekRelative;
+
+  const handleTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement>) => {
+    const now = Date.now();
+    if (now - lastUpdateTimeRef.current > 200) {
+      lastUpdateTimeRef.current = now;
+      setCurrentTime(e.currentTarget.currentTime || 0);
+    }
+  };
+
+  const handleLoadedMetadata = (e: React.SyntheticEvent<HTMLVideoElement>) => {
+    const target = e.currentTarget;
+    if (target.duration) setDuration(target.duration);
+  };
+
+  return (
+    <div ref={containerRef} className="flex-1 flex flex-col items-center justify-center p-6 bg-[#0a0a0a] select-none relative overflow-y-auto">
+      {/* Background Ambient Glow */}
+      <div className="absolute w-[500px] h-[500px] bg-amber-400/5 rounded-full blur-3xl pointer-events-none" />
+
+      {/* 9:16 Smartphone Mockup */}
+      <div className="relative w-[340px] h-[600px] bg-black rounded-[48px] p-3 shadow-[0_0_60px_rgba(0,0,0,0.8)] border-[6px] border-[#222] ring-1 ring-white/10 flex flex-col z-10">
+        {/* Dynamic Island / Speaker Pill */}
+        <div className="absolute top-6 left-1/2 -translate-x-1/2 w-24 h-4 bg-[#111] rounded-full z-40 flex items-center justify-center shadow-inner border border-white/5">
+          <div className="w-2.5 h-2.5 rounded-full bg-[#1c1c1e] mr-2" />
+          <div className="w-10 h-1.5 rounded-full bg-[#1c1c1e]" />
+        </div>
+
+        {/* Screen Viewport */}
+        <div className="relative flex-1 bg-[#111] rounded-[38px] overflow-hidden flex items-center justify-center border border-white/5">
+          {isProcessing ? (
+            <div className="flex flex-col items-center justify-center space-y-4 p-6 text-center z-30">
+              <Loader2 className="w-10 h-10 text-amber-400 animate-spin" />
+              <span className="text-amber-400 font-bold text-sm">{Math.floor(progress)}%</span>
+              <p className="text-xs text-gray-400">Processing clips in 4K/1080p...</p>
+              {onCancel && (
+                <button
+                  type="button"
+                  onClick={onCancel}
+                  className="px-4 py-2 rounded-xl bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-400 hover:text-red-300 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-lg"
+                >
+                  <XCircle className="w-3.5 h-3.5" /> Stop Processing
+                </button>
+              )}
+            </div>
+          ) : loadingPreview ? (
+            <div className="flex flex-col items-center justify-center p-6 text-center space-y-3">
+              <Loader2 className="w-8 h-8 text-amber-400 animate-spin" />
+              <p className="text-xs font-bold text-white">Loading YouTube Preview...</p>
+              <p className="text-[10px] text-gray-400">Fetching video stream & auto-captions</p>
+            </div>
+          ) : layout === "custom_split" ? (
+            /* Custom Split Screen Preview (Top & Bottom Crop Boxes) */
+            <div className="w-full h-full flex flex-col relative select-none bg-black">
+              {/* Top Viewport */}
+              <div className="w-full h-1/2 relative overflow-hidden border-b-2 border-amber-400/50">
+                <CroppedVideo
+                  src={activeVideoUrl}
+                  youtubeId={youtubeId}
+                  crop={cropTop}
+                  isMuted={isMuted}
+                  onTimeUpdate={handleTimeUpdate}
+                  onLoadedMetadata={handleLoadedMetadata}
+                  label="Top Crop (Amber)"
+                />
+              </div>
+
+              {/* Bottom Viewport */}
+              <div className="w-full h-1/2 relative overflow-hidden">
+                <CroppedVideo
+                  src={activeVideoUrl}
+                  youtubeId={youtubeId}
+                  crop={cropBottom}
+                  isMuted={isMuted}
+                  label="Bottom Crop (Cyan)"
+                />
+              </div>
+
+              {/* Floating Mute & Status Overlay */}
+              {hasMedia && (
+                <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsMuted(!isMuted);
+                    }}
+                    className="p-1.5 rounded-full bg-black/70 backdrop-blur-md text-white border border-white/20 hover:bg-black transition-colors cursor-pointer shadow-lg"
+                  >
+                    {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5 text-amber-400" />}
+                  </button>
+                </div>
+              )}
+
+              {/* Clean Subtitle Preview */}
+              {addCaptions && (
+                <div
+                  className="absolute inset-x-0 flex justify-center pointer-events-none z-30 select-none px-4"
+                  style={{ top: `${captionYPct || 70}%`, transform: "translateY(-50%)" }}
+                >
+                  <div className="px-4 py-1.5 rounded-xl bg-black/60 backdrop-blur-md border border-white/10 shadow-xl flex items-center justify-center">
+                    <span
+                      className={`text-sm tracking-wider uppercase font-black text-center ${
+                        selectedEffectId === "capcut_yellow"
+                          ? "text-yellow-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]"
+                          : selectedEffectId === "clean_white"
+                          ? "text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]"
+                          : selectedEffectId === "neon_cyan"
+                          ? "text-cyan-300 drop-shadow-[0_0_12px_rgba(6,182,212,0.8)]"
+                          : selectedEffectId === "emerald_green"
+                          ? "text-emerald-300 drop-shadow-[0_0_12px_rgba(16,185,129,0.8)]"
+                          : selectedEffectId === "fire_red"
+                          ? "text-red-400 drop-shadow-[0_0_12px_rgba(239,68,68,0.8)]"
+                          : selectedEffectId === "sigma_pink"
+                          ? "text-pink-400 drop-shadow-[0_0_12px_rgba(236,72,153,0.8)]"
+                          : "text-yellow-300"
+                      }`}
+                    >
+                      VIRAL CAPTION 🚀
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : layout === "gameplay_bg" ? (
+            /* Satisfying Gameplay Split (Speaker Top, Gameplay Bottom) */
+            <div className="w-full h-full flex flex-col relative select-none bg-black">
+              {/* Speaker Top Viewport */}
+              <div className="w-full h-1/2 relative overflow-hidden border-b-2 border-amber-400/30">
+                {activeVideoUrl ? (
+                  <video
+                    src={activeVideoUrl}
+                    autoPlay
+                    loop
+                    muted={isMuted}
+                    playsInline
+                    onTimeUpdate={handleTimeUpdate}
+                    onLoadedMetadata={handleLoadedMetadata}
+                    className="w-full h-full object-cover pointer-events-none"
+                  />
+                ) : youtubeId ? (
+                  <iframe
+                    src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=${isMuted ? 1 : 0}&loop=1&playlist=${youtubeId}&controls=0&modestbranding=1&rel=0&playsinline=1`}
+                    title="YouTube Speaker Preview"
+                    className="w-full h-full object-cover pointer-events-none scale-125"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-xs text-gray-500 font-bold">
+                    Speaker Video
+                  </div>
+                )}
+              </div>
+
+              {/* Gameplay Bottom Viewport */}
+              <div className="w-full h-1/2 relative overflow-hidden bg-black">
+                {gameplayBgVideo ? (
+                  <video
+                    src={gameplayBgVideo}
+                    className="w-full h-full object-cover pointer-events-none"
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-[#0a0a0a] text-amber-400/40 text-xs font-bold font-mono">
+                    [ Satisfying Gameplay ]
+                  </div>
+                )}
+              </div>
+
+              {/* Video Controls Overlay */}
+              {activeVideoUrl && (
+                <div className="absolute top-3 right-3 z-30 flex items-center gap-1.5 pointer-events-auto">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsPlaying(!isPlaying);
+                    }}
+                    className="p-1.5 rounded-full bg-black/70 backdrop-blur-md text-white border border-white/20 hover:bg-black transition-colors cursor-pointer shadow-lg"
+                  >
+                    {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsMuted(!isMuted);
+                    }}
+                    className="p-1.5 rounded-full bg-black/70 backdrop-blur-md text-white border border-white/20 hover:bg-black transition-colors cursor-pointer shadow-lg"
+                  >
+                    {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5 text-amber-400" />}
+                  </button>
+                </div>
+              )}
+
+              {/* Clean Subtitle Preview */}
+              {addCaptions && (
+                <div
+                  className="absolute inset-x-0 flex justify-center pointer-events-none z-30 select-none px-4"
+                  style={{ top: `${captionYPct || 70}%`, transform: "translateY(-50%)" }}
+                >
+                  <div className="px-4 py-1.5 rounded-xl bg-black/60 backdrop-blur-md border border-white/10 shadow-xl flex items-center justify-center">
+                    <span
+                      className={`text-sm tracking-wider uppercase font-black text-center ${
+                        selectedEffectId === "capcut_yellow"
+                          ? "text-yellow-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]"
+                          : selectedEffectId === "clean_white"
+                          ? "text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]"
+                          : selectedEffectId === "neon_cyan"
+                          ? "text-cyan-300 drop-shadow-[0_0_12px_rgba(6,182,212,0.8)]"
+                          : selectedEffectId === "emerald_green"
+                          ? "text-emerald-300 drop-shadow-[0_0_12px_rgba(16,185,129,0.8)]"
+                          : selectedEffectId === "fire_red"
+                          ? "text-red-400 drop-shadow-[0_0_12px_rgba(239,68,68,0.8)]"
+                          : selectedEffectId === "sigma_pink"
+                          ? "text-pink-400 drop-shadow-[0_0_12px_rgba(236,72,153,0.8)]"
+                          : "text-yellow-300"
+                      }`}
+                    >
+                      VIRAL CAPTION 🚀
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Standard Vertical / Blur / Fit Viewports */
+            <div className="w-full h-full relative flex items-center justify-center overflow-hidden bg-black select-none">
+              {activeVideoUrl ? (
+                layout === "landscape_blur" ? (
+                  <>
+                    <video
+                      src={activeVideoUrl}
+                      className="absolute inset-0 w-full h-full object-cover filter blur-xl scale-125 opacity-50 pointer-events-none"
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                    />
+                    <video
+                      src={activeVideoUrl}
+                      poster={posterUrl || undefined}
+                      className="w-full max-h-full object-contain relative z-10 pointer-events-none shadow-2xl"
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                    />
+                  </>
+                ) : layout === "fill_crop" ? (
+                  <video
+                    src={activeVideoUrl}
+                    poster={posterUrl || undefined}
+                    className="w-full h-full object-cover relative z-10 pointer-events-none"
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                  />
+                ) : (
+                  <video
+                    src={activeVideoUrl}
+                    poster={posterUrl || undefined}
+                    className="w-full h-full object-contain relative z-10 pointer-events-none"
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                  />
+                )
+              ) : (
+                <div className="text-center p-6 text-gray-500">
+                  <div className="w-12 h-12 rounded-full border border-dashed border-gray-600 flex items-center justify-center mx-auto mb-2 text-gray-400">
+                    9:16
+                  </div>
+                  <p className="text-xs font-semibold">Video Preview</p>
+                  <p className="text-[10px] text-gray-600 mt-1">Select a video to see live AI framing</p>
+                </div>
+              )}
+
+              {/* Video Controls Overlay */}
+              {activeVideoUrl && (
+                <div className="absolute top-3 right-3 z-30 flex items-center gap-1.5 pointer-events-auto">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsPlaying(!isPlaying);
+                    }}
+                    className="p-1.5 rounded-full bg-black/70 backdrop-blur-md text-white border border-white/20 hover:bg-black transition-colors cursor-pointer shadow-lg"
+                  >
+                    {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsMuted(!isMuted);
+                    }}
+                    className="p-1.5 rounded-full bg-black/70 backdrop-blur-md text-white border border-white/20 hover:bg-black transition-colors cursor-pointer shadow-lg"
+                  >
+                    {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5 text-amber-400" />}
+                  </button>
+                </div>
+              )}
+
+              {/* Clean Subtitle Preview */}
+              {addCaptions && (
+                <div
+                  className="absolute inset-x-0 flex justify-center pointer-events-none z-30 select-none px-4"
+                  style={{ top: `${captionYPct || 70}%`, transform: "translateY(-50%)" }}
+                >
+                  <div className="px-4 py-1.5 rounded-xl bg-black/60 backdrop-blur-md border border-white/10 shadow-xl flex items-center justify-center">
+                    <span
+                      className={`text-sm tracking-wider uppercase font-black text-center ${
+                        selectedEffectId === "capcut_yellow"
+                          ? "text-yellow-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]"
+                          : selectedEffectId === "clean_white"
+                          ? "text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]"
+                          : selectedEffectId === "neon_cyan"
+                          ? "text-cyan-300 drop-shadow-[0_0_12px_rgba(6,182,212,0.8)]"
+                          : selectedEffectId === "emerald_green"
+                          ? "text-emerald-300 drop-shadow-[0_0_12px_rgba(16,185,129,0.8)]"
+                          : selectedEffectId === "fire_red"
+                          ? "text-red-400 drop-shadow-[0_0_12px_rgba(239,68,68,0.8)]"
+                          : selectedEffectId === "sigma_pink"
+                          ? "text-pink-400 drop-shadow-[0_0_12px_rgba(236,72,153,0.8)]"
+                          : "text-yellow-300"
+                      }`}
+                    >
+                      VIRAL CAPTION 🚀
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Interactive Mobile Playback & Timestamp Dock */}
+      {hasMedia && (
+        <div className="w-[340px] mt-4 p-3.5 bg-[#121212] border border-white/10 rounded-2xl shadow-2xl space-y-2.5 z-20 animate-fadeIn">
+          {/* Timeline Scrubber & Timestamp Readout */}
+          <div className="flex items-center justify-between text-[11px] font-mono text-gray-300 font-bold">
+            <span className="text-amber-400 flex items-center gap-1">
+              <Clock className="w-3 h-3 text-amber-400" /> {formatTime(currentTime)}
+            </span>
+            <span className="text-gray-500">{duration > 0 ? formatTime(duration) : "--:--"}</span>
+          </div>
+
+          <input
+            type="range"
+            min="0"
+            max={duration || 100}
+            step="0.5"
+            value={currentTime}
+            onChange={(e) => seekAllVideos(parseFloat(e.target.value))}
+            className="w-full accent-amber-400 h-1.5 bg-black/60 rounded-lg cursor-pointer"
+          />
+
+          {/* Transport Buttons & Quick Scene Jumps */}
+          <div className="flex items-center justify-between gap-1 pt-1">
+            <button
+              type="button"
+              onClick={() => seekRelative(-5)}
+              className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-gray-300 hover:text-white transition-colors cursor-pointer"
+              title="Rewind 5 seconds"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+            </button>
+
+            <button
+              type="button"
+              onClick={togglePlayAll}
+              className="px-3.5 py-1.5 rounded-xl bg-amber-400 text-black font-extrabold text-xs flex items-center gap-1 hover:bg-amber-300 transition-all shadow-md cursor-pointer"
+            >
+              {isPlaying ? <Pause className="w-3.5 h-3.5 fill-black" /> : <Play className="w-3.5 h-3.5 fill-black" />}
+              <span>{isPlaying ? "Pause" : "Play"}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => seekRelative(5)}
+              className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-gray-300 hover:text-white transition-colors cursor-pointer"
+              title="Forward 5 seconds"
+            >
+              <RotateCw className="w-3.5 h-3.5" />
+            </button>
+
+            <div className="w-px h-4 bg-white/10 mx-0.5" />
+
+            {/* Fast Scene Hoppers */}
+            <button
+              type="button"
+              onClick={() => seekRelative(15)}
+              className="px-2 py-1 rounded-md bg-white/5 hover:bg-white/10 text-[10px] font-bold text-gray-300 cursor-pointer"
+            >
+              +15s
+            </button>
+            <button
+              type="button"
+              onClick={() => seekRelative(60)}
+              className="px-2 py-1 rounded-md bg-white/5 hover:bg-white/10 text-[10px] font-bold text-gray-300 cursor-pointer"
+            >
+              +1m
+            </button>
+          </div>
+
+          {/* Quick Mark Start / End Timestamps */}
+          {(setStartTs || setEndTs) && (
+            <div className="flex gap-1.5 pt-1.5 border-t border-white/5">
+              {setStartTs && (
+                <button
+                  type="button"
+                  onClick={() => setStartTs(formatTime(currentTime))}
+                  className="flex-1 py-1 px-2 rounded-lg bg-amber-400/10 hover:bg-amber-400/25 border border-amber-400/30 text-[10px] font-bold text-amber-300 flex items-center justify-center gap-1 transition-all cursor-pointer"
+                >
+                  <Pin className="w-2.5 h-2.5" /> Start ({startTs || "00:00"})
+                </button>
+              )}
+              {setEndTs && (
+                <button
+                  type="button"
+                  onClick={() => setEndTs(formatTime(currentTime))}
+                  className="flex-1 py-1 px-2 rounded-lg bg-cyan-400/10 hover:bg-cyan-400/25 border border-cyan-400/30 text-[10px] font-bold text-cyan-300 flex items-center justify-center gap-1 transition-all cursor-pointer"
+                >
+                  <Flag className="w-2.5 h-2.5" /> End ({endTs || "00:00"})
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};

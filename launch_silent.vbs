@@ -1,0 +1,1 @@
+Set WshShell = CreateObject("WScript.Shell")`r`nWshShell.CurrentDirectory = CreateObject("Scripting.FileSystemObject").GetParentFolderName(WScript.ScriptFullName)`r`nWshShell.Run "cmd /c start_app.bat", 0, False

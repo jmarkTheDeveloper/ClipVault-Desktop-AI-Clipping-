@@ -27,16 +27,6 @@ app.commandLine.appendSwitch('ignore-gpu-blocklist');
 let mainWindow;
 let pythonProcess;
 
-function createWindow() {
-  protocol.handle('local', (request) => {
-    try {
-      const fileUrl = request.url.replace(/^local:\/\//i, 'file://');
-      return net.fetch(fileUrl, { bypassCustomProtocolHandlers: true });
-    } catch (err) {
-      console.error('[Electron]: Failed to handle local:// protocol', err);
-      return new Response('File not found', { status: 404 });
-    }
-  });
 
   ipcMain.handle('show-open-dialog', async (event, options) => {
     const result = await dialog.showOpenDialog(mainWindow, options);
@@ -59,8 +49,14 @@ function createWindow() {
   ipcMain.handle('open-path', async (event, folderPath) => {
     try {
       if (folderPath) {
-        await shell.openPath(folderPath);
-        return true;
+        if (process.platform === 'win32') {
+          const norm = path.normalize(folderPath);
+          exec(`explorer.exe "${norm}"`);
+          return true;
+        } else {
+          await shell.openPath(folderPath);
+          return true;
+        }
       }
     } catch (err) {
       console.error('[Electron]: openPath error:', err);
@@ -80,6 +76,24 @@ function createWindow() {
     return false;
   });
 
+  ipcMain.on('start-drag', (event, filePath) => {
+    try {
+      if (filePath) {
+        const resolvedPath = path.resolve(filePath);
+        if (fs.existsSync(resolvedPath)) {
+          const iconPath = path.join(__dirname, '../public/icon.ico');
+          event.sender.startDrag({
+            file: resolvedPath,
+            icon: nativeImage.createFromPath(iconPath),
+          });
+        }
+      }
+    } catch (err) {
+      console.error('[Electron]: startDrag error:', err);
+    }
+  });
+
+function createWindow() {
   const iconPath = path.join(__dirname, '../public/icon.ico');
   const appIcon = nativeImage.createFromPath(iconPath);
 
@@ -138,7 +152,7 @@ function createWindow() {
     mainWindow.focus();
   });
 
-  // Local Ctrl+R and F5 for reloading (not global!)
+  // Local Ctrl+R and F5 for clean backend reboot and UI reload
   let isReloading = false;
   mainWindow.webContents.on('before-input-event', (event, input) => {
     if (
@@ -148,14 +162,15 @@ function createWindow() {
       event.preventDefault();
       if (isReloading) return;
       isReloading = true;
-      console.log('[Electron]: Ctrl+R detected. Rebooting Python backend and reloading UI...');
+      console.log('[Electron]: Ctrl+R detected. Rebooting Python backend and UI cleanly...');
       killPythonBackend();
-      startPythonBackend();
-      mainWindow.webContents.reloadIgnoringCache();
-      
       setTimeout(() => {
-        isReloading = false;
-      }, 2000);
+        startPythonBackend();
+        setTimeout(() => {
+          mainWindow.webContents.reloadIgnoringCache();
+          isReloading = false;
+        }, 400);
+      }, 150);
     }
   });
 }
@@ -167,7 +182,7 @@ function startPythonBackend() {
     try {
       // Removed shell: true to fix the Node DeprecationWarning and prevent cmd.exe wrapping
       // Added PYTHONUTF8: 1 to prevent Windows charmap crashes when backend prints emojis
-      pythonProcess = spawn('python', ['-m', 'uvicorn', 'server:app', '--host', '127.0.0.1', '--port', '8000', '--log-level', 'info'], {
+      pythonProcess = spawn('python', ['-m', 'uvicorn', 'server:app', '--host', '127.0.0.1', '--port', '8000', '--reload', '--log-level', 'info'], {
         cwd: backendPath,
         shell: false,
         env: { ...process.env, PYTHONUTF8: '1' }
@@ -235,6 +250,25 @@ function killPythonBackend() {
 }
 
 app.whenReady().then(() => {
+  protocol.handle('local', async (request) => {
+    try {
+      const rawUrl = request.url.replace(/^local:\/\//i, '').replace(/^local:\//i, '');
+      const decodedPath = decodeURIComponent(rawUrl);
+      let normPath = decodedPath.replace(/\\/g, '/');
+      if (process.platform === 'win32' && normPath.startsWith('/')) {
+        normPath = normPath.slice(1);
+      }
+      const fileUrl = 'file:///' + normPath;
+      const response = await net.fetch(fileUrl, { bypassCustomProtocolHandlers: true }).catch(() => null);
+      if (response) {
+        return response;
+      }
+      return new Response('File not found', { status: 404 });
+    } catch {
+      return new Response('File not found', { status: 404 });
+    }
+  });
+
   startPythonBackend();
   createWindow();
 

@@ -1,19 +1,43 @@
+import os
+import gc
+import time
 import random
 from config import TEMP_DIR
 
 def cleanup_temp_files():
     """
-    Removes heavy audio/video temp files from the temporary directory,
-    preserving lightweight transcription and script cache files.
+    Immediately purges heavy downloaded video and audio files from the temporary directory,
+    reclaiming all disk space while preserving lightweight transcript cache.
     """
-    print("🧹 Cleaning up temporary audio/video files...")
+    print("🧹 Cleaning up temporary downloaded stream files to reclaim storage...")
+    gc.collect()
+    time.sleep(0.3) # Give Windows file system time to release locks
+    
+    freed_bytes = 0
+    deleted_count = 0
     try:
-        for item in TEMP_DIR.iterdir():
-            if item.is_file() and item.suffix not in ['.json', '.txt']:
-                item.unlink()
-        print("✅ Cleanup complete.")
+        if TEMP_DIR.exists():
+            for item in list(TEMP_DIR.iterdir()):
+                try:
+                    if item.is_file() and item.suffix.lower() not in ['.json', '.txt']:
+                        size = item.stat().st_size
+                        item.unlink()
+                        freed_bytes += size
+                        deleted_count += 1
+                except Exception as file_err:
+                    # Retry once after garbage collection
+                    try:
+                        gc.collect()
+                        time.sleep(0.2)
+                        if item.exists():
+                            item.unlink()
+                            deleted_count += 1
+                    except Exception:
+                        pass
+        freed_mb = round(freed_bytes / (1024 * 1024), 2)
+        print(f"✅ Storage cleanup complete: Freed {freed_mb} MB ({deleted_count} temp files removed).")
     except Exception as e:
-        print(f"⚠️  Could not clean up all temporary files: {e}")
+        print(f"⚠️ Could not clean up all temporary files: {e}")
 
 
 def generate_random_clips(duration, num_clips, min_duration, max_duration):

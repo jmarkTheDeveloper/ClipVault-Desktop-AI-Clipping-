@@ -7,4 +7,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   selectDirectory: (defaultPath) => ipcRenderer.invoke('select-directory', defaultPath),
   openPath: (folderPath) => ipcRenderer.invoke('open-path', folderPath),
   showItemInFolder: (filePath) => ipcRenderer.invoke('show-item-in-folder', filePath),
+  startDrag: (filePath) => ipcRenderer.send('start-drag', filePath),
 });

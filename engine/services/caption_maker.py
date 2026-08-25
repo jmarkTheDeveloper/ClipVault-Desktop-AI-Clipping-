@@ -26,35 +26,62 @@ class CaptionMaker:
 
     def find_available_fonts(self):
         """
-        Finds available fonts on the system.
-
-        Returns:
-            dict: A dictionary of available font paths.
+        Finds available fonts on the system and in local assets.
+        All bundled fonts are 100% compliant under SIL Open Font License (OFL) or Apache 2.0.
         """
         win_dir = os.environ.get('SystemRoot', 'C:\\Windows')
+        base_fonts = Path(__file__).resolve().parent.parent / "assets" / "fonts"
+        
         font_collections = {
-            'anton': [str(Path("./assets/fonts/Anton-Regular.ttf").resolve())],
-            'bebas_neue': [str(Path("./assets/fonts/BebasNeue-Regular.ttf").resolve())],
-            'bangers': [str(Path("./assets/fonts/Bangers-Regular.ttf").resolve())],
-            'permanent_marker': [str(Path("./assets/fonts/PermanentMarker-Regular.ttf").resolve())],
+            'montserrat': [
+                str(base_fonts / "Montserrat-Bold.ttf"),
+                str(Path("./assets/fonts/Montserrat-Bold.ttf").resolve()),
+            ],
+            'anton': [
+                str(base_fonts / "Anton-Regular.ttf"),
+                str(Path("./assets/fonts/Anton-Regular.ttf").resolve()),
+            ],
+            'bebas_neue': [
+                str(base_fonts / "BebasNeue-Regular.ttf"),
+                str(Path("./assets/fonts/BebasNeue-Regular.ttf").resolve()),
+            ],
+            'bangers': [
+                str(base_fonts / "Bangers-Regular.ttf"),
+                str(Path("./assets/fonts/Bangers-Regular.ttf").resolve()),
+            ],
+            'luckiest_guy': [
+                str(base_fonts / "LuckiestGuy-Regular.ttf"),
+                str(Path("./assets/fonts/LuckiestGuy-Regular.ttf").resolve()),
+            ],
+            'rubik': [
+                str(base_fonts / "Rubik-Bold.ttf"),
+                str(Path("./assets/fonts/Rubik-Bold.ttf").resolve()),
+            ],
+            'outfit': [
+                str(base_fonts / "Outfit-Bold.ttf"),
+                str(Path("./assets/fonts/Outfit-Bold.ttf").resolve()),
+            ],
+            'plus_jakarta': [
+                str(base_fonts / "PlusJakartaSans-Bold.ttf"),
+                str(Path("./assets/fonts/PlusJakartaSans-Bold.ttf").resolve()),
+            ],
+            'permanent_marker': [
+                str(base_fonts / "PermanentMarker-Regular.ttf"),
+                str(Path("./assets/fonts/PermanentMarker-Regular.ttf").resolve()),
+            ],
             'bold': [
-                '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
-                '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf',
-                '/System/Library/Fonts/Helvetica.ttc',
-                '/System/Library/Fonts/Arial.ttf',
+                str(base_fonts / "Montserrat-Bold.ttf"),
+                str(base_fonts / "Anton-Regular.ttf"),
                 os.path.join(win_dir, 'Fonts', 'arialbd.ttf'),
                 os.path.join(win_dir, 'Fonts', 'calibrib.ttf'),
                 'C:\\Windows\\Fonts\\arialbd.ttf',
-                '/usr/share/fonts/TTF/DejaVuSans-Bold.ttf'
             ],
             'regular': [
-                '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
-                '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
-                '/System/Library/Fonts/Helvetica.ttc',
+                str(base_fonts / "PlusJakartaSans-Bold.ttf"),
+                str(base_fonts / "Outfit-Bold.ttf"),
                 os.path.join(win_dir, 'Fonts', 'arial.ttf'),
                 os.path.join(win_dir, 'Fonts', 'calibri.ttf'),
                 'C:\\Windows\\Fonts\\arial.ttf',
-                '/usr/share/fonts/TTF/DejaVuSans.ttf'
             ]
         }
 
@@ -67,8 +94,10 @@ class CaptionMaker:
                     print(f"    📝 Found {font_type} font: {Path(path).name}")
                     break
 
-        if not found_fonts['bold'] and not found_fonts['regular']:
-            print("    📝 Using default system fonts")
+        if not found_fonts['bold']:
+            found_fonts['bold'] = found_fonts.get('montserrat') or found_fonts.get('anton')
+        if not found_fonts['regular']:
+            found_fonts['regular'] = found_fonts.get('plus_jakarta') or found_fonts.get('outfit')
 
         return found_fonts
 
