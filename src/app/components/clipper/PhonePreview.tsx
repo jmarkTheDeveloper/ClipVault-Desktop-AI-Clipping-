@@ -119,6 +119,58 @@ const CroppedVideo: React.FC<{
   );
 };
 
+const DraggableCaptionOverlay: React.FC<{
+  addCaptions: boolean;
+  captionYPct: number;
+  selectedEffectId: string;
+  isDraggingCaption?: boolean;
+  startCaptionDrag: (e: React.MouseEvent) => void;
+}> = ({ addCaptions, captionYPct, selectedEffectId, isDraggingCaption, startCaptionDrag }) => {
+  if (!addCaptions) return null;
+
+  return (
+    <div
+      className="absolute inset-x-0 flex justify-center z-30 select-none px-4 pointer-events-none"
+      style={{ top: `${captionYPct || 70}%`, transform: "translateY(-50%)" }}
+    >
+      <div
+        onMouseDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          startCaptionDrag(e);
+        }}
+        title="Click & Drag to reposition captions on screen"
+        className={`pointer-events-auto px-4 py-1.5 rounded-xl bg-black/75 backdrop-blur-md border transition-all cursor-grab active:cursor-grabbing shadow-2xl flex items-center gap-2 group ${
+          isDraggingCaption
+            ? "border-amber-400 ring-2 ring-amber-400/60 scale-105"
+            : "border-white/20 hover:border-amber-400/80 hover:bg-black/90 hover:scale-102"
+        }`}
+      >
+        <Move className="w-3.5 h-3.5 text-gray-400 group-hover:text-amber-400 transition-colors pointer-events-none" />
+        <span
+          className={`text-sm tracking-wider uppercase font-black text-center pointer-events-none ${
+            selectedEffectId === "capcut_yellow"
+              ? "text-yellow-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]"
+              : selectedEffectId === "clean_white"
+              ? "text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]"
+              : selectedEffectId === "neon_cyan"
+              ? "text-cyan-300 drop-shadow-[0_0_12px_rgba(6,182,212,0.8)]"
+              : selectedEffectId === "emerald_green"
+              ? "text-emerald-300 drop-shadow-[0_0_12px_rgba(16,185,129,0.8)]"
+              : selectedEffectId === "fire_red"
+              ? "text-red-400 drop-shadow-[0_0_12px_rgba(239,68,68,0.8)]"
+              : selectedEffectId === "sigma_pink"
+              ? "text-pink-400 drop-shadow-[0_0_12px_rgba(236,72,153,0.8)]"
+              : "text-yellow-300"
+          }`}
+        >
+          VIRAL CAPTION 🚀
+        </span>
+      </div>
+    </div>
+  );
+};
+
 export const PhonePreview: React.FC<PhonePreviewProps> = ({
   activeVideoUrl,
   ytUrl = "",
@@ -283,35 +335,14 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                 </div>
               )}
 
-              {/* Clean Subtitle Preview */}
-              {addCaptions && (
-                <div
-                  className="absolute inset-x-0 flex justify-center pointer-events-none z-30 select-none px-4"
-                  style={{ top: `${captionYPct || 70}%`, transform: "translateY(-50%)" }}
-                >
-                  <div className="px-4 py-1.5 rounded-xl bg-black/60 backdrop-blur-md border border-white/10 shadow-xl flex items-center justify-center">
-                    <span
-                      className={`text-sm tracking-wider uppercase font-black text-center ${
-                        selectedEffectId === "capcut_yellow"
-                          ? "text-yellow-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]"
-                          : selectedEffectId === "clean_white"
-                          ? "text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]"
-                          : selectedEffectId === "neon_cyan"
-                          ? "text-cyan-300 drop-shadow-[0_0_12px_rgba(6,182,212,0.8)]"
-                          : selectedEffectId === "emerald_green"
-                          ? "text-emerald-300 drop-shadow-[0_0_12px_rgba(16,185,129,0.8)]"
-                          : selectedEffectId === "fire_red"
-                          ? "text-red-400 drop-shadow-[0_0_12px_rgba(239,68,68,0.8)]"
-                          : selectedEffectId === "sigma_pink"
-                          ? "text-pink-400 drop-shadow-[0_0_12px_rgba(236,72,153,0.8)]"
-                          : "text-yellow-300"
-                      }`}
-                    >
-                      VIRAL CAPTION 🚀
-                    </span>
-                  </div>
-                </div>
-              )}
+              {/* Draggable Subtitle Preview */}
+              <DraggableCaptionOverlay
+                addCaptions={addCaptions}
+                captionYPct={captionYPct}
+                selectedEffectId={selectedEffectId}
+                isDraggingCaption={isDraggingCaption}
+                startCaptionDrag={startCaptionDrag}
+              />
             </div>
           ) : layout === "gameplay_bg" ? (
             /* Satisfying Gameplay Split (Speaker Top, Gameplay Bottom) */
@@ -387,35 +418,14 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                 </div>
               )}
 
-              {/* Clean Subtitle Preview */}
-              {addCaptions && (
-                <div
-                  className="absolute inset-x-0 flex justify-center pointer-events-none z-30 select-none px-4"
-                  style={{ top: `${captionYPct || 70}%`, transform: "translateY(-50%)" }}
-                >
-                  <div className="px-4 py-1.5 rounded-xl bg-black/60 backdrop-blur-md border border-white/10 shadow-xl flex items-center justify-center">
-                    <span
-                      className={`text-sm tracking-wider uppercase font-black text-center ${
-                        selectedEffectId === "capcut_yellow"
-                          ? "text-yellow-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]"
-                          : selectedEffectId === "clean_white"
-                          ? "text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]"
-                          : selectedEffectId === "neon_cyan"
-                          ? "text-cyan-300 drop-shadow-[0_0_12px_rgba(6,182,212,0.8)]"
-                          : selectedEffectId === "emerald_green"
-                          ? "text-emerald-300 drop-shadow-[0_0_12px_rgba(16,185,129,0.8)]"
-                          : selectedEffectId === "fire_red"
-                          ? "text-red-400 drop-shadow-[0_0_12px_rgba(239,68,68,0.8)]"
-                          : selectedEffectId === "sigma_pink"
-                          ? "text-pink-400 drop-shadow-[0_0_12px_rgba(236,72,153,0.8)]"
-                          : "text-yellow-300"
-                      }`}
-                    >
-                      VIRAL CAPTION 🚀
-                    </span>
-                  </div>
-                </div>
-              )}
+              {/* Draggable Subtitle Preview */}
+              <DraggableCaptionOverlay
+                addCaptions={addCaptions}
+                captionYPct={captionYPct}
+                selectedEffectId={selectedEffectId}
+                isDraggingCaption={isDraggingCaption}
+                startCaptionDrag={startCaptionDrag}
+              />
             </div>
           ) : (
             /* Standard Vertical / Blur / Fit Viewports */
@@ -498,35 +508,14 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                 </div>
               )}
 
-              {/* Clean Subtitle Preview */}
-              {addCaptions && (
-                <div
-                  className="absolute inset-x-0 flex justify-center pointer-events-none z-30 select-none px-4"
-                  style={{ top: `${captionYPct || 70}%`, transform: "translateY(-50%)" }}
-                >
-                  <div className="px-4 py-1.5 rounded-xl bg-black/60 backdrop-blur-md border border-white/10 shadow-xl flex items-center justify-center">
-                    <span
-                      className={`text-sm tracking-wider uppercase font-black text-center ${
-                        selectedEffectId === "capcut_yellow"
-                          ? "text-yellow-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]"
-                          : selectedEffectId === "clean_white"
-                          ? "text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]"
-                          : selectedEffectId === "neon_cyan"
-                          ? "text-cyan-300 drop-shadow-[0_0_12px_rgba(6,182,212,0.8)]"
-                          : selectedEffectId === "emerald_green"
-                          ? "text-emerald-300 drop-shadow-[0_0_12px_rgba(16,185,129,0.8)]"
-                          : selectedEffectId === "fire_red"
-                          ? "text-red-400 drop-shadow-[0_0_12px_rgba(239,68,68,0.8)]"
-                          : selectedEffectId === "sigma_pink"
-                          ? "text-pink-400 drop-shadow-[0_0_12px_rgba(236,72,153,0.8)]"
-                          : "text-yellow-300"
-                      }`}
-                    >
-                      VIRAL CAPTION 🚀
-                    </span>
-                  </div>
-                </div>
-              )}
+              {/* Draggable Subtitle Preview */}
+              <DraggableCaptionOverlay
+                addCaptions={addCaptions}
+                captionYPct={captionYPct}
+                selectedEffectId={selectedEffectId}
+                isDraggingCaption={isDraggingCaption}
+                startCaptionDrag={startCaptionDrag}
+              />
             </div>
           )}
         </div>
