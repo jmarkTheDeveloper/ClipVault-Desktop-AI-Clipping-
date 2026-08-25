@@ -207,53 +207,64 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
 
+  // Synchronize mute state across all video elements in the preview
+  useEffect(() => {
+    const vids = containerRef.current?.querySelectorAll("video") || [];
+    vids.forEach((v) => {
+      v.muted = isMuted;
+    });
+  }, [isMuted]);
+
+  // Synchronize play/pause state across all video elements in the preview
+  useEffect(() => {
+    const vids = containerRef.current?.querySelectorAll("video") || [];
+    vids.forEach((v) => {
+      if (isPlaying) {
+        v.play().catch(() => {});
+      } else {
+        v.pause();
+      }
+    });
+  }, [isPlaying]);
+
   // Synchronized seek on active video elements within the phone container
   const seekAllVideos = (timeInSeconds: number) => {
     const vids = containerRef.current?.querySelectorAll("video") || [];
     vids.forEach((vid) => {
       try {
-        vid.currentTime = Math.max(0, Math.min(timeInSeconds, vid.duration || 0));
+        vid.currentTime = Math.max(0, Math.min(timeInSeconds, vid.duration || duration || 3600));
       } catch {}
     });
     setCurrentTime(timeInSeconds);
   };
 
   const togglePlayAll = () => {
-    const vids = containerRef.current?.querySelectorAll("video") || [];
-    if (isPlaying) {
-      vids.forEach((v) => {
-        try {
-          v.pause();
-        } catch {}
-      });
-      setIsPlaying(false);
-    } else {
-      vids.forEach((v) => {
-        try {
-          v.play();
-        } catch {}
-      });
-      setIsPlaying(true);
-    }
+    setIsPlaying((prev) => !prev);
   };
 
   const seekRelative = (deltaSeconds: number) => {
-    seekAllVideos(Math.max(0, Math.min(duration || 100, currentTime + deltaSeconds)));
+    const maxDur = duration > 0 ? duration : 3600;
+    const target = Math.max(0, Math.min(maxDur, currentTime + deltaSeconds));
+    seekAllVideos(target);
   };
 
-  const jumpSeconds = seekRelative;
-
   const handleTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement>) => {
+    const v = e.currentTarget;
+    if (v.duration && (!duration || Math.abs(duration - v.duration) > 1)) {
+      setDuration(v.duration);
+    }
     const now = Date.now();
-    if (now - lastUpdateTimeRef.current > 200) {
+    if (now - lastUpdateTimeRef.current > 150) {
       lastUpdateTimeRef.current = now;
-      setCurrentTime(e.currentTarget.currentTime || 0);
+      setCurrentTime(v.currentTime || 0);
     }
   };
 
   const handleLoadedMetadata = (e: React.SyntheticEvent<HTMLVideoElement>) => {
     const target = e.currentTarget;
-    if (target.duration) setDuration(target.duration);
+    if (target.duration && !isNaN(target.duration)) {
+      setDuration(target.duration);
+    }
   };
 
   return (
@@ -319,9 +330,19 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                 />
               </div>
 
-              {/* Floating Mute & Status Overlay */}
+              {/* Video Controls Overlay */}
               {hasMedia && (
-                <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+                <div className="absolute top-3 right-3 z-30 flex items-center gap-1.5 pointer-events-auto">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsPlaying(!isPlaying);
+                    }}
+                    className="p-1.5 rounded-full bg-black/70 backdrop-blur-md text-white border border-white/20 hover:bg-black transition-colors cursor-pointer shadow-lg"
+                  >
+                    {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />}
+                  </button>
                   <button
                     type="button"
                     onClick={(e) => {
@@ -438,38 +459,47 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                       className="absolute inset-0 w-full h-full object-cover filter blur-xl scale-125 opacity-50 pointer-events-none"
                       autoPlay
                       loop
-                      muted
+                      muted={true}
                       playsInline
                     />
                     <video
+                      ref={videoRef}
                       src={activeVideoUrl}
                       poster={posterUrl || undefined}
                       className="w-full max-h-full object-contain relative z-10 pointer-events-none shadow-2xl"
                       autoPlay
                       loop
-                      muted
+                      muted={isMuted}
                       playsInline
+                      onTimeUpdate={handleTimeUpdate}
+                      onLoadedMetadata={handleLoadedMetadata}
                     />
                   </>
                 ) : layout === "fill_crop" ? (
                   <video
+                    ref={videoRef}
                     src={activeVideoUrl}
                     poster={posterUrl || undefined}
                     className="w-full h-full object-cover relative z-10 pointer-events-none"
                     autoPlay
                     loop
-                    muted
+                    muted={isMuted}
                     playsInline
+                    onTimeUpdate={handleTimeUpdate}
+                    onLoadedMetadata={handleLoadedMetadata}
                   />
                 ) : (
                   <video
+                    ref={videoRef}
                     src={activeVideoUrl}
                     poster={posterUrl || undefined}
                     className="w-full h-full object-contain relative z-10 pointer-events-none"
                     autoPlay
                     loop
-                    muted
+                    muted={isMuted}
                     playsInline
+                    onTimeUpdate={handleTimeUpdate}
+                    onLoadedMetadata={handleLoadedMetadata}
                   />
                 )
               ) : (
