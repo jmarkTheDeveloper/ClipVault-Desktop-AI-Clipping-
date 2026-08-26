@@ -158,6 +158,28 @@ export const AiClipperScreen: React.FC<Props> = ({ onBack, initialViewMode = "se
     localStorage.setItem("clipvault_byok_mode", byokMode);
   }, [byokMode]);
 
+  // 1. Initial on-device persistent vault load
+  useEffect(() => {
+    fetch("http://127.0.0.1:8000/api/vault_keys")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success && data.keys) {
+          const k = data.keys;
+          if (k.gemini && !geminiKey) setGeminiKey(k.gemini);
+          if (k.openai && !openAiKey) setOpenAiKey(k.openai);
+          if (k.anthropic && !anthropicKey) setAnthropicKey(k.anthropic);
+          if (k.groq && !groqKey) setGroqKey(k.groq);
+          if (k.deepseek && !deepseekKey) setDeepseekKey(k.deepseek);
+          if (k.moonlight && !moonlightKey) setMoonlightKey(k.moonlight);
+          if (k.qwen && !qwenKey) setQwenKey(k.qwen);
+          if (k.higgsfield && !higgsfieldKey) setHiggsfieldKey(k.higgsfield);
+          if (k.seedance && !seeDanceKey) setSeeDanceKey(k.seedance);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // 2. Save keys to both browser localStorage AND persistent on-device disk vault
   useEffect(() => {
     localStorage.setItem("clipvault_anthropic_key", anthropicKey);
     localStorage.setItem("clipvault_higgsfield_key", higgsfieldKey);
@@ -169,6 +191,25 @@ export const AiClipperScreen: React.FC<Props> = ({ onBack, initialViewMode = "se
     localStorage.setItem("clipvault_moonlight_key", moonlightKey);
     localStorage.setItem("clipvault_qwen_key", qwenKey);
     localStorage.setItem("clipvault_custom_base_url", customBaseUrl);
+
+    // Save to hidden local file on disk
+    const keysPayload = {
+      gemini: geminiKey,
+      openai: openAiKey,
+      anthropic: anthropicKey,
+      groq: groqKey,
+      deepseek: deepseekKey,
+      moonlight: moonlightKey,
+      qwen: qwenKey,
+      higgsfield: higgsfieldKey,
+      seedance: seeDanceKey,
+      custom_base_url: customBaseUrl
+    };
+    fetch("http://127.0.0.1:8000/api/save_vault_keys", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ keys: keysPayload })
+    }).catch(() => {});
   }, [anthropicKey, higgsfieldKey, seeDanceKey, openAiKey, geminiKey, groqKey, deepseekKey, moonlightKey, qwenKey, customBaseUrl]);
 
   // Input & Media

@@ -1141,3 +1141,40 @@ def scan_system_hardware():
                 {"label": "Video Encoder", "value": "Intel QuickSync (h264_qsv)"}
             ]
         }
+
+VAULT_DIR = Path.home() / ".clipvault"
+VAULT_FILE = VAULT_DIR / "keys_vault.json"
+
+@app.get("/api/vault_keys")
+def get_vault_keys():
+    """Returns securely saved API keys from the persistent local on-device vault."""
+    try:
+        if VAULT_FILE.exists():
+            with open(VAULT_FILE, "r", encoding="utf-8") as f:
+                return {"success": True, "keys": json.load(f)}
+    except Exception as e:
+        print(f"⚠️ Note reading key vault: {e}")
+    return {"success": True, "keys": {}}
+
+@app.post("/api/save_vault_keys")
+def save_vault_keys(data: dict = Body(...)):
+    """Saves API keys to persistent local disk vault so keys are NEVER lost across restarts."""
+    try:
+        VAULT_DIR.mkdir(parents=True, exist_ok=True)
+        keys_data = data.get("keys", {})
+        existing = {}
+        if VAULT_FILE.exists():
+            try:
+                with open(VAULT_FILE, "r", encoding="utf-8") as f:
+                    existing = json.load(f)
+            except Exception:
+                pass
+        for k, v in keys_data.items():
+            if v:
+                existing[k] = v
+        with open(VAULT_FILE, "w", encoding="utf-8") as f:
+            json.dump(existing, f, indent=2)
+        return {"success": True, "saved_count": len(existing)}
+    except Exception as e:
+        print(f"⚠️ Error saving key vault: {e}")
+        return {"success": False, "error": str(e)}

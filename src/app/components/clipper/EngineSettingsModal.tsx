@@ -15,7 +15,11 @@ import {
   RefreshCw,
   Sliders,
   Check,
-  AlertCircle
+  AlertCircle,
+  Eye,
+  EyeOff,
+  Lock,
+  ShieldAlert
 } from "lucide-react";
 import type { EngineOption } from "./types";
 
@@ -181,6 +185,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
   const [isScanning, setIsScanning] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
   const [activeCloudTab, setActiveCloudTab] = useState<"all" | "frontier" | "fast" | "video">("all");
+  const [showSecretKey, setShowSecretKey] = useState(false);
 
   // Perform Hardware Scan
   const runHardwareScan = async () => {
@@ -581,7 +586,9 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                       Enter API Key for: <b>{(CLOUD_ENGINES.find((e) => e.id === selectedEngine) || CLOUD_ENGINES[0]).name}</b>
                     </span>
                   </div>
-                  <span className="text-[10px] text-gray-400">Encrypted in Local Storage</span>
+                  <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                    <Lock className="w-3 h-3" /> Saved to Protected On-Device Vault
+                  </span>
                 </div>
 
                 {/* Google Gemini Key */}
@@ -598,13 +605,23 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         Get Free Gemini Key <ExternalLink className="w-3 h-3" />
                       </a>
                     </div>
-                    <input
-                      type="password"
-                      value={geminiKey}
-                      onChange={(e) => setGeminiKey(e.target.value)}
-                      placeholder="AIzaSy..."
-                      className="w-full rounded-xl px-3.5 py-2 text-xs text-white bg-white/5 border border-amber-400/40 outline-none focus:border-amber-400 font-mono shadow-inner"
-                    />
+                    <div className="relative">
+                      <input
+                        type={showSecretKey ? "text" : "password"}
+                        value={geminiKey}
+                        onChange={(e) => setGeminiKey(e.target.value)}
+                        placeholder="AIzaSy..."
+                        className="w-full rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white bg-white/5 border border-amber-400/40 outline-none focus:border-amber-400 font-mono shadow-inner"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowSecretKey(!showSecretKey)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors cursor-pointer"
+                        title={showSecretKey ? "Hide key" : "Reveal key"}
+                      >
+                        {showSecretKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
                     <p className="text-[10px] text-gray-400">
                       Google AI Studio provides free API quota daily. Paste your key above to enable Gemini 2.5 video understanding.
                     </p>
@@ -625,13 +642,23 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         Get Groq Key <ExternalLink className="w-3 h-3" />
                       </a>
                     </div>
-                    <input
-                      type="password"
-                      value={groqKey}
-                      onChange={(e) => setGroqKey(e.target.value)}
-                      placeholder="gsk_..."
-                      className="w-full rounded-xl px-3.5 py-2 text-xs text-white bg-white/5 border border-amber-400/40 outline-none focus:border-amber-400 font-mono shadow-inner"
-                    />
+                    <div className="relative">
+                      <input
+                        type={showSecretKey ? "text" : "password"}
+                        value={groqKey}
+                        onChange={(e) => setGroqKey(e.target.value)}
+                        placeholder="gsk_..."
+                        className="w-full rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white bg-white/5 border border-amber-400/40 outline-none focus:border-amber-400 font-mono shadow-inner"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowSecretKey(!showSecretKey)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors cursor-pointer"
+                        title={showSecretKey ? "Hide key" : "Reveal key"}
+                      >
+                        {showSecretKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -649,13 +676,23 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         Get DeepSeek Key <ExternalLink className="w-3 h-3" />
                       </a>
                     </div>
-                    <input
-                      type="password"
-                      value={deepseekKey}
-                      onChange={(e) => setDeepseekKey(e.target.value)}
-                      placeholder="sk-..."
-                      className="w-full rounded-xl px-3.5 py-2 text-xs text-white bg-white/5 border border-amber-400/40 outline-none focus:border-amber-400 font-mono shadow-inner"
-                    />
+                    <div className="relative">
+                      <input
+                        type={showSecretKey ? "text" : "password"}
+                        value={deepseekKey}
+                        onChange={(e) => setDeepseekKey(e.target.value)}
+                        placeholder="sk-..."
+                        className="w-full rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white bg-white/5 border border-amber-400/40 outline-none focus:border-amber-400 font-mono shadow-inner"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowSecretKey(!showSecretKey)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors cursor-pointer"
+                        title={showSecretKey ? "Hide key" : "Reveal key"}
+                      >
+                        {showSecretKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -673,13 +710,23 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         Get OpenAI Key <ExternalLink className="w-3 h-3" />
                       </a>
                     </div>
-                    <input
-                      type="password"
-                      value={openAiKey}
-                      onChange={(e) => setOpenAiKey(e.target.value)}
-                      placeholder="sk-proj-..."
-                      className="w-full rounded-xl px-3.5 py-2 text-xs text-white bg-white/5 border border-amber-400/40 outline-none focus:border-amber-400 font-mono shadow-inner"
-                    />
+                    <div className="relative">
+                      <input
+                        type={showSecretKey ? "text" : "password"}
+                        value={openAiKey}
+                        onChange={(e) => setOpenAiKey(e.target.value)}
+                        placeholder="sk-proj-..."
+                        className="w-full rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white bg-white/5 border border-amber-400/40 outline-none focus:border-amber-400 font-mono shadow-inner"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowSecretKey(!showSecretKey)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors cursor-pointer"
+                        title={showSecretKey ? "Hide key" : "Reveal key"}
+                      >
+                        {showSecretKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -697,13 +744,23 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         Get Claude Key <ExternalLink className="w-3 h-3" />
                       </a>
                     </div>
-                    <input
-                      type="password"
-                      value={anthropicKey}
-                      onChange={(e) => setAnthropicKey(e.target.value)}
-                      placeholder="sk-ant-api03-..."
-                      className="w-full rounded-xl px-3.5 py-2 text-xs text-white bg-white/5 border border-amber-400/40 outline-none focus:border-amber-400 font-mono shadow-inner"
-                    />
+                    <div className="relative">
+                      <input
+                        type={showSecretKey ? "text" : "password"}
+                        value={anthropicKey}
+                        onChange={(e) => setAnthropicKey(e.target.value)}
+                        placeholder="sk-ant-api03-..."
+                        className="w-full rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white bg-white/5 border border-amber-400/40 outline-none focus:border-amber-400 font-mono shadow-inner"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowSecretKey(!showSecretKey)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors cursor-pointer"
+                        title={showSecretKey ? "Hide key" : "Reveal key"}
+                      >
+                        {showSecretKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -721,13 +778,23 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         Get Moonshot Key <ExternalLink className="w-3 h-3" />
                       </a>
                     </div>
-                    <input
-                      type="password"
-                      value={moonlightKey}
-                      onChange={(e) => setMoonlightKey(e.target.value)}
-                      placeholder="sk-moon-..."
-                      className="w-full rounded-xl px-3.5 py-2 text-xs text-white bg-white/5 border border-amber-400/40 outline-none focus:border-amber-400 font-mono shadow-inner"
-                    />
+                    <div className="relative">
+                      <input
+                        type={showSecretKey ? "text" : "password"}
+                        value={moonlightKey}
+                        onChange={(e) => setMoonlightKey(e.target.value)}
+                        placeholder="sk-moon-..."
+                        className="w-full rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white bg-white/5 border border-amber-400/40 outline-none focus:border-amber-400 font-mono shadow-inner"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowSecretKey(!showSecretKey)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors cursor-pointer"
+                        title={showSecretKey ? "Hide key" : "Reveal key"}
+                      >
+                        {showSecretKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -745,13 +812,23 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         Get DashScope Key <ExternalLink className="w-3 h-3" />
                       </a>
                     </div>
-                    <input
-                      type="password"
-                      value={qwenKey}
-                      onChange={(e) => setQwenKey(e.target.value)}
-                      placeholder="sk-qwen-..."
-                      className="w-full rounded-xl px-3.5 py-2 text-xs text-white bg-white/5 border border-amber-400/40 outline-none focus:border-amber-400 font-mono shadow-inner"
-                    />
+                    <div className="relative">
+                      <input
+                        type={showSecretKey ? "text" : "password"}
+                        value={qwenKey}
+                        onChange={(e) => setQwenKey(e.target.value)}
+                        placeholder="sk-qwen-..."
+                        className="w-full rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white bg-white/5 border border-amber-400/40 outline-none focus:border-amber-400 font-mono shadow-inner"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowSecretKey(!showSecretKey)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors cursor-pointer"
+                        title={showSecretKey ? "Hide key" : "Reveal key"}
+                      >
+                        {showSecretKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -769,13 +846,23 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         Get Higgsfield Key <ExternalLink className="w-3 h-3" />
                       </a>
                     </div>
-                    <input
-                      type="password"
-                      value={higgsfieldKey}
-                      onChange={(e) => setHiggsfieldKey(e.target.value)}
-                      placeholder="hg-live-..."
-                      className="w-full rounded-xl px-3.5 py-2 text-xs text-white bg-white/5 border border-amber-400/40 outline-none focus:border-amber-400 font-mono shadow-inner"
-                    />
+                    <div className="relative">
+                      <input
+                        type={showSecretKey ? "text" : "password"}
+                        value={higgsfieldKey}
+                        onChange={(e) => setHiggsfieldKey(e.target.value)}
+                        placeholder="hg-live-..."
+                        className="w-full rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white bg-white/5 border border-amber-400/40 outline-none focus:border-amber-400 font-mono shadow-inner"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowSecretKey(!showSecretKey)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors cursor-pointer"
+                        title={showSecretKey ? "Hide key" : "Reveal key"}
+                      >
+                        {showSecretKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -793,15 +880,36 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         Get SeeDance Key <ExternalLink className="w-3 h-3" />
                       </a>
                     </div>
-                    <input
-                      type="password"
-                      value={seeDanceKey}
-                      onChange={(e) => setSeeDanceKey(e.target.value)}
-                      placeholder="sd-prod-..."
-                      className="w-full rounded-xl px-3.5 py-2 text-xs text-white bg-white/5 border border-amber-400/40 outline-none focus:border-amber-400 font-mono shadow-inner"
-                    />
+                    <div className="relative">
+                      <input
+                        type={showSecretKey ? "text" : "password"}
+                        value={seeDanceKey}
+                        onChange={(e) => setSeeDanceKey(e.target.value)}
+                        placeholder="sd-live-..."
+                        className="w-full rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white bg-white/5 border border-amber-400/40 outline-none focus:border-amber-400 font-mono shadow-inner"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowSecretKey(!showSecretKey)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors cursor-pointer"
+                        title={showSecretKey ? "Hide key" : "Reveal key"}
+                      >
+                        {showSecretKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
                   </div>
                 )}
+
+                {/* Security & Confidentiality Warning Banner */}
+                <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/25 space-y-1 text-xs text-amber-200">
+                  <div className="flex items-center gap-1.5 font-bold text-amber-300">
+                    <ShieldAlert className="w-4 h-4 text-amber-400" />
+                    <span>Security &amp; Confidentiality Notice</span>
+                  </div>
+                  <p className="text-[10px] text-amber-200/90 leading-relaxed">
+                    <b>MAKE SURE ONLY YOU HAVE THIS KEY:</b> Never share your private key or stream your screen while revealing it. Your key is stored exclusively on your local device with on-device persistence and is never transmitted to any third-party server.
+                  </p>
+                </div>
 
                 {/* Custom Base URL (Proxy / Ollama) */}
                 <div className="pt-2 border-t border-white/5 space-y-1">
