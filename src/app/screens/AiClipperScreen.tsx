@@ -17,11 +17,11 @@ interface Props {
 }
 
 const AI_ENGINES: EngineOption[] = [
-  // ⚡ Local Hardware AI (100% Free, On-Device, Offline)
+  // Local Hardware AI (100% Free, On-Device, Offline)
   {
     id: "intel_ai",
-    name: "Intel® AI Engine",
-    desc: "Core™ Ultra / Arc GPU & NPU via OpenVINO & QuickSync (100% Free & Offline)",
+    name: "Intel AI Engine",
+    desc: "Core Ultra and Arc GPU and NPU via OpenVINO and QuickSync (Free & Offline)",
     category: "local-hardware",
     badge: "Hardware NPU",
     providerType: "local",
@@ -29,8 +29,8 @@ const AI_ENGINES: EngineOption[] = [
   },
   {
     id: "ryzen_ai",
-    name: "AMD Ryzen™ AI",
-    desc: "Ryzen NPU & Radeon ROCm / DirectML On-Device Acceleration",
+    name: "AMD Ryzen AI",
+    desc: "Ryzen NPU and Radeon ROCm / DirectML on-device acceleration",
     category: "local-hardware",
     badge: "Ryzen NPU",
     providerType: "local",
@@ -38,19 +38,19 @@ const AI_ENGINES: EngineOption[] = [
   },
   {
     id: "nvidia_rtx",
-    name: "NVIDIA® RTX AI",
-    desc: "TensorRT + CUDA + NVENC Hardware Acceleration",
+    name: "NVIDIA RTX AI",
+    desc: "TensorRT, CUDA, and NVENC hardware acceleration",
     category: "local-hardware",
     badge: "RTX Tensor",
     providerType: "local",
     isHardware: true
   },
 
-  // ⚡ Ultra-Fast Cloud (500+ tok/s)
+  // Ultra-Fast Cloud
   {
     id: "groq_lpu",
-    name: "Groq® LPU Engine",
-    desc: "Ultra-Fast Llama 3.3 70B & Whisper at 500+ tok/s (Real-Time)",
+    name: "Groq LPU Engine",
+    desc: "Ultra-Fast Llama 3.3 70B and Whisper at 500+ tok/s (Real-Time)",
     category: "ultra-fast",
     badge: "500+ t/s",
     providerType: "cloud"
@@ -58,7 +58,7 @@ const AI_ENGINES: EngineOption[] = [
   {
     id: "deepseek",
     name: "DeepSeek V3 / R1",
-    desc: "Deep Reasoning & High-Engagement Viral Clip Hook Analysis",
+    desc: "Deep Reasoning and High-Engagement Viral Clip Hook Analysis",
     category: "ultra-fast",
     badge: "Reasoning",
     providerType: "cloud"
@@ -66,17 +66,17 @@ const AI_ENGINES: EngineOption[] = [
   {
     id: "moonlight",
     name: "Moonlight AI",
-    desc: "Moonshot Kimi Long-Context Video & Narrative Clipper",
+    desc: "Moonshot Kimi Long-Context Video and Narrative Clipper",
     category: "ultra-fast",
     badge: "Long Context",
     providerType: "cloud"
   },
 
-  // 🌐 Frontier Cloud LLMs
+  // Frontier Cloud LLMs
   {
     id: "openai_chatgpt",
     name: "OpenAI ChatGPT",
-    desc: "GPT-4o, OpenAI Sora & Whisper Cloud Audio Engine",
+    desc: "GPT-4o, OpenAI Sora, and Cloud Whisper Audio Engine",
     category: "frontier-llm",
     badge: "GPT-4o",
     providerType: "cloud"
@@ -84,7 +84,7 @@ const AI_ENGINES: EngineOption[] = [
   {
     id: "claude_fable",
     name: "Anthropic Claude",
-    desc: "Claude 3.7 & 3.5 Sonnet Viral Script & Hook Specialist",
+    desc: "Claude 3.7 and 3.5 Sonnet Viral Script and Hook Specialist",
     category: "frontier-llm",
     badge: "Claude 3.7",
     providerType: "cloud"
@@ -100,17 +100,17 @@ const AI_ENGINES: EngineOption[] = [
   {
     id: "qwen_ai",
     name: "Alibaba Qwen",
-    desc: "Qwen 2.5 72B & Qwen-VL Video Analysis via DashScope",
+    desc: "Qwen 2.5 72B and Qwen-VL Video Analysis via DashScope",
     category: "frontier-llm",
     badge: "Qwen 2.5",
     providerType: "cloud"
   },
 
-  // 🎬 Video Generation & Motion
+  // Video Generation and Motion
   {
     id: "higgsfield",
     name: "Higgsfield AI",
-    desc: "Cinematic Camera Motion & Video Generation",
+    desc: "Cinematic Camera Motion and Video Generation",
     category: "video-gen",
     badge: "Camera FX",
     providerType: "cloud"
@@ -118,7 +118,7 @@ const AI_ENGINES: EngineOption[] = [
   {
     id: "seedance",
     name: "SeeDance AI",
-    desc: "ByteDance Music Beat Sync & Dynamic Dance Highlights",
+    desc: "ByteDance Music Beat Sync and Dynamic Dance Highlights",
     category: "video-gen",
     badge: "Beat Sync",
     providerType: "cloud"
