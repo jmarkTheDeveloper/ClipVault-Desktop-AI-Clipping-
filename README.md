@@ -1,7 +1,7 @@
 
 <div align="center">
 
-# STILL IN DEVELOPMENT
+#   STILL IN DEVELOPMENT!
 
 # ⚡ ClipVault Studio AI
 ### Autonomous Desktop AI Video Clipping, Virality Engine & Studio
