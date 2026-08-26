@@ -23,7 +23,8 @@
 [Architecture](#-architecture) •
 [Installation & Quick Start](#-installation--quick-start) •
 [Video Layouts & CapCut Typography](#-video-layouts--capcut-typography) •
-[Quality Assurance](#-quality-assurance--testing)
+[Quality Assurance](#-quality-assurance--testing) •
+[Changelog](#-changelog--release-notes)
 
 ---
 
@@ -187,6 +188,14 @@ If you find ClipVault useful or want to support ongoing open-source development,
 
 ---
 
+## 📋 Changelog & Release Notes
+
+Stay updated with all new features, AI integrations, performance improvements, and bug fixes in our official changelog:
+
+👉 **[View Full Release Changelog (`CHANGELOG.md`)](./CHANGELOG.md)**
+
+---
+
 ## 📄 License & Intellectual Property
 
 Copyright © 2026 **John Mark ([@jmarkTheDeveloper](https://github.com/jmarkTheDeveloper))**. All Rights Reserved.
@@ -196,4 +205,5 @@ Distributed under the **Exclusive Proprietary Commercial Software License**.
 - **Commercial & SaaS Restrictions**: Commercial resale, subscription monetization, SaaS re-hosting, and unauthorized commercial redistribution are strictly prohibited without an official commercial agreement directly from John Mark (`jmarkTheDeveloper`).
 
 See the [`LICENSE`](./LICENSE) file for complete legal terms.
+
 
