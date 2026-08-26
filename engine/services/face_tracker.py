@@ -1,6 +1,7 @@
 """
-FaceTracker Service - Multi-Tier Computer Vision & Dynamic 9:16 Subject Tracking.
-Supports Real Humans, Side-Profiles, Cartoon/Anime/CGI Characters (e.g. Madagascar, Pixar), and Gaming Streams.
+FaceTracker Service - High-Precision Neural Face Tracking & Rock-Solid 9:16 Framing.
+Combines MediaPipe TFLite Neural Detector, OpenCV Frontal/Profile Cascades, and HOG Body Detectors
+with a Zero-Jitter Tripod Deadzone Steadicam Algorithm.
 """
 from pathlib import Path
 from typing import List, Dict, Any, Optional, Tuple
@@ -8,7 +9,7 @@ from typing import List, Dict, Any, Optional, Tuple
 import cv2
 import numpy as np
 
-# Try importing MediaPipe Tasks (MediaPipe 1.0+) or legacy solutions
+# MediaPipe Tasks (TFLite) Neural Detector
 mp_face_detector = None
 try:
     from mediapipe.tasks import python as mp_python
@@ -24,14 +25,13 @@ try:
             print(">> Initialized MediaPipe Neural Face Detector (TFLite)")
         except Exception:
             pass
-except Exception as e:
+except Exception:
     mp_face_detector = None
 
 
 class FaceTracker:
     """
-    Tracks human faces, side profiles, and animated/CGI subjects in video clips,
-    dynamically panning and framing 9:16 vertical shorts.
+    Tracks human faces, side profiles, and speakers with zero-jitter tripod stability.
     """
     def __init__(self):
         self.face_cache: Dict[float, List[Dict[str, Any]]] = {}
@@ -45,7 +45,6 @@ class FaceTracker:
         frontal_path = models_dir / "haarcascade_frontalface_default.xml"
         profile_path = models_dir / "haarcascade_profileface.xml"
         
-        # Fallback to cv2.data if model directory missing
         if not frontal_path.exists() and hasattr(cv2, 'data') and hasattr(cv2.data, 'haarcascades'):
             fallback_frontal = Path(cv2.data.haarcascades) / "haarcascade_frontalface_default.xml"
             if fallback_frontal.exists():
@@ -71,13 +70,13 @@ class FaceTracker:
             self.hog_detector = None
 
         try:
-            print(f">> Computer Vision Pipeline: MediaPipe={self.mp_detector is not None}, FrontalCascade={self.frontal_cascade is not None}, ProfileCascade={self.profile_cascade is not None}, HOG={self.hog_detector is not None}, AnimatedSaliency=Active")
+            print(f">> Computer Vision Pipeline: MediaPipe={self.mp_detector is not None}, FrontalCascade={self.frontal_cascade is not None}, ProfileCascade={self.profile_cascade is not None}, HOG={self.hog_detector is not None}")
         except Exception:
             pass
 
     def detect_faces_in_frame(self, frame: np.ndarray, frame_time: Optional[float] = None) -> List[Dict[str, Any]]:
         """
-        Detects faces or active visual subjects in a frame using a 5-tier cascading detection pipeline.
+        Detects faces or speakers in a frame using a robust 4-tier detection pipeline.
         """
         if frame_time is not None and frame_time in self.face_cache:
             return self.face_cache[frame_time]
@@ -146,7 +145,7 @@ class FaceTracker:
             except Exception:
                 pass
 
-        # ── TIER 3: OpenCV Profile Face Cascade (Left & Right Profiles) ──
+        # ── TIER 3: OpenCV Profile Face Cascade (Side Profiles) ──
         if not faces and self.profile_cascade is not None:
             try:
                 if 'gray_eq' not in locals():
@@ -167,7 +166,7 @@ class FaceTracker:
                         'type': 'profile_haar'
                     })
                     
-                # Left profile (horizontal flip)
+                # Left profile (flipped)
                 if not faces:
                     gray_flipped = cv2.flip(gray_eq, 1)
                     detected_prof_flip = self.profile_cascade.detectMultiScale(
@@ -194,7 +193,6 @@ class FaceTracker:
                 for i, (sx, sy, sw, sh) in enumerate(boxes):
                     conf = float(weights[i]) if len(weights) > i else 0.75
                     if conf > 0.1:
-                        # Head is typically at upper 25% of detected person box
                         head_cy = int((sy + sh * 0.25) / scale)
                         head_cx = int((sx + sw * 0.50) / scale)
                         faces.append({
@@ -209,39 +207,6 @@ class FaceTracker:
             except Exception:
                 pass
 
-        # ── TIER 5: Visual Saliency & Character Foreground Detector (Cartoons, Anime, CGI, Animals) ──
-        if not faces:
-            try:
-                # Compute gradient magnitude and color contrast to find the primary focal subject
-                gray = cv2.cvtColor(small_frame, cv2.COLOR_BGR2GRAY)
-                # Sobel edge energy
-                grad_x = cv2.Sobel(gray, cv2.CV_32F, 1, 0, ksize=3)
-                grad_y = cv2.Sobel(gray, cv2.CV_32F, 0, 1, ksize=3)
-                mag = cv2.magnitude(grad_x, grad_y)
-                
-                # Weight towards upper-middle region (avoid floor/ceiling clutter)
-                y_weight = np.linspace(0.8, 1.2, small_h)[:, np.newaxis]
-                weighted_mag = mag * y_weight
-                
-                # Blur to consolidate subject clusters
-                blurred = cv2.GaussianBlur(weighted_mag, (41, 41), 0)
-                _, max_val, _, max_loc = cv2.minMaxLoc(blurred)
-                
-                if max_val > 15:  # Valid foreground subject found
-                    cx = int(max_loc[0] / scale)
-                    cy = int(max_loc[1] / scale)
-                    faces.append({
-                        'center_x': max(0, min(w, cx)),
-                        'center_y': max(0, min(h, cy)),
-                        'width': int(w * 0.28),
-                        'height': int(h * 0.35),
-                        'confidence': 0.65,
-                        'area': int(w * h * 0.10),
-                        'type': 'saliency_subject'
-                    })
-            except Exception:
-                pass
-
         # Sort by prominence: confidence * area
         result = sorted(faces, key=lambda f: f['confidence'] * f['area'], reverse=True)
         if frame_time is not None:
@@ -250,24 +215,27 @@ class FaceTracker:
 
     def track_and_crop(self, clip, crop_ratio: float = 9/16, camera_style: str = "smooth"):
         """
-        Tracks faces/subjects in a video clip and crops it into a smooth 9:16 vertical stream.
+        Tracks faces/speakers in a video clip with rock-solid tripod stability and buttery-smooth cinematic panning.
         """
         width, height = clip.size
         target_width = int(height * crop_ratio)
         if target_width % 2 != 0: target_width -= 1
         
-        # If already 9:16 vertical or narrower, no horizontal crop needed
         if width <= target_width:
-            print("    ⏩ Video already in target aspect ratio, skipping horizontal crop")
+            try:
+                print("    >> Video already in target aspect ratio, skipping horizontal crop")
+            except Exception:
+                pass
             return clip
 
         try:
-            print(f"    >> Analyzing frames across {clip.duration:.1f}s for dynamic 9:16 {camera_style} face tracking...")
+            print(f"    >> Analyzing frames across {clip.duration:.1f}s for rock-solid 9:16 {camera_style} face tracking...")
         except Exception:
             pass
         self.face_cache = {}
 
-        fps_sample = 4 if camera_style == "snappy" else 2
+        # Sample frames across the clip timeline (2 samples/sec is optimal for rock-solid stability)
+        fps_sample = 3 if camera_style == "snappy" else 2
         num_samples = max(4, int(clip.duration * fps_sample))
         sample_times = np.linspace(0.05, max(0.1, clip.duration - 0.05), num_samples)
 
@@ -280,22 +248,17 @@ class FaceTracker:
                 
                 if detected:
                     largest_area = detected[0]['area']
-                    # Keep faces within 25% size of largest face
-                    significant = [f for f in detected if f['area'] >= largest_area * 0.25]
+                    significant = [f for f in detected if f['area'] >= largest_area * 0.30]
                     
                     if len(significant) == 1:
-                        # Exactly one primary subject
                         face_positions.append(float(significant[0]['center_x']))
                     elif len(significant) > 1:
-                        # Multi-speaker / podcast scene:
                         min_x = min(f['center_x'] for f in significant)
                         max_x = max(f['center_x'] for f in significant)
                         span = max_x - min_x
                         if span < target_width * 0.80:
-                            # Both subjects fit inside 9:16 frame comfortably
                             face_positions.append(float((min_x + max_x) / 2.0))
                         else:
-                            # Subjects are wide apart: focus on the most prominent speaker
                             primary = max(significant, key=lambda f: f['area'] * f['confidence'])
                             face_positions.append(float(primary['center_x']))
                     else:
@@ -303,16 +266,12 @@ class FaceTracker:
                 else:
                     face_positions.append(None)
             except Exception as e:
-                try:
-                    print(f"    -- Frame analysis note at {t:.2f}s: {e}")
-                except Exception:
-                    pass
                 face_positions.append(None)
 
-        # ── Guarantee exactly len(face_positions) == len(sample_times) ──
+        # ── Backward & Forward Fill Missing Frames ──
         valid_positions = [p for p in face_positions if p is not None]
         if not valid_positions:
-            # Fallback to middle of frame if no subject anywhere in clip
+            # Default to center of frame if no face in entire clip
             filled_positions = [float(width // 2)] * len(sample_times)
         else:
             first_val = valid_positions[0]
@@ -323,11 +282,32 @@ class FaceTracker:
                     last_seen = p
                 filled_positions.append(float(last_seen))
 
-        # ── Apply Deadzone + Exponential Moving Average (EMA) ──
-        deadzone_ratio = 0.20 if camera_style == "snappy" else 0.45
+        # ── Zero-Jitter Tripod Analysis ──
+        # Check if the speaker is stationary (variance is low). If so, lock the camera to a rock-solid static crop!
+        pos_min = min(filled_positions)
+        pos_max = max(filled_positions)
+        pos_span = pos_max - pos_min
+
+        # If total speaker movement across the whole clip is within 18% of video width,
+        # use a 100% static locked tripod crop (zero wiggle, zero jitter, perfectly stable).
+        if pos_span < width * 0.18 and camera_style == "smooth":
+            median_pos = float(np.median(filled_positions))
+            median_pos = max(target_width / 2.0, min(width - target_width / 2.0, median_pos))
+            x1 = int(round(median_pos - target_width / 2.0))
+            x1 = max(0, min(width - target_width, x1))
+            
+            try:
+                print(f"    [OK] Rock-Solid Tripod Locked at X={median_pos:.0f} (Zero Jitter, {target_width}x{height})")
+            except Exception:
+                pass
+            cropped_clip = clip.crop(x1=x1, width=target_width)
+            return cropped_clip
+
+        # ── Steadicam Deadzone + Smooth Cinematic Panning ──
+        deadzone_ratio = 0.25 if camera_style == "snappy" else 0.55
         deadzone_width = target_width * deadzone_ratio
-        smoothing_factor = 0.35 if camera_style == "snappy" else 0.12
-        required_hold_frames = 2 if camera_style == "snappy" else 3
+        smoothing_factor = 0.25 if camera_style == "snappy" else 0.08
+        required_hold_frames = 2 if camera_style == "snappy" else 4
 
         smoothed: List[float] = []
         current_cam_pos = filled_positions[0]
@@ -335,7 +315,6 @@ class FaceTracker:
         frames_held = 0
 
         for target_pos in filled_positions:
-            # Target Locking Hysteresis: prevent rapid twitching between two targets
             if abs(target_pos - stable_target_pos) > width * 0.15:
                 frames_held += 1
                 if frames_held >= required_hold_frames:
@@ -346,28 +325,25 @@ class FaceTracker:
                 frames_held = 0
 
             dist = stable_target_pos - current_cam_pos
-            if abs(dist) > width * 0.30:
-                # Scene cut / hard transition: snap instantly
+            if abs(dist) > width * 0.35:
+                # Hard scene transition
                 current_cam_pos = stable_target_pos
-            elif abs(dist) > deadzone_width / 2:
-                # Outside deadzone: smooth pursuit towards deadzone edge
+            elif abs(dist) > deadzone_width / 2.0:
                 if dist > 0:
-                    desired_cam = stable_target_pos - (deadzone_width / 2)
+                    desired_cam = stable_target_pos - (deadzone_width / 2.0)
                 else:
-                    desired_cam = stable_target_pos + (deadzone_width / 2)
+                    desired_cam = stable_target_pos + (deadzone_width / 2.0)
                 current_cam_pos += (desired_cam - current_cam_pos) * smoothing_factor
 
-            # Clamp camera center to stay within original video boundaries
             clamped_cam = max(target_width / 2.0, min(width - target_width / 2.0, current_cam_pos))
             smoothed.append(float(clamped_cam))
 
-        # ── Build Dynamic Frame Crop Filter Function ──
+        # Build Dynamic MoviePy Crop Filter
         sample_times_arr = np.array(sample_times, dtype=np.float64)
         smoothed_arr = np.array(smoothed, dtype=np.float64)
 
         def dynamic_crop_filter(get_frame, t):
             frame = get_frame(t)
-            # Smoothly interpolate horizontal center at time t
             center_x = float(np.interp(t, sample_times_arr, smoothed_arr))
             center_x = max(target_width / 2.0, min(width - target_width / 2.0, center_x))
             x1 = int(round(center_x - target_width / 2.0))
@@ -375,12 +351,11 @@ class FaceTracker:
             x2 = x1 + target_width
             return frame[:, x1:x2]
 
-        # Apply custom MoviePy frame filter
         cropped_clip = clip.fl(dynamic_crop_filter, apply_to=["mask"])
         cropped_clip.size = (target_width, height)
 
         try:
-            print(f"    [OK] Dynamic 9:16 Face Tracker Active ({target_width}x{height}, Camera Style: {camera_style})")
+            print(f"    [OK] Cinematic Steadicam Active ({target_width}x{height}, Camera Style: {camera_style})")
         except Exception:
             pass
         self.face_cache = {}
@@ -389,3 +364,4 @@ class FaceTracker:
     def close(self):
         """Releases resources used by the face detector."""
         self.face_cache = {}
+

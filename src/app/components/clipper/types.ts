@@ -16,8 +16,10 @@ export interface EngineOption {
   id: string;
   name: string;
   desc: string;
-  category: "text-to-video" | "video-to-video" | "general";
+  category: "local-hardware" | "ultra-fast" | "frontier-llm" | "video-gen" | "text-to-video" | "video-to-video" | "general";
   badge?: string;
+  providerType?: "local" | "cloud";
+  isHardware?: boolean;
 }
 
 export interface CaptionStyleOption {

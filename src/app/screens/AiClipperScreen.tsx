@@ -17,25 +17,158 @@ interface Props {
 }
 
 const AI_ENGINES: EngineOption[] = [
-  { id: "claude_fable", name: "Claude Fable", desc: "Best for Viral Hooks & Scriptwriting", category: "text-to-video" },
-  { id: "higgsfield", name: "Higgsfield AI", desc: "Best for Cinematic Camera Motion & Video", category: "video-to-video" },
-  { id: "seedance", name: "SeeDance AI", desc: "Best for Music Beat Sync & Dance Clips", category: "video-to-video" },
-  { id: "openai_sora", name: "OpenAI Sora / GPT-4o", desc: "General Video & Subtitle Model", category: "general" },
+  // ⚡ Local Hardware AI (100% Free, On-Device, Offline)
+  {
+    id: "intel_ai",
+    name: "Intel® AI Engine",
+    desc: "Core™ Ultra / Arc GPU & NPU via OpenVINO & QuickSync (100% Free & Offline)",
+    category: "local-hardware",
+    badge: "Hardware NPU",
+    providerType: "local",
+    isHardware: true
+  },
+  {
+    id: "ryzen_ai",
+    name: "AMD Ryzen™ AI",
+    desc: "Ryzen NPU & Radeon ROCm / DirectML On-Device Acceleration",
+    category: "local-hardware",
+    badge: "Ryzen NPU",
+    providerType: "local",
+    isHardware: true
+  },
+  {
+    id: "nvidia_rtx",
+    name: "NVIDIA® RTX AI",
+    desc: "TensorRT + CUDA + NVENC Hardware Acceleration",
+    category: "local-hardware",
+    badge: "RTX Tensor",
+    providerType: "local",
+    isHardware: true
+  },
+
+  // ⚡ Ultra-Fast Cloud (500+ tok/s)
+  {
+    id: "groq_lpu",
+    name: "Groq® LPU Engine",
+    desc: "Ultra-Fast Llama 3.3 70B & Whisper at 500+ tok/s (Real-Time)",
+    category: "ultra-fast",
+    badge: "500+ t/s",
+    providerType: "cloud"
+  },
+  {
+    id: "deepseek",
+    name: "DeepSeek V3 / R1",
+    desc: "Deep Reasoning & High-Engagement Viral Clip Hook Analysis",
+    category: "ultra-fast",
+    badge: "Reasoning",
+    providerType: "cloud"
+  },
+  {
+    id: "moonlight",
+    name: "Moonlight AI",
+    desc: "Moonshot Kimi Long-Context Video & Narrative Clipper",
+    category: "ultra-fast",
+    badge: "Long Context",
+    providerType: "cloud"
+  },
+
+  // 🌐 Frontier Cloud LLMs
+  {
+    id: "openai_chatgpt",
+    name: "OpenAI ChatGPT",
+    desc: "GPT-4o, OpenAI Sora & Whisper Cloud Audio Engine",
+    category: "frontier-llm",
+    badge: "GPT-4o",
+    providerType: "cloud"
+  },
+  {
+    id: "claude_fable",
+    name: "Anthropic Claude",
+    desc: "Claude 3.7 & 3.5 Sonnet Viral Script & Hook Specialist",
+    category: "frontier-llm",
+    badge: "Claude 3.7",
+    providerType: "cloud"
+  },
+  {
+    id: "gemini_flash",
+    name: "Google Gemini",
+    desc: "Gemini 2.5 Flash / 2.0 Pro Multimodal Video Understanding",
+    category: "frontier-llm",
+    badge: "Gemini 2.5",
+    providerType: "cloud"
+  },
+  {
+    id: "qwen_ai",
+    name: "Alibaba Qwen",
+    desc: "Qwen 2.5 72B & Qwen-VL Video Analysis via DashScope",
+    category: "frontier-llm",
+    badge: "Qwen 2.5",
+    providerType: "cloud"
+  },
+
+  // 🎬 Video Generation & Motion
+  {
+    id: "higgsfield",
+    name: "Higgsfield AI",
+    desc: "Cinematic Camera Motion & Video Generation",
+    category: "video-gen",
+    badge: "Camera FX",
+    providerType: "cloud"
+  },
+  {
+    id: "seedance",
+    name: "SeeDance AI",
+    desc: "ByteDance Music Beat Sync & Dynamic Dance Highlights",
+    category: "video-gen",
+    badge: "Beat Sync",
+    providerType: "cloud"
+  },
 ];
 
 export const AiClipperScreen: React.FC<Props> = ({ onBack, initialViewMode = "setup" }) => {
   // Navigation & View States
   const [viewMode, setViewMode] = useState<ViewMode>(initialViewMode);
   const [showKeySettings, setShowKeySettings] = useState(false);
-  const [selectedEngine, setSelectedEngine] = useState("higgsfield");
-  const [byokMode, setByokMode] = useState<"developer" | "custom">("developer");
+  const [selectedEngine, setSelectedEngine] = useState(() => localStorage.getItem("clipvault_selected_engine") || "intel_ai");
+  const [byokMode, setByokMode] = useState<"local" | "developer" | "custom">(() => {
+    const saved = localStorage.getItem("clipvault_byok_mode");
+    if (saved === "local" || saved === "developer" || saved === "custom") return saved;
+    return "local";
+  });
 
-  // API Keys
-  const [anthropicKey, setAnthropicKey] = useState("");
-  const [higgsfieldKey, setHiggsfieldKey] = useState("");
-  const [seeDanceKey, setSeeDanceKey] = useState("");
-  const [openAiKey, setOpenAiKey] = useState("");
-  const [customBaseUrl, setCustomBaseUrl] = useState("");
+  // API Keys with LocalStorage Persistence
+  const [anthropicKey, setAnthropicKey] = useState(() => localStorage.getItem("clipvault_anthropic_key") || "");
+  const [higgsfieldKey, setHiggsfieldKey] = useState(() => localStorage.getItem("clipvault_higgsfield_key") || "");
+  const [seeDanceKey, setSeeDanceKey] = useState(() => localStorage.getItem("clipvault_seedance_key") || "");
+  const [openAiKey, setOpenAiKey] = useState(() => localStorage.getItem("clipvault_openai_key") || "");
+  const [geminiKey, setGeminiKey] = useState(() => localStorage.getItem("clipvault_gemini_key") || "");
+  const [groqKey, setGroqKey] = useState(() => localStorage.getItem("clipvault_groq_key") || "");
+  const [deepseekKey, setDeepseekKey] = useState(() => localStorage.getItem("clipvault_deepseek_key") || "");
+  const [moonlightKey, setMoonlightKey] = useState(() => localStorage.getItem("clipvault_moonlight_key") || "");
+  const [qwenKey, setQwenKey] = useState(() => localStorage.getItem("clipvault_qwen_key") || "");
+  const [customBaseUrl, setCustomBaseUrl] = useState(() => localStorage.getItem("clipvault_custom_base_url") || "");
+
+  // Update localStorage when keys/engines change
+  useEffect(() => {
+    localStorage.setItem("clipvault_selected_engine", selectedEngine);
+  }, [selectedEngine]);
+
+  useEffect(() => {
+    localStorage.setItem("clipvault_byok_mode", byokMode);
+  }, [byokMode]);
+
+  useEffect(() => {
+    localStorage.setItem("clipvault_anthropic_key", anthropicKey);
+    localStorage.setItem("clipvault_higgsfield_key", higgsfieldKey);
+    localStorage.setItem("clipvault_seedance_key", seeDanceKey);
+    localStorage.setItem("clipvault_openai_key", openAiKey);
+    localStorage.setItem("clipvault_gemini_key", geminiKey);
+    localStorage.setItem("clipvault_groq_key", groqKey);
+    localStorage.setItem("clipvault_deepseek_key", deepseekKey);
+    localStorage.setItem("clipvault_moonlight_key", moonlightKey);
+    localStorage.setItem("clipvault_qwen_key", qwenKey);
+    localStorage.setItem("clipvault_custom_base_url", customBaseUrl);
+  }, [anthropicKey, higgsfieldKey, seeDanceKey, openAiKey, geminiKey, groqKey, deepseekKey, moonlightKey, qwenKey, customBaseUrl]);
 
   // Input & Media
   const [inputType, setInputType] = useState<"youtube" | "local">("youtube");
@@ -335,7 +468,18 @@ export const AiClipperScreen: React.FC<Props> = ({ onBack, initialViewMode = "se
           custom_file_name: exportFileName || null,
           output_dir: customOutputDir || null,
           transcription_language: transcriptionLanguage,
-          api_key: byokMode === "custom" ? (openAiKey || anthropicKey || higgsfieldKey || seeDanceKey) : null,
+          api_key: byokMode === "custom" 
+            ? (selectedEngine === "openai_chatgpt" ? openAiKey 
+              : selectedEngine === "claude_fable" ? anthropicKey 
+              : selectedEngine === "gemini_flash" ? geminiKey 
+              : selectedEngine === "groq_lpu" ? groqKey 
+              : selectedEngine === "deepseek" ? deepseekKey 
+              : selectedEngine === "moonlight" ? moonlightKey 
+              : selectedEngine === "qwen_ai" ? qwenKey 
+              : selectedEngine === "higgsfield" ? higgsfieldKey 
+              : selectedEngine === "seedance" ? seeDanceKey 
+              : (openAiKey || anthropicKey || geminiKey || groqKey || deepseekKey))
+            : null,
           ai_engine: selectedEngine,
           custom_crop_boxes: layout === "custom_split" ? [
             { x: (cropTop.x / 456) * 100, y: (cropTop.y / 256) * 100, width: (cropTop.width / 456) * 100, height: (cropTop.height / 256) * 100 },
@@ -832,14 +976,23 @@ export const AiClipperScreen: React.FC<Props> = ({ onBack, initialViewMode = "se
             </button>
           )}
           <button
+            type="button"
             onClick={() => setShowKeySettings(!showKeySettings)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-amber-400/30 text-xs text-white transition-all cursor-pointer shadow-md"
+            className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-amber-400/30 text-xs text-white transition-all cursor-pointer shadow-md"
           >
             <Cpu className="w-3.5 h-3.5 text-amber-400" />
-            <span className="font-bold">Engine:</span>
-            <span className="text-amber-400 font-semibold">
-              {(AI_ENGINES.find((e) => e.id === selectedEngine) || AI_ENGINES[0]).name} (
-              {byokMode === "developer" ? "Demo Key" : "BYOK"})
+            <span className="font-bold text-gray-300">Engine:</span>
+            <span className="text-amber-400 font-bold">
+              {(AI_ENGINES.find((e) => e.id === selectedEngine) || AI_ENGINES[0])?.name || "AI Engine"}
+            </span>
+            <span className={`text-[9px] px-1.5 py-0.5 rounded-md font-extrabold uppercase ${
+              byokMode === "local" 
+                ? "bg-amber-400 text-black shadow-sm"
+                : byokMode === "developer"
+                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                : "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+            }`}>
+              {byokMode === "local" ? "Local NPU" : byokMode === "developer" ? "Demo Key" : "BYOK"}
             </span>
           </button>
         </div>
@@ -862,6 +1015,16 @@ export const AiClipperScreen: React.FC<Props> = ({ onBack, initialViewMode = "se
         setSeeDanceKey={setSeeDanceKey}
         openAiKey={openAiKey}
         setOpenAiKey={setOpenAiKey}
+        geminiKey={geminiKey}
+        setGeminiKey={setGeminiKey}
+        groqKey={groqKey}
+        setGroqKey={setGroqKey}
+        deepseekKey={deepseekKey}
+        setDeepseekKey={setDeepseekKey}
+        moonlightKey={moonlightKey}
+        setMoonlightKey={setMoonlightKey}
+        qwenKey={qwenKey}
+        setQwenKey={setQwenKey}
         customBaseUrl={customBaseUrl}
         setCustomBaseUrl={setCustomBaseUrl}
       />
