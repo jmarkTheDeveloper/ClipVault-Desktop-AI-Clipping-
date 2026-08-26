@@ -229,11 +229,28 @@ def execute_rendering_task(task_id: str, request: ProcessRequest, cancel_event: 
             "output_folder": output_folder,
             "file_paths": raw_files
         }
-        
     except Exception as e:
+        err_str = str(e)
+        clean_msg = "An unexpected error occurred during processing. Please check your settings or try again."
+        is_rate_limit = False
+
+        # Detect rate limits and quota limits across providers with zero source code leakage
+        lower_err = err_str.lower()
+        if any(term in lower_err for term in ["429", "resource_exhausted", "quota", "ratelimit", "rate limit", "too many requests", "insufficient_quota", "exhausted"]):
+            is_rate_limit = True
+            clean_msg = "Oh no! Your API key is at its limit already. Switch to 100% Free Local GPU/NPU mode or update your API key in settings."
+        elif "cancelled" in lower_err or "interrupted" in lower_err:
+            clean_msg = "Processing stopped by user."
+        elif "rejection" in lower_err or "background video" in lower_err:
+            clean_msg = err_str
+        elif "youtube" in lower_err or "download" in lower_err:
+            clean_msg = "Could not fetch or download the video. Please verify the URL or try another video."
+
+        print(f"⚠️ Task {task_id} error sanitized: {clean_msg}")
         tasks_db[task_id]["status"] = "failed"
-        tasks_db[task_id]["error"] = str(e)
-        tasks_db[task_id]["message"] = f"Error during processing: {e}"
+        tasks_db[task_id]["is_rate_limit"] = is_rate_limit
+        tasks_db[task_id]["error"] = clean_msg
+        tasks_db[task_id]["message"] = clean_msg
 
 @app.get("/api/saved_clips")
 def get_saved_clips():
@@ -1088,6 +1105,7 @@ def get_task_status(task_id: str):
         "progress": t.get("progress", 0),
         "completed": t.get("status") == "completed",
         "cancelled": t.get("status") == "cancelled",
+        "is_rate_limit": t.get("is_rate_limit", False),
         "error": t.get("error"),
         "clips": result.get("clips", []),
         "output_dir": result.get("output_folder", ""),

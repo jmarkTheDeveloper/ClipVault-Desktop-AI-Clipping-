@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { ArrowLeft, Zap, FolderCheck, Cpu, Download, Folder, Plus, FolderOpen } from "lucide-react";
+import { ArrowLeft, Zap, FolderCheck, Cpu, Download, Folder, Plus, FolderOpen, AlertCircle, HardDrive, ShieldCheck } from "lucide-react";
 import { EngineSettingsModal } from "../components/clipper/EngineSettingsModal";
 import { CropEditorModal } from "../components/clipper/CropEditorModal";
 import { SetupSidebar } from "../components/clipper/SetupSidebar";
@@ -129,6 +129,7 @@ export const AiClipperScreen: React.FC<Props> = ({ onBack, initialViewMode = "se
   // Navigation & View States
   const [viewMode, setViewMode] = useState<ViewMode>(initialViewMode);
   const [showKeySettings, setShowKeySettings] = useState(false);
+  const [showRateLimitModal, setShowRateLimitModal] = useState(false);
   const [selectedEngine, setSelectedEngine] = useState(() => localStorage.getItem("clipvault_selected_engine") || "intel_ai");
   const [byokMode, setByokMode] = useState<"local" | "developer" | "custom">(() => {
     const saved = localStorage.getItem("clipvault_byok_mode");
@@ -532,6 +533,10 @@ export const AiClipperScreen: React.FC<Props> = ({ onBack, initialViewMode = "se
             } else if (data.error) {
               if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
               setRunning(false);
+              const errLower = (data.error || "").toLowerCase();
+              if (data.is_rate_limit || errLower.includes("limit") || errLower.includes("quota") || errLower.includes("429")) {
+                setShowRateLimitModal(true);
+              }
               setErrorMsg(data.error);
             }
           }
@@ -542,7 +547,12 @@ export const AiClipperScreen: React.FC<Props> = ({ onBack, initialViewMode = "se
     } catch (err: any) {
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
       setRunning(false);
-      setErrorMsg(err.message || "An unexpected error occurred.");
+      const msg = err.message || "An unexpected error occurred.";
+      const msgLower = msg.toLowerCase();
+      if (msgLower.includes("limit") || msgLower.includes("quota") || msgLower.includes("429")) {
+        setShowRateLimitModal(true);
+      }
+      setErrorMsg(msg);
     }
   };
 
@@ -1028,6 +1038,72 @@ export const AiClipperScreen: React.FC<Props> = ({ onBack, initialViewMode = "se
         customBaseUrl={customBaseUrl}
         setCustomBaseUrl={setCustomBaseUrl}
       />
+
+      {/* Clean API Key Limit Security Modal */}
+      {showRateLimitModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+          <div className="relative w-full max-w-[480px] rounded-3xl bg-[#0d0d0f] border border-amber-400/30 shadow-[0_0_50px_rgba(251,191,36,0.15)] overflow-hidden p-6 space-y-4 text-left">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-2xl bg-amber-400/10 border border-amber-400/20 text-amber-400">
+                <AlertCircle className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-white font-bold text-sm">
+                  API Key Rate Limit Reached
+                </h3>
+                <p className="text-[11px] text-gray-400">
+                  Protected AI Provider Quota Notification
+                </p>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/5 space-y-1.5 text-xs text-gray-300 leading-relaxed">
+              <p className="font-semibold text-amber-300">
+                Oh no! Your API key is at its limit already.
+              </p>
+              <p className="text-[11px] text-gray-400">
+                Your source code, system environment, and private credentials remain completely secure and hidden. You can immediately switch to your computer&apos;s free on-device hardware or update your API key in settings.
+              </p>
+            </div>
+
+            <div className="space-y-2 pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setByokMode("local");
+                  setSelectedEngine("intel_ai");
+                  setShowRateLimitModal(false);
+                  setErrorMsg(null);
+                }}
+                className="w-full py-2.5 px-4 rounded-xl bg-amber-400 text-black font-bold text-xs hover:bg-amber-300 transition-all cursor-pointer shadow-md flex items-center justify-center gap-2"
+              >
+                <HardDrive className="w-4 h-4" />
+                <span>Switch to Free Local GPU / NPU Mode</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowRateLimitModal(false);
+                  setShowKeySettings(true);
+                }}
+                className="w-full py-2 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs transition-all cursor-pointer border border-white/10 flex items-center justify-center gap-2"
+              >
+                <Cpu className="w-3.5 h-3.5 text-amber-400" />
+                <span>Update API Key in Settings</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowRateLimitModal(false)}
+                className="w-full py-1.5 text-center text-xs text-gray-500 hover:text-gray-300 transition-all cursor-pointer"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main View Area */}
       <div className="flex-1 flex overflow-hidden relative">
