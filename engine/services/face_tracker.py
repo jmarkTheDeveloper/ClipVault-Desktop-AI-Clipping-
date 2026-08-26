@@ -77,6 +77,7 @@ class FaceTracker:
     def detect_faces_in_frame(self, frame: np.ndarray, frame_time: Optional[float] = None) -> List[Dict[str, Any]]:
         """
         Detects faces or speakers in a frame using a robust 4-tier detection pipeline.
+        Note: MoviePy frames are already in RGB format.
         """
         if frame_time is not None and frame_time in self.face_cache:
             return self.face_cache[frame_time]
@@ -86,15 +87,16 @@ class FaceTracker:
         frame = np.ascontiguousarray(frame)
 
         h, w = frame.shape[:2]
-        scale = 0.5
+        scale = 0.75  # High-res sampling for precision
         small_frame = cv2.resize(frame, (int(w * scale), int(h * scale)))
         small_h, small_w = small_frame.shape[:2]
         faces: List[Dict[str, Any]] = []
 
-        # ── TIER 1: MediaPipe Neural Face Detector ──
+        # ── TIER 1: MediaPipe Neural Face Detector (TFLite) ──
         if self.mp_detector is not None:
             try:
-                rgb_small = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
+                # MoviePy frame is ALREADY RGB; do not invert to BGR!
+                rgb_small = np.ascontiguousarray(small_frame)
                 mp_img = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_small)
                 detection_result = self.mp_detector.detect(mp_img)
                 if detection_result.detections:
@@ -123,10 +125,10 @@ class FaceTracker:
         # ── TIER 2: OpenCV Frontal Face Haar Cascade ──
         if not faces and self.frontal_cascade is not None:
             try:
-                gray = cv2.cvtColor(small_frame, cv2.COLOR_BGR2GRAY)
+                gray = cv2.cvtColor(small_frame, cv2.COLOR_RGB2GRAY)
                 gray_eq = cv2.equalizeHist(gray)
                 detected = self.frontal_cascade.detectMultiScale(
-                    gray_eq, scaleFactor=1.12, minNeighbors=4, minSize=(24, 24)
+                    gray_eq, scaleFactor=1.10, minNeighbors=4, minSize=(28, 28)
                 )
                 for (sx, sy, sw, sh) in detected:
                     orig_x = int(sx / scale)
@@ -149,11 +151,11 @@ class FaceTracker:
         if not faces and self.profile_cascade is not None:
             try:
                 if 'gray_eq' not in locals():
-                    gray_eq = cv2.equalizeHist(cv2.cvtColor(small_frame, cv2.COLOR_BGR2GRAY))
+                    gray_eq = cv2.equalizeHist(cv2.cvtColor(small_frame, cv2.COLOR_RGB2GRAY))
                 
                 # Right profile
                 detected_prof = self.profile_cascade.detectMultiScale(
-                    gray_eq, scaleFactor=1.15, minNeighbors=4, minSize=(24, 24)
+                    gray_eq, scaleFactor=1.12, minNeighbors=4, minSize=(28, 28)
                 )
                 for (sx, sy, sw, sh) in detected_prof:
                     faces.append({
@@ -170,7 +172,7 @@ class FaceTracker:
                 if not faces:
                     gray_flipped = cv2.flip(gray_eq, 1)
                     detected_prof_flip = self.profile_cascade.detectMultiScale(
-                        gray_flipped, scaleFactor=1.15, minNeighbors=4, minSize=(24, 24)
+                        gray_flipped, scaleFactor=1.12, minNeighbors=4, minSize=(28, 28)
                     )
                     for (sx, sy, sw, sh) in detected_prof_flip:
                         unflipped_x = small_w - (sx + sw)
@@ -189,7 +191,8 @@ class FaceTracker:
         # ── TIER 4: OpenCV HOG Human / Person Detector ──
         if not faces and self.hog_detector is not None:
             try:
-                boxes, weights = self.hog_detector.detectMultiScale(small_frame, winStride=(8, 8), padding=(4, 4), scale=1.05)
+                bgr_small = cv2.cvtColor(small_frame, cv2.COLOR_RGB2BGR)
+                boxes, weights = self.hog_detector.detectMultiScale(bgr_small, winStride=(8, 8), padding=(4, 4), scale=1.05)
                 for i, (sx, sy, sw, sh) in enumerate(boxes):
                     conf = float(weights[i]) if len(weights) > i else 0.75
                     if conf > 0.1:
@@ -288,9 +291,9 @@ class FaceTracker:
         pos_max = max(filled_positions)
         pos_span = pos_max - pos_min
 
-        # If total speaker movement across the whole clip is within 18% of video width,
-        # use a 100% static locked tripod crop (zero wiggle, zero jitter, perfectly stable).
-        if pos_span < width * 0.18 and camera_style == "smooth":
+        # If total speaker movement across the clip is within 28% of video width,
+        # lock a 100% static tripod crop (zero wiggle, zero jitter, perfectly stable).
+        if pos_span < width * 0.28 and camera_style == "smooth":
             median_pos = float(np.median(filled_positions))
             median_pos = max(target_width / 2.0, min(width - target_width / 2.0, median_pos))
             x1 = int(round(median_pos - target_width / 2.0))
@@ -304,28 +307,27 @@ class FaceTracker:
             return cropped_clip
 
         # ── Steadicam Deadzone + Smooth Cinematic Panning ──
-        deadzone_ratio = 0.25 if camera_style == "snappy" else 0.55
+        deadzone_ratio = 0.30 if camera_style == "snappy" else 0.60
         deadzone_width = target_width * deadzone_ratio
-        smoothing_factor = 0.25 if camera_style == "snappy" else 0.08
-        required_hold_frames = 2 if camera_style == "snappy" else 4
+        smoothing_factor = 0.25 if camera_style == "snappy" else 0.05
+        required_hold_frames = 2 if camera_style == "snappy" else 5
 
         smoothed: List[float] = []
-        current_cam_pos = filled_positions[0]
-        stable_target_pos = filled_positions[0]
+        current_cam_pos = float(np.median(filled_positions[:3]))
+        stable_target_pos = current_cam_pos
         frames_held = 0
 
         for target_pos in filled_positions:
-            if abs(target_pos - stable_target_pos) > width * 0.15:
+            if abs(target_pos - stable_target_pos) > width * 0.12:
                 frames_held += 1
                 if frames_held >= required_hold_frames:
                     stable_target_pos = target_pos
                     frames_held = 0
             else:
-                stable_target_pos = target_pos
                 frames_held = 0
 
             dist = stable_target_pos - current_cam_pos
-            if abs(dist) > width * 0.35:
+            if abs(dist) > width * 0.40:
                 # Hard scene transition
                 current_cam_pos = stable_target_pos
             elif abs(dist) > deadzone_width / 2.0:
@@ -337,6 +339,14 @@ class FaceTracker:
 
             clamped_cam = max(target_width / 2.0, min(width - target_width / 2.0, current_cam_pos))
             smoothed.append(float(clamped_cam))
+
+        # Apply Gaussian window smoothing across time steps to guarantee zero jerk
+        if len(smoothed) >= 3:
+            kernel = np.array([0.15, 0.70, 0.15])
+            smoothed_np = np.convolve(smoothed, kernel, mode='same')
+            smoothed_np[0] = smoothed[0]
+            smoothed_np[-1] = smoothed[-1]
+            smoothed = list(smoothed_np)
 
         # Build Dynamic MoviePy Crop Filter
         sample_times_arr = np.array(sample_times, dtype=np.float64)
