@@ -819,6 +819,17 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
               </div>
             </div>
           )}
+
+          {/* Compliance and Trademark Attribution Notice */}
+          <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/5 space-y-1 text-[10px] text-gray-400">
+            <div className="flex items-center gap-1.5 font-bold text-gray-300">
+              <ShieldCheck className="w-3.5 h-3.5 text-amber-400/80" />
+              <span>Compliance &amp; Trademark Attribution Notice</span>
+            </div>
+            <p className="leading-relaxed opacity-75 text-[9.5px]">
+              Courtesy to all rightful trademark and copyright owners. ClipVault is an independent open ecosystem desktop software. All product names, logos, brands, and registered trademarks—including Intel®, Intel Core™, Intel Arc™, OpenVINO™, AMD®, Ryzen™, NVIDIA®, TensorRT™, CUDA®, Google®, Gemini™, OpenAI®, ChatGPT®, Anthropic®, Claude®, Groq®, DeepSeek®, Moonshot AI, Alibaba®, Qwen®, Higgsfield™, and ByteDance®—are the property of their respective owners. Their reference does not imply any affiliation, sponsorship, or endorsement.
+            </p>
+          </div>
         </div>
 
         {/* Modal Footer */}
