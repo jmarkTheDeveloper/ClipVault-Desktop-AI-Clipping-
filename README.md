@@ -13,7 +13,7 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688.svg?logo=fastapi)](https://fastapi.tiangolo.com/)
 [![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-3.4-38B2AC.svg?logo=tailwind-css)](https://tailwindcss.com/)
 [![FFmpeg](https://img.shields.io/badge/FFmpeg-Hardware_Accelerated-007808.svg?logo=ffmpeg)](https://ffmpeg.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: Proprietary Commercial](https://img.shields.io/badge/License-Proprietary%20Commercial-red.svg)](./LICENSE)
 
 <p align="center">
   <b>ClipVault</b> transforms full-length YouTube videos, podcasts, and local files into ultra-engaging, high-retention 9:16 vertical Shorts, TikToks, and Reels with CapCut-style animated subtitles, active face tracking, and smart stream slicing.
@@ -187,6 +187,13 @@ If you find ClipVault useful or want to support ongoing open-source development,
 
 ---
 
-## 📄 License
+## 📄 License & Intellectual Property
 
-Distributed under the **MIT License**. See `LICENSE` for more information.
+Copyright © 2026 **John Mark ([@jmarkTheDeveloper](https://github.com/jmarkTheDeveloper))**. All Rights Reserved.
+
+Distributed under the **Exclusive Proprietary Commercial Software License**.
+- **Personal & Educational Use**: You are free to view, study, and use ClipVault locally for personal content creation.
+- **Commercial & SaaS Restrictions**: Commercial resale, subscription monetization, SaaS re-hosting, and unauthorized commercial redistribution are strictly prohibited without an official commercial agreement directly from John Mark (`jmarkTheDeveloper`).
+
+See the [`LICENSE`](./LICENSE) file for complete legal terms.
+
