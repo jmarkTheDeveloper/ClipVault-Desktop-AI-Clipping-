@@ -322,17 +322,38 @@ class VideoProcessor:
                     clip = self.color_grader.apply_profile(clip, filter_profile)
                     clips_to_close.append(clip)
 
-                # 3. Dynamic micro-zooms & copyright bypass
+                # 3. Dynamic anti-ContentID bypass (Visual & Acoustic Fingerprint Disruption)
                 if yt_bypass:
                     from moviepy.video.fx.mirror_x import mirror_x
                     from moviepy.video.fx.speedx import speedx
+                    
+                    # 1. Flip horizontally
                     clip = mirror_x(clip)
-                    clip = speedx(clip, 1.06)
+                    # 2. Slight tempo shift (1.04x)
+                    clip = speedx(clip, 1.04)
+                    
+                    # 3. Micro-zoom (1.04x) + Spatial noise injection (breaks YouTube DCT block hashes)
+                    def apply_evasion_matrix(frame):
+                        if frame.dtype != np.uint8:
+                            frame = np.clip(frame, 0, 255).astype(np.uint8)
+                        frame = np.ascontiguousarray(frame)
+                        h, w = frame.shape[:2]
+                        zoom = 1.04
+                        nh, nw = int(h * zoom), int(w * zoom)
+                        resized = cv2.resize(frame, (nw, nh), interpolation=cv2.INTER_LINEAR)
+                        y1 = (nh - h) // 2
+                        x1 = (nw - w) // 2
+                        cropped = resized[y1:y1+h, x1:x1+w]
+                        noise = np.random.normal(0, 1.8, (h, w, 3)).astype(np.float32)
+                        return np.clip(cropped.astype(np.float32) + noise, 0, 255).astype(np.uint8)
+
+                    clip = clip.fl_image(apply_evasion_matrix)
                     clips_to_close.append(clip)
+                    
                     if words:
                         for w_info in words:
-                            w_info['start'] /= 1.06
-                            w_info['end'] /= 1.06
+                            w_info['start'] /= 1.04
+                            w_info['end'] /= 1.04
 
                 # 4. Background music with auto-ducking
                 if add_bg_music and not movie_recap:
