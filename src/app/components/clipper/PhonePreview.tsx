@@ -164,7 +164,7 @@ const DraggableCaptionOverlay: React.FC<{
               : "text-yellow-300"
           }`}
         >
-          VIRAL CAPTION 🚀
+          VIRAL CAPTION
         </span>
       </div>
     </div>
