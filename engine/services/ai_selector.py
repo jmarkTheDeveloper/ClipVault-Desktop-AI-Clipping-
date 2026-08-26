@@ -1,6 +1,7 @@
 import sys
 import json
 import random
+import requests
 import google.generativeai as genai
 
 if hasattr(sys.stdout, 'reconfigure'):
@@ -12,50 +13,156 @@ if hasattr(sys.stderr, 'reconfigure'):
 
 class AISelector:
     """
-    Uses AI models to select the most viral clips from a transcript.
+    Uses AI models (Gemini, OpenAI, Groq, DeepSeek, Claude, Moonlight, Qwen) to select viral clips.
     """
-    def __init__(self, api_key, provider="openai_sora"):
-        """
-        Initializes the AISelector with an API key and provider.
-        """
+    def __init__(self, api_key, provider="intel_ai"):
         self.api_key = api_key
-        self.provider = provider
+        self.provider = (provider or "intel_ai").lower()
+        
+        # Configure Gemini if key is provided
         if self.api_key and self.api_key not in ["YOUR_API_KEY_HERE", "demo", "null", "undefined", ""]:
             try:
                 genai.configure(api_key=self.api_key)
-            except Exception as e:
-                print(f"⚠️ Google AI config note: {e}")
-        # Priority list of fast production models
-        self.supported_models = [
+            except Exception:
+                pass
+
+        self.supported_gemini_models = [
             'gemini-2.5-flash',
             'gemini-2.0-flash',
             'gemini-1.5-flash'
         ]
 
-    def _generate_with_fallback(self, prompt, generation_config=None):
-        """Tries available Gemini models until one succeeds or falls back immediately."""
-        if not self.api_key or self.api_key in ["YOUR_API_KEY_HERE", "demo", "null", "undefined", ""]:
-            raise RuntimeError("No custom Gemini API key provided. Using instant smart fallback.")
-            
-        import concurrent.futures
-        def _call(m):
-            return m.generate_content(prompt, generation_config=generation_config)
+    def _call_openai_compatible(self, base_url: str, model: str, prompt: str) -> str:
+        """Universal fast caller for OpenAI, Groq, DeepSeek, Moonshot, Qwen, or Custom Proxy."""
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": "You are a professional video editor and viral short-form clip curator. Return ONLY valid JSON."},
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": 0.4
+        }
+        r = requests.post(f"{base_url.rstrip('/')}/chat/completions", headers=headers, json=payload, timeout=6.5)
+        if r.status_code != 200:
+            raise RuntimeError(f"Provider API HTTP {r.status_code}: {r.text[:120]}")
+        data = r.json()
+        return data["choices"][0]["message"]["content"]
 
-        last_error = None
-        for model_name in self.supported_models:
+    def _call_anthropic_claude(self, prompt: str) -> str:
+        """Caller for Anthropic Claude API."""
+        headers = {
+            "x-api-key": self.api_key,
+            "anthropic-version": "2023-06-01",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "model": "claude-3-5-sonnet-20241022",
+            "max_tokens": 1500,
+            "messages": [{"role": "user", "content": prompt}]
+        }
+        r = requests.post("https://api.anthropic.com/v1/messages", headers=headers, json=payload, timeout=7.0)
+        if r.status_code != 200:
+            raise RuntimeError(f"Anthropic API HTTP {r.status_code}: {r.text[:120]}")
+        data = r.json()
+        return data["content"][0]["text"]
+
+    def _generate_with_fallback(self, prompt, generation_config=None):
+        """Tries selected AI provider with strict 6.5s timeout or falls back to local chapter analysis."""
+        if not self.api_key or self.api_key in ["YOUR_API_KEY_HERE", "demo", "null", "undefined", ""]:
+            raise RuntimeError("Local Hardware / Demo mode active. Using instant local energy-peak analysis.")
+
+        import concurrent.futures
+
+        # 1. Groq LPU (Ultra Fast 500+ t/s)
+        if "groq" in self.provider:
             try:
-                model = genai.GenerativeModel(model_name)
-                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-                    future = executor.submit(_call, model)
-                    return future.result(timeout=6.0)
-            except concurrent.futures.TimeoutError:
-                print(f"⚠️ AI API call timed out (6s). Using instant chapter highlight fallback.")
-                break
+                text = self._call_openai_compatible("https://api.groq.com/openai/v1", "llama-3.3-70b-versatile", prompt)
+                class MockRes: text: str
+                m = MockRes(); m.text = text
+                return m
             except Exception as e:
-                last_error = e
-                print(f"⚠️ AI API note: {e}. Using instant smart fallback.")
-                break
-        raise RuntimeError(f"Gemini generation error: {last_error}")
+                print(f"⚠️ Groq LPU note: {e}. Falling back to smart chapter analyzer.")
+                raise RuntimeError(e)
+
+        # 2. DeepSeek
+        elif "deepseek" in self.provider:
+            try:
+                text = self._call_openai_compatible("https://api.deepseek.com", "deepseek-chat", prompt)
+                class MockRes: text: str
+                m = MockRes(); m.text = text
+                return m
+            except Exception as e:
+                print(f"⚠️ DeepSeek note: {e}. Falling back to smart chapter analyzer.")
+                raise RuntimeError(e)
+
+        # 3. OpenAI ChatGPT / GPT-4o
+        elif "openai" in self.provider or "chatgpt" in self.provider or "sora" in self.provider:
+            try:
+                text = self._call_openai_compatible("https://api.openai.com/v1", "gpt-4o-mini", prompt)
+                class MockRes: text: str
+                m = MockRes(); m.text = text
+                return m
+            except Exception as e:
+                print(f"⚠️ OpenAI note: {e}. Falling back to smart chapter analyzer.")
+                raise RuntimeError(e)
+
+        # 4. Anthropic Claude
+        elif "claude" in self.provider or "anthropic" in self.provider:
+            try:
+                text = self._call_anthropic_claude(prompt)
+                class MockRes: text: str
+                m = MockRes(); m.text = text
+                return m
+            except Exception as e:
+                print(f"⚠️ Anthropic note: {e}. Falling back to smart chapter analyzer.")
+                raise RuntimeError(e)
+
+        # 5. Moonshot / Moonlight
+        elif "moonlight" in self.provider or "moonshot" in self.provider:
+            try:
+                text = self._call_openai_compatible("https://api.moonshot.cn/v1", "moonshot-v1-8k", prompt)
+                class MockRes: text: str
+                m = MockRes(); m.text = text
+                return m
+            except Exception as e:
+                print(f"⚠️ Moonlight note: {e}. Falling back to smart chapter analyzer.")
+                raise RuntimeError(e)
+
+        # 6. Alibaba Qwen
+        elif "qwen" in self.provider:
+            try:
+                text = self._call_openai_compatible("https://dashscope-intl.aliyuncs.com/compatible-mode/v1", "qwen-plus", prompt)
+                class MockRes: text: str
+                m = MockRes(); m.text = text
+                return m
+            except Exception as e:
+                print(f"⚠️ Qwen note: {e}. Falling back to smart chapter analyzer.")
+                raise RuntimeError(e)
+
+        # 7. Google Gemini (Default / Gemini Flash)
+        else:
+            def _call(m):
+                return m.generate_content(prompt, generation_config=generation_config)
+
+            last_error = None
+            for model_name in self.supported_gemini_models:
+                try:
+                    model = genai.GenerativeModel(model_name)
+                    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                        future = executor.submit(_call, model)
+                        return future.result(timeout=6.0)
+                except concurrent.futures.TimeoutError:
+                    print(f"⚠️ Google Gemini call timed out (6s). Using instant chapter highlight analyzer.")
+                    break
+                except Exception as e:
+                    last_error = e
+                    print(f"⚠️ Google Gemini note: {e}. Using instant smart chapter analyzer.")
+                    break
+            raise RuntimeError(f"Gemini generation error: {last_error}")
 
     def select_clips(self, segments, video_duration, n, target_duration, topic=None):
         """

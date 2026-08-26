@@ -322,32 +322,25 @@ class VideoProcessor:
                     clip = self.color_grader.apply_profile(clip, filter_profile)
                     clips_to_close.append(clip)
 
-                # 3. Dynamic anti-ContentID bypass (Visual & Acoustic Fingerprint Disruption)
+                # 3. Dynamic anti-ContentID bypass (Fast C-Level Visual & Acoustic Fingerprint Disruption)
                 if yt_bypass:
                     from moviepy.video.fx.mirror_x import mirror_x
                     from moviepy.video.fx.speedx import speedx
+                    from moviepy.video.fx.crop import crop
                     
-                    # 1. Flip horizontally
+                    # 1. Flip horizontally (C-pointer matrix inversion, zero overhead)
                     clip = mirror_x(clip)
                     # 2. Slight tempo shift (1.04x)
                     clip = speedx(clip, 1.04)
                     
-                    # 3. Micro-zoom (1.04x) + Spatial noise injection (breaks YouTube DCT block hashes)
-                    def apply_evasion_matrix(frame):
-                        if frame.dtype != np.uint8:
-                            frame = np.clip(frame, 0, 255).astype(np.uint8)
-                        frame = np.ascontiguousarray(frame)
-                        h, w = frame.shape[:2]
-                        zoom = 1.04
-                        nh, nw = int(h * zoom), int(w * zoom)
-                        resized = cv2.resize(frame, (nw, nh), interpolation=cv2.INTER_LINEAR)
-                        y1 = (nh - h) // 2
-                        x1 = (nw - w) // 2
-                        cropped = resized[y1:y1+h, x1:x1+w]
-                        noise = np.random.normal(0, 1.8, (h, w, 3)).astype(np.float32)
-                        return np.clip(cropped.astype(np.float32) + noise, 0, 255).astype(np.uint8)
-
-                    clip = clip.fl_image(apply_evasion_matrix)
+                    # 3. Micro-crop 1.04x to break outer bounding box perceptual hash
+                    cw, ch = clip.size
+                    crop_w = int(cw / 1.04)
+                    crop_h = int(ch / 1.04)
+                    if crop_w % 2 != 0: crop_w -= 1
+                    if crop_h % 2 != 0: crop_h -= 1
+                    clip = crop(clip, width=crop_w, height=crop_h, x_center=cw/2, y_center=ch/2)
+                    clip = clip.resize((cw, ch))
                     clips_to_close.append(clip)
                     
                     if words:
@@ -446,6 +439,9 @@ class VideoProcessor:
                 )
                 output_files.append(str(output_path))
                 print(f"    ✅ Saved: {filename} ({render_fps} FPS)")
+                if progress_callback:
+                    final_pct = min(99, int(60 + (i / len(clip_specs)) * 39))
+                    progress_callback(f"Finalized Clip {i}/{len(clip_specs)}", final_pct)
 
                 # Save metadata text file
                 metadata_dir = target_dir / "metadata"
