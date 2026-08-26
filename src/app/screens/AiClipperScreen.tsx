@@ -978,8 +978,8 @@ export const AiClipperScreen: React.FC<Props> = ({ onBack, initialViewMode = "se
               <Zap className="w-3.5 h-3.5 text-black" strokeWidth={2.5} />
             </div>
             <span className="text-white font-bold text-base">ClipVault Studio</span>
-            <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-400/10 text-amber-400 border border-amber-400/20">
-              🚀 Smart Slicing v2
+            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-400/10 text-amber-400 border border-amber-400/25 tracking-wide">
+              V1
             </span>
           </div>
 
