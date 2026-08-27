@@ -126,19 +126,31 @@ class LayoutCompositor:
                 speaker_w = target_width
                 
                 # Face track or center crop speaker for top half
-                W, H = clip.size
-                crop_w = int(H * (speaker_w / speaker_h))
-                if crop_w % 2 != 0: crop_w -= 1
-                if crop_w > W:
-                    crop_w = W
-                    crop_h = int(W * (speaker_h / speaker_w))
-                    if crop_h % 2 != 0: crop_h -= 1
-                    top_x = 0
-                    top_y = max(0, H // 2 - crop_h // 2)
-                    top_speaker = clip.crop(x1=top_x, y1=top_y, width=crop_w, height=crop_h).resize((speaker_w, speaker_h))
-                else:
-                    top_x = max(0, W // 2 - crop_w // 2)
-                    top_speaker = clip.crop(x1=top_x, y1=0, width=crop_w, height=H).resize((speaker_w, speaker_h))
+                speaker_ratio = speaker_w / speaker_h
+                top_speaker = None
+                if self.face_tracker:
+                    print("    🎯 Applying intelligent face tracking to top speaker frame...")
+                    try:
+                        tracked_top = self.face_tracker.track_and_crop(clip, crop_ratio=speaker_ratio, camera_style=camera_style)
+                        top_speaker = tracked_top.resize((speaker_w, speaker_h))
+                    except Exception as fe:
+                        print(f"    ⚠️ Face tracking fallback in gameplay layout: {fe}")
+                        top_speaker = None
+
+                if top_speaker is None:
+                    W, H = clip.size
+                    crop_w = int(H * speaker_ratio)
+                    if crop_w % 2 != 0: crop_w -= 1
+                    if crop_w > W:
+                        crop_w = W
+                        crop_h = int(W / speaker_ratio)
+                        if crop_h % 2 != 0: crop_h -= 1
+                        top_x = 0
+                        top_y = max(0, H // 2 - crop_h // 2)
+                        top_speaker = clip.crop(x1=top_x, y1=top_y, width=crop_w, height=crop_h).resize((speaker_w, speaker_h))
+                    else:
+                        top_x = max(0, W // 2 - crop_w // 2)
+                        top_speaker = clip.crop(x1=top_x, y1=0, width=crop_w, height=H).resize((speaker_w, speaker_h))
                 clips_to_close.append(top_speaker)
 
                 # Bottom half: Gameplay video

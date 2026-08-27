@@ -359,15 +359,15 @@ class FaceTracker:
             required_hold_frames = 0 # Starts tracking with zero delay
             cut_threshold = target_width * 0.35 # Instant shot cut on speaker switch
         elif camera_style == "snappy":
-            deadzone_ratio = 0.10
-            smoothing_factor = 0.48
+            deadzone_ratio = 0.08   # 8% responsive deadband
+            smoothing_factor = 0.55  # Fast dynamic follow (zero sluggishness)
+            required_hold_frames = 0 # Starts tracking immediately
+            cut_threshold = target_width * 0.35
+        else: # "smooth"
+            deadzone_ratio = 0.15   # 15% natural shoulder deadzone
+            smoothing_factor = 0.32  # Fluid cinematic glide (never trails behind)
             required_hold_frames = 1
             cut_threshold = target_width * 0.40
-        else: # "smooth"
-            deadzone_ratio = 0.20
-            smoothing_factor = 0.22
-            required_hold_frames = 2
-            cut_threshold = target_width * 0.50
 
         deadzone_width = target_width * deadzone_ratio
         smoothed: List[float] = []
