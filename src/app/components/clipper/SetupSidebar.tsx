@@ -461,33 +461,58 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
         <Section title="Clip Duration & AI Settings">
           <div className="space-y-2 mb-3">
             {DURATION_MODES.map((d, i) => (
-              <button
-                key={d.id}
-                onClick={() => setDurationMode(d.id)}
-                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-left border transition-all cursor-pointer ${
-                  durationMode === d.id ? "bg-amber-400/10 border-amber-400/50" : "bg-white/[0.02] border-white/5"
-                }`}
-              >
-                <span
-                  className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                    durationMode === d.id ? "bg-amber-400 text-black" : "bg-white/10 text-gray-400"
+              <div key={d.id} className="space-y-2">
+                <button
+                  type="button"
+                  onClick={() => setDurationMode(d.id)}
+                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-left border transition-all cursor-pointer ${
+                    durationMode === d.id ? "bg-amber-400/10 border-amber-400/50 shadow-sm" : "bg-white/[0.02] border-white/5 hover:bg-white/[0.05]"
                   }`}
                 >
-                  {i + 1}
-                </span>
-                <div>
-                  <p className="text-xs font-semibold text-white">{d.label}</p>
-                  <p className="text-[10px] text-gray-500">{d.desc}</p>
-                </div>
-              </button>
+                  <span
+                    className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                      durationMode === d.id ? "bg-amber-400 text-black" : "bg-white/10 text-gray-400"
+                    }`}
+                  >
+                    {i + 1}
+                  </span>
+                  <div>
+                    <p className="text-xs font-semibold text-white">{d.label}</p>
+                    <p className="text-[10px] text-gray-500">{d.desc}</p>
+                  </div>
+                </button>
+
+                {/* Custom Timestamp Range Inputs - Appears directly under this option when chosen */}
+                {d.id === "custom" && durationMode === "custom" && (
+                  <div className="grid grid-cols-2 gap-3 p-3.5 rounded-xl bg-amber-400/5 border border-amber-400/30 animate-fadeIn">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">Start Timestamp</label>
+                      <input
+                        type="text"
+                        value={startTs}
+                        onChange={(e) => setStartTs(e.target.value)}
+                        placeholder="e.g. 0:15"
+                        className="w-full rounded-lg px-3 py-2 text-xs font-bold text-white bg-black/40 border border-white/10 outline-none focus:border-amber-400 transition-colors"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">End Timestamp</label>
+                      <input
+                        type="text"
+                        value={endTs}
+                        onChange={(e) => setEndTs(e.target.value)}
+                        placeholder="e.g. 1:45"
+                        className="w-full rounded-lg px-3 py-2 text-xs font-bold text-white bg-black/40 border border-white/10 outline-none focus:border-amber-400 transition-colors"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
             ))}
           </div>
 
-          <div
-            className={`space-y-3 transition-opacity duration-300 ${
-              durationMode !== "auto" ? "opacity-30 pointer-events-none grayscale" : "opacity-100"
-            }`}
-          >
+          {durationMode === "auto" && (
+            <div className="space-y-3 animate-fadeIn">
             <div className="flex items-center justify-between p-3.5 rounded-xl bg-white/5 border border-white/5">
               <span className="text-xs text-white font-medium">Clips to generate</span>
               <div className="flex items-center gap-2">
@@ -552,8 +577,10 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                 className="w-full rounded-lg px-3 py-2 text-xs text-white bg-white/5 border border-white/10 outline-none focus:border-amber-400 placeholder-gray-600 transition-colors"
               />
             </div>
+          </div>
+        )}
 
-            {/* Output Directory & Batch Folder Settings */}
+        {/* Output Directory & Batch Folder Settings */}
             <div className="space-y-2 mt-3 p-3 rounded-xl bg-white/[0.03] border border-white/10">
               <div className="flex items-center justify-between">
                 <label className="text-[10px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
@@ -709,7 +736,6 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                 </option>
               </select>
             </div>
-          </div>
 
           <div className="space-y-3">
             {/* Background Music Toggle */}
@@ -897,35 +923,6 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                   }`}
                 />
               </div>
-            </div>
-          </div>
-
-          <div
-            className={`grid grid-cols-2 gap-3 p-3.5 rounded-xl transition-opacity duration-300 ${
-              durationMode !== "custom"
-                ? "opacity-30 pointer-events-none bg-white/5 border border-white/5 grayscale"
-                : "bg-white/5 border border-amber-400/30 opacity-100"
-            }`}
-          >
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">Start Timestamp</label>
-              <input
-                type="text"
-                value={startTs}
-                onChange={(e) => setStartTs(e.target.value)}
-                placeholder="e.g. 0:15"
-                className="w-full rounded-lg px-3 py-2 text-xs font-bold text-white bg-black/20 border border-white/10 outline-none focus:border-amber-400 transition-colors"
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">End Timestamp</label>
-              <input
-                type="text"
-                value={endTs}
-                onChange={(e) => setEndTs(e.target.value)}
-                placeholder="e.g. 1:45"
-                className="w-full rounded-lg px-3 py-2 text-xs font-bold text-white bg-black/20 border border-white/10 outline-none focus:border-amber-400 transition-colors"
-              />
             </div>
           </div>
         </Section>

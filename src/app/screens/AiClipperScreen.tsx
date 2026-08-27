@@ -493,20 +493,40 @@ export const AiClipperScreen: React.FC<Props> = ({ onBack, initialViewMode = "se
 
       // Parse custom timestamps ONLY if duration mode is custom
       let customRange: number[] | null = null;
+      let calculatedTargetDuration = durationMode === "auto" ? (parseInt(targetDuration.toString()) || 30) : -1;
+
       if (durationMode === "custom") {
         const parseSecs = (str: string) => {
           if (!str) return null;
-          const p = str.trim().split(":").map(Number);
+          const trimmed = str.trim();
+          if (!trimmed) return null;
+          if (!trimmed.includes(":")) {
+            const num = parseFloat(trimmed);
+            return isNaN(num) || num < 0 ? null : num;
+          }
+          const p = trimmed.split(":").map(Number);
           if (p.some(isNaN)) return null;
           if (p.length === 2) return p[0] * 60 + p[1];
           if (p.length === 3) return p[0] * 3600 + p[1] * 60 + p[2];
           return null;
         };
+
         const s = parseSecs(startTs);
         const e = parseSecs(endTs);
-        if (s !== null && e !== null && e > s) {
-          customRange = [s, e];
+
+        if (s === null || e === null) {
+          setErrorMsg("Please enter both Start and End timestamps (e.g. 0:15 and 1:45).");
+          setRunning(false);
+          return;
         }
+        if (e <= s) {
+          setErrorMsg(`End timestamp (${endTs}) must be greater than Start timestamp (${startTs}).`);
+          setRunning(false);
+          return;
+        }
+
+        customRange = [s, e];
+        calculatedTargetDuration = Math.max(1, Math.round(e - s));
       }
 
       // 1. Trigger process
@@ -515,8 +535,8 @@ export const AiClipperScreen: React.FC<Props> = ({ onBack, initialViewMode = "se
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           url: activeUrl,
-          num_clips: parseInt(numClips.toString()) || 1,
-          target_duration: durationMode === "auto" ? parseInt(targetDuration.toString()) || 30 : -1,
+          num_clips: durationMode === "custom" ? 1 : (parseInt(numClips.toString()) || 1),
+          target_duration: calculatedTargetDuration,
           custom_range: customRange,
           topic: topicPrompt || null,
           quality,
