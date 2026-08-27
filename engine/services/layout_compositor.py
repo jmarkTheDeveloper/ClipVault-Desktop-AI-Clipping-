@@ -41,7 +41,7 @@ class LayoutCompositor:
         target_width: int,
         target_height: int,
         custom_crop_boxes: Optional[List[Dict[str, Any]]] = None,
-        camera_style: str = "smooth",
+        camera_style: str = "instant",
         clips_to_close: Optional[List[Any]] = None,
         gameplay_bg_video: Optional[str] = None
     ):

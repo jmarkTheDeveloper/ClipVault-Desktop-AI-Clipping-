@@ -19,7 +19,7 @@ try:
     model_path = Path(__file__).parent.parent / "models" / "blaze_face_short_range.tflite"
     if model_path.exists():
         base_options = mp_python.BaseOptions(model_asset_path=str(model_path))
-        options = mp_vision.FaceDetectorOptions(base_options=base_options, min_detection_confidence=0.3)
+        options = mp_vision.FaceDetectorOptions(base_options=base_options, min_detection_confidence=0.45)
         mp_face_detector = mp_vision.FaceDetector.create_from_options(options)
         try:
             print(">> Initialized MediaPipe Neural Face Detector (TFLite)")
@@ -210,16 +210,21 @@ class FaceTracker:
             except Exception:
                 pass
 
-        # Sort by prominence: confidence * area
-        result = sorted(faces, key=lambda f: f['confidence'] * f['area'], reverse=True)
+        # Separate high-confidence real faces from noise/posters
+        high_conf = [f for f in faces if f['confidence'] >= 0.55]
+        valid_faces = high_conf if high_conf else [f for f in faces if f['confidence'] >= 0.40]
+        result = sorted(valid_faces, key=lambda f: (f['confidence'] ** 2) * (f['area'] ** 0.5), reverse=True)
         if frame_time is not None:
             self.face_cache[frame_time] = result
         return result
 
-    def track_and_crop(self, clip, crop_ratio: float = 9/16, camera_style: str = "smooth"):
+    def track_and_crop(self, clip, crop_ratio: float = 9/16, camera_style: str = "instant"):
         """
-        Tracks faces/speakers in a video clip with rock-solid tripod stability and buttery-smooth cinematic panning.
-        Includes Multi-Speaker Group Locking and Sticky Anchor Hysteresis to eliminate wobbly/ping-pong movement in multi-person scenes.
+        Tracks faces/speakers in a video clip with rock-solid stability and high-accuracy framing.
+        Supports:
+          - 'instant': Zero-lag direct active speaker tracking (centers the speaker immediately).
+          - 'snappy': Rapid action steadicam with dynamic follow.
+          - 'smooth': Gentle cinematic glide for formal interviews.
         """
         width, height = clip.size
         target_width = int(height * crop_ratio)
@@ -238,9 +243,9 @@ class FaceTracker:
             pass
         self.face_cache = {}
 
-        # Sample frames across the clip timeline (3 samples/sec for accurate tracking)
-        fps_sample = 3
-        num_samples = max(4, int(clip.duration * fps_sample))
+        # Sample frames across the clip timeline (6 samples/sec for high temporal accuracy)
+        fps_sample = 6
+        num_samples = max(6, int(clip.duration * fps_sample))
         sample_times = np.linspace(0.05, max(0.1, clip.duration - 0.05), num_samples)
 
         all_frame_detections = []
@@ -251,39 +256,38 @@ class FaceTracker:
                 frame = clip.get_frame(t)
                 detected = self.detect_faces_in_frame(frame, frame_time=t)
                 if detected:
-                    max_area = max(f['area'] for f in detected)
+                    top_score = (detected[0]['confidence'] ** 2) * (detected[0]['area'] ** 0.5)
                     # Filter out small background faces / noise
-                    valid = [f for f in detected if f['area'] >= max_area * 0.35 and f['confidence'] >= 0.35]
+                    valid = [f for f in detected if ((f['confidence'] ** 2) * (f['area'] ** 0.5)) >= top_score * 0.35 and f['confidence'] >= 0.48]
                     all_frame_detections.append(valid if valid else detected[:1])
                     for f in (valid if valid else detected[:1]):
-                        all_face_centers.append((f['center_x'], f['area'] * f['confidence']))
+                        all_face_centers.append((f['center_x'], f['confidence']))
                 else:
                     all_frame_detections.append([])
             except Exception:
                 all_frame_detections.append([])
 
-        # ── 1. GLOBAL MULTI-PERSON CLUSTERING & GROUP LOCK ──
-        if all_face_centers:
-            xs = np.array([x for x, w in all_face_centers])
-            weights = np.array([w for x, w in all_face_centers])
+        # ── 1. MULTI-PERSON GROUP LOCK (Only for smooth/snappy mode with persistent co-speakers) ──
+        if camera_style != "instant" and all_face_centers:
+            xs = np.array([x for x, c in all_face_centers])
+            weights = np.array([c for x, c in all_face_centers])
             nbins = max(4, int(width // 150))
             hist, bin_edges = np.histogram(xs, bins=nbins, weights=weights, range=(0, width))
             peak_indices = np.argsort(hist)[::-1]
 
             speaker_clusters = []
             for idx in peak_indices:
-                if hist[idx] > 0 and (len(speaker_clusters) == 0 or hist[idx] >= hist[peak_indices[0]] * 0.22):
+                if hist[idx] > 0 and (len(speaker_clusters) == 0 or hist[idx] >= hist[peak_indices[0]] * 0.35):
                     c_pos = (bin_edges[idx] + bin_edges[idx+1]) / 2.0
                     if not any(abs(c_pos - c) < target_width * 0.40 for c in speaker_clusters):
                         speaker_clusters.append(c_pos)
                         if len(speaker_clusters) >= 3:
                             break
 
-            # Case A: Two persistent speakers (Interview / Podcast / Co-host)
+            # Case A: Two persistent co-speakers (Interview / Podcast) fitting comfortably
             if len(speaker_clusters) == 2:
                 dist = abs(speaker_clusters[0] - speaker_clusters[1])
-                # If both speakers fit comfortably in vertical 9:16 frame, LOCK TWO-SHOT TRIPOD
-                if dist <= target_width * 0.90:
+                if dist <= target_width * 0.85:
                     group_center = (speaker_clusters[0] + speaker_clusters[1]) / 2.0
                     group_center = max(target_width / 2.0, min(width - target_width / 2.0, group_center))
                     x1 = int(round(group_center - target_width / 2.0))
@@ -294,21 +298,7 @@ class FaceTracker:
                         pass
                     return clip.crop(x1=x1, width=target_width)
 
-            # Case B: 3+ People (Panel / Crowd / Group) -> Lock on group centroid
-            if len(speaker_clusters) >= 3:
-                group_span = max(speaker_clusters[:3]) - min(speaker_clusters[:3])
-                if group_span <= target_width * 0.95:
-                    group_center = float(np.average(speaker_clusters[:3]))
-                    locked_pos = max(target_width / 2.0, min(width - target_width / 2.0, group_center))
-                    x1 = int(round(locked_pos - target_width / 2.0))
-                    x1 = max(0, min(width - target_width, x1))
-                    try:
-                        print(f"    [OK] Locked Group Centroid Tripod at X={locked_pos:.0f} (Zero Jitter)")
-                    except Exception:
-                        pass
-                    return clip.crop(x1=x1, width=target_width)
-
-        # ── 2. STICKY ANCHOR & TEMPORAL TRACKING ──
+        # ── 2. STICKY ANCHOR & ACTIVE SPEAKER SELECTION ──
         face_positions: List[Optional[float]] = []
         current_sticky_anchor: Optional[float] = None
 
@@ -318,14 +308,16 @@ class FaceTracker:
                     current_sticky_anchor = float(faces[0]['center_x'])
                     face_positions.append(current_sticky_anchor)
                 else:
-                    # Multi-face frame: prioritize closest face to current sticky anchor to prevent jumping
                     if current_sticky_anchor is not None:
                         closest = min(faces, key=lambda f: abs(f['center_x'] - current_sticky_anchor))
-                        # If closest is reasonably sized, stick to it
-                        current_sticky_anchor = float(closest['center_x'])
+                        if abs(closest['center_x'] - current_sticky_anchor) < target_width * 0.50:
+                            current_sticky_anchor = float(closest['center_x'])
+                        else:
+                            primary = max(faces, key=lambda f: (f['confidence'] ** 2) * (f['area'] ** 0.5))
+                            current_sticky_anchor = float(primary['center_x'])
                         face_positions.append(current_sticky_anchor)
                     else:
-                        primary = max(faces, key=lambda f: f['area'] * f['confidence'])
+                        primary = max(faces, key=lambda f: (f['confidence'] ** 2) * (f['area'] ** 0.5))
                         current_sticky_anchor = float(primary['center_x'])
                         face_positions.append(current_sticky_anchor)
             else:
@@ -344,61 +336,74 @@ class FaceTracker:
                     last_seen = p
                 filled_positions.append(float(last_seen))
 
-        # ── 3. ZERO-JITTER TRIPOD LOCK ──
+        # ── 3. TRIPOD LOCK (Only in smooth mode if subject barely moves) ──
         pos_min = min(filled_positions)
         pos_max = max(filled_positions)
         pos_span = pos_max - pos_min
 
-        # If total speaker movement across the clip is within 30% of video width,
-        # lock a 100% static tripod crop (zero wiggle, zero jitter, perfectly stable).
-        if pos_span < width * 0.30 and camera_style == "smooth":
+        if camera_style == "smooth" and pos_span < width * 0.08:
             median_pos = float(np.median(filled_positions))
             median_pos = max(target_width / 2.0, min(width - target_width / 2.0, median_pos))
             x1 = int(round(median_pos - target_width / 2.0))
             x1 = max(0, min(width - target_width, x1))
-            
             try:
                 print(f"    [OK] Rock-Solid Tripod Locked at X={median_pos:.0f} (Zero Jitter, {target_width}x{height})")
             except Exception:
                 pass
             return clip.crop(x1=x1, width=target_width)
 
-        # ── 4. HOLLYWOOD STEADICAM WITH GAUSSIAN SMOOTHING ──
-        deadzone_ratio = 0.30 if camera_style == "snappy" else 0.65
-        deadzone_width = target_width * deadzone_ratio
-        smoothing_factor = 0.20 if camera_style == "snappy" else 0.04
-        required_hold_frames = 2 if camera_style == "snappy" else 6
+        # ── 4. ADAPTIVE CAMERA DYNAMICS (Instant, Snappy, Smooth) ──
+        if camera_style == "instant":
+            deadzone_ratio = 0.03   # 3% minimal deadband for zero lag
+            smoothing_factor = 0.85  # Centers the speaker immediately
+            required_hold_frames = 0 # Starts tracking with zero delay
+            cut_threshold = target_width * 0.35 # Instant shot cut on speaker switch
+        elif camera_style == "snappy":
+            deadzone_ratio = 0.10
+            smoothing_factor = 0.48
+            required_hold_frames = 1
+            cut_threshold = target_width * 0.40
+        else: # "smooth"
+            deadzone_ratio = 0.20
+            smoothing_factor = 0.22
+            required_hold_frames = 2
+            cut_threshold = target_width * 0.50
 
+        deadzone_width = target_width * deadzone_ratio
         smoothed: List[float] = []
-        current_cam_pos = float(np.median(filled_positions[:3]))
+        current_cam_pos = float(np.median(filled_positions[:min(3, len(filled_positions))]))
         stable_target_pos = current_cam_pos
         frames_held = 0
 
         for target_pos in filled_positions:
-            if abs(target_pos - stable_target_pos) > width * 0.12:
+            if required_hold_frames > 0 and abs(target_pos - stable_target_pos) > width * 0.10:
                 frames_held += 1
                 if frames_held >= required_hold_frames:
                     stable_target_pos = target_pos
                     frames_held = 0
             else:
+                stable_target_pos = target_pos
                 frames_held = 0
 
             dist = stable_target_pos - current_cam_pos
-            if abs(dist) > width * 0.45:
-                # Hard scene transition / angle cut
+            # Hard scene transition or speaker switch -> Instant Cut!
+            if abs(dist) > cut_threshold:
                 current_cam_pos = stable_target_pos
             elif abs(dist) > deadzone_width / 2.0:
-                if dist > 0:
-                    desired_cam = stable_target_pos - (deadzone_width / 2.0)
-                else:
-                    desired_cam = stable_target_pos + (deadzone_width / 2.0)
+                desired_cam = stable_target_pos - np.sign(dist) * (deadzone_width / 2.0)
                 current_cam_pos += (desired_cam - current_cam_pos) * smoothing_factor
 
             clamped_cam = max(target_width / 2.0, min(width - target_width / 2.0, current_cam_pos))
             smoothed.append(float(clamped_cam))
 
-        # Multi-stage Gaussian filter smoothing
-        if len(smoothed) >= 5:
+        # Multi-stage Gaussian filter smoothing (selective by style)
+        if camera_style == "snappy" and len(smoothed) >= 3:
+            kernel = np.array([0.15, 0.70, 0.15])
+            smoothed_np = np.convolve(smoothed, kernel, mode='same')
+            smoothed_np[0] = smoothed[0]
+            smoothed_np[-1] = smoothed[-1]
+            smoothed = list(smoothed_np)
+        elif camera_style == "smooth" and len(smoothed) >= 5:
             kernel = np.array([0.05, 0.20, 0.50, 0.20, 0.05])
             smoothed_np = np.convolve(smoothed, kernel, mode='same')
             smoothed_np[:2] = smoothed[:2]
@@ -421,7 +426,7 @@ class FaceTracker:
         cropped_clip.size = (target_width, height)
 
         try:
-            print(f"    [OK] Multi-Speaker Steadicam Active ({target_width}x{height}, Camera Style: {camera_style})")
+            print(f"    [OK] Dynamic Face Steadicam Active ({target_width}x{height}, Camera Style: {camera_style})")
         except Exception:
             pass
         self.face_cache = {}

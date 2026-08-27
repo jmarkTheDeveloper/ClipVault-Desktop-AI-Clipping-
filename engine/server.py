@@ -107,7 +107,7 @@ class ProcessRequest(BaseModel):
     caption_y_pct: Optional[float] = 0.70
     ai_engine: str = "openai_sora"
     api_key: Optional[str] = None
-    camera_style: str = "smooth"
+    camera_style: str = "instant"
     gameplay_bg_video: Optional[str] = None
     bg_music_file: Optional[str] = None
 

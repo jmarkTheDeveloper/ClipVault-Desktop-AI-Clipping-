@@ -125,7 +125,7 @@ class VideoProcessor:
         custom_crop_boxes: Optional[Any] = None,
         caption_style: str = "capcut_yellow",
         caption_y_pct: Optional[float] = 0.70,
-        camera_style: str = "smooth",
+        camera_style: str = "instant",
         gameplay_bg_video: Optional[str] = None,
         bg_music_file: Optional[str] = None,
         progress_callback: Optional[Any] = None,

@@ -60,8 +60,8 @@ interface SetupSidebarProps {
   layout: string;
   setLayout: (l: string) => void;
   setCropModalOpen: (mode: "none" | "top" | "bottom") => void;
-  cameraStyle: "smooth" | "snappy";
-  setCameraStyle: (s: "smooth" | "snappy") => void;
+  cameraStyle: "instant" | "snappy" | "smooth";
+  setCameraStyle: (s: "instant" | "snappy" | "smooth") => void;
   durationMode: string;
   setDurationMode: (d: string) => void;
   numClips: number | string;
@@ -416,28 +416,42 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
         {/* Camera Tracking Style */}
         <div className={layout === "custom_split" ? "opacity-30 pointer-events-none transition-opacity" : "transition-opacity"}>
           <Section title="Camera Tracking Style">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-2">
               <button
-                onClick={() => setCameraStyle("smooth")}
-                className={`p-3 rounded-xl text-left border transition-all cursor-pointer ${
-                  cameraStyle === "smooth"
-                    ? "bg-amber-400/10 border-amber-400/50 shadow-[0_0_15px_rgba(251,191,36,0.15)]"
+                onClick={() => setCameraStyle("instant")}
+                className={`p-2.5 rounded-xl text-left border transition-all cursor-pointer ${
+                  cameraStyle === "instant"
+                    ? "bg-amber-400/10 border-amber-400/50 shadow-[0_0_15px_rgba(251,191,36,0.15)] ring-1 ring-amber-400/30"
                     : "bg-white/[0.02] border-white/5 hover:border-white/10"
                 }`}
               >
-                <p className="text-white text-xs font-bold">Smooth / Glide</p>
-                <p className="text-[10px] text-gray-500 mt-0.5">Slow cinematic pans</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-white text-xs font-extrabold">Instant</p>
+                  <span className="text-[8px] font-bold px-1 py-0.2 rounded bg-amber-400/20 text-amber-300">Fastest</span>
+                </div>
+                <p className="text-[10px] text-gray-400 mt-0.5 leading-tight">Zero lag, always centered</p>
               </button>
               <button
                 onClick={() => setCameraStyle("snappy")}
-                className={`p-3 rounded-xl text-left border transition-all cursor-pointer ${
+                className={`p-2.5 rounded-xl text-left border transition-all cursor-pointer ${
                   cameraStyle === "snappy"
-                    ? "bg-amber-400/10 border-amber-400/50 shadow-[0_0_15px_rgba(251,191,36,0.15)]"
+                    ? "bg-amber-400/10 border-amber-400/50 shadow-[0_0_15px_rgba(251,191,36,0.15)] ring-1 ring-amber-400/30"
                     : "bg-white/[0.02] border-white/5 hover:border-white/10"
                 }`}
               >
-                <p className="text-white text-xs font-bold">Snappy / Action</p>
-                <p className="text-[10px] text-gray-500 mt-0.5">Fast accurate tracking</p>
+                <p className="text-white text-xs font-bold">Snappy</p>
+                <p className="text-[10px] text-gray-500 mt-0.5 leading-tight">Dynamic action tracking</p>
+              </button>
+              <button
+                onClick={() => setCameraStyle("smooth")}
+                className={`p-2.5 rounded-xl text-left border transition-all cursor-pointer ${
+                  cameraStyle === "smooth"
+                    ? "bg-amber-400/10 border-amber-400/50 shadow-[0_0_15px_rgba(251,191,36,0.15)] ring-1 ring-amber-400/30"
+                    : "bg-white/[0.02] border-white/5 hover:border-white/10"
+                }`}
+              >
+                <p className="text-white text-xs font-bold">Smooth</p>
+                <p className="text-[10px] text-gray-500 mt-0.5 leading-tight">Gentle cinematic glide</p>
               </button>
             </div>
           </Section>

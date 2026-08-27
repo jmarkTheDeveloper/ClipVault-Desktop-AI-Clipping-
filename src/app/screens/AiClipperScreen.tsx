@@ -247,7 +247,7 @@ export const AiClipperScreen: React.FC<Props> = ({ onBack, initialViewMode = "se
   // Processing Parameters
   const [quality, setQuality] = useState("1080p");
   const [layout, setLayout] = useState("vertical_crop");
-  const [cameraStyle, setCameraStyle] = useState<"smooth" | "snappy">("smooth");
+  const [cameraStyle, setCameraStyle] = useState<"instant" | "snappy" | "smooth">("instant");
   const [durationMode, setDurationMode] = useState("auto");
   const [numClips, setNumClips] = useState<number | string>(3);
   const [targetDuration, setTargetDuration] = useState<number | string>(30);
