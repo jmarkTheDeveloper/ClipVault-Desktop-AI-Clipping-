@@ -309,7 +309,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
               {/* HUD Badge */}
               <div className="absolute top-10 left-3 z-30 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-amber-400/40 text-[9px] font-bold text-amber-400 flex items-center gap-1 shadow-lg">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                ✂️ Custom Split (9:16)
+                Custom Split (9:16)
               </div>
 
               {/* Top Viewport */}
@@ -377,7 +377,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
               {/* HUD Badge */}
               <div className="absolute top-10 left-3 z-30 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-amber-400/40 text-[9px] font-bold text-amber-400 flex items-center gap-1 shadow-lg">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                🎮 Gameplay Split (9:16)
+                Gameplay Split (9:16)
               </div>
 
               {/* Speaker Top Viewport */}
@@ -488,7 +488,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                       onLoadedMetadata={handleLoadedMetadata}
                     />
                     <div className="absolute top-10 left-3 z-20 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-white/20 text-[9px] font-bold text-white/80 flex items-center gap-1 shadow-lg">
-                      🌫️ Blurred Canvas (9:16)
+                      Blurred Canvas (9:16)
                     </div>
                   </div>
                 ) : layout === "landscape_fit" ? (
@@ -507,7 +507,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                       onLoadedMetadata={handleLoadedMetadata}
                     />
                     <div className="absolute top-10 left-3 z-20 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-white/20 text-[9px] font-bold text-white/80 flex items-center gap-1 shadow-lg">
-                      📺 Letterbox (9:16)
+                      Letterbox (9:16)
                     </div>
                   </div>
                 ) : (
@@ -527,7 +527,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                     />
                     <div className="absolute top-10 left-3 z-20 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-amber-400/40 text-[9px] font-bold text-amber-400 flex items-center gap-1 shadow-lg">
                       <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                      🎯 9:16 Face Tracking Active
+                      9:16 Face Tracking Active
                     </div>
                   </div>
                 )

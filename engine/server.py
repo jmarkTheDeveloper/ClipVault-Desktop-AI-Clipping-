@@ -14,7 +14,8 @@ if sys.platform == 'win32':
     except Exception:
         pass
 
-from fastapi import FastAPI, BackgroundTasks, Depends, HTTPException, Header, Body, UploadFile, File, Form
+from fastapi import FastAPI, BackgroundTasks, Depends, HTTPException, Header, Body, UploadFile, File, Form, Request
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -22,6 +23,7 @@ from typing import Optional, List, Any, Dict, Union
 import uuid
 import sys
 import os
+import mimetypes
 import threading
 from pathlib import Path
 
@@ -574,11 +576,58 @@ def download_clip(file: str, name: str):
     return FileResponse(path=file_path, filename=safe_name, media_type='video/mp4')
 
 @app.get("/stream")
-def stream_video_file(path: str):
+def stream_video_file(path: str, request: Request):
+    """
+    Streams local video files with HTTP 206 Partial Content byte-range support.
+    Enables instant seeking, accurate duration probing, and zero-stutter playback in HTML5 video elements.
+    """
     import os
-    if not os.path.exists(path):
+    norm_path = os.path.abspath(path)
+    if not os.path.exists(norm_path):
         raise HTTPException(status_code=404, detail="File not found")
-    return FileResponse(path, media_type="video/mp4", headers={"Accept-Ranges": "bytes"})
+        
+    file_size = os.path.getsize(norm_path)
+    range_header = request.headers.get("range")
+    
+    content_type, _ = mimetypes.guess_type(norm_path)
+    if not content_type:
+        content_type = "video/mp4"
+
+    if range_header:
+        # Range header format: "bytes=start-end"
+        try:
+            bytes_unit, byte_range = range_header.split("=")
+            range_parts = byte_range.split("-")
+            start = int(range_parts[0]) if range_parts[0] else 0
+            end = int(range_parts[1]) if len(range_parts) > 1 and range_parts[1] else file_size - 1
+            end = min(end, file_size - 1)
+            length = (end - start) + 1
+
+            def iter_file():
+                with open(norm_path, "rb") as f:
+                    f.seek(start)
+                    remaining = length
+                    chunk_size = 512 * 1024  # 512 KB chunks for snappy responsive seeking
+                    while remaining > 0:
+                        read_size = min(chunk_size, remaining)
+                        data = f.read(read_size)
+                        if not data:
+                            break
+                        remaining -= len(data)
+                        yield data
+
+            headers = {
+                "Content-Range": f"bytes {start}-{end}/{file_size}",
+                "Accept-Ranges": "bytes",
+                "Content-Length": str(length),
+                "Content-Type": content_type,
+            }
+            return StreamingResponse(iter_file(), status_code=206, headers=headers)
+        except Exception:
+            return FileResponse(norm_path, media_type=content_type, headers={"Accept-Ranges": "bytes"})
+    else:
+        return FileResponse(norm_path, media_type=content_type, headers={"Accept-Ranges": "bytes"})
+
 
 @app.get("/api/saved_clips")
 def list_saved_clips():
