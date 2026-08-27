@@ -338,7 +338,7 @@ export const AiClipperScreen: React.FC<Props> = ({ onBack, initialViewMode = "se
         const data = await res.json();
         setVaultClips(data.clips || []);
         setVaultFolders(data.folders || ["Main Library"]);
-        if (data.output_dir) setLastOutputFolder(data.output_dir);
+        if (data.storage_dir || data.output_dir) setLastOutputFolder(data.storage_dir || data.output_dir);
       } else {
         setTimeout(() => loadVaultClips(true), 1000);
       }
@@ -643,10 +643,13 @@ export const AiClipperScreen: React.FC<Props> = ({ onBack, initialViewMode = "se
     try {
       let target = specificFolder || lastOutputFolder || customOutputDir || "";
       if (target === "all" || target === "Main Library" || target === "root") {
-        target = "";
+        target = lastOutputFolder || "";
+      }
+      if (target && !target.includes(":") && !target.startsWith("/") && lastOutputFolder) {
+        target = `${lastOutputFolder}/${target}`;
       }
       let electronOpened = false;
-      if ((window as any).electronAPI?.openPath && target && !target.startsWith("http")) {
+      if ((window as any).electronAPI?.openPath) {
         electronOpened = await (window as any).electronAPI.openPath(target);
       }
       if (!electronOpened) {

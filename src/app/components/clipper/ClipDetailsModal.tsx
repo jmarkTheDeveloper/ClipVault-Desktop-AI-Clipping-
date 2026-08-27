@@ -29,10 +29,14 @@ export const ClipDetailsModal: React.FC<ClipDetailsModalProps> = ({
   };
 
   const openInExplorer = () => {
-    if ((window as any).electronAPI?.showItemInFolder) {
+    if ((window as any).electronAPI?.showItemInFolder && clip.path) {
       (window as any).electronAPI.showItemInFolder(clip.path);
-    } else if ((window as any).electron?.ipcRenderer) {
-      (window as any).electron.ipcRenderer.send("show-item-in-folder", clip.path);
+    } else {
+      fetch("http://127.0.0.1:8000/api/open_folder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ folder_path: clip.path }),
+      }).catch(() => {});
     }
   };
 

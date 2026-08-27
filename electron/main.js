@@ -48,15 +48,29 @@ let pythonProcess;
 
   ipcMain.handle('open-path', async (event, folderPath) => {
     try {
-      if (folderPath) {
-        if (process.platform === 'win32') {
-          const norm = path.normalize(folderPath);
-          exec(`explorer.exe "${norm}"`);
-          return true;
-        } else {
-          await shell.openPath(folderPath);
-          return true;
+      let target = folderPath;
+      if (!target || target === 'clips' || target === 'Default (engine/clips)' || target === 'Main Library' || target === 'all' || target === 'root') {
+        target = path.join(__dirname, '..', 'clips');
+        if (!fs.existsSync(target)) {
+          target = path.join(__dirname, '..', 'engine', 'clips');
         }
+      } else if (!path.isAbsolute(target)) {
+        let base = path.join(__dirname, '..', 'clips');
+        if (!fs.existsSync(base)) {
+          base = path.join(__dirname, '..', 'engine', 'clips');
+        }
+        target = path.join(base, target);
+      }
+      const norm = path.normalize(target);
+      if (!fs.existsSync(norm)) {
+        try { fs.mkdirSync(norm, { recursive: true }); } catch (e) {}
+      }
+      const err = await shell.openPath(norm);
+      if (!err) return true;
+      console.warn('[Electron]: shell.openPath warning:', err);
+      if (process.platform === 'win32') {
+        exec(`explorer.exe "${norm}"`);
+        return true;
       }
     } catch (err) {
       console.error('[Electron]: openPath error:', err);
@@ -67,7 +81,8 @@ let pythonProcess;
   ipcMain.handle('show-item-in-folder', async (event, filePath) => {
     try {
       if (filePath) {
-        shell.showItemInFolder(filePath);
+        const norm = path.normalize(filePath);
+        shell.showItemInFolder(norm);
         return true;
       }
     } catch (err) {

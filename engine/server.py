@@ -473,7 +473,7 @@ def open_system_folder(data: dict = Body(...)):
     """
     import subprocess
     raw_path = data.get("folder_path")
-    if not raw_path or raw_path in ["clips", "Default (engine/clips)", ""]:
+    if not raw_path or raw_path in ["clips", "Default (engine/clips)", "all", "Main Library", "root", ""]:
         target = OUTPUT_DIR
     else:
         target = Path(raw_path)
@@ -486,7 +486,8 @@ def open_system_folder(data: dict = Body(...)):
     try:
         resolved = str(target.resolve())
         if sys.platform == "win32":
-            subprocess.Popen(f'explorer.exe "{resolved}"')
+            import os
+            os.startfile(resolved)
         elif sys.platform == "darwin":
             subprocess.Popen(["open", resolved])
         else:

@@ -844,7 +844,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
 
             <button
               onClick={() => {
-                openOutputFolder();
+                openOutputFolder(folderContextMenu.folder);
                 setFolderContextMenu(null);
               }}
               className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-300 hover:text-white hover:bg-white/10 transition-colors text-left cursor-pointer"
@@ -885,7 +885,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
 
         <div className="flex items-center gap-3 flex-wrap">
           <button
-            onClick={openOutputFolder}
+            onClick={() => openOutputFolder(vaultSelectedFolder !== "all" && vaultSelectedFolder !== "Main Library" ? vaultSelectedFolder : undefined)}
             className="px-4 py-2.5 rounded-xl bg-amber-400 text-black font-extrabold text-xs hover:bg-amber-300 transition-all shadow-[0_0_20px_rgba(251,191,36,0.3)] flex items-center gap-2 cursor-pointer"
           >
             <FolderOpen className="w-4 h-4 text-black" /> Open Folder in Explorer
