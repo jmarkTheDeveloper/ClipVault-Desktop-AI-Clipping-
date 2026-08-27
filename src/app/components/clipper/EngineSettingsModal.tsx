@@ -186,6 +186,63 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
   const [scanError, setScanError] = useState<string | null>(null);
   const [activeCloudTab, setActiveCloudTab] = useState<"all" | "frontier" | "fast" | "video">("all");
   const [showSecretKey, setShowSecretKey] = useState(false);
+  const [apiWarning, setApiWarning] = useState<string | null>(null);
+
+  // Helper to extract the active key for the selected engine
+  const getCurrentKey = (): string => {
+    switch (selectedEngine) {
+      case "gemini_flash":
+        return geminiKey?.trim() || "";
+      case "groq_lpu":
+        return groqKey?.trim() || "";
+      case "deepseek":
+        return deepseekKey?.trim() || "";
+      case "openai_chatgpt":
+        return openAiKey?.trim() || "";
+      case "claude_fable":
+        return anthropicKey?.trim() || "";
+      case "moonlight":
+        return moonlightKey?.trim() || "";
+      case "qwen":
+      case "qwen_ai":
+        return qwenKey?.trim() || "";
+      case "higgsfield":
+        return higgsfieldKey?.trim() || "";
+      case "seedance":
+        return seeDanceKey?.trim() || "";
+      default:
+        return (geminiKey || groqKey || openAiKey || anthropicKey || deepseekKey)?.trim() || "";
+    }
+  };
+
+  const isKeyMissing = byokMode === "custom" && !getCurrentKey();
+
+  // Auto-dismiss 5-second popup toast
+  useEffect(() => {
+    if (apiWarning) {
+      const timer = setTimeout(() => {
+        setApiWarning(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [apiWarning]);
+
+  // Trigger 5-second popup when entering Cloud AI mode without an API key or selecting an unconfigured engine
+  useEffect(() => {
+    if (isOpen && byokMode === "custom" && isKeyMissing) {
+      setApiWarning("Oops you have not yet put any API");
+    } else if (!isKeyMissing) {
+      setApiWarning(null);
+    }
+  }, [isOpen, byokMode, selectedEngine, isKeyMissing]);
+
+  const handleDone = () => {
+    if (isKeyMissing) {
+      setApiWarning("Oops you have not yet put any API");
+      return;
+    }
+    onClose();
+  };
 
   // Perform Hardware Scan
   const runHardwareScan = async () => {
@@ -250,6 +307,32 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
       <div className="relative w-full max-w-[640px] rounded-3xl bg-[#0d0d0f] border border-white/15 shadow-[0_0_50px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col max-h-[90vh]">
+        {/* 5-Second Popup Toast Notification */}
+        {apiWarning && (
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-lg pointer-events-auto animate-fadeIn">
+            <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-2xl bg-amber-500/20 border border-amber-400/60 backdrop-blur-xl shadow-[0_0_30px_rgba(251,191,36,0.3)] text-amber-200">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 animate-bounce" />
+                <div className="min-w-0">
+                  <p className="text-xs font-black text-amber-300 truncate">
+                    Oops you have not yet put any API
+                  </p>
+                  <p className="text-[10.5px] text-amber-200/80 truncate">
+                    Please paste your API key below to enable Cloud AI features.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setApiWarning(null)}
+                className="text-amber-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors text-xs font-bold shrink-0 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Modal Header */}
         <div className="p-5 border-b border-white/10 flex items-center justify-between bg-gradient-to-r from-amber-500/10 via-transparent to-purple-500/10">
           <div className="flex items-center gap-3">
@@ -907,7 +990,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
         {/* Modal Footer */}
         <div className="p-4 border-t border-white/10 bg-black/60 flex items-center justify-between">
           <div className="flex items-center gap-2 text-[11px] text-gray-400">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className={`w-2 h-2 rounded-full ${isKeyMissing ? "bg-amber-400" : "bg-emerald-400 animate-pulse"}`} />
             <span>
               Active Engine:{" "}
               <b className="text-white">
@@ -915,12 +998,27 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                   ? hardwareInfo?.engine_name || "Intel AI Engine"
                   : (CLOUD_ENGINES.find((e) => e.id === selectedEngine) || CLOUD_ENGINES[0])?.name || "AI Engine"}
               </b>
+              {isKeyMissing && (
+                <span className="ml-2 text-amber-400 font-bold tracking-wide animate-pulse">
+                  (Key Required)
+                </span>
+              )}
             </span>
           </div>
           <button
             type="button"
-            onClick={onClose}
-            className="px-5 py-2 rounded-xl bg-amber-400 text-black font-bold text-xs hover:bg-amber-300 transition-all cursor-pointer shadow-md"
+            disabled={isKeyMissing}
+            onClick={handleDone}
+            title={
+              isKeyMissing
+                ? "Please enter an API key for the selected cloud model to continue"
+                : "Save settings and continue"
+            }
+            className={`px-5 py-2 rounded-xl font-bold text-xs transition-all shadow-md ${
+              isKeyMissing
+                ? "bg-white/10 text-gray-500 border border-white/10 cursor-not-allowed opacity-40 shadow-none"
+                : "bg-amber-400 text-black hover:bg-amber-300 cursor-pointer shadow-amber-400/20"
+            }`}
           >
             Done and Save Settings
           </button>

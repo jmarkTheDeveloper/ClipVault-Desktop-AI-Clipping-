@@ -529,6 +529,29 @@ export const AiClipperScreen: React.FC<Props> = ({ onBack, initialViewMode = "se
         calculatedTargetDuration = Math.max(1, Math.round(e - s));
       }
 
+      // Security measure: verify API key if Cloud AI mode is selected
+      if (byokMode === "custom") {
+        const key = (
+          selectedEngine === "openai_chatgpt" ? openAiKey 
+          : selectedEngine === "claude_fable" ? anthropicKey 
+          : selectedEngine === "gemini_flash" ? geminiKey 
+          : selectedEngine === "groq_lpu" ? groqKey 
+          : selectedEngine === "deepseek" ? deepseekKey 
+          : selectedEngine === "moonlight" ? moonlightKey 
+          : selectedEngine === "qwen" || selectedEngine === "qwen_ai" ? qwenKey 
+          : selectedEngine === "higgsfield" ? higgsfieldKey 
+          : selectedEngine === "seedance" ? seeDanceKey 
+          : (geminiKey || groqKey || openAiKey || anthropicKey || deepseekKey)
+        )?.trim();
+
+        if (!key) {
+          setErrorMsg("Oops! You have not yet put any API key. Please enter your API key in AI Engine settings.");
+          setShowKeySettings(true);
+          setRunning(false);
+          return;
+        }
+      }
+
       // 1. Trigger process
       const startRes = await fetch("http://127.0.0.1:8000/api/process", {
         method: "POST",
