@@ -247,26 +247,31 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
 
   // Zero-Liability & Warning Pop Up only for newly added API when clicking/focusing into the field
   const [showLiabilityWarningModal, setShowLiabilityWarningModal] = useState(false);
-  const [hasAcknowledgedLiability, setHasAcknowledgedLiability] = useState(() => {
-    return localStorage.getItem("clipvault_liability_acknowledged") === "true";
-  });
+  const [acknowledgedEngines, setAcknowledgedEngines] = useState<Record<string, boolean>>({});
 
-  const handleEntryFieldFocus = (currentVal: string) => {
-    // Only appear in a newly added api when user inputs their mouse in the entry field
-    if (!currentVal && !hasAcknowledgedLiability) {
-      setShowLiabilityWarningModal(true);
+  // Ensure legacy localStorage key does not permanently suppress the popup
+  useEffect(() => {
+    localStorage.removeItem("clipvault_liability_acknowledged");
+  }, []);
+
+  // Reset acknowledgment for unconfigured engine when engine changes or modal opens
+  useEffect(() => {
+    if (!getCurrentKey()?.trim()) {
+      setAcknowledgedEngines((prev) => ({ ...prev, [selectedEngine]: false }));
     }
-  };
+  }, [selectedEngine, isOpen]);
 
-  const handleEntryFieldPaste = (currentVal: string) => {
-    if (!currentVal && !hasAcknowledgedLiability) {
-      setShowLiabilityWarningModal(true);
+  const handleEntryFieldInteraction = (currentVal: string) => {
+    // When a user clicks, focuses, or pastes into an empty entry field (newly added API)
+    if (!currentVal?.trim()) {
+      if (!acknowledgedEngines[selectedEngine]) {
+        setShowLiabilityWarningModal(true);
+      }
     }
   };
 
   const handleAcknowledgeLiability = () => {
-    localStorage.setItem("clipvault_liability_acknowledged", "true");
-    setHasAcknowledgedLiability(true);
+    setAcknowledgedEngines((prev) => ({ ...prev, [selectedEngine]: true }));
     setShowLiabilityWarningModal(false);
   };
 
@@ -885,8 +890,9 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         type={showSecretKey ? "text" : "password"}
                         value={geminiKey}
                         onChange={(e) => setGeminiKey(e.target.value)}
-                        onFocus={() => handleEntryFieldFocus(geminiKey)}
-                        onPaste={() => handleEntryFieldPaste(geminiKey)}
+                        onClick={() => handleEntryFieldInteraction(geminiKey)}
+                        onFocus={() => handleEntryFieldInteraction(geminiKey)}
+                        onPaste={() => handleEntryFieldInteraction(geminiKey)}
                         placeholder="AIzaSy..."
                         className="w-full rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white bg-zinc-900/80 border border-white/10 outline-none focus:border-amber-400/60 font-mono shadow-inner transition-colors"
                       />
@@ -925,8 +931,9 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         type={showSecretKey ? "text" : "password"}
                         value={groqKey}
                         onChange={(e) => setGroqKey(e.target.value)}
-                        onFocus={() => handleEntryFieldFocus(groqKey)}
-                        onPaste={() => handleEntryFieldPaste(groqKey)}
+                        onClick={() => handleEntryFieldInteraction(groqKey)}
+                        onFocus={() => handleEntryFieldInteraction(groqKey)}
+                        onPaste={() => handleEntryFieldInteraction(groqKey)}
                         placeholder="gsk_..."
                         className="w-full rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white bg-zinc-900/80 border border-white/10 outline-none focus:border-amber-400/60 font-mono shadow-inner transition-colors"
                       />
@@ -962,8 +969,9 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         type={showSecretKey ? "text" : "password"}
                         value={deepseekKey}
                         onChange={(e) => setDeepseekKey(e.target.value)}
-                        onFocus={() => handleEntryFieldFocus(deepseekKey)}
-                        onPaste={() => handleEntryFieldPaste(deepseekKey)}
+                        onClick={() => handleEntryFieldInteraction(deepseekKey)}
+                        onFocus={() => handleEntryFieldInteraction(deepseekKey)}
+                        onPaste={() => handleEntryFieldInteraction(deepseekKey)}
                         placeholder="sk-..."
                         className="w-full rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white bg-zinc-900/80 border border-white/10 outline-none focus:border-amber-400/60 font-mono shadow-inner transition-colors"
                       />
@@ -999,8 +1007,9 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         type={showSecretKey ? "text" : "password"}
                         value={openAiKey}
                         onChange={(e) => setOpenAiKey(e.target.value)}
-                        onFocus={() => handleEntryFieldFocus(openAiKey)}
-                        onPaste={() => handleEntryFieldPaste(openAiKey)}
+                        onClick={() => handleEntryFieldInteraction(openAiKey)}
+                        onFocus={() => handleEntryFieldInteraction(openAiKey)}
+                        onPaste={() => handleEntryFieldInteraction(openAiKey)}
                         placeholder="sk-proj-..."
                         className="w-full rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white bg-zinc-900/80 border border-white/10 outline-none focus:border-amber-400/60 font-mono shadow-inner transition-colors"
                       />
@@ -1036,8 +1045,9 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         type={showSecretKey ? "text" : "password"}
                         value={anthropicKey}
                         onChange={(e) => setAnthropicKey(e.target.value)}
-                        onFocus={() => handleEntryFieldFocus(anthropicKey)}
-                        onPaste={() => handleEntryFieldPaste(anthropicKey)}
+                        onClick={() => handleEntryFieldInteraction(anthropicKey)}
+                        onFocus={() => handleEntryFieldInteraction(anthropicKey)}
+                        onPaste={() => handleEntryFieldInteraction(anthropicKey)}
                         placeholder="sk-ant-api03-..."
                         className="w-full rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white bg-zinc-900/80 border border-white/10 outline-none focus:border-amber-400/60 font-mono shadow-inner transition-colors"
                       />
@@ -1073,8 +1083,9 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         type={showSecretKey ? "text" : "password"}
                         value={moonlightKey}
                         onChange={(e) => setMoonlightKey(e.target.value)}
-                        onFocus={() => handleEntryFieldFocus(moonlightKey)}
-                        onPaste={() => handleEntryFieldPaste(moonlightKey)}
+                        onClick={() => handleEntryFieldInteraction(moonlightKey)}
+                        onFocus={() => handleEntryFieldInteraction(moonlightKey)}
+                        onPaste={() => handleEntryFieldInteraction(moonlightKey)}
                         placeholder="sk-moon-..."
                         className="w-full rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white bg-zinc-900/80 border border-white/10 outline-none focus:border-amber-400/60 font-mono shadow-inner transition-colors"
                       />
@@ -1110,8 +1121,9 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         type={showSecretKey ? "text" : "password"}
                         value={qwenKey}
                         onChange={(e) => setQwenKey(e.target.value)}
-                        onFocus={() => handleEntryFieldFocus(qwenKey)}
-                        onPaste={() => handleEntryFieldPaste(qwenKey)}
+                        onClick={() => handleEntryFieldInteraction(qwenKey)}
+                        onFocus={() => handleEntryFieldInteraction(qwenKey)}
+                        onPaste={() => handleEntryFieldInteraction(qwenKey)}
                         placeholder="sk-qwen-..."
                         className="w-full rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white bg-zinc-900/80 border border-white/10 outline-none focus:border-amber-400/60 font-mono shadow-inner transition-colors"
                       />
@@ -1147,8 +1159,9 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         type={showSecretKey ? "text" : "password"}
                         value={higgsfieldKey}
                         onChange={(e) => setHiggsfieldKey(e.target.value)}
-                        onFocus={() => handleEntryFieldFocus(higgsfieldKey)}
-                        onPaste={() => handleEntryFieldPaste(higgsfieldKey)}
+                        onClick={() => handleEntryFieldInteraction(higgsfieldKey)}
+                        onFocus={() => handleEntryFieldInteraction(higgsfieldKey)}
+                        onPaste={() => handleEntryFieldInteraction(higgsfieldKey)}
                         placeholder="hg-live-..."
                         className="w-full rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white bg-zinc-900/80 border border-white/10 outline-none focus:border-amber-400/60 font-mono shadow-inner transition-colors"
                       />
@@ -1184,8 +1197,9 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         type={showSecretKey ? "text" : "password"}
                         value={seeDanceKey}
                         onChange={(e) => setSeeDanceKey(e.target.value)}
-                        onFocus={() => handleEntryFieldFocus(seeDanceKey)}
-                        onPaste={() => handleEntryFieldPaste(seeDanceKey)}
+                        onClick={() => handleEntryFieldInteraction(seeDanceKey)}
+                        onFocus={() => handleEntryFieldInteraction(seeDanceKey)}
+                        onPaste={() => handleEntryFieldInteraction(seeDanceKey)}
                         placeholder="sd-live-..."
                         className="w-full rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white bg-zinc-900/80 border border-white/10 outline-none focus:border-amber-400/60 font-mono shadow-inner transition-colors"
                       />
