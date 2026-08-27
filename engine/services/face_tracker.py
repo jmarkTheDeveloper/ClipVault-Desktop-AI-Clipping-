@@ -214,223 +214,304 @@ class FaceTracker:
         high_conf = [f for f in faces if f['confidence'] >= 0.55]
         valid_faces = high_conf if high_conf else [f for f in faces if f['confidence'] >= 0.40]
         result = sorted(valid_faces, key=lambda f: (f['confidence'] ** 2) * (f['area'] ** 0.5), reverse=True)
+
+        # Extract mouth ROI patch for active speech / lip-motion detection
+        for f in result:
+            my1 = max(0, min(h - 1, int(f['center_y'] + f['height'] * 0.12)))
+            my2 = max(0, min(h, int(f['center_y'] + f['height'] * 0.52)))
+            mx1 = max(0, min(w - 1, int(f['center_x'] - f['width'] * 0.28)))
+            mx2 = max(0, min(w, int(f['center_x'] + f['width'] * 0.28)))
+            if my2 > my1 + 4 and mx2 > mx1 + 4:
+                try:
+                    m_crop = frame[my1:my2, mx1:mx2]
+                    f['mouth_roi'] = cv2.resize(cv2.cvtColor(m_crop, cv2.COLOR_RGB2GRAY), (32, 20))
+                except Exception:
+                    pass
+
         if frame_time is not None:
             self.face_cache[frame_time] = result
         return result
 
+    @staticmethod
+    def render_wide_zoom_frame(frame: np.ndarray, target_w: int, target_h: int) -> np.ndarray:
+        """
+        Renders an elegant 9:16 'Zoom-Out' two-shot / group shot showing interacting speakers.
+        Fits the wide 16:9 frame horizontally with sleek blurred & dimmed background fill.
+        """
+        H, W = frame.shape[:2]
+        scale = target_w / W
+        scaled_h = int(H * scale)
+        if scaled_h % 2 != 0:
+            scaled_h -= 1
+
+        fg = cv2.resize(frame, (target_w, scaled_h))
+
+        # Blurred background
+        bg_scale = max(target_w / W, target_h / H)
+        bg_w = int(W * bg_scale)
+        bg_h = int(H * bg_scale)
+        bg = cv2.resize(frame, (bg_w, bg_h))
+        bx = max(0, (bg_w - target_w) // 2)
+        by = max(0, (bg_h - target_h) // 2)
+        bg_cropped = bg[by:by + target_h, bx:bx + target_w]
+
+        # Fast 2-pass blur
+        small_w = max(16, target_w // 8)
+        small_h = max(16, target_h // 8)
+        bg_small = cv2.resize(bg_cropped, (small_w, small_h))
+        bg_small = cv2.GaussianBlur(bg_small, (15, 15), 0)
+        bg_blurred = cv2.resize(bg_small, (target_w, target_h))
+        bg_dimmed = (bg_blurred * 0.55).astype(np.uint8)
+
+        # Composite foreground in the vertical center
+        y_off = max(0, (target_h - scaled_h) // 2)
+        bg_dimmed[y_off:y_off + scaled_h, 0:target_w] = fg
+        return bg_dimmed
+
     def track_and_crop(self, clip, crop_ratio: float = 9/16, camera_style: str = "instant"):
         """
-        Tracks faces/speakers in a video clip with rock-solid stability and high-accuracy framing.
-        Supports:
-          - 'instant': Zero-lag direct active speaker tracking (centers the speaker immediately).
-          - 'snappy': Rapid action steadicam with dynamic follow.
-          - 'smooth': Gentle cinematic glide for formal interviews.
+        Intelligent AI Video Director for 9:16 Shorts/Reels/TikTok.
+        Features:
+          - Active Speaker Tracking via Lip Motion & Spatial Clustering.
+          - Automatic Two-Shot / Group 'Zoom Out' when 2 people or group interact.
+          - Clean, instantaneous camera CUTS in 'instant' mode (zero dizzying panning/wobble).
+          - Professional broadcast TV director pacing with 2.2s minimum shot hold.
         """
         width, height = clip.size
         target_width = int(height * crop_ratio)
-        if target_width % 2 != 0: target_width -= 1
-        
+        if target_width % 2 != 0:
+            target_width -= 1
+
         if width <= target_width:
-            try:
-                print("    >> Video already in target aspect ratio, skipping horizontal crop")
-            except Exception:
-                pass
             return clip
 
         try:
-            print(f"    >> Analyzing frames across {clip.duration:.1f}s for rock-solid 9:16 {camera_style} face tracking...")
+            print(f"    >> Analyzing video across {clip.duration:.1f}s for active speaker & multi-person framing ({camera_style})...")
         except Exception:
             pass
+
         self.face_cache = {}
 
-        # Sample frames across the clip timeline (6 samples/sec for high temporal accuracy)
+        # Sample frames at 6 FPS for high temporal resolution
         fps_sample = 6
         num_samples = max(6, int(clip.duration * fps_sample))
         sample_times = np.linspace(0.05, max(0.1, clip.duration - 0.05), num_samples)
 
         all_frame_detections = []
-        all_face_centers = []
+        all_face_data = []
 
+        prev_faces = []
         for t in sample_times:
             try:
                 frame = clip.get_frame(t)
                 detected = self.detect_faces_in_frame(frame, frame_time=t)
+                # Compute mouth movement relative to previous frame
                 if detected:
-                    top_score = (detected[0]['confidence'] ** 2) * (detected[0]['area'] ** 0.5)
-                    # Filter out small background faces / noise
-                    valid = [f for f in detected if ((f['confidence'] ** 2) * (f['area'] ** 0.5)) >= top_score * 0.35 and f['confidence'] >= 0.48]
-                    all_frame_detections.append(valid if valid else detected[:1])
-                    for f in (valid if valid else detected[:1]):
-                        all_face_centers.append((f['center_x'], f['confidence']))
+                    for f in detected:
+                        best_motion = 0.0
+                        if 'mouth_roi' in f and prev_faces:
+                            closest_prev = min(prev_faces, key=lambda pf: abs(pf['center_x'] - f['center_x']) + abs(pf['center_y'] - f['center_y']))
+                            if 'mouth_roi' in closest_prev and abs(closest_prev['center_x'] - f['center_x']) < target_width * 0.35:
+                                diff = np.mean(cv2.absdiff(f['mouth_roi'], closest_prev['mouth_roi']))
+                                best_motion = float(diff)
+                        f['mouth_motion'] = best_motion
+                        all_face_data.append((f['center_x'], f['confidence'], f['area']))
+
+                    all_frame_detections.append(detected)
+                    prev_faces = detected
                 else:
                     all_frame_detections.append([])
+                    prev_faces = []
             except Exception:
                 all_frame_detections.append([])
+                prev_faces = []
 
-        # ── 1. MULTI-PERSON GROUP LOCK (Only for smooth/snappy mode with persistent co-speakers) ──
-        if camera_style != "instant" and all_face_centers:
-            xs = np.array([x for x, c in all_face_centers])
-            weights = np.array([c for x, c in all_face_centers])
-            nbins = max(4, int(width // 150))
+        # ── 1. SPATIAL SPEAKER CLUSTERING (Who are the people?) ──
+        speaker_clusters = []
+        if all_face_data:
+            xs = np.array([x for x, c, a in all_face_data])
+            weights = np.array([c * (a ** 0.5) for x, c, a in all_face_data])
+            nbins = max(4, int(width // 140))
             hist, bin_edges = np.histogram(xs, bins=nbins, weights=weights, range=(0, width))
             peak_indices = np.argsort(hist)[::-1]
 
-            speaker_clusters = []
+            max_val = hist[peak_indices[0]] if len(peak_indices) > 0 else 1
             for idx in peak_indices:
-                if hist[idx] > 0 and (len(speaker_clusters) == 0 or hist[idx] >= hist[peak_indices[0]] * 0.35):
-                    c_pos = (bin_edges[idx] + bin_edges[idx+1]) / 2.0
-                    if not any(abs(c_pos - c) < target_width * 0.40 for c in speaker_clusters):
+                if hist[idx] > 0 and hist[idx] >= max_val * 0.20:
+                    c_pos = (bin_edges[idx] + bin_edges[idx + 1]) / 2.0
+                    # Avoid duplicate clusters that are too close
+                    if not any(abs(c_pos - c) < target_width * 0.35 for c in speaker_clusters):
                         speaker_clusters.append(c_pos)
                         if len(speaker_clusters) >= 3:
                             break
 
-            # Case A: Two persistent co-speakers (Interview / Podcast) fitting comfortably
-            if len(speaker_clusters) == 2:
-                dist = abs(speaker_clusters[0] - speaker_clusters[1])
-                if dist <= target_width * 0.85:
-                    group_center = (speaker_clusters[0] + speaker_clusters[1]) / 2.0
-                    group_center = max(target_width / 2.0, min(width - target_width / 2.0, group_center))
-                    x1 = int(round(group_center - target_width / 2.0))
-                    x1 = max(0, min(width - target_width, x1))
-                    try:
-                        print(f"    [OK] Locked Two-Shot Group Tripod at X={group_center:.0f} (Zero Ping-Pong Wiggle)")
-                    except Exception:
-                        pass
-                    return clip.crop(x1=x1, width=target_width)
+        speaker_clusters.sort()
 
-        # ── 2. STICKY ANCHOR & ACTIVE SPEAKER SELECTION ──
-        face_positions: List[Optional[float]] = []
-        current_sticky_anchor: Optional[float] = None
-
-        for faces in all_frame_detections:
-            if faces:
-                if len(faces) == 1:
-                    current_sticky_anchor = float(faces[0]['center_x'])
-                    face_positions.append(current_sticky_anchor)
-                else:
-                    if current_sticky_anchor is not None:
-                        closest = min(faces, key=lambda f: abs(f['center_x'] - current_sticky_anchor))
-                        if abs(closest['center_x'] - current_sticky_anchor) < target_width * 0.50:
-                            current_sticky_anchor = float(closest['center_x'])
-                        else:
-                            primary = max(faces, key=lambda f: (f['confidence'] ** 2) * (f['area'] ** 0.5))
-                            current_sticky_anchor = float(primary['center_x'])
-                        face_positions.append(current_sticky_anchor)
-                    else:
-                        primary = max(faces, key=lambda f: (f['confidence'] ** 2) * (f['area'] ** 0.5))
-                        current_sticky_anchor = float(primary['center_x'])
-                        face_positions.append(current_sticky_anchor)
-            else:
-                face_positions.append(current_sticky_anchor)
-
-        # Backward & forward fill missing frames
-        valid_positions = [p for p in face_positions if p is not None]
-        if not valid_positions:
-            filled_positions = [float(width // 2)] * len(sample_times)
-        else:
-            first_val = valid_positions[0]
-            filled_positions: List[float] = []
-            last_seen = first_val
-            for p in face_positions:
-                if p is not None:
-                    last_seen = p
-                filled_positions.append(float(last_seen))
-
-        # ── 3. TRIPOD LOCK (Only in smooth mode if subject barely moves) ──
-        pos_min = min(filled_positions)
-        pos_max = max(filled_positions)
-        pos_span = pos_max - pos_min
-
-        if camera_style == "smooth" and pos_span < width * 0.08:
-            median_pos = float(np.median(filled_positions))
-            median_pos = max(target_width / 2.0, min(width - target_width / 2.0, median_pos))
-            x1 = int(round(median_pos - target_width / 2.0))
+        # ── 2. SINGLE SPEAKER OR NO FACE DETECTED ──
+        if len(speaker_clusters) <= 1:
+            center_x = speaker_clusters[0] if len(speaker_clusters) == 1 else (width // 2)
+            center_x = max(target_width / 2.0, min(width - target_width / 2.0, center_x))
+            x1 = int(round(center_x - target_width / 2.0))
             x1 = max(0, min(width - target_width, x1))
             try:
-                print(f"    [OK] Rock-Solid Tripod Locked at X={median_pos:.0f} (Zero Jitter, {target_width}x{height})")
+                print(f"    [OK] Single Speaker Tripod Locked at X={center_x:.0f} (Zero Drift, {target_width}x{height})")
             except Exception:
                 pass
             return clip.crop(x1=x1, width=target_width)
 
-        # ── 4. ADAPTIVE CAMERA DYNAMICS (Instant, Snappy, Smooth) ──
-        if camera_style == "instant":
-            deadzone_ratio = 0.03   # 3% minimal deadband for zero lag
-            smoothing_factor = 0.85  # Centers the speaker immediately
-            required_hold_frames = 0 # Starts tracking with zero delay
-            cut_threshold = target_width * 0.35 # Instant shot cut on speaker switch
-        elif camera_style == "snappy":
-            deadzone_ratio = 0.08   # 8% responsive deadband
-            smoothing_factor = 0.55  # Fast dynamic follow (zero sluggishness)
-            required_hold_frames = 0 # Starts tracking immediately
-            cut_threshold = target_width * 0.35
-        else: # "smooth"
-            deadzone_ratio = 0.15   # 15% natural shoulder deadzone
-            smoothing_factor = 0.32  # Fluid cinematic glide (never trails behind)
-            required_hold_frames = 1
-            cut_threshold = target_width * 0.40
+        # ── 3. TWO SPEAKERS OR GROUP (Podcasts, Interviews, Conversations) ──
+        speaker_A = speaker_clusters[0]
+        speaker_B = speaker_clusters[1]
+        cluster_dist = abs(speaker_B - speaker_A)
 
-        deadzone_width = target_width * deadzone_ratio
-        smoothed: List[float] = []
-        current_cam_pos = float(np.median(filled_positions[:min(3, len(filled_positions))]))
-        stable_target_pos = current_cam_pos
-        frames_held = 0
-
-        for target_pos in filled_positions:
-            if required_hold_frames > 0 and abs(target_pos - stable_target_pos) > width * 0.10:
-                frames_held += 1
-                if frames_held >= required_hold_frames:
-                    stable_target_pos = target_pos
-                    frames_held = 0
-            else:
-                stable_target_pos = target_pos
-                frames_held = 0
-
-            dist = stable_target_pos - current_cam_pos
-            # Hard scene transition or speaker switch -> Instant Cut!
-            if abs(dist) > cut_threshold:
-                current_cam_pos = stable_target_pos
-            elif abs(dist) > deadzone_width / 2.0:
-                desired_cam = stable_target_pos - np.sign(dist) * (deadzone_width / 2.0)
-                current_cam_pos += (desired_cam - current_cam_pos) * smoothing_factor
-
-            clamped_cam = max(target_width / 2.0, min(width - target_width / 2.0, current_cam_pos))
-            smoothed.append(float(clamped_cam))
-
-        # Multi-stage Gaussian filter smoothing (selective by style)
-        if camera_style == "snappy" and len(smoothed) >= 3:
-            kernel = np.array([0.15, 0.70, 0.15])
-            smoothed_np = np.convolve(smoothed, kernel, mode='same')
-            smoothed_np[0] = smoothed[0]
-            smoothed_np[-1] = smoothed[-1]
-            smoothed = list(smoothed_np)
-        elif camera_style == "smooth" and len(smoothed) >= 5:
-            kernel = np.array([0.05, 0.20, 0.50, 0.20, 0.05])
-            smoothed_np = np.convolve(smoothed, kernel, mode='same')
-            smoothed_np[:2] = smoothed[:2]
-            smoothed_np[-2:] = smoothed[-2:]
-            smoothed = list(smoothed_np)
-
-        sample_times_arr = np.array(sample_times, dtype=np.float64)
-        smoothed_arr = np.array(smoothed, dtype=np.float64)
-
-        def dynamic_crop_filter(get_frame, t):
-            frame = get_frame(t)
-            center_x = float(np.interp(t, sample_times_arr, smoothed_arr))
-            center_x = max(target_width / 2.0, min(width - target_width / 2.0, center_x))
-            x1 = int(round(center_x - target_width / 2.0))
-            x1 = max(0, min(width - target_width, x1))
-            x2 = x1 + target_width
-            return frame[:, x1:x2]
-
-        cropped_clip = clip.fl(dynamic_crop_filter, apply_to=["mask"])
-        cropped_clip.size = (target_width, height)
+        # Check if both speakers fit comfortably in a single 9:16 vertical crop
+        two_shot_fits_in_vertical = (cluster_dist <= target_width * 0.82)
+        two_shot_center = (speaker_A + speaker_B) / 2.0
+        two_shot_center = max(target_width / 2.0, min(width - target_width / 2.0, two_shot_center))
 
         try:
-            print(f"    [OK] Dynamic Face Steadicam Active ({target_width}x{height}, Camera Style: {camera_style})")
+            shot_fit_label = "tight 2-shot" if two_shot_fits_in_vertical else "wide zoom-out"
+            print(f"    [OK] Detected 2 Co-Speakers (A={speaker_A:.0f}, B={speaker_B:.0f}). Multi-person mode: {shot_fit_label}")
         except Exception:
             pass
-        self.face_cache = {}
-        return cropped_clip
+
+        # ── 4. ACTIVE SPEAKER DETECTION PER TIME STEP ──
+        raw_shot_candidates = []
+        for det_list in all_frame_detections:
+            if not det_list:
+                raw_shot_candidates.append('TWO_SHOT')
+                continue
+
+            # Measure mouth activity for Speaker A vs Speaker B
+            faces_A = [f for f in det_list if abs(f['center_x'] - speaker_A) < target_width * 0.45]
+            faces_B = [f for f in det_list if abs(f['center_x'] - speaker_B) < target_width * 0.45]
+
+            act_A = max([f.get('mouth_motion', 0.0) for f in faces_A], default=0.0)
+            act_B = max([f.get('mouth_motion', 0.0) for f in faces_B], default=0.0)
+
+            # Strong active speaker distinction
+            if act_A >= 4.0 and act_A > act_B * 1.35:
+                raw_shot_candidates.append('SPEAKER_A')
+            elif act_B >= 4.0 and act_B > act_A * 1.35:
+                raw_shot_candidates.append('SPEAKER_B')
+            else:
+                # Both talking, crosstalk, laughing, or both quiet -> Zoom-Out Two-Shot
+                raw_shot_candidates.append('TWO_SHOT')
+
+        # ── 5. BROADCAST TV DIRECTOR HYSTERESIS (Min Hold = 2.2s, No Ping-Pong) ──
+        min_hold_samples = int(fps_sample * 2.2)  # ~13 samples = 2.2 seconds minimum hold
+        initial_establish_samples = int(fps_sample * 1.8) # First 1.8s establishes the scene with two-shot
+
+        director_shots = []
+        current_shot = 'TWO_SHOT'
+        shot_hold_count = 0
+
+        for i, candidate in enumerate(raw_shot_candidates):
+            # Clip opening: always establish with Two-Shot / Zoom-Out view
+            if i < initial_establish_samples:
+                director_shots.append('TWO_SHOT')
+                current_shot = 'TWO_SHOT'
+                shot_hold_count += 1
+                continue
+
+            if candidate == current_shot:
+                shot_hold_count += 1
+                director_shots.append(current_shot)
+            else:
+                # Candidate wants to switch
+                # Check if candidate has been persistent for at least 3 samples (~0.5s)
+                forward_window = raw_shot_candidates[i:i + 4]
+                candidate_persistent = (forward_window.count(candidate) >= 3)
+
+                if shot_hold_count >= min_hold_samples and candidate_persistent:
+                    current_shot = candidate
+                    shot_hold_count = 1
+                elif shot_hold_count < min_hold_samples and candidate_persistent and current_shot != 'TWO_SHOT':
+                    # Fast turn-taking / rapid banter (< 2s) -> Switch to Two-Shot / Zoom-Out!
+                    current_shot = 'TWO_SHOT'
+                    shot_hold_count = 1
+
+                director_shots.append(current_shot)
+
+        # ── 6. CAMERA STYLE EXECUTION (Instant Cut vs Smooth/Snappy) ──
+        sample_times_arr = np.array(sample_times, dtype=np.float64)
+
+        if camera_style == "instant":
+            # DIRECT CUT: Camera is 100% static during each shot, and cuts instantly on shot change!
+            def dynamic_instant_filter(get_frame, t):
+                frame = get_frame(t)
+                idx = int(np.searchsorted(sample_times_arr, t))
+                idx = max(0, min(len(director_shots) - 1, idx))
+                active_shot = director_shots[idx]
+
+                if active_shot == 'SPEAKER_A':
+                    cx = speaker_A
+                    cx = max(target_width / 2.0, min(width - target_width / 2.0, cx))
+                    x1 = int(round(cx - target_width / 2.0))
+                    x1 = max(0, min(width - target_width, x1))
+                    return frame[:, x1:x1 + target_width]
+                elif active_shot == 'SPEAKER_B':
+                    cx = speaker_B
+                    cx = max(target_width / 2.0, min(width - target_width / 2.0, cx))
+                    x1 = int(round(cx - target_width / 2.0))
+                    x1 = max(0, min(width - target_width, x1))
+                    return frame[:, x1:x1 + target_width]
+                else: # 'TWO_SHOT'
+                    if two_shot_fits_in_vertical:
+                        x1 = int(round(two_shot_center - target_width / 2.0))
+                        x1 = max(0, min(width - target_width, x1))
+                        return frame[:, x1:x1 + target_width]
+                    else:
+                        return self.render_wide_zoom_frame(frame, target_width, height)
+
+            cropped_clip = clip.fl(dynamic_instant_filter, apply_to=["mask"])
+            cropped_clip.size = (target_width, height)
+            try:
+                print(f"    [OK] Multi-Person Instant Cut Director Active (Zero Jitter, Instant Transitions)")
+            except Exception:
+                pass
+            return cropped_clip
+
+        else:
+            # 'snappy' or 'smooth' with gentle camera gliding
+            target_positions = []
+            for shot in director_shots:
+                if shot == 'SPEAKER_A':
+                    target_positions.append(speaker_A)
+                elif shot == 'SPEAKER_B':
+                    target_positions.append(speaker_B)
+                else:
+                    target_positions.append(two_shot_center)
+
+            # Apply smoothing filter
+            kernel = np.array([0.15, 0.70, 0.15]) if camera_style == "snappy" else np.array([0.05, 0.20, 0.50, 0.20, 0.05])
+            smoothed_positions = np.convolve(target_positions, kernel, mode='same')
+            smoothed_positions[0] = target_positions[0]
+            smoothed_positions[-1] = target_positions[-1]
+            smoothed_arr = np.array(smoothed_positions, dtype=np.float64)
+
+            def dynamic_glide_filter(get_frame, t):
+                frame = get_frame(t)
+                idx = int(np.searchsorted(sample_times_arr, t))
+                idx = max(0, min(len(director_shots) - 1, idx))
+                active_shot = director_shots[idx]
+
+                if active_shot == 'TWO_SHOT' and not two_shot_fits_in_vertical:
+                    return self.render_wide_zoom_frame(frame, target_width, height)
+
+                center_x = float(np.interp(t, sample_times_arr, smoothed_arr))
+                center_x = max(target_width / 2.0, min(width - target_width / 2.0, center_x))
+                x1 = int(round(center_x - target_width / 2.0))
+                x1 = max(0, min(width - target_width, x1))
+                return frame[:, x1:x1 + target_width]
+
+            cropped_clip = clip.fl(dynamic_glide_filter, apply_to=["mask"])
+            cropped_clip.size = (target_width, height)
+            try:
+                print(f"    [OK] Multi-Person Gliding Steadicam Active (Style: {camera_style})")
+            except Exception:
+                pass
+            return cropped_clip
 
     def close(self):
         """Releases resources used by the face detector."""

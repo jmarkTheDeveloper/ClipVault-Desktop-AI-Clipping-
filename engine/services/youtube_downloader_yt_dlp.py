@@ -268,7 +268,7 @@ class YouTubeDownloader:
             'outtmpl': str(output_path.with_suffix('')) + '.%(ext)s',
             'merge_output_format': 'mp4',
             'download_ranges': yt_dlp.utils.download_range_func(None, [(start_sec, end_sec)]),
-            'force_keyframes_at_cuts': False,
+            'force_keyframes_at_cuts': True,
             'concurrent_fragment_downloads': 16,
         })
 

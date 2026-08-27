@@ -176,8 +176,8 @@ class WhisperSingleton:
                 word_timestamps=True,
                 vad_filter=True,
                 vad_parameters=dict(
-                    min_silence_duration_ms=250,  # Detect rapid conversational pauses (<400ms)
-                    speech_pad_ms=200,            # Avoid clipping rapid syllable onsets/offsets
+                    min_silence_duration_ms=200,  # Fast dialogue pause detection
+                    speech_pad_ms=100,            # Exact onset syllable alignment (prevents early/late offset)
                     threshold=0.35                # Sensitive enough for mumbling or soft speech
                 ),
                 beam_size=5,                      # 5 beams for robust accuracy

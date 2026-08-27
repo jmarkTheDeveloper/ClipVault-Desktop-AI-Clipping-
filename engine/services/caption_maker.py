@@ -441,8 +441,14 @@ class CaptionMaker:
             if force_uppercase:
                 word_text = word_text.upper()
 
-            relative_start = word_start - clip_start_time
-            relative_end = word_end - clip_start_time
+            # Broadcast audio-visual perceptual calibration:
+            # Human visual processing takes ~150ms. Leading text highlight onset by 50ms (1-2 frames)
+            # ensures the visual color pop perfectly synchronizes with the acoustic syllable hitting the ear!
+            calibrated_start = max(0.0, word_start - 0.05)
+            calibrated_end = max(calibrated_start + 0.08, word_end - 0.02)
+
+            relative_start = calibrated_start - clip_start_time
+            relative_end = calibrated_end - clip_start_time
 
             if relative_end <= 0 or relative_start >= clip.duration:
                 continue
@@ -582,11 +588,15 @@ class CaptionMaker:
                     # Minimum readability hold (0.15s) so fast speech does not strobe
                     min_readable = min(next_word_start, w_start + 0.15)
 
-                    # For slow speech with natural pauses (>0.35s): release highlight smoothly
-                    if has_next_word and (next_word_start - w_obj['end'] > 0.35):
-                        w_end = min(next_word_start, max(min_readable, w_obj['end'] + 0.15))
+                    # Highlight active end:
+                    # If this is the last word in the phrase, it should NOT stay highlighted across the entire linger duration!
+                    if not has_next_word:
+                        w_end = min(phrase_linger_end, max(min_readable, w_obj['end'] + 0.08))
+                    elif (next_word_start - w_obj['end'] > 0.30):
+                        # Slow speech with natural pause: release highlight smoothly
+                        w_end = min(next_word_start, max(min_readable, w_obj['end'] + 0.12))
                     else:
-                        w_end = max(min_readable, min(next_word_start, w_obj['end'] + 0.10))
+                        w_end = max(min_readable, min(next_word_start, w_obj['end'] + 0.08))
 
                     w_end = max(w_start + 0.08, w_end)
 
