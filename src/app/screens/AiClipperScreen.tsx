@@ -128,6 +128,11 @@ const AI_ENGINES: EngineOption[] = [
 export const AiClipperScreen: React.FC<Props> = ({ onBack, initialViewMode = "setup" }) => {
   // Navigation & View States
   const [viewMode, setViewMode] = useState<ViewMode>(initialViewMode);
+  
+  useEffect(() => {
+    if (initialViewMode) setViewMode(initialViewMode);
+  }, [initialViewMode]);
+
   const [showKeySettings, setShowKeySettings] = useState(false);
   const [showRateLimitModal, setShowRateLimitModal] = useState(false);
   const [selectedEngine, setSelectedEngine] = useState(() => localStorage.getItem("clipvault_selected_engine") || "intel_ai");
@@ -1043,7 +1048,7 @@ export const AiClipperScreen: React.FC<Props> = ({ onBack, initialViewMode = "se
                 ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
                 : "bg-purple-500/20 text-purple-300 border border-purple-500/30"
             }`}>
-              {byokMode === "local" ? "Local NPU" : byokMode === "developer" ? "Demo Key" : "BYOK"}
+              {byokMode === "local" ? "Local GPU / QSV" : byokMode === "developer" ? "Demo Key" : "BYOK"}
             </span>
           </button>
         </div>

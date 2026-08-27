@@ -355,36 +355,6 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                 </div>
 
                 <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                  <a
-                    href="https://github.com/jmarkTheDeveloper"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 4,
-                      fontSize: 10.5,
-                      fontWeight: 600,
-                      color: "rgba(255,255,255,0.75)",
-                      textDecoration: "none",
-                      padding: "3.5px 8px",
-                      borderRadius: 6,
-                      background: "rgba(255,255,255,0.04)",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                      transition: "all 0.2s",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.color = "#fff";
-                      e.currentTarget.style.borderColor = "rgba(255,255,255,0.25)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.color = "rgba(255,255,255,0.75)";
-                      e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)";
-                    }}
-                  >
-                    <Github style={{ width: 11, height: 11 }} />
-                    <span>GitHub</span>
-                  </a>
 
                   <a
                     href="https://patreon.com/jmarkTheDeveloper?utm_medium=unknown&utm_source=join_link&utm_campaign=creatorshare_creator&utm_content=copyLink"
@@ -1030,30 +1000,29 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
             >
               <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                 <a
-                  href="https://github.com/jmarkTheDeveloper/ClipVault-Desktop-AI-Clipping-"
+                  href="https://patreon.com/jmarkTheDeveloper?utm_medium=unknown&utm_source=join_link&utm_campaign=creatorshare_creator&utm_content=copyLink"
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{
                     fontSize: 11.5,
-                    color: "rgba(255,255,255,0.45)",
+                    color: "#ff667a",
                     textDecoration: "none",
                     display: "flex",
                     alignItems: "center",
                     gap: 6,
                     transition: "color 0.2s",
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.color = "#fff"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.45)"; }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = "#ff8595"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = "#ff667a"; }}
                 >
-                  <Github style={{ width: 13, height: 13 }} />
-                  <span>GitHub Repository</span>
+                  <span>Support on Patreon</span>
                   <ExternalLink style={{ width: 10, height: 10, opacity: 0.6 }} />
                 </a>
 
                 <span style={{ fontSize: 11, color: "rgba(255,255,255,0.2)" }}>•</span>
 
                 <span style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", fontFamily: "'JetBrains Mono', monospace" }}>
-                  MIT License © 2026 jmarkTheDeveloper
+                  Exclusive License © 2026 Jae Mark (jmarkTheDeveloper)
                 </span>
               </div>
 

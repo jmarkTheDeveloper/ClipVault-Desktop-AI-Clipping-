@@ -404,6 +404,19 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                     </span>
                     <span>$0.00 API Cost (Free Forever)</span>
                   </div>
+
+                  {/* Real Hardware Pipeline Note */}
+                  <div className="p-2.5 rounded-xl bg-black/50 border border-white/5 text-[10px] text-gray-400 space-y-1">
+                    <p className="text-gray-300 font-semibold flex items-center gap-1">
+                      <Cpu className="w-3 h-3 text-amber-400" /> Real Hardware Pipeline:
+                    </p>
+                    <p>
+                      • <b className="text-white">GPU ({hardwareInfo.gpu}):</b> Active at 40-50%+ in Task Manager. Powers Intel QuickSync Video for instant 150+ FPS hardware encoding.
+                    </p>
+                    <p>
+                      • <b className="text-white">NPU ({hardwareInfo.npu || "AI Coprocessor"}):</b> Dedicated on-device neural tensor coprocessor. Video compression is handled by the GPU media block.
+                    </p>
+                  </div>
                 </div>
               ) : (
                 /* Unscanned Prompt */

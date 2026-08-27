@@ -54,6 +54,7 @@ export type Screen =
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>("project-select");
+  const [clipperViewMode, setClipperViewMode] = useState<"setup" | "vault">("setup");
 
   return (
     <ErrorBoundary>
@@ -62,24 +63,27 @@ export default function App() {
           <ProjectSelectorScreen
             onBack={() => {}}
             onSelect={(mode) => {
-              if (mode === "ai-clipper") setScreen("ai-clipper");
-              else if (mode === "movie-recapper") setScreen("movie-recapper");
-              else if (mode === "saved-vault") setScreen("saved-vault");
+              if (mode === "ai-clipper") {
+                setClipperViewMode("setup");
+                setScreen("ai-clipper");
+              } else if (mode === "movie-recapper") {
+                setScreen("movie-recapper");
+              } else if (mode === "saved-vault") {
+                setClipperViewMode("vault");
+                setScreen("saved-vault");
+              }
             }}
           />
         )}
-        {screen === "ai-clipper" && (
+
+        {/* Persistently mounted AiClipperScreen so background processing and compiler NEVER reset when going back */}
+        <div style={{ display: screen === "ai-clipper" || screen === "saved-vault" ? "block" : "none", height: "100%", width: "100%" }}>
           <AiClipperScreen 
             onBack={() => setScreen("project-select")} 
-            initialViewMode="setup"
+            initialViewMode={clipperViewMode}
           />
-        )}
-        {screen === "saved-vault" && (
-          <AiClipperScreen 
-            onBack={() => setScreen("project-select")} 
-            initialViewMode="vault"
-          />
-        )}
+        </div>
+
         {screen === "movie-recapper" && <MovieRecapperScreen onBack={() => setScreen("project-select")} />}
       </div>
     </ErrorBoundary>
