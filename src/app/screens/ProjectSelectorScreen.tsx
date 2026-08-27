@@ -93,7 +93,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
 
   const features = [
     "Active Speaker Face Tracking (9:16)",
-    "CapCut Word-by-Word Subtitles & SFX",
+    "Dynamic Word-by-Word Subtitles & SFX",
     "Satisfying Gameplay & ASMR Split",
     "Smart Stream Slicing (yt-dlp)",
     "Whisper AI Multi-Language Auto-Sync",

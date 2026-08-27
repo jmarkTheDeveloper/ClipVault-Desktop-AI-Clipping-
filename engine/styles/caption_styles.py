@@ -7,25 +7,25 @@ CAPTION_STYLES = {
     },
     'capcut_yellow': {
         'text_color': (255, 255, 255, 255),
-        'highlight_color': (255, 230, 0, 255),  # Radiant CapCut Yellow
+        'highlight_color': (255, 230, 0, 255),  # Radiant Viral Yellow
         'font_type': 'montserrat',
         'uppercase': True,
         'phrase_mode': True,
         'max_words': 3,
         'karaoke': True,
         'stroke_factor': 0.14,
-        'name': 'CapCut Yellow (Classic Viral Auto-Captions)'
+        'name': 'Viral Yellow (Classic Dynamic Auto-Captions)'
     },
     'opus_green': {
         'text_color': (255, 255, 255, 255),
-        'highlight_color': (0, 255, 102, 255),  # Signature Opus Clip Neon Green
+        'highlight_color': (0, 255, 102, 255),  # Signature Neon Emerald Green
         'font_type': 'rubik',
         'uppercase': True,
         'phrase_mode': True,
         'max_words': 3,
         'karaoke': True,
         'stroke_factor': 0.14,
-        'name': 'Opus Clip Neon (Active Word Pop)'
+        'name': 'Neon Emerald (Active Word Pop)'
     },
     'clean_white': {
         'text_color': (255, 255, 255, 255),

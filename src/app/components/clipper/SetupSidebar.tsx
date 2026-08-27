@@ -882,12 +882,12 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                     <label className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">Subtitle Style</label>
                     <div className="grid grid-cols-3 gap-1.5">
                       {[
-                        { id: "capcut_yellow", name: "⚡ CapCut Yellow", bg: "bg-yellow-400/20 text-yellow-300 border-yellow-400/40" },
-                        { id: "opus_green", name: "🟢 Opus Neon", bg: "bg-emerald-400/20 text-emerald-300 border-emerald-400/40" },
+                        { id: "capcut_yellow", name: "⚡ Viral Yellow", bg: "bg-yellow-400/20 text-yellow-300 border-yellow-400/40" },
+                        { id: "opus_green", name: "🟢 Neon Emerald", bg: "bg-emerald-400/20 text-emerald-300 border-emerald-400/40" },
                         { id: "clean_white", name: "✨ Clean White", bg: "bg-white/10 text-white border-white/20" },
                         { id: "neon_cyan", name: "💎 Electric Cyan", bg: "bg-cyan-400/20 text-cyan-300 border-cyan-400/40" },
                         { id: "fire_red", name: "🔥 Fire Red", bg: "bg-red-400/20 text-red-300 border-red-400/40" },
-                        { id: "hormozi_bold", name: "💪 Hormozi Bold", bg: "bg-amber-400/20 text-amber-300 border-amber-400/40" },
+                        { id: "hormozi_bold", name: "💪 Impact Bold", bg: "bg-amber-400/20 text-amber-300 border-amber-400/40" },
                       ].map((s) => (
                         <button
                           key={s.id}

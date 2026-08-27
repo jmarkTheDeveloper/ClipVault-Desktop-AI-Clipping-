@@ -50,10 +50,10 @@ const SUB_LAYOUTS = [
 
 const CAPTION_STYLES = [
   { id: "none",           label: "None",               color: "#555" },
-  { id: "tiktok_recap",   label: "TikTok Recap",       color: "#ffffff" },
+  { id: "tiktok_recap",   label: "Social Recap",       color: "#ffffff" },
   { id: "clean_white",    label: "Clean White",         color: "#e0e0e0" },
-  { id: "capcut_white",   label: "CapCut White",        color: "#f5f5f5" },
-  { id: "capcut_yellow",  label: "CapCut Yellow",       color: "#ffd600" },
+  { id: "capcut_white",   label: "Viral White",         color: "#f5f5f5" },
+  { id: "capcut_yellow",  label: "Viral Yellow",        color: "#ffd600" },
   { id: "bright_yellow",  label: "Bright Yellow",       color: "#ffee00" },
   { id: "neon_cyan",      label: "Neon Cyan",           color: "#00e5ff" },
   { id: "hot_pink",       label: "Hot Pink",            color: "#f50057" },
@@ -61,8 +61,8 @@ const CAPTION_STYLES = [
   { id: "orange_fire",    label: "Orange Fire",         color: "#ff6d00" },
   { id: "electric_blue",  label: "Electric Blue",       color: "#2979ff" },
   { id: "purple_pop",     label: "Purple Pop",          color: "#d500f9" },
-  { id: "capcut_banner",  label: "CapCut Banner",       color: "#bdbdbd" },
-  { id: "tiktok_banner",  label: "TikTok Banner",       color: "#ff1744" },
+  { id: "capcut_banner",  label: "Viral Banner",        color: "#bdbdbd" },
+  { id: "tiktok_banner",  label: "Social Banner",       color: "#ff1744" },
   { id: "cinematic_sub",  label: "Cinematic Subtitles", color: "#eeeeee" },
   { id: "sigma_pink",     label: "Sigma Pink",          color: "#e91e8c" },
 ];
