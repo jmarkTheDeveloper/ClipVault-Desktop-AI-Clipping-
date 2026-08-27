@@ -244,6 +244,45 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
     onClose();
   };
 
+  // Reveal confirmation security modal state
+  const [showRevealModal, setShowRevealModal] = useState(false);
+  const [revealInputText, setRevealInputText] = useState("");
+
+  const handleToggleReveal = () => {
+    if (showSecretKey) {
+      // Hiding is immediate and requires no confirmation
+      setShowSecretKey(false);
+    } else {
+      const activeKey = getCurrentKey();
+      if (!activeKey) {
+        // Nothing sensitive entered yet
+        setShowSecretKey(true);
+      } else {
+        // Sensitive key entered: trigger security confirmation modal
+        setRevealInputText("");
+        setShowRevealModal(true);
+      }
+    }
+  };
+
+  const handleConfirmReveal = () => {
+    if (revealInputText.trim().toLowerCase() === "i understand to show my api") {
+      setShowSecretKey(true);
+      setShowRevealModal(false);
+      setRevealInputText("");
+    }
+  };
+
+  // Auto-re-mask revealed key after 30 seconds for screen safety
+  useEffect(() => {
+    if (showSecretKey) {
+      const timer = setTimeout(() => {
+        setShowSecretKey(false);
+      }, 30000);
+      return () => clearTimeout(timer);
+    }
+  }, [showSecretKey]);
+
   // Perform Hardware Scan
   const runHardwareScan = async () => {
     setIsScanning(true);
@@ -329,6 +368,79 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
               >
                 ✕
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Security Confirmation Modal for Revealing API Key */}
+        {showRevealModal && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center p-6 bg-black/90 backdrop-blur-md animate-fadeIn">
+            <div className="w-full max-w-md rounded-3xl bg-[#121216] border border-amber-400/40 shadow-[0_0_50px_rgba(251,191,36,0.25)] p-6 space-y-4 text-left">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-amber-400/10 border border-amber-400/30 flex items-center justify-center text-amber-400 shrink-0 shadow-[0_0_15px_rgba(251,191,36,0.2)]">
+                  <ShieldAlert className="w-5 h-5 animate-pulse" />
+                </div>
+                <div>
+                  <h4 className="text-white font-extrabold text-sm">Security Confirmation Required</h4>
+                  <p className="text-[11px] text-gray-400">Reveal Private API Key on Screen</p>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 space-y-1 text-xs text-amber-200">
+                <p className="font-bold text-amber-300 flex items-center gap-1.5">
+                  <Lock className="w-3.5 h-3.5 text-amber-400" /> Screen Exposure Warning
+                </p>
+                <p className="text-[10.5px] text-amber-200/90 leading-relaxed">
+                  Revealing this API key will display it in plain text. Make sure you are not streaming, recording your screen, or in the presence of unauthorized viewers.
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-gray-300 block">
+                  Please type <span className="text-amber-400 font-mono select-all font-black">"I understand to show my API"</span> to confirm:
+                </label>
+                <input
+                  type="text"
+                  autoFocus
+                  value={revealInputText}
+                  onChange={(e) => setRevealInputText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && revealInputText.trim().toLowerCase() === "i understand to show my api") {
+                      handleConfirmReveal();
+                    }
+                  }}
+                  placeholder='Type "I understand to show my API"'
+                  className="w-full rounded-xl px-3.5 py-2 text-xs text-white bg-black/60 border border-white/15 outline-none focus:border-amber-400 font-mono shadow-inner transition-colors"
+                />
+                <p className="text-[10px] text-gray-500">
+                  Matches case-insensitively. Press Enter or click Confirm.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowRevealModal(false);
+                    setRevealInputText("");
+                  }}
+                  className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 font-bold text-xs border border-white/10 transition-colors cursor-pointer"
+                >
+                  Cancel / Keep Hidden
+                </button>
+                <button
+                  type="button"
+                  disabled={revealInputText.trim().toLowerCase() !== "i understand to show my api"}
+                  onClick={handleConfirmReveal}
+                  className={`px-4 py-2 rounded-xl font-bold text-xs transition-all shadow-md ${
+                    revealInputText.trim().toLowerCase() === "i understand to show my api"
+                      ? "bg-amber-400 text-black hover:bg-amber-300 cursor-pointer shadow-amber-400/20"
+                      : "bg-white/10 text-gray-500 border border-white/10 cursor-not-allowed opacity-40 shadow-none"
+                  }`}
+                >
+                  Confirm &amp; Reveal Key
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -558,16 +670,20 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
               <div className="grid grid-cols-2 gap-2 max-h-[170px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-white/10">
                 {filteredCloudEngines.map((e) => {
                   const isSelected = selectedEngine === e.id;
-                  const hasKey =
-                    (e.id === "gemini_flash" && !!geminiKey) ||
-                    (e.id === "groq_lpu" && !!groqKey) ||
-                    (e.id === "deepseek" && !!deepseekKey) ||
-                    (e.id === "openai_chatgpt" && !!openAiKey) ||
-                    (e.id === "claude_fable" && !!anthropicKey) ||
-                    (e.id === "moonlight" && !!moonlightKey) ||
-                    (e.id === "qwen_ai" && !!qwenKey) ||
-                    (e.id === "higgsfield" && !!higgsfieldKey) ||
-                    (e.id === "seedance" && !!seeDanceKey);
+                  const engineKey = (
+                    e.id === "gemini_flash" ? geminiKey :
+                    e.id === "groq_lpu" ? groqKey :
+                    e.id === "deepseek" ? deepseekKey :
+                    e.id === "openai_chatgpt" ? openAiKey :
+                    e.id === "claude_fable" ? anthropicKey :
+                    e.id === "moonlight" ? moonlightKey :
+                    e.id === "qwen_ai" ? qwenKey :
+                    e.id === "higgsfield" ? higgsfieldKey :
+                    e.id === "seedance" ? seeDanceKey : ""
+                  )?.trim() || "";
+                  const hasKey = !!engineKey;
+                  const keySnippet = hasKey ? engineKey.slice(-4) : "";
+                  const providerLabel = e.name.replace("Google ", "").replace("OpenAI ", "").replace("Anthropic ", "").split(" ")[0];
 
                   return (
                     <button
@@ -599,10 +715,17 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         ) : (
                           <span className="text-gray-500">Click to Select</span>
                         )}
-                        {hasKey && (
-                          <span className="text-emerald-400 flex items-center gap-0.5">
-                            <Check className="w-2.5 h-2.5" /> Key Saved
-                          </span>
+                        {hasKey ? (
+                          <div className="text-right">
+                            <span className="font-mono text-blue-400 text-[10px] font-extrabold block leading-tight">
+                              ...{keySnippet}
+                            </span>
+                            <span className="text-[8.5px] text-gray-400 font-normal block leading-tight">
+                              {providerLabel} API Key
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-gray-600 text-[8.5px]">No Key</span>
                         )}
                       </div>
                     </button>
@@ -619,17 +742,9 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                       Enter API Key for: <b>{(CLOUD_ENGINES.find((e) => e.id === selectedEngine) || CLOUD_ENGINES[0]).name}</b>
                     </span>
                   </div>
-                  {((selectedEngine === "gemini_flash" && geminiKey) ||
-                    (selectedEngine === "groq_lpu" && groqKey) ||
-                    (selectedEngine === "deepseek" && deepseekKey) ||
-                    (selectedEngine === "openai_chatgpt" && openAiKey) ||
-                    (selectedEngine === "claude_fable" && anthropicKey) ||
-                    (selectedEngine === "moonlight" && moonlightKey) ||
-                    (selectedEngine === "qwen_ai" && qwenKey) ||
-                    (selectedEngine === "higgsfield" && higgsfieldKey) ||
-                    (selectedEngine === "seedance" && seeDanceKey)) ? (
+                  {getCurrentKey() ? (
                     <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                      <Lock className="w-3 h-3" /> Saved to Protected On-Device Vault
+                      <Lock className="w-3 h-3" /> Saved to Protected On-Device Vault (...{getCurrentKey().slice(-4)})
                     </span>
                   ) : (
                     <span className="text-[10px] text-gray-400 font-medium flex items-center gap-1 bg-white/5 px-2 py-0.5 rounded-full border border-white/10">
@@ -662,11 +777,11 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                       />
                       <button
                         type="button"
-                        onClick={() => setShowSecretKey(!showSecretKey)}
+                        onClick={handleToggleReveal}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors cursor-pointer"
-                        title={showSecretKey ? "Hide key" : "Reveal key"}
+                        title={showSecretKey ? "Hide key" : "Reveal key (Security confirmation required)"}
                       >
-                        {showSecretKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        {showSecretKey ? <EyeOff className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
                     <p className="text-[10px] text-gray-400">
@@ -699,11 +814,11 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                       />
                       <button
                         type="button"
-                        onClick={() => setShowSecretKey(!showSecretKey)}
+                        onClick={handleToggleReveal}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors cursor-pointer"
-                        title={showSecretKey ? "Hide key" : "Reveal key"}
+                        title={showSecretKey ? "Hide key" : "Reveal key (Security confirmation required)"}
                       >
-                        {showSecretKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        {showSecretKey ? <EyeOff className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>
@@ -733,11 +848,11 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                       />
                       <button
                         type="button"
-                        onClick={() => setShowSecretKey(!showSecretKey)}
+                        onClick={handleToggleReveal}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors cursor-pointer"
-                        title={showSecretKey ? "Hide key" : "Reveal key"}
+                        title={showSecretKey ? "Hide key" : "Reveal key (Security confirmation required)"}
                       >
-                        {showSecretKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        {showSecretKey ? <EyeOff className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>
@@ -767,11 +882,11 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                       />
                       <button
                         type="button"
-                        onClick={() => setShowSecretKey(!showSecretKey)}
+                        onClick={handleToggleReveal}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors cursor-pointer"
-                        title={showSecretKey ? "Hide key" : "Reveal key"}
+                        title={showSecretKey ? "Hide key" : "Reveal key (Security confirmation required)"}
                       >
-                        {showSecretKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        {showSecretKey ? <EyeOff className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>
@@ -801,11 +916,11 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                       />
                       <button
                         type="button"
-                        onClick={() => setShowSecretKey(!showSecretKey)}
+                        onClick={handleToggleReveal}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors cursor-pointer"
-                        title={showSecretKey ? "Hide key" : "Reveal key"}
+                        title={showSecretKey ? "Hide key" : "Reveal key (Security confirmation required)"}
                       >
-                        {showSecretKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        {showSecretKey ? <EyeOff className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>
@@ -835,11 +950,11 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                       />
                       <button
                         type="button"
-                        onClick={() => setShowSecretKey(!showSecretKey)}
+                        onClick={handleToggleReveal}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors cursor-pointer"
-                        title={showSecretKey ? "Hide key" : "Reveal key"}
+                        title={showSecretKey ? "Hide key" : "Reveal key (Security confirmation required)"}
                       >
-                        {showSecretKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        {showSecretKey ? <EyeOff className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>
@@ -869,11 +984,11 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                       />
                       <button
                         type="button"
-                        onClick={() => setShowSecretKey(!showSecretKey)}
+                        onClick={handleToggleReveal}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors cursor-pointer"
-                        title={showSecretKey ? "Hide key" : "Reveal key"}
+                        title={showSecretKey ? "Hide key" : "Reveal key (Security confirmation required)"}
                       >
-                        {showSecretKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        {showSecretKey ? <EyeOff className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>
@@ -903,11 +1018,11 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                       />
                       <button
                         type="button"
-                        onClick={() => setShowSecretKey(!showSecretKey)}
+                        onClick={handleToggleReveal}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors cursor-pointer"
-                        title={showSecretKey ? "Hide key" : "Reveal key"}
+                        title={showSecretKey ? "Hide key" : "Reveal key (Security confirmation required)"}
                       >
-                        {showSecretKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        {showSecretKey ? <EyeOff className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>
@@ -937,11 +1052,11 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                       />
                       <button
                         type="button"
-                        onClick={() => setShowSecretKey(!showSecretKey)}
+                        onClick={handleToggleReveal}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors cursor-pointer"
-                        title={showSecretKey ? "Hide key" : "Reveal key"}
+                        title={showSecretKey ? "Hide key" : "Reveal key (Security confirmation required)"}
                       >
-                        {showSecretKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        {showSecretKey ? <EyeOff className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>
