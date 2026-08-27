@@ -287,8 +287,10 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
     }
   };
 
+  const REVEAL_CONFIRMATION_PHRASE = "I understand to show my API";
+
   const handleConfirmReveal = () => {
-    if (revealInputText.trim().toLowerCase() === "i understand to show my api") {
+    if (revealInputText.trim() === REVEAL_CONFIRMATION_PHRASE) {
       setShowSecretKey(true);
       setShowRevealModal(false);
       setRevealInputText("");
@@ -427,15 +429,19 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                   value={revealInputText}
                   onChange={(e) => setRevealInputText(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" && revealInputText.trim().toLowerCase() === "i understand to show my api") {
+                    if (e.key === "Enter" && revealInputText.trim() === REVEAL_CONFIRMATION_PHRASE) {
                       handleConfirmReveal();
                     }
                   }}
                   placeholder='Type "I understand to show my API"'
-                  className="w-full rounded-xl px-3.5 py-2 text-xs text-white bg-black/60 border border-white/15 outline-none focus:border-amber-400 font-mono shadow-inner transition-colors"
+                  className={`w-full rounded-xl px-3.5 py-2 text-xs text-white bg-black/60 border outline-none font-mono shadow-inner transition-colors ${
+                    revealInputText.trim() === REVEAL_CONFIRMATION_PHRASE
+                      ? "border-emerald-400 focus:border-emerald-400"
+                      : "border-white/15 focus:border-amber-400"
+                  }`}
                 />
-                <p className="text-[10px] text-gray-500">
-                  Matches case-insensitively. Press Enter or click Confirm.
+                <p className="text-[10px] text-amber-300/80 font-medium">
+                  🔒 Exact case-sensitive match required. Capitalization must match "I understand to show my API" exactly.
                 </p>
               </div>
 
@@ -452,10 +458,10 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                 </button>
                 <button
                   type="button"
-                  disabled={revealInputText.trim().toLowerCase() !== "i understand to show my api"}
+                  disabled={revealInputText.trim() !== REVEAL_CONFIRMATION_PHRASE}
                   onClick={handleConfirmReveal}
                   className={`px-4 py-2 rounded-xl font-bold text-xs transition-all shadow-md ${
-                    revealInputText.trim().toLowerCase() === "i understand to show my api"
+                    revealInputText.trim() === REVEAL_CONFIRMATION_PHRASE
                       ? "bg-amber-400 text-black hover:bg-amber-300 cursor-pointer shadow-amber-400/20"
                       : "bg-white/10 text-gray-500 border border-white/10 cursor-not-allowed opacity-40 shadow-none"
                   }`}
