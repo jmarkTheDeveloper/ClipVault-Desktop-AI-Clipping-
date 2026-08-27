@@ -135,11 +135,11 @@ export const AiClipperScreen: React.FC<Props> = ({ onBack, initialViewMode = "se
 
   const [showKeySettings, setShowKeySettings] = useState(false);
   const [showRateLimitModal, setShowRateLimitModal] = useState(false);
-  const [selectedEngine, setSelectedEngine] = useState(() => localStorage.getItem("clipvault_selected_engine") || "intel_ai");
-  const [byokMode, setByokMode] = useState<"local" | "developer" | "custom">(() => {
+  const [selectedEngine, setSelectedEngine] = useState(() => localStorage.getItem("clipvault_selected_engine") || "gemini_flash");
+  const [byokMode, setByokMode] = useState<"local" | "custom">(() => {
     const saved = localStorage.getItem("clipvault_byok_mode");
-    if (saved === "local" || saved === "developer" || saved === "custom") return saved;
-    return "local";
+    if (saved === "local" || saved === "custom") return saved as "local" | "custom";
+    return "custom";
   });
 
   // API Keys with LocalStorage Persistence
@@ -257,7 +257,7 @@ export const AiClipperScreen: React.FC<Props> = ({ onBack, initialViewMode = "se
   const [exportFileName, setExportFileName] = useState("");
   const [transcriptionLanguage, setTranscriptionLanguage] = useState("auto");
   const [autoBroll, setAutoBroll] = useState(false);
-  const [addBgMusic, setAddBgMusic] = useState(true);
+  const [addBgMusic, setAddBgMusic] = useState(false);
   const [bgMusicVol, setBgMusicVol] = useState(0.1);
   const [autoSfx, setAutoSfx] = useState(true);
   const [addCaptions, setAddCaptions] = useState(true);
@@ -1066,12 +1066,10 @@ export const AiClipperScreen: React.FC<Props> = ({ onBack, initialViewMode = "se
             </span>
             <span className={`text-[9px] px-1.5 py-0.5 rounded-md font-extrabold uppercase ${
               byokMode === "local" 
-                ? "bg-amber-400 text-black shadow-sm"
-                : byokMode === "developer"
-                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                : "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                ? "bg-white/10 text-gray-300 border border-white/20"
+                : "bg-amber-400 text-black shadow-sm"
             }`}>
-              {byokMode === "local" ? "Local GPU / QSV" : byokMode === "developer" ? "Demo Key" : "BYOK"}
+              {byokMode === "local" ? "Local GPU / QSV" : "Cloud AI (API)"}
             </span>
           </button>
         </div>

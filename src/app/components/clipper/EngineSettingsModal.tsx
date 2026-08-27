@@ -77,7 +77,7 @@ const CLOUD_ENGINES: EngineOption[] = [
     name: "Google Gemini",
     desc: "Gemini 2.5 Flash / 2.0 Pro multimodal transcript intelligence",
     category: "frontier-llm",
-    badge: "Gemini 2.5",
+    badge: "Recommended",
     providerType: "cloud"
   },
   {
@@ -284,7 +284,30 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
               Execution Architecture
             </label>
-            <div className="grid grid-cols-3 gap-1.5 p-1 rounded-2xl bg-black/70 border border-white/10 text-xs font-bold">
+            <div className="grid grid-cols-2 gap-2 p-1.5 rounded-2xl bg-black/70 border border-white/10 text-xs font-bold">
+              <button
+                type="button"
+                onClick={() => {
+                  setByokMode("custom");
+                  if (!selectedEngine || selectedEngine === "intel_ai" || selectedEngine === "ryzen_ai" || selectedEngine === "nvidia_rtx") {
+                    onSelectEngine("gemini_flash");
+                  }
+                }}
+                className={`py-2.5 px-3 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer text-center ${
+                  byokMode === "custom"
+                    ? "bg-amber-400 text-black shadow-lg font-extrabold ring-1 ring-amber-400/50"
+                    : "text-gray-400 hover:text-white"
+                }`}
+              >
+                <Globe className="w-4 h-4" />
+                <span>Cloud AI Models</span>
+                <span className={`text-[9px] px-1.5 py-0.5 rounded font-extrabold uppercase ${
+                  byokMode === "custom" ? "bg-black/20 text-black" : "bg-amber-400/20 text-amber-300 border border-amber-400/30"
+                }`}>
+                  Recommended
+                </span>
+              </button>
+
               <button
                 type="button"
                 onClick={() => {
@@ -295,48 +318,17 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                     onSelectEngine("intel_ai");
                   }
                 }}
-                className={`py-2 px-2 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer text-center ${
+                className={`py-2.5 px-3 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer text-center ${
                   byokMode === "local"
-                    ? "bg-amber-400 text-black shadow-lg font-extrabold"
+                    ? "bg-amber-400 text-black shadow-lg font-extrabold ring-1 ring-amber-400/50"
                     : "text-gray-400 hover:text-white"
                 }`}
               >
-                <HardDrive className="w-3.5 h-3.5" />
-                <span>Local GPU / NPU</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setByokMode("developer");
-                  onSelectEngine("openai_chatgpt");
-                }}
-                className={`py-2 px-2 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer text-center ${
-                  byokMode === "developer"
-                    ? "bg-amber-400 text-black shadow-lg font-extrabold"
-                    : "text-gray-400 hover:text-white"
-                }`}
-              >
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Developer Demo</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setByokMode("custom");
-                  if (!selectedEngine || selectedEngine === "intel_ai" || selectedEngine === "ryzen_ai" || selectedEngine === "nvidia_rtx") {
-                    onSelectEngine("gemini_flash");
-                  }
-                }}
-                className={`py-2 px-2 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer text-center ${
-                  byokMode === "custom"
-                    ? "bg-amber-400 text-black shadow-lg font-extrabold"
-                    : "text-gray-400 hover:text-white"
-                }`}
-              >
-                <Globe className="w-3.5 h-3.5" />
-                <span>Custom BYOK</span>
+                <HardDrive className="w-4 h-4" />
+                <span>Local GPU / QSV</span>
+                <span className="text-[9px] px-1.5 py-0.5 rounded font-semibold bg-white/10 text-gray-400">
+                  Free Offline
+                </span>
               </button>
             </div>
           </div>
@@ -441,62 +433,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
             </div>
           )}
 
-          {/* ══════════════════════════════════════════════════════════════════
-              VIEW 2: DEVELOPER DEMO MODE
-             ══════════════════════════════════════════════════════════════════ */}
-          {byokMode === "developer" && (
-            <div className="space-y-4 animate-fadeIn">
-              <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 text-xs text-emerald-300 flex items-start gap-3">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-bold text-emerald-200">Developer Demo Mode Active</p>
-                  <p className="text-[11px] text-emerald-300/80 leading-relaxed mt-0.5">
-                    Pre-configured with ClipVault Developer Master credentials and intelligent transcript chapter detection. No keys or setup required.
-                  </p>
-                </div>
-              </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
-                  Select Demo Model Preset
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {CLOUD_ENGINES.slice(0, 6).map((e) => {
-                    const isSelected = selectedEngine === e.id;
-                    return (
-                      <button
-                        key={e.id}
-                        type="button"
-                        onClick={() => onSelectEngine(e.id)}
-                        className={`p-3 rounded-2xl text-left border transition-all cursor-pointer relative flex flex-col justify-between ${
-                          isSelected
-                            ? "bg-amber-400/10 border-amber-400 text-amber-300 shadow-md"
-                            : "bg-white/[0.03] border-white/5 text-gray-300 hover:bg-white/[0.07]"
-                        }`}
-                      >
-                        <div>
-                          <div className="flex items-center justify-between gap-1 mb-1">
-                            <span className="font-bold text-xs truncate">{e.name}</span>
-                            <span className="px-1.5 py-0.2 rounded-full text-[8px] font-extrabold uppercase bg-white/10 text-gray-300">
-                              {e.badge}
-                            </span>
-                          </div>
-                          <p className="text-[10px] text-gray-400 line-clamp-2 leading-relaxed">
-                            {e.desc}
-                          </p>
-                        </div>
-                        {isSelected && (
-                          <div className="mt-2 flex items-center gap-1 text-[9px] font-bold text-amber-400">
-                            <CheckCircle2 className="w-3 h-3" /> Active Demo Model
-                          </div>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* ══════════════════════════════════════════════════════════════════
               VIEW 3: CUSTOM BYOK (Only shows Cloud AI Engines & API Inputs)
@@ -622,7 +559,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                 {selectedEngine === "gemini_flash" && (
                   <div className="space-y-1.5">
                     <div className="flex justify-between items-center text-xs">
-                      <span className="text-amber-300 font-bold">Google Gemini 2.5 Flash Key</span>
+                      <span className="text-amber-300 font-bold">Google Gemini 2.5 Flash Key (Recommended)</span>
                       <a
                         href="https://aistudio.google.com/app/apikey"
                         target="_blank"
