@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "clipvault",
   "private": true,
   "version": "1.0.0",
@@ -9,7 +9,57 @@
     "start": "electron .",
     "dev:electron": "concurrently --kill-others \"vite\" \"wait-on http-get://localhost:54321 && cross-env NODE_ENV=development electron .\"",
     "sync": "node sync.cjs",
-    "sync:watch": "node auto_git_watch.cjs"
+    "sync:watch": "node auto_git_watch.cjs",
+    "build:python": "pyinstaller engine_server.spec --distpath dist_python --workpath build_python --clean --noconfirm",
+    "build:electron": "vite build && electron-builder --win --publish never",
+    "build:dist": "npm run build:python && npm run build:electron"
+  },
+  "build": {
+    "appId": "com.clipvault.ai",
+    "productName": "ClipVault AI",
+    "copyright": "Copyright (c) 2025 ClipVault AI",
+    "icon": "public/icon.ico",
+    "asar": true,
+    "directories": {
+      "output": "release",
+      "buildResources": "public"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "public/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "dist_python/engine_server",
+        "to": "engine_server",
+        "filter": ["**/*"]
+      }
+    ],
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] }
+      ],
+      "icon": "public/icon.ico",
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "public/icon.ico",
+      "uninstallerIcon": "public/icon.ico",
+      "installerHeaderIcon": "public/icon.ico",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "ClipVault AI",
+      "license": "LICENSE",
+      "installerLanguages": ["English"],
+      "displayLanguageSelector": false,
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false
+    },
+    "publish": null
   },
   "dependencies": {
     "@babel/core": "^8.0.1",
@@ -80,6 +130,7 @@
     "concurrently": "^10.0.3",
     "cross-env": "^10.1.0",
     "electron": "^43.1.1",
+    "electron-builder": "^26.15.3",
     "tailwindcss": "4.1.12",
     "typescript": "^7.0.2",
     "vite": "6.3.5",
@@ -90,12 +141,8 @@
     "react-dom": "18.3.1"
   },
   "peerDependenciesMeta": {
-    "react": {
-      "optional": true
-    },
-    "react-dom": {
-      "optional": true
-    }
+    "react": { "optional": true },
+    "react-dom": { "optional": true }
   },
   "pnpm": {
     "overrides": {

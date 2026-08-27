@@ -199,35 +199,66 @@ function createWindow() {
 }
 
 function startPythonBackend() {
-  const backendPath = path.join(__dirname, '../engine');
-  
+  // ── Locate backend: bundled exe (production) OR python source (dev) ──────
+  const isPackaged = app.isPackaged;
+
+  // In packaged production build, the Python backend is bundled as engine_server.exe
+  // electron-builder places extraResources at process.resourcesPath
+  const bundledExePath = path.join(process.resourcesPath, 'engine_server', 'engine_server.exe');
+  const bundledExeDir  = path.join(process.resourcesPath, 'engine_server');
+
+  // In dev mode, the backend runs from the source engine/ folder
+  const devBackendPath = path.join(__dirname, '../engine');
+
   const spawnPython = () => {
     try {
-      // Removed shell: true to fix the Node DeprecationWarning and prevent cmd.exe wrapping
-      // Added PYTHONUTF8: 1 to prevent Windows charmap crashes when backend prints emojis
-      pythonProcess = spawn('python', ['-m', 'uvicorn', 'server:app', '--host', '127.0.0.1', '--port', '8000', '--reload', '--log-level', 'info'], {
-        cwd: backendPath,
+      let pythonCmd, args, cwd, engineDataDir;
+
+      if (isPackaged && require('fs').existsSync(bundledExePath)) {
+        // ── PRODUCTION: launch bundled standalone engine_server.exe ──────────
+        // The exe has all Python + FastAPI + uvicorn embedded inside it.
+        // We pass the data dir so it knows where to read/write clips and temp files.
+        engineDataDir = path.join(app.getPath('userData'), 'engine_data');
+        pythonCmd = bundledExePath;
+        args = [];
+        cwd = bundledExeDir;
+        console.log('[Electron]: Launching bundled engine_server.exe...');
+      } else {
+        // ── DEV / SOURCE: launch via system python + uvicorn ─────────────────
+        engineDataDir = devBackendPath;
+        pythonCmd = 'python';
+        args = ['-m', 'uvicorn', 'server:app', '--host', '127.0.0.1', '--port', '8000', '--reload', '--log-level', 'info'];
+        cwd = devBackendPath;
+        console.log('[Electron]: Launching Python dev backend...');
+      }
+
+      pythonProcess = spawn(pythonCmd, args, {
+        cwd,
         shell: false,
-        env: { ...process.env, PYTHONUTF8: '1' }
+        env: {
+          ...process.env,
+          PYTHONUTF8: '1',
+          CLIPVAULT_ENGINE_DATA: engineDataDir,
+        }
       });
 
       pythonProcess.on('error', (err) => {
-        console.error('[Electron]: Failed to start Python process:', err);
+        console.error('[Electron]: Failed to start backend process:', err);
       });
 
-      pythonProcess.stdout.on('data', (data) => {
-        console.log(`[Python]: ${data}`);
+      pythonProcess.stdout?.on('data', (data) => {
+        console.log(`[Backend]: ${data}`);
       });
 
-      pythonProcess.stderr.on('data', (data) => {
-        console.error(`[Python Error]: ${data}`);
+      pythonProcess.stderr?.on('data', (data) => {
+        console.error(`[Backend Error]: ${data}`);
       });
     } catch (err) {
-      console.error('[Electron]: Exception while spawning Python:', err);
+      console.error('[Electron]: Exception while spawning backend:', err);
     }
   };
 
-  // Prevent zombie Python processes from locking port 8000 if the app crashed previously
+  // Prevent zombie processes from locking port 8000 if the app crashed previously
   if (process.platform === 'win32') {
     exec('netstat -aon | findstr :8000', (err, stdout) => {
       if (stdout) {
@@ -243,7 +274,7 @@ function startPythonBackend() {
           }
         }
       }
-      setTimeout(spawnPython, 400); // Give OS time to release the port
+      setTimeout(spawnPython, 400);
     });
   } else {
     exec('lsof -ti:8000 | xargs kill -9', () => {
