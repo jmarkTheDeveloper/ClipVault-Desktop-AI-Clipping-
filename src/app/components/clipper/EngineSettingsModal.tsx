@@ -192,7 +192,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
     setIsScanning(true);
     setScanError(null);
     try {
-      const res = await fetch("http://localhost:8000/api/hardware_scan");
+      const res = await fetch("http://127.0.0.1:8000/api/hardware_scan");
       if (!res.ok) throw new Error("Hardware scan endpoint returned non-200 status");
       const data: HardwareScanResult = await res.json();
       setHardwareInfo(data);
@@ -231,12 +231,12 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
     }
   };
 
-  // Automatically scan on first open if in local mode and not yet scanned
+  // Automatically scan whenever modal opens if not yet scanned
   useEffect(() => {
-    if (isOpen && byokMode === "local" && !hardwareInfo) {
+    if (isOpen && !hardwareInfo) {
       runHardwareScan();
     }
-  }, [isOpen, byokMode]);
+  }, [isOpen, hardwareInfo]);
 
   if (!isOpen) return null;
 
@@ -599,9 +599,23 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                       Enter API Key for: <b>{(CLOUD_ENGINES.find((e) => e.id === selectedEngine) || CLOUD_ENGINES[0]).name}</b>
                     </span>
                   </div>
-                  <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                    <Lock className="w-3 h-3" /> Saved to Protected On-Device Vault
-                  </span>
+                  {((selectedEngine === "gemini_flash" && geminiKey) ||
+                    (selectedEngine === "groq_lpu" && groqKey) ||
+                    (selectedEngine === "deepseek" && deepseekKey) ||
+                    (selectedEngine === "openai_chatgpt" && openAiKey) ||
+                    (selectedEngine === "claude_fable" && anthropicKey) ||
+                    (selectedEngine === "moonlight" && moonlightKey) ||
+                    (selectedEngine === "qwen_ai" && qwenKey) ||
+                    (selectedEngine === "higgsfield" && higgsfieldKey) ||
+                    (selectedEngine === "seedance" && seeDanceKey)) ? (
+                    <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                      <Lock className="w-3 h-3" /> Saved to Protected On-Device Vault
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-gray-400 font-medium flex items-center gap-1 bg-white/5 px-2 py-0.5 rounded-full border border-white/10">
+                      <ShieldCheck className="w-3 h-3 text-amber-400" /> Auto-Saves to Device Vault
+                    </span>
+                  )}
                 </div>
 
                 {/* Google Gemini Key */}

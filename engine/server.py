@@ -23,6 +23,7 @@ from typing import Optional, List, Any, Dict, Union
 import uuid
 import sys
 import os
+import json
 import mimetypes
 import threading
 from pathlib import Path
@@ -1198,9 +1199,11 @@ VAULT_FILE = VAULT_DIR / "keys_vault.json"
 def get_vault_keys():
     """Returns securely saved API keys from the persistent local on-device vault."""
     try:
-        if VAULT_FILE.exists():
+        if VAULT_FILE.exists() and VAULT_FILE.stat().st_size > 0:
             with open(VAULT_FILE, "r", encoding="utf-8") as f:
-                return {"success": True, "keys": json.load(f)}
+                data = json.load(f)
+                if isinstance(data, dict):
+                    return {"success": True, "keys": data}
     except Exception as e:
         print(f"⚠️ Note reading key vault: {e}")
     return {"success": True, "keys": {}}
@@ -1212,17 +1215,23 @@ def save_vault_keys(data: dict = Body(...)):
         VAULT_DIR.mkdir(parents=True, exist_ok=True)
         keys_data = data.get("keys", {})
         existing = {}
-        if VAULT_FILE.exists():
+        if VAULT_FILE.exists() and VAULT_FILE.stat().st_size > 0:
             try:
                 with open(VAULT_FILE, "r", encoding="utf-8") as f:
                     existing = json.load(f)
             except Exception:
-                pass
+                existing = {}
+        
+        # Merge only non-empty strings so previous keys are never erased by empty requests
         for k, v in keys_data.items():
-            if v:
-                existing[k] = v
-        with open(VAULT_FILE, "w", encoding="utf-8") as f:
+            if v and str(v).strip():
+                existing[k] = str(v).strip()
+                
+        # Atomic write via tmp file to guarantee 0% corruption risk
+        tmp_file = VAULT_DIR / "keys_vault.tmp"
+        with open(tmp_file, "w", encoding="utf-8") as f:
             json.dump(existing, f, indent=2)
+        tmp_file.replace(VAULT_FILE)
         return {"success": True, "saved_count": len(existing)}
     except Exception as e:
         print(f"⚠️ Error saving key vault: {e}")
