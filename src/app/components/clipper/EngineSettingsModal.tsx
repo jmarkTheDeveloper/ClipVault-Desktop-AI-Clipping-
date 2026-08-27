@@ -215,7 +215,8 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
     }
   };
 
-  const isKeyMissing = byokMode === "custom" && !getCurrentKey();
+  const isCloudEngine = CLOUD_ENGINES.some((e) => e.id === selectedEngine);
+  const isKeyMissing = (byokMode === "custom" || isCloudEngine) && !getCurrentKey();
 
   // Auto-dismiss 5-second popup toast
   useEffect(() => {
@@ -229,7 +230,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
 
   // Trigger 5-second popup when entering Cloud AI mode without an API key or selecting an unconfigured engine
   useEffect(() => {
-    if (isOpen && byokMode === "custom" && isKeyMissing) {
+    if (isOpen && isKeyMissing) {
       setApiWarning("Oops you have not yet put any API");
     } else if (!isKeyMissing) {
       setApiWarning(null);
@@ -798,7 +799,10 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                     <button
                       key={e.id}
                       type="button"
-                      onClick={() => onSelectEngine(e.id)}
+                      onClick={() => {
+                        onSelectEngine(e.id);
+                        setByokMode("custom");
+                      }}
                       className={`p-3 rounded-2xl text-left border transition-all cursor-pointer relative flex flex-col justify-between ${
                         isSelected
                           ? "bg-amber-400/10 border-amber-400 text-amber-300 shadow-md ring-1 ring-amber-400/50"

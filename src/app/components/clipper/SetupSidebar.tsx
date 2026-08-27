@@ -117,6 +117,9 @@ interface SetupSidebarProps {
   setBgMusicFile?: (m: string) => void;
   backgroundTracks?: Array<{ name: string; path: string; url: string; size: number }>;
   onUploadBackgroundMusic?: (file: File) => Promise<void>;
+  isKeyMissingForActiveEngine?: boolean;
+  activeEngineName?: string;
+  onOpenEngineSettings?: () => void;
 }
 
 export const SetupSidebar: React.FC<SetupSidebarProps> = ({
@@ -128,6 +131,9 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
   setLocalFilePath,
   setActiveVideoUrl,
   onCancel,
+  isKeyMissingForActiveEngine = false,
+  activeEngineName = "Cloud AI",
+  onOpenEngineSettings,
   quality,
   setQuality,
   layout,
@@ -944,8 +950,23 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
             </div>
           )}
 
+          {isKeyMissingForActiveEngine && (
+            <div
+              onClick={onOpenEngineSettings}
+              className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center justify-between gap-2 cursor-pointer hover:bg-amber-500/20 transition-all shadow-inner"
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 animate-pulse" />
+                <span className="truncate">
+                  <b>API Key Required:</b> Missing for {activeEngineName}
+                </span>
+              </div>
+              <span className="text-[11px] underline text-amber-400 hover:text-amber-300 font-bold shrink-0">Add Key ↗</span>
+            </div>
+          )}
+
           {running ? (
-            <div className="flex gap-2 w-full">
+            <div className="flex items-center gap-2">
               <button
                 type="button"
                 disabled
@@ -967,10 +988,14 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
           ) : (
             <button
               onClick={runClipper}
-              className="w-full py-4 rounded-2xl font-bold text-sm bg-gradient-to-r from-amber-400 to-amber-500 text-black hover:opacity-95 transition-all shadow-[0_0_25px_rgba(251,191,36,0.3)] flex items-center justify-center gap-2 cursor-pointer"
+              className={`w-full py-4 rounded-2xl font-bold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                isKeyMissingForActiveEngine
+                  ? "bg-amber-500/20 text-amber-300 border border-amber-400/40 hover:bg-amber-500/30 shadow-[0_0_20px_rgba(251,191,36,0.15)]"
+                  : "bg-gradient-to-r from-amber-400 to-amber-500 text-black hover:opacity-95 shadow-[0_0_25px_rgba(251,191,36,0.3)]"
+              }`}
             >
-              <Zap className="w-4 h-4 fill-black" />
-              {done ? "Re-Run AI Clipper" : "Run AI Clipper"}
+              <Zap className={`w-4 h-4 ${isKeyMissingForActiveEngine ? "fill-amber-400 text-amber-400" : "fill-black text-black"}`} />
+              {isKeyMissingForActiveEngine ? `Enter ${activeEngineName} API Key` : done ? "Re-Run AI Clipper" : "Run AI Clipper"}
             </button>
           )}
 

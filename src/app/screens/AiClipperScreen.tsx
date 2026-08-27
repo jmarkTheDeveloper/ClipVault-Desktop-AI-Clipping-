@@ -154,6 +154,39 @@ export const AiClipperScreen: React.FC<Props> = ({ onBack, initialViewMode = "se
   const [qwenKey, setQwenKey] = useState(() => localStorage.getItem("clipvault_qwen_key") || "");
   const [customBaseUrl, setCustomBaseUrl] = useState(() => localStorage.getItem("clipvault_custom_base_url") || "");
 
+  // Active Engine & API Key Pre-Flight Detection
+  const getActiveEngineApiKey = (engineId: string = selectedEngine) => {
+    switch (engineId) {
+      case "openai_chatgpt":
+        return openAiKey.trim() || localStorage.getItem("clipvault_openai_key")?.trim() || "";
+      case "claude_fable":
+        return anthropicKey.trim() || localStorage.getItem("clipvault_anthropic_key")?.trim() || "";
+      case "gemini_flash":
+        return geminiKey.trim() || localStorage.getItem("clipvault_gemini_key")?.trim() || "";
+      case "groq_lpu":
+        return groqKey.trim() || localStorage.getItem("clipvault_groq_key")?.trim() || "";
+      case "deepseek":
+        return deepseekKey.trim() || localStorage.getItem("clipvault_deepseek_key")?.trim() || "";
+      case "moonlight":
+        return moonlightKey.trim() || localStorage.getItem("clipvault_moonlight_key")?.trim() || "";
+      case "qwen_ai":
+      case "qwen":
+        return qwenKey.trim() || localStorage.getItem("clipvault_qwen_key")?.trim() || "";
+      case "higgsfield":
+        return higgsfieldKey.trim() || localStorage.getItem("clipvault_higgsfield_key")?.trim() || "";
+      case "seedance":
+        return seeDanceKey.trim() || localStorage.getItem("clipvault_seedance_key")?.trim() || "";
+      default:
+        return "";
+    }
+  };
+
+  const activeEngineObj = AI_ENGINES.find((e) => e.id === selectedEngine);
+  const isCloudEngine = activeEngineObj?.providerType === "cloud" || byokMode === "custom";
+  const activeEngineKey = getActiveEngineApiKey(selectedEngine);
+  const isKeyMissingForActiveEngine = isCloudEngine && !activeEngineKey;
+  const activeEngineName = activeEngineObj?.name || "Cloud AI";
+
   // Update localStorage when keys/engines change
   useEffect(() => {
     localStorage.setItem("clipvault_selected_engine", selectedEngine);
@@ -467,17 +500,30 @@ export const AiClipperScreen: React.FC<Props> = ({ onBack, initialViewMode = "se
   // Run AI Clipper Pipeline
   const runClipper = async () => {
     setErrorMsg("");
+
+    // Step 1: Detect if the active engine shown in the header requires an API key and verify it
+    if (isKeyMissingForActiveEngine) {
+      const missingKeyWarning = `Oops! You have not yet put any API key for ${activeEngineName}. Please enter your API key to proceed.`;
+      setErrorMsg(missingKeyWarning);
+      setExportNotice(`⚠️ Key Required: ${activeEngineName}`);
+      setTimeout(() => setExportNotice(""), 6000);
+      setShowKeySettings(true);
+      return;
+    }
+
+    // Step 2: Validate video input source
+    const activeUrl = inputType === "youtube" ? ytUrl : localFilePath;
+    if (!activeUrl) {
+      setErrorMsg("Please provide a valid YouTube URL or select a local video file.");
+      return;
+    }
+
     setRunning(true);
     setProgress(5);
     setStatusText("Initializing AI Clipper Engine...");
     setDone(false);
 
     try {
-      const activeUrl = inputType === "youtube" ? ytUrl : localFilePath;
-      if (!activeUrl) {
-        throw new Error("Please provide a valid YouTube URL or select a local video file.");
-      }
-
       // STRICT VALIDATION & REJECTION: For Satisfying Gameplay Split, a background video MUST be imported/selected
       if (layout === "gameplay_bg") {
         if (!gameplayBgVideo || gameplayBgVideo.trim() === "") {
@@ -529,29 +575,6 @@ export const AiClipperScreen: React.FC<Props> = ({ onBack, initialViewMode = "se
         calculatedTargetDuration = Math.max(1, Math.round(e - s));
       }
 
-      // Security measure: verify API key if Cloud AI mode is selected
-      if (byokMode === "custom") {
-        const key = (
-          selectedEngine === "openai_chatgpt" ? openAiKey 
-          : selectedEngine === "claude_fable" ? anthropicKey 
-          : selectedEngine === "gemini_flash" ? geminiKey 
-          : selectedEngine === "groq_lpu" ? groqKey 
-          : selectedEngine === "deepseek" ? deepseekKey 
-          : selectedEngine === "moonlight" ? moonlightKey 
-          : selectedEngine === "qwen" || selectedEngine === "qwen_ai" ? qwenKey 
-          : selectedEngine === "higgsfield" ? higgsfieldKey 
-          : selectedEngine === "seedance" ? seeDanceKey 
-          : (geminiKey || groqKey || openAiKey || anthropicKey || deepseekKey)
-        )?.trim();
-
-        if (!key) {
-          setErrorMsg("Oops! You have not yet put any API key. Please enter your API key in AI Engine settings.");
-          setShowKeySettings(true);
-          setRunning(false);
-          return;
-        }
-      }
-
       // 1. Trigger process
       const startRes = await fetch("http://127.0.0.1:8000/api/process", {
         method: "POST",
@@ -578,18 +601,7 @@ export const AiClipperScreen: React.FC<Props> = ({ onBack, initialViewMode = "se
           custom_file_name: exportFileName || null,
           output_dir: customOutputDir || null,
           transcription_language: transcriptionLanguage,
-          api_key: byokMode === "custom" 
-            ? (selectedEngine === "openai_chatgpt" ? openAiKey 
-              : selectedEngine === "claude_fable" ? anthropicKey 
-              : selectedEngine === "gemini_flash" ? geminiKey 
-              : selectedEngine === "groq_lpu" ? groqKey 
-              : selectedEngine === "deepseek" ? deepseekKey 
-              : selectedEngine === "moonlight" ? moonlightKey 
-              : selectedEngine === "qwen_ai" ? qwenKey 
-              : selectedEngine === "higgsfield" ? higgsfieldKey 
-              : selectedEngine === "seedance" ? seeDanceKey 
-              : (openAiKey || anthropicKey || geminiKey || groqKey || deepseekKey))
-            : null,
+          api_key: isCloudEngine ? (activeEngineKey || null) : null,
           ai_engine: selectedEngine,
           custom_crop_boxes: layout === "custom_split" ? [
             { x: (cropTop.x / 456) * 100, y: (cropTop.y / 256) * 100, width: (cropTop.width / 456) * 100, height: (cropTop.height / 256) * 100 },
@@ -1106,7 +1118,11 @@ export const AiClipperScreen: React.FC<Props> = ({ onBack, initialViewMode = "se
           <button
             type="button"
             onClick={() => setShowKeySettings(!showKeySettings)}
-            className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-amber-400/30 text-xs text-white transition-all cursor-pointer shadow-md"
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl border text-xs text-white transition-all cursor-pointer shadow-md ${
+              isKeyMissingForActiveEngine
+                ? "bg-amber-500/15 border-amber-400 hover:bg-amber-500/25 shadow-amber-400/10"
+                : "bg-white/5 hover:bg-white/10 border-amber-400/30"
+            }`}
           >
             <Cpu className="w-3.5 h-3.5 text-amber-400" />
             <span className="font-bold text-gray-300">Engine:</span>
@@ -1116,9 +1132,11 @@ export const AiClipperScreen: React.FC<Props> = ({ onBack, initialViewMode = "se
             <span className={`text-[9px] px-1.5 py-0.5 rounded-md font-extrabold uppercase ${
               byokMode === "local" 
                 ? "bg-white/10 text-gray-300 border border-white/20"
+                : isKeyMissingForActiveEngine
+                ? "bg-amber-400/20 text-amber-300 border border-amber-400/40 animate-pulse"
                 : "bg-amber-400 text-black shadow-sm"
             }`}>
-              {byokMode === "local" ? "Local GPU / QSV" : "Cloud AI (API)"}
+              {byokMode === "local" ? "Local GPU / QSV" : isKeyMissingForActiveEngine ? "Key Missing (API)" : "Cloud AI (API)"}
             </span>
           </button>
         </div>
@@ -1313,6 +1331,9 @@ export const AiClipperScreen: React.FC<Props> = ({ onBack, initialViewMode = "se
                 setBgMusicFile={setBgMusicFile}
                 backgroundTracks={backgroundTracks}
                 onUploadBackgroundMusic={handleUploadBackgroundMusic}
+                isKeyMissingForActiveEngine={isKeyMissingForActiveEngine}
+                activeEngineName={activeEngineName}
+                onOpenEngineSettings={() => setShowKeySettings(true)}
               />
             )}
 
