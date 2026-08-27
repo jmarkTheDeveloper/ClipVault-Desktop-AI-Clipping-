@@ -241,7 +241,29 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
       setApiWarning("Oops you have not yet put any API");
       return;
     }
+    if (!hasAcknowledgedLiability && getCurrentKey()) {
+      setShowLiabilityWarningModal(true);
+      return;
+    }
     onClose();
+  };
+
+  // Zero-Liability & Warning Pop Up after putting an API key
+  const [showLiabilityWarningModal, setShowLiabilityWarningModal] = useState(false);
+  const [hasAcknowledgedLiability, setHasAcknowledgedLiability] = useState(() => {
+    return localStorage.getItem("clipvault_liability_acknowledged") === "true";
+  });
+
+  const handleKeyEntered = (val: string) => {
+    if (val && val.trim().length > 3) {
+      setShowLiabilityWarningModal(true);
+    }
+  };
+
+  const handleAcknowledgeLiability = () => {
+    localStorage.setItem("clipvault_liability_acknowledged", "true");
+    setHasAcknowledgedLiability(true);
+    setShowLiabilityWarningModal(false);
   };
 
   // Reveal confirmation security modal state
@@ -439,6 +461,71 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                   }`}
                 >
                   Confirm &amp; Reveal Key
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Strict Zero-Liability & Confidentiality Warning Modal */}
+        {showLiabilityWarningModal && (
+          <div className="absolute inset-0 z-[60] flex items-center justify-center p-6 bg-black/92 backdrop-blur-lg animate-fadeIn">
+            <div className="w-full max-w-lg rounded-3xl bg-[#111116] border-2 border-red-500/50 shadow-[0_0_60px_rgba(239,68,68,0.35)] p-6 space-y-4 text-left">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-red-400 shrink-0 shadow-[0_0_20px_rgba(239,68,68,0.3)]">
+                    <ShieldAlert className="w-5 h-5 animate-pulse" />
+                  </div>
+                  <div>
+                    <h4 className="text-white font-extrabold text-sm tracking-wide">
+                      WARNING: API Key Security &amp; Zero Liability
+                    </h4>
+                    <p className="text-[11px] text-red-400 font-semibold">
+                      Confidentiality &amp; Responsibility Notice
+                    </p>
+                  </div>
+                </div>
+                <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase bg-red-500/20 text-red-300 border border-red-500/40 tracking-wider">
+                  Important
+                </span>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/25 space-y-2.5 text-xs text-red-200 leading-relaxed">
+                <div className="font-black text-red-300 flex items-center gap-1.5 uppercase tracking-wider text-[11px]">
+                  <Lock className="w-4 h-4 text-red-400" /> You cannot show your API key to anyone
+                </div>
+                <p className="text-[11px] text-gray-200">
+                  Never share, stream, reveal, or paste your API key in public view, recordings, or third-party websites. Your API key provides direct access to your private AI provider account and usage quotas.
+                </p>
+
+                <div className="pt-2 border-t border-red-500/20 space-y-1.5 text-[10.5px] text-red-200/90">
+                  <p className="font-extrabold text-red-300 uppercase tracking-wide">
+                    Disclaimer of Responsibility &amp; Zero Liability:
+                  </p>
+                  <ul className="list-disc pl-4 space-y-1 text-gray-300">
+                    <li>
+                      <b className="text-white">We do NOT bear any responsibility</b> for exposed, leaked, shared, or compromised API keys.
+                    </li>
+                    <li>
+                      <b className="text-white">We are NOT responsible for any causes</b>, including unexpected billing charges, quota usage, account suspensions, or any financial/data damages resulting from your API credentials.
+                    </li>
+                    <li>
+                      ClipVault stores your credentials exclusively in your local device vault with zero telemetry. You are 100% solely responsible for securing and monitoring your key.
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-1">
+                <span className="text-[10px] text-gray-500">
+                  On-device local protection only
+                </span>
+                <button
+                  type="button"
+                  onClick={handleAcknowledgeLiability}
+                  className="px-5 py-2.5 rounded-xl bg-amber-400 text-black font-extrabold text-xs hover:bg-amber-300 transition-all cursor-pointer shadow-[0_0_20px_rgba(251,191,36,0.3)] flex items-center gap-1.5"
+                >
+                  <Check className="w-4 h-4 stroke-[3]" /> I Understand &amp; Accept Full Responsibility
                 </button>
               </div>
             </div>
@@ -772,6 +859,8 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         type={showSecretKey ? "text" : "password"}
                         value={geminiKey}
                         onChange={(e) => setGeminiKey(e.target.value)}
+                        onPaste={() => setShowLiabilityWarningModal(true)}
+                        onBlur={(e) => handleKeyEntered(e.target.value)}
                         placeholder="AIzaSy..."
                         className="w-full rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white bg-white/5 border border-amber-400/40 outline-none focus:border-amber-400 font-mono shadow-inner"
                       />
@@ -809,6 +898,8 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         type={showSecretKey ? "text" : "password"}
                         value={groqKey}
                         onChange={(e) => setGroqKey(e.target.value)}
+                        onPaste={() => setShowLiabilityWarningModal(true)}
+                        onBlur={(e) => handleKeyEntered(e.target.value)}
                         placeholder="gsk_..."
                         className="w-full rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white bg-white/5 border border-amber-400/40 outline-none focus:border-amber-400 font-mono shadow-inner"
                       />
@@ -843,6 +934,8 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         type={showSecretKey ? "text" : "password"}
                         value={deepseekKey}
                         onChange={(e) => setDeepseekKey(e.target.value)}
+                        onPaste={() => setShowLiabilityWarningModal(true)}
+                        onBlur={(e) => handleKeyEntered(e.target.value)}
                         placeholder="sk-..."
                         className="w-full rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white bg-white/5 border border-amber-400/40 outline-none focus:border-amber-400 font-mono shadow-inner"
                       />
@@ -877,6 +970,8 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         type={showSecretKey ? "text" : "password"}
                         value={openAiKey}
                         onChange={(e) => setOpenAiKey(e.target.value)}
+                        onPaste={() => setShowLiabilityWarningModal(true)}
+                        onBlur={(e) => handleKeyEntered(e.target.value)}
                         placeholder="sk-proj-..."
                         className="w-full rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white bg-white/5 border border-amber-400/40 outline-none focus:border-amber-400 font-mono shadow-inner"
                       />
@@ -911,6 +1006,8 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         type={showSecretKey ? "text" : "password"}
                         value={anthropicKey}
                         onChange={(e) => setAnthropicKey(e.target.value)}
+                        onPaste={() => setShowLiabilityWarningModal(true)}
+                        onBlur={(e) => handleKeyEntered(e.target.value)}
                         placeholder="sk-ant-api03-..."
                         className="w-full rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white bg-white/5 border border-amber-400/40 outline-none focus:border-amber-400 font-mono shadow-inner"
                       />
@@ -945,6 +1042,8 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         type={showSecretKey ? "text" : "password"}
                         value={moonlightKey}
                         onChange={(e) => setMoonlightKey(e.target.value)}
+                        onPaste={() => setShowLiabilityWarningModal(true)}
+                        onBlur={(e) => handleKeyEntered(e.target.value)}
                         placeholder="sk-moon-..."
                         className="w-full rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white bg-white/5 border border-amber-400/40 outline-none focus:border-amber-400 font-mono shadow-inner"
                       />
@@ -979,6 +1078,8 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         type={showSecretKey ? "text" : "password"}
                         value={qwenKey}
                         onChange={(e) => setQwenKey(e.target.value)}
+                        onPaste={() => setShowLiabilityWarningModal(true)}
+                        onBlur={(e) => handleKeyEntered(e.target.value)}
                         placeholder="sk-qwen-..."
                         className="w-full rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white bg-white/5 border border-amber-400/40 outline-none focus:border-amber-400 font-mono shadow-inner"
                       />
@@ -1013,6 +1114,8 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         type={showSecretKey ? "text" : "password"}
                         value={higgsfieldKey}
                         onChange={(e) => setHiggsfieldKey(e.target.value)}
+                        onPaste={() => setShowLiabilityWarningModal(true)}
+                        onBlur={(e) => handleKeyEntered(e.target.value)}
                         placeholder="hg-live-..."
                         className="w-full rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white bg-white/5 border border-amber-400/40 outline-none focus:border-amber-400 font-mono shadow-inner"
                       />
@@ -1047,6 +1150,8 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         type={showSecretKey ? "text" : "password"}
                         value={seeDanceKey}
                         onChange={(e) => setSeeDanceKey(e.target.value)}
+                        onPaste={() => setShowLiabilityWarningModal(true)}
+                        onBlur={(e) => handleKeyEntered(e.target.value)}
                         placeholder="sd-live-..."
                         className="w-full rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white bg-white/5 border border-amber-400/40 outline-none focus:border-amber-400 font-mono shadow-inner"
                       />
@@ -1063,13 +1168,22 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                 )}
 
                 {/* Security & Confidentiality Warning Banner */}
-                <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/25 space-y-1 text-xs text-amber-200">
-                  <div className="flex items-center gap-1.5 font-bold text-amber-300">
-                    <ShieldAlert className="w-4 h-4 text-amber-400" />
-                    <span>Security &amp; Confidentiality Notice</span>
+                <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/25 space-y-1.5 text-xs text-amber-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 font-bold text-amber-300">
+                      <ShieldAlert className="w-4 h-4 text-amber-400" />
+                      <span>Security &amp; Confidentiality Notice</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowLiabilityWarningModal(true)}
+                      className="text-[10px] text-amber-400 hover:text-amber-300 font-bold underline cursor-pointer"
+                    >
+                      Zero-Liability Policy ↗
+                    </button>
                   </div>
                   <p className="text-[10px] text-amber-200/90 leading-relaxed">
-                    <b>MAKE SURE ONLY YOU HAVE THIS KEY:</b> Never share your private key or stream your screen while revealing it. Your key is stored exclusively on your local device with on-device persistence and is never transmitted to any third-party server.
+                    <b>MAKE SURE ONLY YOU HAVE THIS KEY:</b> Never share your private key or stream your screen while revealing it. Your key is stored exclusively on your local device with on-device persistence. We do not bear any responsibility for compromised keys or account costs.
                   </p>
                 </div>
 
