@@ -83,11 +83,13 @@ class WhisperSingleton:
             segments, info = self._model.transcribe(
                 str(video_path), 
                 word_timestamps=True,
-                vad_filter=True,  # Voice activity detection to skip silence
-                vad_parameters={"min_silence_duration_ms": 500},  # Adjust silence detection
-                beam_size=1,  # Reduce beam size for faster processing
-                best_of=1,    # Only keep the best result
-                temperature=0,  # Disable sampling for deterministic results
+                vad_filter=True,
+                vad_parameters=dict(min_silence_duration_ms=1000, speech_pad_ms=400),
+                beam_size=3,
+                best_of=3,
+                temperature=0,
+                condition_on_previous_text=False,
+                initial_prompt="Captions for social media video clip, clear punctuation, gamer and creator speech.",
                 language=language
             )
             total_dur = getattr(info, 'duration', 0.0) or 1.0

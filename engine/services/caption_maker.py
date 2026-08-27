@@ -77,11 +77,9 @@ class CaptionMaker:
                 'C:\\Windows\\Fonts\\arialbd.ttf',
             ],
             'regular': [
-                str(base_fonts / "PlusJakartaSans-Bold.ttf"),
+                str(base_fonts / "Montserrat-Bold.ttf"),
                 str(base_fonts / "Outfit-Bold.ttf"),
-                os.path.join(win_dir, 'Fonts', 'arial.ttf'),
-                os.path.join(win_dir, 'Fonts', 'calibri.ttf'),
-                'C:\\Windows\\Fonts\\arial.ttf',
+                str(base_fonts / "PlusJakartaSans-Bold.ttf"),
             ]
         }
 
@@ -91,13 +89,16 @@ class CaptionMaker:
             for path in paths:
                 if Path(path).exists():
                     found_fonts[font_type] = path
-                    print(f"    📝 Found {font_type} font: {Path(path).name}")
+                    try:
+                        print(f"    >> Found {font_type} font: {Path(path).name}")
+                    except Exception:
+                        pass
                     break
 
-        if not found_fonts['bold']:
-            found_fonts['bold'] = found_fonts.get('montserrat') or found_fonts.get('anton')
-        if not found_fonts['regular']:
-            found_fonts['regular'] = found_fonts.get('plus_jakarta') or found_fonts.get('outfit')
+        default_font = found_fonts.get('montserrat') or found_fonts.get('bold') or found_fonts.get('rubik') or found_fonts.get('anton')
+        for k in found_fonts:
+            if not found_fonts[k]:
+                found_fonts[k] = default_font
 
         return found_fonts
 
@@ -106,14 +107,27 @@ class CaptionMaker:
         if cache_key in self.font_cache:
             return self.font_cache[cache_key]
 
-        try:
-            font_path = self.font_paths.get(font_type)
-            if font_path:
-                font = ImageFont.truetype(font_path, font_size)
+        font = None
+        font_path = self.font_paths.get(font_type)
+        if not font_path or not Path(font_path).exists():
+            font_path = self.font_paths.get('montserrat') or self.font_paths.get('bold')
+
+        if font_path and Path(font_path).exists():
+            try:
+                font = ImageFont.truetype(str(font_path), font_size)
+            except Exception:
+                font = None
+
+        if font is None:
+            base_fonts = Path(__file__).resolve().parent.parent / "assets" / "fonts"
+            ttfs = list(base_fonts.glob("*.ttf"))
+            if ttfs:
+                try:
+                    font = ImageFont.truetype(str(ttfs[0]), font_size)
+                except Exception:
+                    font = ImageFont.load_default()
             else:
                 font = ImageFont.load_default()
-        except:
-            font = ImageFont.load_default()
 
         self.font_cache[cache_key] = font
         return font
@@ -296,65 +310,127 @@ class CaptionMaker:
         
         return background
 
-    def group_words_into_phrases(self, words, max_words=7, max_silence=0.8):
+    def create_phrase_image(self, words_in_phrase, font_size, active_idx=None, style_config=None):
         """
-        Groups individual words into coherent multi-word phrases/sentences for traditional subtitles.
+        Renders a full multi-word phrase (2-3 words) with CapCut / Opus Clip active word highlight.
+        Inactive words: Crisp white.
+        Active word (at active_idx): Glowing radiant highlight (CapCut Yellow, Opus Neon Green, Cyan, etc.)
+        All words have a clean, heavy black stroke for maximum legibility on any background.
+        """
+        if style_config is None:
+            style_config = self.styles.get(self.selected_style, self.styles.get('capcut_yellow', {}))
+
+        font_type = style_config.get('font_type', 'montserrat')
+        font = self.get_font(font_type, font_size)
+
+        space_bbox = font.getbbox(' ')
+        space_w = max(8, space_bbox[2] - space_bbox[0])
+
+        word_bboxes = [font.getbbox(w['word']) for w in words_in_phrase]
+        word_widths = [max(1, b[2] - b[0]) for b in word_bboxes]
+        word_heights = [max(1, b[3] - b[1]) for b in word_bboxes]
+
+        line_w = sum(word_widths) + space_w * max(0, len(words_in_phrase) - 1)
+        line_h = max(word_heights) if word_heights else font_size
+
+        stroke_factor = style_config.get('stroke_factor', 0.14)
+        stroke_w = 0 if style_config.get('no_stroke', False) else max(4, int(font_size * stroke_factor))
+
+        pad_x = stroke_w + 14
+        pad_y = stroke_w + 14
+        img_w = line_w + pad_x * 2
+        img_h = line_h + pad_y * 2
+
+        img = Image.new('RGBA', (img_w, img_h), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(img)
+
+        # Draw rounded translucent background banner if configured
+        if 'bg_box_color' in style_config:
+            radius = max(8, int(font_size * 0.18))
+            draw.rounded_rectangle(
+                [(0, 0), (img_w - 1, img_h - 1)],
+                radius=radius,
+                fill=style_config['bg_box_color']
+            )
+
+        cur_x = pad_x
+        base_color = style_config.get('text_color', (255, 255, 255, 255))
+        highlight_color = style_config.get('highlight_color', (255, 230, 0, 255))
+        stroke_fill = style_config.get('stroke_fill', (0, 0, 0, 255))
+
+        for i, w_obj in enumerate(words_in_phrase):
+            w_text = w_obj['word']
+            is_active = (i == active_idx)
+            is_keyword = any(k.upper() in w_text.upper() for k in self.highlight_keywords)
+
+            if is_active or (active_idx is None and is_keyword):
+                fill_color = highlight_color
+            else:
+                fill_color = base_color
+
+            y_pos = pad_y - word_bboxes[i][1]
+            if stroke_w > 0:
+                draw.text((cur_x, y_pos), w_text, font=font, fill=fill_color,
+                          stroke_width=stroke_w, stroke_fill=stroke_fill)
+            else:
+                draw.text((cur_x, y_pos), w_text, font=font, fill=fill_color)
+
+            cur_x += word_widths[i] + space_w
+
+        return np.array(img)
+
+    def group_words_into_phrases(self, words, max_words=3, max_silence=0.6):
+        """
+        Groups individual words into punchy, coherent multi-word phrases (2-3 words per burst)
+        matching modern TikTok, CapCut, and Opus Clip standards.
         """
         phrases = []
         if not words:
             return phrases
 
-        current_phrase = []
-        current_start = None
+        current_words = []
         
         for i, word in enumerate(words):
-            word_text = word['word']
-            word_start = word['start']
-            word_end = word['end']
-            
-            if current_start is None:
-                current_start = word_start
-                
-            current_phrase.append(word_text)
-            
-            # Split if current word ends with punctuation or next word is too far
-            is_punctuation = word_text.endswith(('.', '?', '!', ','))
-            
-            has_next_word = i + 1 < len(words)
-            silence_gap = 0
-            if has_next_word:
-                silence_gap = words[i+1]['start'] - word_end
-                
-            if (len(current_phrase) >= max_words or 
-                is_punctuation or 
+            word_text = word['word'].strip()
+            if not word_text:
+                continue
+
+            current_words.append(word)
+
+            ends_terminal = word_text.endswith(('.', '?', '!'))
+            has_next = i + 1 < len(words)
+            silence_gap = (words[i+1]['start'] - word['end']) if has_next else 0
+            total_chars = sum(len(w['word']) for w in current_words)
+
+            if (len(current_words) >= max_words or 
+                total_chars >= 20 or
+                ends_terminal or 
                 silence_gap > max_silence or 
-                not has_next_word):
+                not has_next):
                 
-                phrase_text = " ".join(current_phrase)
+                phrase_start = current_words[0]['start']
+                phrase_end = current_words[-1]['end']
+                phrase_text = " ".join(w['word'] for w in current_words)
+                
                 phrases.append({
                     'text': phrase_text,
-                    'start': current_start,
-                    'end': word_end
+                    'words': list(current_words),
+                    'start': phrase_start,
+                    'end': phrase_end
                 })
-                current_phrase = []
-                current_start = None
+                current_words = []
                 
         return phrases
 
     def add_captions(self, clip, words, clip_start_time, layout="vertical_crop", movie_recap=False, hook_text=None, auto_sfx=False, caption_y_pct=0.70):
         """
         Adds word-by-word captions and an optional static video hook banner to a video clip.
-
-        Args:
-            clip (moviepy.editor.VideoFileClip): The video clip to add captions to.
-            words (list): A list of words with timestamps.
-            clip_start_time (float): The start time of the clip in the original video.
-            caption_y_pct (float): Vertical position percentage (0.15 to 0.85, default 0.70).
+        Uses CapCut / Opus Clip multi-word bursts with active karaoke highlighting.
         """
         if not words:
             return clip
 
-        style_config = self.styles.get(self.selected_style, {})
+        style_config = self.styles.get(self.selected_style, self.styles.get('capcut_yellow', {}))
         force_uppercase = style_config.get('uppercase', True)
 
         clip_words = []
@@ -388,19 +464,11 @@ class CaptionMaker:
         if not clip_words:
             return clip
 
-        # Check if the style wants traditional phrases instead of single words
-        phrase_mode = style_config.get('phrase_mode', False)
-        if phrase_mode:
-            max_words = style_config.get('max_words', 7)
-            display_units = self.group_words_into_phrases(clip_words, max_words=max_words)
-        else:
-            display_units = [{
-                'text': w['word'],
-                'start': w['start'],
-                'end': w['end']
-            } for w in clip_words]
+        # Group words into punchy 2-3 word phrases (CapCut & Opus Clip standard)
+        max_words = style_config.get('max_words', 3)
+        phrases = self.group_words_into_phrases(clip_words, max_words=max_words)
 
-        if not display_units:
+        if not phrases:
             return clip
 
         video_width, video_height = clip.size
@@ -414,26 +482,21 @@ class CaptionMaker:
         if logo_files:
             try:
                 logo_path = logo_files[0]
-                print(f"    🏷️ Found watermark logo: {logo_path.name}")
                 from PIL import Image
                 logo_img = Image.open(logo_path).convert("RGBA")
                 
-                # Scale logo to be 10% of the video width (very subtle and clean)
                 target_logo_w = max(60, int(video_width * 0.10))
                 logo_aspect = logo_img.height / logo_img.width
                 target_logo_h = int(target_logo_w * logo_aspect)
                 logo_scaled = logo_img.resize((target_logo_w, target_logo_h), Image.Resampling.LANCZOS)
                 
-                # Apply 60% watermark opacity
                 r, g, b, a = logo_scaled.split()
                 a = a.point(lambda p: int(p * 0.60))
                 logo_watermark = Image.merge("RGBA", (r, g, b, a))
                 
-                # Prepare array overlays
                 logo_fg_rgb = np.array(logo_watermark)[:, :, :3].astype(np.float32)
                 logo_fg_alpha = np.array(logo_watermark)[:, :, 3:4].astype(np.float32) / 255.0
                 
-                # Bottom-right corner position with 35px margin (slightly above progress bar)
                 margin = 35
                 logo_x = video_width - target_logo_w - margin
                 logo_y = video_height - target_logo_h - margin - 15
@@ -446,9 +509,8 @@ class CaptionMaker:
                     'x': logo_x,
                     'y': logo_y
                 }
-                print(f"    ✅ Watermark loaded successfully (scaled to {target_logo_w}x{target_logo_h})")
-            except Exception as logo_err:
-                print(f"    ⚠️ Failed to load watermark logo: {logo_err}")
+            except Exception:
+                pass
         
         # Pre-render static video hook banner if provided
         hook_data = None
@@ -458,7 +520,6 @@ class CaptionMaker:
                 wrapped_hook = "\n".join(textwrap.wrap(hook_text, width=28))
                 hook_font_size = max(24, int(min(video_width, video_height) * 0.052))
                 
-                # Temporarily swap selected_style to capcut_banner or tiktok_banner to ensure it renders with a nice black box
                 prev_style = self.selected_style
                 if self.selected_style not in ['capcut_banner', 'tiktok_banner']:
                     self.selected_style = 'capcut_banner'
@@ -468,7 +529,6 @@ class CaptionMaker:
                 
                 h_h, h_w, _ = hook_img.shape
                 h_x = (video_width - h_w) // 2
-                # Position it around 22% down (upper portion of screen, perfect for hook boxes)
                 h_y = int(video_height * 0.22)
                 
                 hook_data = {
@@ -479,93 +539,94 @@ class CaptionMaker:
                     'x': h_x,
                     'y': h_y
                 }
-                print(f"    📝 Static hook text banner pre-rendered successfully: '{hook_text}'")
-            except Exception as hook_err:
-                print(f"    ⚠️ Failed to pre-render hook text: {hook_err}")
+            except Exception:
+                pass
         
-        # For phrase mode, reduce the font size slightly (ratio 0.038) so a full sentence fits nicely on screen
-        if phrase_mode:
-            base_font_size = max(28, int(min(video_width, video_height) * 0.038))
-        else:
-            base_font_size = max(48, int(min(video_width, video_height) * 0.085))
+        # Base font size: 66-74px on 1080p, scales with resolution
+        target_font_size = max(38, int(min(video_width, video_height) * 0.065))
+        font_type = style_config.get('font_type', 'montserrat')
 
-        pre_rendered_words = []
-        for unit in display_units:
-            text = unit['text']
-            
-            # Auto emoji injection for viral/social media aesthetic
-            if not movie_recap and auto_sfx:
-                import re
-                # Find all alphanumeric words in the text segment
-                raw_words = re.findall(r'\b\w+\b', text.upper())
-                matching_emojis = []
-                for w in raw_words:
-                    if w in EMOJI_MAP and EMOJI_MAP[w] not in matching_emojis:
-                        matching_emojis.append(EMOJI_MAP[w])
-                
-                # Append matching emojis at the end of the text segment
-                if matching_emojis:
-                    text = f"{text} {' '.join(matching_emojis)}"
-            
-            # Wrap text to maximum 32 characters per line to create clean 2-line subtitles
-            if phrase_mode:
-                import textwrap
-                wrapped_lines = textwrap.wrap(text, width=32)
-                wrapped_text = "\n".join(wrapped_lines)
+        pre_rendered_segments = []
+
+        for phrase in phrases:
+            words_in_p = phrase['words']
+            # Scale font size if phrase is too wide
+            curr_font_size = target_font_size
+            while curr_font_size > 30:
+                f_check = self.get_font(font_type, curr_font_size)
+                sp_bbox = f_check.getbbox(' ')
+                sp_w = sp_bbox[2] - sp_bbox[0]
+                tot_w = sum(f_check.getbbox(w['word'])[2] - f_check.getbbox(w['word'])[0] for w in words_in_p) + sp_w * max(0, len(words_in_p) - 1)
+                if tot_w <= video_width * 0.86:
+                    break
+                curr_font_size -= 4
+
+            is_karaoke = style_config.get('karaoke', True)
+
+            if is_karaoke and len(words_in_p) > 1:
+                for w_idx, w_obj in enumerate(words_in_p):
+                    img_np = self.create_phrase_image(words_in_p, curr_font_size, active_idx=w_idx, style_config=style_config)
+                    fg_h, fg_w, _ = img_np.shape
+                    x_pos = (video_width - fg_w) // 2
+                    y_target = int(video_height * (caption_y_pct if caption_y_pct is not None else 0.70))
+                    y_pos = max(10, min(video_height - fg_h - 10, y_target - (fg_h // 2)))
+
+                    w_start = w_obj['start']
+                    w_end = words_in_p[w_idx + 1]['start'] if w_idx + 1 < len(words_in_p) else phrase['end']
+                    w_end = max(w_start + 0.05, w_end)
+
+                    pre_rendered_segments.append({
+                        'start': w_start,
+                        'end': w_end,
+                        'fg_rgb': img_np[:, :, :3].astype(np.float32),
+                        'fg_alpha': img_np[:, :, 3:4].astype(np.float32) / 255.0,
+                        'w': fg_w,
+                        'h': fg_h,
+                        'x': x_pos,
+                        'y': y_pos
+                    })
             else:
-                wrapped_text = text
-                
-            is_highlighted = any(keyword.upper() in text.upper() for keyword in self.highlight_keywords)
+                img_np = self.create_phrase_image(words_in_p, curr_font_size, active_idx=None, style_config=style_config)
+                fg_h, fg_w, _ = img_np.shape
+                x_pos = (video_width - fg_w) // 2
+                y_target = int(video_height * (caption_y_pct if caption_y_pct is not None else 0.70))
+                y_pos = max(10, min(video_height - fg_h - 10, y_target - (fg_h // 2)))
 
-            # Create highly optimized bounding box image for the word/phrase
-            word_img = self.create_word_image(wrapped_text, base_font_size, is_highlighted)
-            fg_h, fg_w, _ = word_img.shape
+                pre_rendered_segments.append({
+                    'start': phrase['start'],
+                    'end': phrase['end'],
+                    'fg_rgb': img_np[:, :, :3].astype(np.float32),
+                    'fg_alpha': img_np[:, :, 3:4].astype(np.float32) / 255.0,
+                    'w': fg_w,
+                    'h': fg_h,
+                    'x': x_pos,
+                    'y': y_pos
+                })
 
-            # Position centered horizontally, and at custom vertical percentage
-            x_pos = (video_width - fg_w) // 2
-            y_target = int(video_height * (caption_y_pct if caption_y_pct is not None else 0.70))
-            y_pos = max(10, min(video_height - fg_h - 10, y_target - (fg_h // 2)))
-
-            pre_rendered_words.append({
-                'start': unit['start'],
-                'end': unit['end'],
-                'fg_rgb': word_img[:, :, :3].astype(np.float32),
-                'fg_alpha': word_img[:, :, 3:4].astype(np.float32) / 255.0,
-                'w': fg_w,
-                'h': fg_h,
-                'x': x_pos,
-                'y': y_pos
-            })
-
-        # Sort pre-rendered words by start time for fast lookup
-        pre_rendered_words.sort(key=lambda x: x['start'])
+        # Sort pre-rendered segments by start time for fast lookup
+        pre_rendered_segments.sort(key=lambda x: x['start'])
 
         def make_frame(gf, t):
             frame = gf(t)
             
-            # Find active words at time t
-            active_words = [w for w in pre_rendered_words if w['start'] <= t <= w['end']]
+            # Find active segment at time t
+            active_segments = [s for s in pre_rendered_segments if s['start'] <= t <= s['end']]
             
             copied = False
-            if active_words:
+            if active_segments:
                 frame = frame.copy()
                 copied = True
-                # Draw only the single latest active caption segment to prevent overlapping text!
-                w_data = active_words[-1]
+                s_data = active_segments[-1]
                 
-                fg_rgb = w_data['fg_rgb']
-                fg_alpha = w_data['fg_alpha']
-                w_w, w_h = w_data['w'], w_data['h']
-                x_pos, y_pos = w_data['x'], w_data['y']
+                fg_rgb = s_data['fg_rgb']
+                fg_alpha = s_data['fg_alpha']
+                w_w, w_h = s_data['w'], s_data['h']
+                x_pos, y_pos = s_data['x'], s_data['y']
                 
-                # Opus Bouncy Captions logic
-                elapsed = t - w_data['start']
-                if elapsed < 0.15:
-                    if elapsed < 0.08:
-                        scale = 1.0 + (elapsed / 0.08) * 0.15  # Pop to 115%
-                    else:
-                        scale = 1.15 - ((elapsed - 0.08) / 0.07) * 0.15  # Settle back to 100%
-                    
+                # Subtle Opus Clip & CapCut Pop Bounce on word entry (first 70ms)
+                elapsed = t - s_data['start']
+                if elapsed < 0.08:
+                    scale = 1.0 + (1.0 - elapsed / 0.08) * 0.08  # Micro pop of 8%
                     try:
                         import cv2
                         new_w = max(1, int(w_w * scale))
@@ -580,8 +641,8 @@ class CaptionMaker:
                         x_pos = x_pos - (new_w - w_w) // 2
                         y_pos = y_pos - (new_h - w_h) // 2
                         w_w, w_h = new_w, new_h
-                    except ImportError:
-                        pass # if cv2 is not available, just use static size
+                    except Exception:
+                        pass
                 
                 frame = self.overlay_pre_rendered_word(
                     frame, 
@@ -594,7 +655,6 @@ class CaptionMaker:
                 )
             
             # Draw premium horizontal progress bar at the very bottom edge of the vertical canvas
-            # We don't draw it for clean 'no_captions' style
             if not style_config.get('no_captions', False):
                 h_bar = 6
                 bg_h, bg_w, _ = frame.shape
@@ -640,4 +700,6 @@ class CaptionMaker:
                     
             return frame
 
-        return clip.fl(make_frame)
+        captioned_clip = clip.fl(make_frame)
+        return captioned_clip
+

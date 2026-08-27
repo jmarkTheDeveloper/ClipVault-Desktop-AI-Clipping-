@@ -704,6 +704,12 @@ export const AiClipperScreen: React.FC<Props> = ({ onBack, initialViewMode = "se
       })
     );
     setSelectedClipPaths((prev) => prev.filter((p) => p !== filePath));
+    setPreviewVaultClip((cur) => {
+      if (!cur) return null;
+      const curPath = String(cur.path || "");
+      const curName = String(cur.filename || "");
+      return (curPath === filePath || curName === cleanName || (cleanName && curPath.endsWith(cleanName))) ? null : cur;
+    });
 
     try {
       const res = await fetch("http://127.0.0.1:8000/api/delete_clip", {
