@@ -18,6 +18,7 @@ import {
   XCircle,
   Gamepad2,
   Film,
+  AlertCircle,
 } from "lucide-react";
 
 const Section = ({ title, children, accent = "text-amber-400" }: { title: string; children: React.ReactNode; accent?: string }) => (

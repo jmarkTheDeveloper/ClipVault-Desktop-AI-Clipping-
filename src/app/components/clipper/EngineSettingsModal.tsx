@@ -852,7 +852,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                   <div className="flex items-center gap-2 min-w-0">
                     <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
                     <span className="text-xs font-semibold text-zinc-200 truncate">
-                      Enter API Key for: <b className="text-white">{(CLOUD_ENGINES.find((e) => e.id === selectedEngine) || CLOUD_ENGINES[0]).name}</b>
+                      Enter API Key for: <b className="text-white">{(CLOUD_ENGINES.find((e) => e.id === selectedEngine) || CLOUD_ENGINES[0])?.name || "AI Engine"}</b>
                     </span>
                   </div>
                   {getCurrentKey() ? (
