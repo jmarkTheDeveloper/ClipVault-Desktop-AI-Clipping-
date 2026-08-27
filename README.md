@@ -198,11 +198,11 @@ Stay updated with all new features, AI integrations, performance improvements, a
 
 ## 📄 License & Intellectual Property
 
-Copyright © 2026 **John Mark ([@jmarkTheDeveloper](https://github.com/jmarkTheDeveloper))**. All Rights Reserved.
+Copyright © 2026 **Jae Mark ([@jmarkTheDeveloper](https://github.com/jmarkTheDeveloper))**. All Rights Reserved.
 
 Distributed under the **Exclusive Proprietary Commercial Software License**.
 - **Personal & Educational Use**: You are free to view, study, and use ClipVault locally for personal content creation.
-- **Commercial & SaaS Restrictions**: Commercial resale, subscription monetization, SaaS re-hosting, and unauthorized commercial redistribution are strictly prohibited without an official commercial agreement directly from John Mark (`jmarkTheDeveloper`).
+- **Commercial & SaaS Restrictions**: Commercial resale, subscription monetization, SaaS re-hosting, and unauthorized commercial redistribution are strictly prohibited without an official commercial agreement directly from Jae Mark (`jmarkTheDeveloper`).
 
 See the [`LICENSE`](./LICENSE) file for complete legal terms.
 

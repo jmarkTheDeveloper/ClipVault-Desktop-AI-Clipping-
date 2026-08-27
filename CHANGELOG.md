@@ -37,7 +37,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **Interactive Eye Password Masking**: API keys are masked by default (••••••••) with one-click show/hide toggle.
 - **Confidentiality & Anti-Leakage Safeguard**: Strict exception sanitization prevents backend tracebacks or API keys from being exposed in UI notifications.
 - **Formal Legal Disclaimer & Trademark Attribution Notice**: Added legal compliance attributions for Intel, AMD, NVIDIA, Google, OpenAI, Anthropic, Groq, DeepSeek, Alibaba, Moonshot, Higgsfield, and ByteDance.
-- **Exclusive Proprietary Commercial License**: 100% exclusive commercial, distribution, and monetization rights owned by **John Mark (jmarkTheDeveloper)**.
+- **Exclusive Proprietary Commercial License**: 100% exclusive commercial, distribution, and monetization rights owned by **Jae Mark (jmarkTheDeveloper)**.
 
 ### Typography, Captions & Editing
 - **CapCut-Identical Word-by-Word Animated Subtitles**: SIL OFL typography (Montserrat, Anton, Bebas Neue, Bangers, Luckiest Guy, Rubik, Plus Jakarta Sans, Outfit).
