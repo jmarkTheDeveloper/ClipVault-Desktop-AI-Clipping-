@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "clipvault",
   "private": true,
   "version": "1.0.0",
@@ -20,6 +20,7 @@
     "copyright": "Copyright (c) 2025 ClipVault AI",
     "icon": "public/icon.ico",
     "asar": true,
+    "npmRebuild": false,
     "directories": {
       "output": "release",
       "buildResources": "public"
@@ -28,7 +29,22 @@
       "dist/**/*",
       "electron/**/*",
       "public/**/*",
-      "package.json"
+      "package.json",
+      "!node_modules/**/*",
+      "!engine/**/*",
+      "!src/**/*",
+      "!dist_python/**/*",
+      "!build_python/**/*",
+      "!release/**/*",
+      "!*.spec",
+      "!*.bat",
+      "!*.vbs",
+      "!*.py",
+      "!backgrounds/**/*",
+      "!clips/**/*",
+      "!temp/**/*",
+      "!logo/**/*",
+      "!guidelines/**/*"
     ],
     "extraResources": [
       {
@@ -54,8 +70,6 @@
       "createStartMenuShortcut": true,
       "shortcutName": "ClipVault AI",
       "license": "LICENSE",
-      "installerLanguages": ["English"],
-      "displayLanguageSelector": false,
       "runAfterFinish": true,
       "deleteAppDataOnUninstall": false
     },
