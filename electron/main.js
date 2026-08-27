@@ -65,12 +65,17 @@ let pythonProcess;
       if (!fs.existsSync(norm)) {
         try { fs.mkdirSync(norm, { recursive: true }); } catch (e) {}
       }
-      const err = await shell.openPath(norm);
-      if (!err) return true;
-      console.warn('[Electron]: shell.openPath warning:', err);
+
       if (process.platform === 'win32') {
-        exec(`explorer.exe "${norm}"`);
+        // Yield focus so Windows allows Explorer to take the top-level foreground
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.blur();
+        }
+        exec(`start "" explorer.exe "${norm}"`);
         return true;
+      } else {
+        const err = await shell.openPath(norm);
+        return !err;
       }
     } catch (err) {
       console.error('[Electron]: openPath error:', err);
@@ -82,6 +87,9 @@ let pythonProcess;
     try {
       if (filePath) {
         const norm = path.normalize(filePath);
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.blur();
+        }
         shell.showItemInFolder(norm);
         return true;
       }
