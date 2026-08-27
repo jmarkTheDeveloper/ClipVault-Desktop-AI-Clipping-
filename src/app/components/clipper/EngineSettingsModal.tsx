@@ -146,6 +146,136 @@ const CLOUD_ENGINES: EngineOption[] = [
   },
 ];
 
+export interface EngineImpactProfile {
+  title: string;
+  badge: string;
+  viralityFocus: string;
+  speed: string;
+  bestFor: string;
+  summary: string;
+  perks: string[];
+}
+
+export const ENGINE_IMPACT_PROFILES: Record<string, EngineImpactProfile> = {
+  gemini_flash: {
+    title: "Google Gemini 2.5 Flash / Pro",
+    badge: "1M+ Token Multimodal",
+    viralityFocus: "Deep Context & Storyline Arcs",
+    speed: "Balanced (~1.5s - 3s)",
+    bestFor: "Long-form Podcasts, Gaming Streams & Multi-hour Vlogs",
+    summary: "Leverages Google's 1M+ token context window to digest entire multi-hour transcripts simultaneously without losing context or forgetting earlier callbacks.",
+    perks: [
+      "Finds long-range punchlines and narrative callbacks across multi-hour videos",
+      "Excellent multi-speaker dialogue comprehension and joke detection",
+      "Free daily API quota available via Google AI Studio"
+    ]
+  },
+  groq_lpu: {
+    title: "Groq LPU (Llama 3.3 70B & Whisper)",
+    badge: "500+ Tokens/Sec",
+    viralityFocus: "Ultra-Fast Hook & Moment Extraction",
+    speed: "Near Instantaneous (~0.4s)",
+    bestFor: "Rapid Batch Clipping & Fast-Paced Gameplay Commentary",
+    summary: "Runs on Groq's custom LPUs at 500+ tokens/sec. Transcribes audio slices in ~0.4s via Whisper-Large-v3-Turbo and extracts viral hooks in sub-second time.",
+    perks: [
+      "Fastest turn-around time of any provider (zero waiting time)",
+      "99%+ word-accurate subtitles with Whisper-Large-v3-Turbo",
+      "Generous free rate limits available on Groq Console"
+    ]
+  },
+  deepseek: {
+    title: "DeepSeek V3 / R1 Reasoning",
+    badge: "Chain-of-Thought",
+    viralityFocus: "Mathematical & Strategic Virality Logic",
+    speed: "Deep Thinking (~4s - 8s)",
+    bestFor: "Debates, Complex Explanations, High-IQ Gaming & Analysis",
+    summary: "Uses deep chain-of-thought reasoning to rigorously analyze why a specific moment will hold audience attention, rejecting filler and low-retention banter.",
+    perks: [
+      "Selects mathematically high-retention retention loops and hooks",
+      "Excels at extracting counter-intuitive arguments and climax moments",
+      "Unmatched price-to-performance ratio for reasoning-heavy analysis"
+    ]
+  },
+  openai_chatgpt: {
+    title: "OpenAI ChatGPT (GPT-4o)",
+    badge: "Frontier Viral Polish",
+    viralityFocus: "High-Click-Through Social Media Copywriting",
+    speed: "Fast (~2s)",
+    bestFor: "Viral Shorts, Reels, TikTok Entertainment & Punchy Hooks",
+    summary: "Trained on massive web culture datasets. Produces the most naturally engaging, curiosity-inducing hook titles and viewer retention copy in the industry.",
+    perks: [
+      "Top-tier viral hook headlines designed for TikTok and Instagram Reels algorithms",
+      "Native conversational understanding of internet slang, humor, and creator culture",
+      "Integrates with OpenAI Whisper-1 transcription engine"
+    ]
+  },
+  claude_fable: {
+    title: "Anthropic Claude 3.7 / 3.5 Sonnet",
+    badge: "Literary & Nuanced",
+    viralityFocus: "Emotional Resonance & Narrative Flow",
+    speed: "Fast (~2s)",
+    bestFor: "Storytelling, Philosophy, Educational Creators & Film Recaps",
+    summary: "Renowned for its human-like emotional nuance and narrative sensibility. Identifies compelling storytelling arcs that feel organic rather than clickbaity.",
+    perks: [
+      "Best-in-class emotional cadence and natural tone recognition",
+      "Superb at crafting thoughtful, non-cliché hook titles for educational channels",
+      "Eliminates AI jargon and creates authentic, human-sounding captions"
+    ]
+  },
+  moonlight: {
+    title: "Moonlight AI (Moonshot Kimi)",
+    badge: "Long Context",
+    viralityFocus: "Extended Stream Memory & Arc Tracking",
+    speed: "Fast (~2.5s)",
+    bestFor: "Twitch / Kick VODs & Extended Creator Live Streams",
+    summary: "Engineered specifically for mega-context stream analysis. Preserves conversational memory across 200K+ token live broadcast transcripts.",
+    perks: [
+      "Maintains continuity across hours of live-stream gameplay and chatter",
+      "Identifies recurring inside jokes and community stream highlights",
+      "Reliable structured JSON output extraction"
+    ]
+  },
+  qwen_ai: {
+    title: "Alibaba Qwen 2.5 (72B)",
+    badge: "Global & Multilingual",
+    viralityFocus: "Multilingual & Cross-Cultural Nuance",
+    speed: "Fast (~2s)",
+    bestFor: "Non-English, Bilingual, Anime & Global Creator Content",
+    summary: "The leading global open-weights frontier model. Unrivaled at understanding non-English slang, multilingual dialogue, and regional creator humor.",
+    perks: [
+      "Exceptional accuracy in Spanish, Tagalog, Japanese, Chinese, French, and 30+ languages",
+      "Deep understanding of international pop culture and global trending memes",
+      "Accessible via Alibaba Cloud DashScope API"
+    ]
+  },
+  higgsfield: {
+    title: "Higgsfield AI",
+    badge: "Visual Highlights",
+    viralityFocus: "Action Peaks & Visual Motion",
+    speed: "Standard (~3s)",
+    bestFor: "Action Stunts, IRL Vlogs & Visual Spectacle",
+    summary: "Visual-first analysis engine optimized for identifying motion peaks, high-energy physical comedy, and visually striking scenes.",
+    perks: [
+      "Identifies visual energy spikes beyond just audio transcript keywords",
+      "Great for silent comedy, gym feats, and visual demonstrations",
+      "Complements dynamic camera panning layouts"
+    ]
+  },
+  seedance: {
+    title: "SeeDance AI",
+    badge: "Rhythm & Music",
+    viralityFocus: "Beat Drops & Choreography Timing",
+    speed: "Standard (~3s)",
+    bestFor: "Dance Clips, Music Videos & Beat-Synchronized Edits",
+    summary: "Rhythm-aware clipping engine built for music creators and dancers. Cuts video moments precisely on beat drops and choreography climax moments.",
+    perks: [
+      "Coordinates clip boundaries with rhythmic beat transitions",
+      "Tailored for TikTok dance trends and music performance clips",
+      "Produces punchy viral audio-first highlights"
+    ]
+  }
+};
+
 export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
   isOpen,
   onClose,
@@ -278,6 +408,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
   // Reveal confirmation security modal state
   const [showRevealModal, setShowRevealModal] = useState(false);
   const [revealInputText, setRevealInputText] = useState("");
+  const [showModelComparison, setShowModelComparison] = useState(false);
 
   const handleToggleReveal = () => {
     // Ensure liability modal is closed when toggling reveal
@@ -1215,6 +1346,116 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                     </div>
                   </div>
                 )}
+
+                {/* AI Clipping Results & Model Impact Notice */}
+                {(() => {
+                  const currentProfile = ENGINE_IMPACT_PROFILES[selectedEngine] || ENGINE_IMPACT_PROFILES["gemini_flash"];
+                  return (
+                    <div className="p-3.5 rounded-2xl bg-zinc-900/90 border border-white/10 space-y-2.5 shadow-lg">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-lg bg-amber-400/10 border border-amber-400/30 flex items-center justify-center text-amber-400 flex-shrink-0">
+                            <Sparkles className="w-3.5 h-3.5" />
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-bold text-white flex items-center gap-1.5 flex-wrap">
+                              <span>AI Clipping Output Depends on Your API Key</span>
+                              <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                                Model Impact
+                              </span>
+                            </h4>
+                            <p className="text-[10px] text-zinc-400 mt-0.5">
+                              Viral moments, hook titles, and clip selection styles directly reflect your chosen engine's architecture.
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setShowModelComparison(!showModelComparison)}
+                          className="text-[10px] text-amber-400 hover:text-amber-300 font-medium underline flex items-center gap-0.5 whitespace-nowrap cursor-pointer flex-shrink-0"
+                        >
+                          {showModelComparison ? "Hide Guide" : "Compare All Engines ↗"}
+                        </button>
+                      </div>
+
+                      {/* Active Engine Impact Spotlight Card */}
+                      <div className="rounded-xl bg-black/40 border border-white/5 p-3 space-y-2">
+                        <div className="flex items-center justify-between flex-wrap gap-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] font-bold text-zinc-200">
+                              Active: <span className="text-amber-400">{currentProfile.title}</span>
+                            </span>
+                            <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-white/10 text-zinc-300">
+                              {currentProfile.badge}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-zinc-400">
+                            Inference: <strong className="text-zinc-200">{currentProfile.speed}</strong>
+                          </span>
+                        </div>
+
+                        <p className="text-[11px] text-zinc-300 leading-relaxed">
+                          {currentProfile.summary}
+                        </p>
+
+                        {/* Grid of Key Impact Stats */}
+                        <div className="grid grid-cols-2 gap-2 text-[10px]">
+                          <div className="p-2 rounded-lg bg-white/[0.03] border border-white/5 space-y-0.5">
+                            <span className="text-zinc-500 font-semibold uppercase tracking-wider block text-[9px]">Virality Focus</span>
+                            <span className="text-zinc-200 font-medium">{currentProfile.viralityFocus}</span>
+                          </div>
+                          <div className="p-2 rounded-lg bg-white/[0.03] border border-white/5 space-y-0.5">
+                            <span className="text-zinc-500 font-semibold uppercase tracking-wider block text-[9px]">Best Suited For</span>
+                            <span className="text-zinc-200 font-medium">{currentProfile.bestFor}</span>
+                          </div>
+                        </div>
+
+                        {/* Bullet Perks */}
+                        <div className="space-y-1 pt-1.5 border-t border-white/5">
+                          {currentProfile.perks.map((perk, idx) => (
+                            <div key={idx} className="flex items-center gap-1.5 text-[10px] text-zinc-400">
+                              <Check className="w-3 h-3 text-amber-400 flex-shrink-0" />
+                              <span>{perk}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Collapsible All-Engine Comparison Matrix */}
+                      {showModelComparison && (
+                        <div className="pt-2 border-t border-white/10 space-y-2">
+                          <div className="text-[10px] font-bold text-zinc-300 uppercase tracking-wider">
+                            How Engines Compare Across Different Content:
+                          </div>
+                          <div className="grid grid-cols-1 gap-1.5 max-h-48 overflow-y-auto pr-1">
+                            {Object.entries(ENGINE_IMPACT_PROFILES).map(([key, profile]) => (
+                              <div
+                                key={key}
+                                onClick={() => onSelectEngine(key)}
+                                className={`p-2 rounded-lg border text-left cursor-pointer transition-all flex items-center justify-between ${
+                                  selectedEngine === key
+                                    ? "bg-amber-400/10 border-amber-400/40 text-white"
+                                    : "bg-white/[0.02] border-white/5 hover:border-white/10 text-zinc-400"
+                                }`}
+                              >
+                                <div>
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-[11px] font-bold text-zinc-200">{profile.title}</span>
+                                    <span className="text-[8px] px-1 py-0.2 rounded bg-white/10 text-zinc-300">{profile.badge}</span>
+                                  </div>
+                                  <p className="text-[9px] text-zinc-400 line-clamp-1">{profile.bestFor}</p>
+                                </div>
+                                <span className="text-[9px] font-medium text-amber-400/90 whitespace-nowrap pl-2">
+                                  {profile.viralityFocus}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {/* Security & Confidentiality Warning Banner */}
                 <div className="p-3.5 rounded-2xl bg-amber-500/[0.06] border border-amber-500/15 space-y-1.5 text-xs text-zinc-300">
