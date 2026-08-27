@@ -390,7 +390,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
               </div>
 
               <p style={{ fontSize: 10.5, color: "rgba(255,255,255,0.35)", margin: 0, lineHeight: 1.4 }}>
-                Computer Science student at National University Philippines building open-source AI tools.
+                Computer Science student at National University Philippines building advanced AI tools.
               </p>
             </div>
 
@@ -415,7 +415,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
               onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.35)"; }}
             >
               <ShieldCheck style={{ width: 12, height: 12, color: G }} />
-              <span>Privacy Policy, BYOK Compliance & MIT License</span>
+              <span>Privacy Policy, BYOK Compliance & Software License</span>
             </button>
           </div>
 
@@ -650,7 +650,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                     </span>
                   </div>
                   <p style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", margin: 0 }}>
-                    Local-First Architecture • Zero Telemetry • Fair-Use & DMCA Guidelines • MIT License
+                    Local-First Architecture • Zero Telemetry • Fair-Use & DMCA Guidelines • Proprietary License
                   </p>
                 </div>
               </div>
@@ -724,7 +724,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                     { id: "platform", label: "03. Platform Terms & yt-dlp", icon: Globe },
                     { id: "ai", label: "04. AI Models & Billing", icon: Zap },
                     { id: "liability", label: "05. Liability & Warranty", icon: AlertTriangle },
-                    { id: "license", label: "06. DMCA & MIT License", icon: Scale },
+                    { id: "license", label: "06. DMCA & Software License", icon: Scale },
                   ].map((tab) => {
                     const IconComponent = tab.icon;
                     const isActive = complianceTab === tab.id;
@@ -943,15 +943,15 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                       </span>
                       <span style={{ color: "rgba(255,255,255,0.2)" }}>/</span>
                       <span style={{ fontWeight: 800, color: "#fff", fontSize: 14 }}>
-                        DMCA Compliance & Open-Source MIT License
+                        DMCA Compliance & Exclusive Proprietary Commercial License
                       </span>
                     </div>
                     <p style={{ margin: "0 0 8px" }}>
-                      ClipVault is dedicated to intellectual property respect and transparent open-source engineering:
+                      ClipVault is dedicated to intellectual property respect and ethical desktop software distribution:
                     </p>
                     <ul style={{ margin: 0, paddingLeft: 18, color: "rgba(255,255,255,0.55)", display: "flex", flexDirection: "column", gap: 4 }}>
                       <li><strong>DMCA & No Content Hosting:</strong> ClipVault does not host, stream, index, or distribute media assets. All media streams are ingested directly by the user on their own local device.</li>
-                      <li><strong>MIT License:</strong> Free permission is granted to any person obtaining a copy of this software to deal in the Software without restriction, subject to maintaining the copyright notice.</li>
+                      <li><strong>Exclusive Proprietary Commercial License:</strong> Copyright &copy; 2026 Jae Mark (jmarkTheDeveloper). All rights reserved. Free permission is granted for personal, non-commercial local use. Any commercial resale, SaaS re-hosting, redistribution, or unauthorized monetization without express written consent from the author is strictly prohibited.</li>
                     </ul>
                   </div>
                 )}
