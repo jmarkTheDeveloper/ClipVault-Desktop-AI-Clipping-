@@ -379,7 +379,7 @@ class CaptionMaker:
 
         return np.array(img)
 
-    def group_words_into_phrases(self, words, max_words=3, max_silence=0.6):
+    def group_words_into_phrases(self, words, max_words=3, max_silence=0.4):
         """
         Groups individual words into punchy, coherent multi-word phrases (2-3 words per burst)
         matching modern TikTok, CapCut, and Opus Clip standards.
@@ -548,7 +548,7 @@ class CaptionMaker:
 
         pre_rendered_segments = []
 
-        for phrase in phrases:
+        for p_idx, phrase in enumerate(phrases):
             words_in_p = phrase['words']
             # Scale font size if phrase is too wide
             curr_font_size = target_font_size
@@ -563,6 +563,10 @@ class CaptionMaker:
 
             is_karaoke = style_config.get('karaoke', True)
 
+            # CapCut / Opus Clip graceful lingering: keep phrase readable for 0.25s after speaking (or until next phrase)
+            next_p_start = phrases[p_idx + 1]['start'] if p_idx + 1 < len(phrases) else clip.duration
+            phrase_linger_end = min(next_p_start, phrase['end'] + 0.25)
+
             if is_karaoke and len(words_in_p) > 1:
                 for w_idx, w_obj in enumerate(words_in_p):
                     img_np = self.create_phrase_image(words_in_p, curr_font_size, active_idx=w_idx, style_config=style_config)
@@ -572,14 +576,45 @@ class CaptionMaker:
                     y_pos = max(10, min(video_height - fg_h - 10, y_target - (fg_h // 2)))
 
                     w_start = w_obj['start']
-                    w_end = words_in_p[w_idx + 1]['start'] if w_idx + 1 < len(words_in_p) else phrase['end']
-                    w_end = max(w_start + 0.05, w_end)
+                    has_next_word = (w_idx + 1 < len(words_in_p))
+                    next_word_start = words_in_p[w_idx + 1]['start'] if has_next_word else phrase_linger_end
+
+                    # Minimum readability hold (0.15s) so fast speech does not strobe
+                    min_readable = min(next_word_start, w_start + 0.15)
+
+                    # For slow speech with natural pauses (>0.35s): release highlight smoothly
+                    if has_next_word and (next_word_start - w_obj['end'] > 0.35):
+                        w_end = min(next_word_start, max(min_readable, w_obj['end'] + 0.15))
+                    else:
+                        w_end = max(min_readable, min(next_word_start, w_obj['end'] + 0.10))
+
+                    w_end = max(w_start + 0.08, w_end)
 
                     pre_rendered_segments.append({
                         'start': w_start,
                         'end': w_end,
                         'fg_rgb': img_np[:, :, :3].astype(np.float32),
                         'fg_alpha': img_np[:, :, 3:4].astype(np.float32) / 255.0,
+                        'w': fg_w,
+                        'h': fg_h,
+                        'x': x_pos,
+                        'y': y_pos
+                    })
+
+                # If there's a lingering gap before next phrase, show the full phrase in neutral state
+                last_w_end = pre_rendered_segments[-1]['end'] if pre_rendered_segments else phrase['end']
+                if phrase_linger_end > last_w_end + 0.05:
+                    neutral_img = self.create_phrase_image(words_in_p, curr_font_size, active_idx=None, style_config=style_config)
+                    fg_h, fg_w, _ = neutral_img.shape
+                    x_pos = (video_width - fg_w) // 2
+                    y_target = int(video_height * (caption_y_pct if caption_y_pct is not None else 0.70))
+                    y_pos = max(10, min(video_height - fg_h - 10, y_target - (fg_h // 2)))
+
+                    pre_rendered_segments.append({
+                        'start': last_w_end,
+                        'end': phrase_linger_end,
+                        'fg_rgb': neutral_img[:, :, :3].astype(np.float32),
+                        'fg_alpha': neutral_img[:, :, 3:4].astype(np.float32) / 255.0,
                         'w': fg_w,
                         'h': fg_h,
                         'x': x_pos,
@@ -594,7 +629,7 @@ class CaptionMaker:
 
                 pre_rendered_segments.append({
                     'start': phrase['start'],
-                    'end': phrase['end'],
+                    'end': phrase_linger_end,
                     'fg_rgb': img_np[:, :, :3].astype(np.float32),
                     'fg_alpha': img_np[:, :, 3:4].astype(np.float32) / 255.0,
                     'w': fg_w,

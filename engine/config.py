@@ -30,9 +30,9 @@ BASE_DIR = Path(__file__).resolve().parent
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', 'YOUR_API_KEY_HERE')
 OUTPUT_DIR = Path(os.getenv('OUTPUT_DIR', str(BASE_DIR / 'clips'))).resolve()
 TEMP_DIR = Path(os.getenv('TEMP_DIR', str(BASE_DIR / 'temp'))).resolve()
-# Whisper model size (options: tiny, base, small, medium, large-v2)
-# Using base model for ultra-fast CPU transcription with great accuracy
-WHISPER_MODEL = os.getenv('WHISPER_MODEL', 'base')
+# Whisper model size (options: tiny, base, small, medium, large-v2, large-v3)
+# Using small model (244M params) for human-grade accuracy on fast and slow speakers
+WHISPER_MODEL = os.getenv('WHISPER_MODEL', 'small')
 YOUTUBE_USER_AGENT = os.getenv('YOUTUBE_USER_AGENT', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
 YOUTUBE_COOKIES_CONTENT = os.getenv('YOUTUBE_COOKIES_CONTENT', '')
 
