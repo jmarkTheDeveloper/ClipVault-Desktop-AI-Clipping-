@@ -255,11 +255,28 @@ def execute_rendering_task(task_id: str, request: ProcessRequest, cancel_event: 
         tasks_db[task_id]["error"] = clean_msg
         tasks_db[task_id]["message"] = clean_msg
 
+def purge_ghost_files():
+    """
+    Permanently purges any 0-byte ghost MP4 files from the clips directory.
+    """
+    try:
+        if OUTPUT_DIR.exists():
+            for p in OUTPUT_DIR.glob("**/*.mp4"):
+                try:
+                    if p.exists() and p.is_file() and p.stat().st_size == 0:
+                        p.unlink()
+                        print(f"🧹 Purged 0-byte ghost clip: {p.name}")
+                except Exception:
+                    pass
+    except Exception:
+        pass
+
 @app.get("/api/saved_clips")
 def get_saved_clips():
     """
     Scans the output directory (and all subfolders) to return all generated video clips, metadata, and folders.
     """
+    purge_ghost_files()
     clips = []
     folders = set()
     try:
@@ -407,37 +424,41 @@ def delete_clip(data: dict = Body(...)):
             # 2. Delete main video file
             deleted = False
             try:
+                os.chmod(str(target), 0o777)
                 target.unlink()
                 deleted = True
             except (PermissionError, OSError):
-                gc.collect()
-                time.sleep(0.05)
-                try:
-                    # Try renaming to trash tombstone first (works on Windows even with open read handles)
-                    trash_name = target.parent / f".trash_{uuid.uuid4().hex[:6]}_{target.name}"
-                    target.rename(trash_name)
+                for _ in range(4):
+                    gc.collect()
+                    time.sleep(0.08)
                     try:
-                        trash_name.unlink()
-                    except:
-                        pass
-                    deleted = True
-                except Exception:
-                    # Fall back to cmd del
-                    subprocess.run(["cmd", "/c", "del", "/f", "/q", str(target)], capture_output=True, check=False)
-                    if not target.exists():
+                        os.chmod(str(target), 0o777)
+                        target.unlink()
                         deleted = True
-                    else:
-                        try:
-                            # Truncate to 0 bytes so it doesn't occupy disk or show up in vault
-                            with open(target, "wb") as f:
-                                f.truncate(0)
+                        break
+                    except Exception:
+                        pass
+
+                if not deleted and target.exists():
+                    try:
+                        # Move out of clips library to temp folder so it vanishes immediately from user's view
+                        trash_name = TEMP_DIR / f"deleted_{uuid.uuid4().hex[:8]}_{target.name}"
+                        target.rename(trash_name)
+                        deleted = True
+                        try: trash_name.unlink()
+                        except Exception: pass
+                    except Exception:
+                        # Force delete via cmd
+                        subprocess.run(["cmd", "/c", "del", "/f", "/q", "/a", str(target)], capture_output=True, check=False)
+                        if not target.exists():
                             deleted = True
-                        except:
-                            pass
 
             if deleted or not target.exists():
                 deleted_files.append(str(target))
                 print(f"🗑️ Permanently deleted clip: {target.name}")
+
+    # 3. Clean up any 0-byte ghost clips immediately
+    purge_ghost_files()
 
     return {"success": True, "deleted_count": len(deleted_files), "deleted": deleted_files}
 
