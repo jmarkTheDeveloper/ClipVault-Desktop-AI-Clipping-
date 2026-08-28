@@ -12,7 +12,7 @@ import {
   Music,
   Volume2,
   Type,
-  Copyright,
+  ShieldCheck,
   Zap,
   Loader2,
   XCircle,
@@ -908,16 +908,16 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
               )}
             </div>
 
-            {/* Copyright Bypass */}
+            {/* Anti-Duplicate Filter */}
             <div
               className="flex items-center justify-between p-3.5 rounded-xl bg-white/5 border border-white/5 cursor-pointer hover:bg-white/10 transition-colors"
               onClick={() => setAvoidCopyright(!avoidCopyright)}
             >
               <div className="flex flex-col">
                 <span className="text-xs text-white font-medium flex items-center gap-1.5">
-                  <Copyright className="w-3.5 h-3.5 text-amber-400" /> Bypass Copyright
+                  <ShieldCheck className="w-3.5 h-3.5 text-amber-400" /> Anti-Duplicate Filter
                 </span>
-                <span className="text-[10px] text-gray-500">Flips video & alters frequency fingerprint</span>
+                <span className="text-[10px] text-gray-500">Flips video & shifts tempo for fresh algorithmic ranking</span>
               </div>
               <div
                 className={`w-8 h-4 rounded-full flex items-center p-0.5 transition-colors ${
