@@ -1469,6 +1469,45 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                     letterSpacing: "-0.02em",
                   }}
                 >
+                  A Respectful Plea: Please Do Not Break or Pirate This Software
+                </h3>
+
+                <p style={{ margin: 0 }}>
+                  If you ever consider attempting to crack, reverse-engineer, bypass license validations, redistribute unauthorized binaries, or repackage ClipVault AI: <strong style={{ color: "#ff667a" }}>please reconsider and avoid doing so</strong>.
+                </p>
+
+                <div
+                  style={{
+                    padding: "18px 22px",
+                    borderRadius: 14,
+                    background: "rgba(255,102,122,0.06)",
+                    border: "1px solid rgba(255,102,122,0.25)",
+                    color: "rgba(255,255,255,0.85)",
+                    fontSize: 14.5,
+                    lineHeight: 1.7,
+                  }}
+                >
+                  <div style={{ fontWeight: 800, color: "#ff8595", marginBottom: 6, display: "flex", alignItems: "center", gap: 8 }}>
+                    <ShieldCheck style={{ width: 18, height: 18, color: "#ff8595" }} />
+                    <span>Please Respect Independent Student Engineering</span>
+                  </div>
+                  <p style={{ margin: "0 0 10px" }}>
+                    ClipVault was architected and built through hundreds of late-night hours by a solo Computer Science college student with zero corporate funding or venture backing. Cracking or illicitly sharing this software does not harm a faceless multi-billion-dollar corporation — it directly deprives an independent student of tuition funds, living expenses, hardware upgrades, and the ability to make an honest living.
+                  </p>
+                  <div style={{ color: "rgba(255,255,255,0.75)" }}>
+                    If you are a student, educator, or facing severe financial hardship and cannot afford ClipVault, please reach out directly to <strong style={{ color: "#fff" }}>@jmarkTheDeveloper</strong> on GitHub instead of turning to unauthorized or cracked copies. Let's foster a creative software culture built on mutual respect and integrity.
+                  </div>
+                </div>
+
+                <h3
+                  style={{
+                    margin: "16px 0 0",
+                    fontSize: 18,
+                    fontWeight: 700,
+                    color: "#fff",
+                    letterSpacing: "-0.02em",
+                  }}
+                >
                   Supporting This Project
                 </h3>
 
