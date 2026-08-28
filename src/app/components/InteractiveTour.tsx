@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Sparkles, ArrowRight, ArrowLeft, X, CheckCircle2, ChevronRight, Zap, Target } from "lucide-react";
+import { Sparkles, ArrowRight, ArrowLeft, X, CheckCircle2, ChevronRight, Zap, Target, AlertCircle } from "lucide-react";
 
 export interface TourStepOption {
   label: string;
@@ -14,6 +14,8 @@ export interface TourStepInfo {
   subtitle: string;
   description: string;
   options?: TourStepOption[];
+  warningNotice?: string;
+  tipNotice?: string;
   targetId: string;
   position?: "bottom" | "top" | "left" | "right";
 }
@@ -64,18 +66,20 @@ export const TOUR_STEPS: TourStepInfo[] = [
     description: "Choose the intelligence model that will detect your viral hooks:",
     options: [
       {
-        label: "Groq LPU (Llama 3.3 70B)",
-        desc: "Lightning 500+ tokens/sec transcription with free BYOK keys.",
-        badge: "Fast & Free",
+        label: "Cloud AI (Groq, Gemini, OpenAI)",
+        desc: "Requires API Key. Slicing quality and viral intelligence depend directly on your chosen model.",
+        badge: "API Required",
         badgeColor: "#fbbf24",
       },
       {
-        label: "Gemini 2.5 / OpenAI GPT-4o",
-        desc: "Deep cognitive multimodal understanding of humor, punches, and viral moments.",
-        badge: "High IQ",
-        badgeColor: "#a855f7",
+        label: "Local GPU / QSV Engine",
+        desc: "100% Free & Offline. Dedicated GPU (NVIDIA / AMD / Intel Arc) is strongly recommended.",
+        badge: "GPU Recommended",
+        badgeColor: "#38bdf8",
       },
     ],
+    warningNotice: "⚠️ AI clipping will not process without an API key for cloud models. Slicing quality and viral hook accuracy depend directly on what model you choose. For Local mode, a dedicated GPU is strongly recommended.",
+    tipNotice: "💡 You can configure or change your API keys later anytime before clipping by clicking the Engine button in the top right.",
     targetId: "tour-step-3-engine",
     position: "right",
   },
@@ -404,6 +408,48 @@ export const InteractiveTour: React.FC<Props> = ({
                   </p>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Warning Notice Callout */}
+          {stepInfo.warningNotice && (
+            <div
+              style={{
+                background: "rgba(245, 158, 11, 0.08)",
+                border: "1px solid rgba(245, 158, 11, 0.3)",
+                borderRadius: 10,
+                padding: "8px 12px",
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 8,
+                fontSize: 11,
+                color: "#fde68a",
+                lineHeight: 1.45,
+              }}
+            >
+              <AlertCircle style={{ width: 14, height: 14, color: "#fbbf24", flexShrink: 0, marginTop: 1 }} />
+              <span style={{ textAlign: "justify" }}>{stepInfo.warningNotice}</span>
+            </div>
+          )}
+
+          {/* Tip Notice Callout */}
+          {stepInfo.tipNotice && (
+            <div
+              style={{
+                background: "rgba(56, 189, 248, 0.08)",
+                border: "1px solid rgba(56, 189, 248, 0.25)",
+                borderRadius: 10,
+                padding: "8px 12px",
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 8,
+                fontSize: 11,
+                color: "#bae6fd",
+                lineHeight: 1.45,
+              }}
+            >
+              <Sparkles style={{ width: 14, height: 14, color: "#38bdf8", flexShrink: 0, marginTop: 1 }} />
+              <span style={{ textAlign: "justify" }}>{stepInfo.tipNotice}</span>
             </div>
           )}
         </div>

@@ -774,6 +774,26 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
             </div>
           </div>
 
+          {/* Quick Setup Tutorial & Warning Advisory Banner */}
+          <div className="p-3.5 rounded-2xl bg-amber-500/[0.07] border border-amber-400/25 space-y-2 text-xs">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <span className="font-bold text-amber-300 flex items-center gap-1.5 text-xs">
+                <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                API Requirement &amp; Quality Notice
+              </span>
+              <span className="text-[10px] font-bold text-sky-400 bg-sky-500/10 px-2.5 py-0.5 rounded-full border border-sky-400/20">
+                💡 You can configure this later
+              </span>
+            </div>
+            <p className="text-[11px] text-zinc-300 leading-relaxed" style={{ textAlign: "justify" }}>
+              <b>Important:</b> Cloud AI features require a valid API key and will not process without one. Slicing quality and viral hook accuracy depend directly on the model you select. For <b>Local GPU mode</b>, a dedicated GPU (NVIDIA RTX / AMD Radeon / Intel Arc) or Intel Core Ultra NPU is strongly recommended.
+            </p>
+            <div className="flex items-center gap-3 pt-1 border-t border-amber-500/15 text-[10.5px] text-amber-200/80 flex-wrap">
+              <span>• <b>Free Keys:</b> Available instantly via Google AI Studio &amp; Groq Console</span>
+              <span>• <b>Always Editable:</b> Reopen anytime via top-right Engine badge</span>
+            </div>
+          </div>
+
           {/* ══════════════════════════════════════════════════════════════════
               VIEW 1: LOCAL HARDWARE (Only shows real detected hardware)
              ══════════════════════════════════════════════════════════════════ */}
