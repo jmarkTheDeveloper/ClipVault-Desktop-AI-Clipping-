@@ -433,10 +433,10 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <p className="text-white text-xs font-extrabold">Instant</p>
-                  <span className="text-[8px] font-bold px-1 py-0.2 rounded bg-amber-400/20 text-amber-300">Fastest</span>
+                  <p className="text-white text-xs font-extrabold">Instant Cut</p>
+                  <span className="text-[8px] font-bold px-1 py-0.2 rounded bg-amber-400/20 text-amber-300">Hard Cut</span>
                 </div>
-                <p className="text-[10px] text-gray-400 mt-0.5 leading-tight">Zero lag, always centered</p>
+                <p className="text-[10px] text-gray-400 mt-0.5 leading-tight">Jump-cuts to speaker, zero sliding</p>
               </button>
               <button
                 onClick={() => setCameraStyle("snappy")}
@@ -447,7 +447,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                 }`}
               >
                 <p className="text-white text-xs font-bold">Snappy</p>
-                <p className="text-[10px] text-gray-500 mt-0.5 leading-tight">Dynamic action tracking</p>
+                <p className="text-[10px] text-gray-500 mt-0.5 leading-tight">Quick reactive glide</p>
               </button>
               <button
                 onClick={() => setCameraStyle("smooth")}
