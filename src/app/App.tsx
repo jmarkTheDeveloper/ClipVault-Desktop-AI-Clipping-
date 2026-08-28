@@ -65,12 +65,42 @@ export default function App() {
   const [showVaultWelcomePrompt, setShowVaultWelcomePrompt] = useState<boolean>(false);
 
   useEffect(() => {
+    // Expose quick dev tools in window console for instant testing
+    (window as any).resetTutorials = () => {
+      try {
+        localStorage.removeItem("clipvault_tutorial_completed");
+        localStorage.removeItem("clipvault_vault_tour_completed");
+      } catch {}
+      setShowWelcomePrompt(true);
+      setShowVaultWelcomePrompt(false);
+      setTourActive(false);
+    };
+
+    (window as any).startVaultTutorial = () => {
+      handleStartVaultTour();
+    };
+
+    (window as any).startClipperTutorial = () => {
+      handleStartTour();
+    };
+
+    // Keyboard shortcut: Ctrl + Shift + T resets all tutorials
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && (e.key === "T" || e.key === "t")) {
+        e.preventDefault();
+        (window as any).resetTutorials();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+
     try {
       const completed = localStorage.getItem("clipvault_tutorial_completed");
       if (!completed) {
         setShowWelcomePrompt(true);
       }
     } catch {}
+
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
   const handleStartTour = () => {

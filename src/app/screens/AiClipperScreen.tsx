@@ -1463,6 +1463,7 @@ export const AiClipperScreen: React.FC<Props> = ({
             onDuplicateClip={handleDuplicateClip}
             setPreviewVaultClip={setPreviewVaultClip}
             onBackToEditor={() => setViewMode("setup")}
+            onStartVaultTour={onStartVaultTour}
           />
         )}
 

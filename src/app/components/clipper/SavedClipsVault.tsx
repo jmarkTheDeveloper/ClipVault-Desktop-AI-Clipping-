@@ -58,6 +58,7 @@ interface SavedClipsVaultProps {
   onDuplicateClip?: (filePath: string) => Promise<void>;
   setPreviewVaultClip: (clip: ClipMetadata | null) => void;
   onBackToEditor: () => void;
+  onStartVaultTour?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -530,6 +531,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
   onDuplicateClip,
   setPreviewVaultClip,
   onBackToEditor,
+  onStartVaultTour,
 }) => {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; clip: ClipMetadata } | null>(null);
   const [folderContextMenu, setFolderContextMenu] = useState<{ x: number; y: number; folder: string } | null>(null);
@@ -917,6 +919,16 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
         </div>
 
         <div id="vault-tour-step-1-storage" className="flex items-center gap-3 flex-wrap">
+          {onStartVaultTour && (
+            <button
+              onClick={onStartVaultTour}
+              className="px-3.5 py-2.5 rounded-xl bg-amber-400/10 hover:bg-amber-400/20 text-amber-300 border border-amber-400/30 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+              title="Launch Saved Clips Vault Walkthrough"
+            >
+              <Sparkles className="w-4 h-4 text-amber-400" /> Walkthrough
+            </button>
+          )}
+
           <button
             onClick={() => openOutputFolder(vaultSelectedFolder !== "all" && vaultSelectedFolder !== "Main Library" ? vaultSelectedFolder : undefined)}
             className="px-4 py-2.5 rounded-xl bg-amber-400 text-black font-extrabold text-xs hover:bg-amber-300 transition-all shadow-[0_0_20px_rgba(251,191,36,0.3)] flex items-center gap-2 cursor-pointer"
