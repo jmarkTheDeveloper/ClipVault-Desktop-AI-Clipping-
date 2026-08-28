@@ -807,7 +807,7 @@ export const FirstTimeWelcomeModal: React.FC<FirstTimeWelcomeModalProps> = ({
               lineHeight: 1.25,
             }}
           >
-            {isVault ? "Are you new to Saved Clips Vault?" : "Are you new to ClipVault AI?"}
+            {isVault ? "Saved Clips Vault Walkthrough" : "Are you new to ClipVault AI?"}
           </h2>
           <p
             style={{
@@ -818,7 +818,7 @@ export const FirstTimeWelcomeModal: React.FC<FirstTimeWelcomeModalProps> = ({
             }}
           >
             {isVault
-              ? "Take a 30-second interactive guided walkthrough to see how Windows Explorer folder organization, AI virality sorting, and native drag-and-drop export work."
+              ? "Take a quick 25-second walkthrough to see how Windows Explorer folder organization, AI virality sorting, and native drag-and-drop export work."
               : "Take a 45-second interactive guided walkthrough to see how smart stream slicing, AI face tracking, and dynamic kinetic typography work."}
           </p>
         </div>
@@ -843,25 +843,25 @@ export const FirstTimeWelcomeModal: React.FC<FirstTimeWelcomeModalProps> = ({
               gap: 8,
               padding: "12px 20px",
               borderRadius: 12,
-              background: "#00e676",
+              background: isVault ? "#fbbf24" : "#00e676",
               border: "none",
               color: "#000",
               fontSize: 13,
               fontWeight: 800,
               cursor: "pointer",
-              boxShadow: "0 0 24px rgba(0, 230, 118, 0.4)",
+              boxShadow: isVault ? "0 0 24px rgba(251, 191, 36, 0.4)" : "0 0 24px rgba(0, 230, 118, 0.4)",
               transition: "all 0.15s",
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = "#33eb91";
+              e.currentTarget.style.background = isVault ? "#fcd34d" : "#33eb91";
               e.currentTarget.style.transform = "translateY(-1px)";
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = "#00e676";
+              e.currentTarget.style.background = isVault ? "#fbbf24" : "#00e676";
               e.currentTarget.style.transform = "none";
             }}
           >
-            <span>Start Interactive Tour</span>
+            <span>{isVault ? "Start Vault Walkthrough" : "Start Interactive Tour"}</span>
             <ArrowRight style={{ width: 15, height: 15 }} />
           </button>
 
@@ -869,12 +869,12 @@ export const FirstTimeWelcomeModal: React.FC<FirstTimeWelcomeModalProps> = ({
             type="button"
             onClick={onSkip}
             style={{
-              padding: "12px 20px",
+              padding: "12px 18px",
               borderRadius: 12,
               background: "rgba(255,255,255,0.06)",
               border: "1px solid rgba(255,255,255,0.12)",
-              color: "rgba(255,255,255,0.75)",
-              fontSize: 13,
+              color: "rgba(255,255,255,0.7)",
+              fontSize: 12.5,
               fontWeight: 600,
               cursor: "pointer",
               transition: "all 0.15s",
@@ -885,10 +885,10 @@ export const FirstTimeWelcomeModal: React.FC<FirstTimeWelcomeModalProps> = ({
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = "rgba(255,255,255,0.06)";
-              e.currentTarget.style.color = "rgba(255,255,255,0.75)";
+              e.currentTarget.style.color = "rgba(255,255,255,0.7)";
             }}
           >
-            Skip for Now
+            {isVault ? "Dismiss" : "Skip for Now"}
           </button>
         </div>
       </div>
