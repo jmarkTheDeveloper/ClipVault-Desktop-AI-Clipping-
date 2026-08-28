@@ -1174,8 +1174,8 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
             position: "fixed",
             inset: 0,
             zIndex: 110,
-            background: "rgba(0,0,0,0.88)",
-            backdropFilter: "blur(16px)",
+            background: "rgba(0,0,0,0.92)",
+            backdropFilter: "blur(20px)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -1186,82 +1186,61 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
           <div
             style={{
               position: "relative",
-              width: "min(820px, 95vw)",
-              maxHeight: "90vh",
-              background: "linear-gradient(175deg, #0e0e12 0%, #08080a 100%)",
-              border: "1px solid rgba(251,191,36,0.3)",
-              borderRadius: 22,
-              boxShadow: "0 40px 140px rgba(0,0,0,0.98), 0 0 40px rgba(251,191,36,0.06)",
+              width: "min(880px, 95vw)",
+              maxHeight: "88vh",
+              background: "#0a0a0c",
+              border: "1px solid rgba(255,255,255,0.12)",
+              borderRadius: 24,
+              boxShadow: "0 40px 160px rgba(0,0,0,0.98), 0 0 1px 1px rgba(255,255,255,0.08)",
               display: "flex",
               flexDirection: "column",
               overflow: "hidden",
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Modal Top Header */}
+            {/* Modal Header */}
             <div
               style={{
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                padding: "22px 28px",
-                borderBottom: "1px solid rgba(255,255,255,0.07)",
-                background: "linear-gradient(180deg, rgba(251,191,36,0.05) 0%, transparent 100%)",
+                padding: "24px 36px",
+                borderBottom: "1px solid rgba(255,255,255,0.08)",
+                background: "rgba(255,255,255,0.015)",
                 flexShrink: 0,
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                <div
+                <span
                   style={{
-                    width: 42,
-                    height: 42,
-                    borderRadius: 12,
-                    background: "linear-gradient(135deg, rgba(251,191,36,0.22) 0%, rgba(245,158,11,0.06) 100%)",
-                    border: "1px solid rgba(251,191,36,0.4)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
+                    fontSize: 11,
+                    fontFamily: "'Geist Mono', monospace",
+                    fontWeight: 700,
+                    letterSpacing: "0.08em",
+                    textTransform: "uppercase",
+                    color: "#fbbf24",
+                    padding: "4px 10px",
+                    borderRadius: 6,
+                    background: "rgba(251,191,36,0.1)",
+                    border: "1px solid rgba(251,191,36,0.25)",
                   }}
                 >
-                  <GraduationCap style={{ width: 22, height: 22, color: "#fbbf24" }} />
-                </div>
-                <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#fff", letterSpacing: "-0.02em" }}>
-                      Foundational Vision & Creator Story
-                    </h3>
-                    <span
-                      style={{
-                        fontSize: 9.5,
-                        fontFamily: "'Geist Mono', monospace",
-                        fontWeight: 700,
-                        padding: "2px 8px",
-                        borderRadius: 999,
-                        background: "rgba(251,191,36,0.15)",
-                        border: "1px solid rgba(251,191,36,0.3)",
-                        color: "#fbbf24",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.05em",
-                      }}
-                    >
-                      Independent Studio
-                    </span>
-                  </div>
-                  <p style={{ margin: "3px 0 0", fontSize: 11.5, color: "rgba(255,255,255,0.45)" }}>
-                    The philosophy and purpose driving ClipVault AI Video Studio
-                  </p>
-                </div>
+                  Founder Letter
+                </span>
+                <span style={{ fontSize: 13, color: "rgba(255,255,255,0.4)" }}>
+                  ClipVault AI Architecture & Mission
+                </span>
               </div>
               <button
                 type="button"
                 onClick={() => setShowAboutModal(false)}
                 style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 10,
-                  background: "rgba(255,255,255,0.05)",
+                  width: 34,
+                  height: 34,
+                  borderRadius: 8,
+                  background: "rgba(255,255,255,0.06)",
                   border: "1px solid rgba(255,255,255,0.1)",
-                  color: "rgba(255,255,255,0.6)",
+                  color: "rgba(255,255,255,0.7)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -1269,73 +1248,78 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                   transition: "all 0.15s",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "rgba(255,255,255,0.12)";
+                  e.currentTarget.style.background = "rgba(255,255,255,0.15)";
                   e.currentTarget.style.color = "#fff";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "rgba(255,255,255,0.05)";
-                  e.currentTarget.style.color = "rgba(255,255,255,0.6)";
+                  e.currentTarget.style.background = "rgba(255,255,255,0.06)";
+                  e.currentTarget.style.color = "rgba(255,255,255,0.7)";
                 }}
               >
-                <X style={{ width: 15, height: 15 }} />
+                <X style={{ width: 16, height: 16 }} />
               </button>
             </div>
 
-            {/* Modal Scrollable Body */}
+            {/* Modal Body (Clean Editorial Manifesto) */}
             <div
               style={{
                 flex: 1,
                 overflowY: "auto",
-                padding: "28px",
+                padding: "36px 44px",
                 display: "flex",
                 flexDirection: "column",
-                gap: 20,
+                gap: 28,
               }}
             >
-              {/* Creator & Project Identity Card */}
+              {/* Headline */}
+              <div>
+                <h1
+                  style={{
+                    margin: "0 0 12px",
+                    fontSize: 26,
+                    fontWeight: 800,
+                    color: "#ffffff",
+                    letterSpacing: "-0.03em",
+                    lineHeight: 1.25,
+                  }}
+                >
+                  Building a New Standard for Creator Software.
+                </h1>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: 16,
+                    color: "rgba(255,255,255,0.5)",
+                    lineHeight: 1.6,
+                  }}
+                >
+                  Why ClipVault AI was created as an independent, desktop-native alternative to cloud video SaaS.
+                </p>
+              </div>
+
+              {/* Founder Tag & GitHub Badge */}
               <div
                 style={{
-                  padding: "18px 22px",
-                  borderRadius: 16,
-                  background: "rgba(255,255,255,0.025)",
-                  border: "1px solid rgba(255,255,255,0.08)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
+                  paddingBottom: 20,
+                  borderBottom: "1px solid rgba(255,255,255,0.08)",
                   flexWrap: "wrap",
-                  gap: 14,
+                  gap: 16,
                 }}
               >
-                <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <Code2 style={{ width: 18, height: 18, color: "#00e676" }} />
-                    <span style={{ fontSize: 15, fontWeight: 800, color: "#fff", fontFamily: "'Geist Mono', monospace" }}>
-                      @jmarkTheDeveloper
-                    </span>
-                    <span
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 5,
-                        padding: "3px 9px",
-                        borderRadius: 999,
-                        background: "rgba(0,230,118,0.1)",
-                        border: "1px solid rgba(0,230,118,0.25)",
-                        fontSize: 10,
-                        fontWeight: 700,
-                        color: G,
-                      }}
-                    >
-                      <span style={{ width: 5, height: 5, borderRadius: "50%", background: G, boxShadow: "0 0 6px #00e676" }} />
-                      Solo Student Developer & Founder
-                    </span>
-                  </div>
-                  <p style={{ margin: "5px 0 0", fontSize: 11.5, color: "rgba(255,255,255,0.5)" }}>
-                    Computer Science Student • Independent Software Engineering • Philippines
-                  </p>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <Code2 style={{ width: 18, height: 18, color: G }} />
+                  <span style={{ fontSize: 14, fontFamily: "'Geist Mono', monospace", fontWeight: 700, color: "#fff" }}>
+                    @jmarkTheDeveloper
+                  </span>
+                  <span style={{ color: "rgba(255,255,255,0.2)" }}>•</span>
+                  <span style={{ fontSize: 13, color: "rgba(255,255,255,0.5)" }}>
+                    Computer Science Student & Solo Founder
+                  </span>
                 </div>
 
-                {/* Direct Clickable GitHub Link */}
                 <a
                   href="https://github.com/jmarkTheDeveloper"
                   target="_blank"
@@ -1344,202 +1328,166 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                     display: "inline-flex",
                     alignItems: "center",
                     gap: 8,
-                    padding: "8px 16px",
-                    borderRadius: 10,
-                    background: "rgba(255,255,255,0.06)",
-                    border: "1px solid rgba(255,255,255,0.15)",
+                    padding: "7px 14px",
+                    borderRadius: 8,
+                    background: "rgba(255,255,255,0.05)",
+                    border: "1px solid rgba(255,255,255,0.12)",
                     color: "#fff",
                     textDecoration: "none",
-                    fontSize: 11.5,
-                    fontWeight: 700,
+                    fontSize: 12,
+                    fontWeight: 600,
                     fontFamily: "'Geist Mono', monospace",
                     transition: "all 0.15s",
-                    cursor: "pointer",
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.background = "rgba(255,255,255,0.12)";
-                    e.currentTarget.style.borderColor = "#fbbf24";
-                    e.currentTarget.style.color = "#fbbf24";
+                    e.currentTarget.style.borderColor = "rgba(255,255,255,0.3)";
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "rgba(255,255,255,0.06)";
-                    e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)";
-                    e.currentTarget.style.color = "#fff";
+                    e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+                    e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)";
                   }}
                 >
                   <Github style={{ width: 14, height: 14 }} />
                   <span>github.com/jmarkTheDeveloper</span>
-                  <ExternalLink style={{ width: 12, height: 12, opacity: 0.7 }} />
+                  <ExternalLink style={{ width: 12, height: 12, opacity: 0.6 }} />
                 </a>
               </div>
 
-              {/* Foundational Long-Form Message */}
+              {/* Manifesto Text Content */}
               <div
                 style={{
                   display: "flex",
                   flexDirection: "column",
-                  gap: 14,
-                  color: "rgba(255,255,255,0.8)",
-                  fontSize: 13,
-                  lineHeight: 1.7,
-                  fontFamily: "'Geist', sans-serif",
+                  gap: 20,
+                  color: "rgba(255,255,255,0.85)",
+                  fontSize: 15.5,
+                  lineHeight: 1.75,
+                  letterSpacing: "-0.01em",
                 }}
               >
+                <p style={{ margin: 0 }}>
+                  This application was designed and coded entirely by an active <strong style={{ color: "#fff" }}>Computer Science college student</strong> aiming to achieve self-sufficiency, make a living through craftsmanship, and introduce an honest, powerful business impact into the video creator economy.
+                </p>
+
+                {/* Pull Quote */}
                 <div
                   style={{
-                    borderLeft: "3px solid #fbbf24",
-                    paddingLeft: 16,
-                    color: "rgba(255,255,255,0.9)",
-                    fontWeight: 500,
+                    padding: "16px 22px",
+                    background: "rgba(255,255,255,0.02)",
+                    borderLeft: `3px solid ${G}`,
+                    borderRadius: "0 12px 12px 0",
+                    color: "#ffffff",
+                    fontSize: 16,
                     fontStyle: "italic",
-                    fontSize: 13.5,
+                    lineHeight: 1.65,
                   }}
                 >
-                  "Software should empower creators through ownership, transparency, and raw local compute — not trap them behind endless monthly paywalls."
+                  "Creators shouldn't be forced to rent their editing workflow from cloud servers when their own computer has all the processing power needed to do it locally, privately, and for free."
                 </div>
 
                 <p style={{ margin: 0 }}>
-                  <strong style={{ color: "#fff" }}>To every creator, editor, and agency using ClipVault AI:</strong>
+                  Today's video clipping market is overcrowded with cloud SaaS platforms that lock basic video operations behind <span style={{ color: "#ff667a", fontWeight: 600 }}>$30 to $100+ monthly subscriptions</span>. They require you to upload massive gigabyte video files to remote queues, wait several minutes for simple cuts, and consume artificial credit pools.
                 </p>
 
-                <p style={{ margin: 0 }}>
-                  This application was envisioned, architected, and coded from scratch by an independent <strong style={{ color: "#fbbf24" }}>Computer Science college student</strong> who is striving to make a living, achieve financial independence, and create a genuine, transformative business impact in the modern video content industry.
-                </p>
-
-                <p style={{ margin: 0 }}>
-                  For years, the video clipping ecosystem has been dominated by centralized cloud services that charge predatory <span style={{ color: "#ff667a", fontWeight: 600 }}>$30 to $100+ monthly subscriptions</span>. These platforms force creators to upload private media to distant servers, wait in rendering queues, and rent access to AI capabilities that should belong directly on their own hardware.
-                </p>
-
-                <p style={{ margin: 0 }}>
-                  <strong style={{ color: G }}>ClipVault AI represents a fundamentally different model:</strong>
-                </p>
-
-                <div
+                <h3
                   style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                    gap: 12,
-                    margin: "4px 0",
+                    margin: "12px 0 0",
+                    fontSize: 18,
+                    fontWeight: 700,
+                    color: "#fff",
+                    letterSpacing: "-0.02em",
                   }}
                 >
-                  <div
-                    style={{
-                      padding: "14px",
-                      borderRadius: 12,
-                      background: "rgba(0,230,118,0.04)",
-                      border: "1px solid rgba(0,230,118,0.15)",
-                    }}
-                  >
-                    <div style={{ fontSize: 12, fontWeight: 800, color: G, marginBottom: 4 }}>
-                      ⚡ 100% Desktop Native
-                    </div>
-                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.65)", lineHeight: 1.5 }}>
-                      Zero upload queues or server lag. All video transcoding and layout composition execute directly on your PC's CPU/GPU.
-                    </div>
-                  </div>
+                  The ClipVault Principles
+                </h3>
 
-                  <div
-                    style={{
-                      padding: "14px",
-                      borderRadius: 12,
-                      background: "rgba(251,191,36,0.04)",
-                      border: "1px solid rgba(251,191,36,0.15)",
-                    }}
-                  >
-                    <div style={{ fontSize: 12, fontWeight: 800, color: "#fbbf24", marginBottom: 4 }}>
-                      🔑 BYOK & Privacy First
-                    </div>
-                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.65)", lineHeight: 1.5 }}>
-                      Bring your own free Gemini, Groq, or OpenAI API keys. Your keys, media, and transcripts never pass through any middleman servers.
-                    </div>
-                  </div>
+                <ul
+                  style={{
+                    margin: 0,
+                    paddingLeft: 22,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 12,
+                    color: "rgba(255,255,255,0.8)",
+                  }}
+                >
+                  <li>
+                    <strong style={{ color: "#fff" }}>Zero Cloud Bottlenecks:</strong> Video processing, scene detection, facial steadicam tracking, and typography rendering execute 100% on your local machine using hardware-accelerated encoders (NVENC, Intel QuickSync, or AMD AMF).
+                  </li>
+                  <li>
+                    <strong style={{ color: "#fff" }}>Bring-Your-Own-Key (BYOK) Freedom:</strong> Connect directly to cutting-edge AI providers like Google Gemini, Groq, or OpenAI using your personal API keys. Your keys and raw footage never pass through any intermediate server.
+                  </li>
+                  <li>
+                    <strong style={{ color: "#fff" }}>Unlimited Creator Sovereignty:</strong> No monthly usage caps, no watermark paywalls, and no arbitrary restrictions on how many clips you can produce.
+                  </li>
+                </ul>
 
-                  <div
-                    style={{
-                      padding: "14px",
-                      borderRadius: 12,
-                      background: "rgba(56,189,248,0.04)",
-                      border: "1px solid rgba(56,189,248,0.15)",
-                    }}
-                  >
-                    <div style={{ fontSize: 12, fontWeight: 800, color: "#38bdf8", marginBottom: 4 }}>
-                      💎 Pure Creator Ownership
-                    </div>
-                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.65)", lineHeight: 1.5 }}>
-                      No watermarks, no credit deductions, and no arbitrary limits on how many clips you can produce or export.
-                    </div>
-                  </div>
-                </div>
+                <h3
+                  style={{
+                    margin: "12px 0 0",
+                    fontSize: 18,
+                    fontWeight: 700,
+                    color: "#fff",
+                    letterSpacing: "-0.02em",
+                  }}
+                >
+                  Supporting This Project
+                </h3>
 
                 <p style={{ margin: 0 }}>
-                  Building this software as a solo student developer requires countless late nights balancing university coursework with real-world engineering, testing computer vision models, and fine-tuning neural audio pipelines.
+                  Building and refining computer vision pipelines, multi-camera director algorithms, and cross-platform desktop installers as a student requires dedicated late-night engineering alongside university studies.
                 </p>
-              </div>
 
-              {/* Support & Appreciation Section */}
-              <div
-                style={{
-                  padding: "20px 22px",
-                  borderRadius: 16,
-                  background: "linear-gradient(135deg, rgba(251,191,36,0.09) 0%, rgba(245,158,11,0.03) 100%)",
-                  border: "1px solid rgba(251,191,36,0.3)",
-                  display: "flex",
-                  alignItems: "flex-start",
-                  gap: 14,
-                }}
-              >
-                <Heart style={{ width: 22, height: 22, color: "#fbbf24", fill: "#fbbf24", flexShrink: 0, marginTop: 2 }} />
-                <div>
-                  <h4 style={{ margin: "0 0 6px", fontSize: 14, fontWeight: 800, color: "#fbbf24", letterSpacing: "-0.01em" }}>
-                    Thank You for Supporting My Journey & Education
-                  </h4>
-                  <p style={{ margin: 0, fontSize: 12, color: "rgba(255,255,255,0.75)", lineHeight: 1.6 }}>
-                    If you find ClipVault AI valuable for your content workflow, agency, or editing business, thank you so much for using it! Your feedback, sharing ClipVault with other creators, and word-of-mouth recommendations directly fund my college tuition, equipment costs, and future software development.
-                  </p>
-                </div>
+                <p style={{ margin: 0 }}>
+                  If you find ClipVault AI valuable for your YouTube channels, client projects, or media agency, thank you sincerely for using it. Every share, word-of-mouth recommendation, and piece of honest feedback directly supports my ongoing college education and independent software development.
+                </p>
               </div>
             </div>
 
-            {/* Modal Bottom Footer */}
+            {/* Modal Bottom Bar */}
             <div
               style={{
-                padding: "16px 28px",
-                borderTop: "1px solid rgba(255,255,255,0.07)",
-                background: "rgba(255,255,255,0.015)",
+                padding: "18px 36px",
+                borderTop: "1px solid rgba(255,255,255,0.08)",
+                background: "rgba(255,255,255,0.01)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
                 flexShrink: 0,
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", fontFamily: "'Geist Mono', monospace" }}>
-                  ClipVault AI Video Studio • Developed by @jmarkTheDeveloper
-                </span>
-              </div>
+              <span
+                style={{
+                  fontSize: 12,
+                  fontFamily: "'Geist Mono', monospace",
+                  color: "rgba(255,255,255,0.4)",
+                }}
+              >
+                ClipVault AI Video Studio • @jmarkTheDeveloper
+              </span>
               <button
                 type="button"
                 onClick={() => setShowAboutModal(false)}
                 style={{
-                  padding: "9px 28px",
-                  borderRadius: 11,
+                  padding: "10px 28px",
+                  borderRadius: 10,
                   fontWeight: 700,
-                  fontSize: 12.5,
+                  fontSize: 13,
                   color: "#000",
-                  background: "#fbbf24",
+                  background: "#fff",
                   border: "none",
                   cursor: "pointer",
                   transition: "all 0.15s",
-                  boxShadow: "0 0 20px rgba(251,191,36,0.3)",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.filter = "brightness(1.1)";
+                  e.currentTarget.style.background = "rgba(255,255,255,0.85)";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.filter = "none";
+                  e.currentTarget.style.background = "#fff";
                 }}
               >
-                Back to Studio
+                Close Manifesto
               </button>
             </div>
           </div>
