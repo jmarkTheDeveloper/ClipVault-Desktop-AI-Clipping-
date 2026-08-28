@@ -1425,7 +1425,44 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
 
                 <h3
                   style={{
-                    margin: "12px 0 0",
+                    margin: "16px 0 0",
+                    fontSize: 18,
+                    fontWeight: 700,
+                    color: "#fff",
+                    letterSpacing: "-0.02em",
+                  }}
+                >
+                  Why ClipVault is a Paid Product
+                </h3>
+
+                <p style={{ margin: 0 }}>
+                  You might wonder why ClipVault is offered as a commercial tool rather than completely free software. The answer is rooted in transparency, financial independence, and long-term software sustainability:
+                </p>
+
+                <ul
+                  style={{
+                    margin: 0,
+                    paddingLeft: 22,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 12,
+                    color: "rgba(255,255,255,0.8)",
+                  }}
+                >
+                  <li>
+                    <strong style={{ color: "#fff" }}>Financial Development & University Tuition:</strong> As a full-time Computer Science student, charging an honest, accessible fee directly covers college tuition, living expenses, development hardware, and dedicated engineering hours.
+                  </li>
+                  <li>
+                    <strong style={{ color: "#fff" }}>Sustainable Independence over Corporate Traps:</strong> Free software projects frequently die from developer burnout, turn into ad-bloated adware, or get acquired and shut down. A sustainable revenue model ensures ClipVault receives active feature updates, AI model integrations, and direct technical support.
+                  </li>
+                  <li>
+                    <strong style={{ color: "#fff" }}>Fair Lifetime Value vs Subscription Extortion:</strong> Cloud clipping SaaS platforms charge $30–$100 every single month. ClipVault replaces recurring monthly drains with an accessible, high-value tool where you own your workflows forever.
+                  </li>
+                </ul>
+
+                <h3
+                  style={{
+                    margin: "16px 0 0",
                     fontSize: 18,
                     fontWeight: 700,
                     color: "#fff",
@@ -1436,11 +1473,11 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                 </h3>
 
                 <p style={{ margin: 0 }}>
-                  Building and refining computer vision pipelines, multi-camera director algorithms, and cross-platform desktop installers as a student requires dedicated late-night engineering alongside university studies.
+                  Building and refining computer vision pipelines, multi-camera director algorithms, and cross-platform desktop installers as a student requires dedicated late-night engineering alongside university coursework.
                 </p>
 
                 <p style={{ margin: 0 }}>
-                  If you find ClipVault AI valuable for your YouTube channels, client projects, or media agency, thank you sincerely for using it. Every share, word-of-mouth recommendation, and piece of honest feedback directly supports my ongoing college education and independent software development.
+                  If you purchase ClipVault AI or recommend it to fellow creators, editors, and agencies, thank you from the bottom of my heart. You are not just buying software — you are directly empowering an independent student developer to build a sustainable business, pay for education, and continue crafting powerful creator tools.
                 </p>
               </div>
             </div>
