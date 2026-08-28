@@ -181,7 +181,7 @@ If you find ClipVault useful or want to support ongoing open-source development,
 
 [![Patreon](https://img.shields.io/badge/Patreon-Support_on_Patreon-FF424D?style=for-the-badge&logo=patreon&logoColor=white)](https://patreon.com/jmarkTheDeveloper?utm_medium=unknown&utm_source=join_link&utm_campaign=creatorshare_creator&utm_content=copyLink)
 
-<p><sub>Built with 💚 by <b>Jae Mark (jmarkTheDeveloper)</b> — Computer Science Student at National University Philippines.</sub></p>
+<p><sub>Built with 💚 by <b>@jmarkTheDeveloper</b> — Computer Science Student Developer.</sub></p>
 
 </div>
 
@@ -197,11 +197,11 @@ Stay updated with all new features, AI integrations, performance improvements, a
 
 ## 📄 License & Intellectual Property
 
-Copyright © 2026 **Jae Mark ([@jmarkTheDeveloper](https://github.com/jmarkTheDeveloper))**. All Rights Reserved.
+Copyright © 2026 **[@jmarkTheDeveloper](https://github.com/jmarkTheDeveloper)**. All Rights Reserved.
 
 Distributed under the **Exclusive Proprietary Commercial Software License**.
 - **Personal & Educational Use**: You are free to view, study, and use ClipVault locally for personal content creation.
-- **Commercial & SaaS Restrictions**: Commercial resale, subscription monetization, SaaS re-hosting, and unauthorized commercial redistribution are strictly prohibited without an official commercial agreement directly from Jae Mark (`jmarkTheDeveloper`).
+- **Commercial & SaaS Restrictions**: Commercial resale, subscription monetization, SaaS re-hosting, and unauthorized commercial redistribution are strictly prohibited without an official commercial agreement directly from `@jmarkTheDeveloper`.
 
 See the [`LICENSE`](./LICENSE) file for complete legal terms.
 

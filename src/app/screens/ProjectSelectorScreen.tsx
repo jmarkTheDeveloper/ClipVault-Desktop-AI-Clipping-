@@ -879,10 +879,10 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                         Grant of Commercial License & Proprietary Rights
                       </span>
                     </div>
-                    <p style={{ margin: "0 0 8px" }}>
-                      This End-User License Agreement ("EULA") is a legally binding contract between you (either an individual creator, professional editor, or corporate entity) and <strong>Jae Mark (@jmarkTheDeveloper)</strong> ("Licensor / Author").
+                    <p style={{ margin: "0 0 8px", textAlign: "justify" }}>
+                      This End-User License Agreement ("EULA") is a legally binding contract between you (either an individual creator, professional editor, or corporate entity) and <strong>@jmarkTheDeveloper</strong> ("Licensor / Author").
                     </p>
-                    <ul style={{ margin: 0, paddingLeft: 18, color: "rgba(255,255,255,0.6)", display: "flex", flexDirection: "column", gap: 5 }}>
+                    <ul style={{ margin: 0, paddingLeft: 18, color: "rgba(255,255,255,0.6)", display: "flex", flexDirection: "column", gap: 5, textAlign: "justify" }}>
                       <li><strong>License Scope:</strong> You are granted a limited, non-exclusive, non-transferable, revocable license to install and execute ClipVault AI Video Studio on your authorized personal or business computer.</li>
                       <li><strong>Creator Asset Ownership:</strong> You retain 100% full intellectual property ownership, monetization rights, and commercial distribution rights over all final video master outputs, vertical clips, and subtitle assets created using this software without paying royalties or ongoing fees to the Licensor.</li>
                       <li><strong>Proprietary Code Architecture:</strong> The underlying algorithms, computer vision pipelines, multi-camera director logic, interface layouts, and source binaries remain the exclusive intellectual property of the Author.</li>
@@ -902,10 +902,10 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                         Strict Prohibitions, Anti-Cracking & Reverse Engineering
                       </span>
                     </div>
-                    <p style={{ margin: "0 0 8px" }}>
+                    <p style={{ margin: "0 0 8px", textAlign: "justify" }}>
                       To protect independent student development and software integrity, the following activities are strictly prohibited by law:
                     </p>
-                    <ul style={{ margin: 0, paddingLeft: 18, color: "rgba(255,255,255,0.6)", display: "flex", flexDirection: "column", gap: 5 }}>
+                    <ul style={{ margin: 0, paddingLeft: 18, color: "rgba(255,255,255,0.6)", display: "flex", flexDirection: "column", gap: 5, textAlign: "justify" }}>
                       <li><strong>No Decompilation or Reverse Engineering:</strong> You may not disassemble, reverse-engineer, decompile, trace, attach debuggers to, or attempt to extract source algorithms, models, or binary architectures from the software.</li>
                       <li><strong>No License Circumvention or Memory Patching:</strong> Any attempt to modify, patch, crack, or bypass license validation routines, activation checks, or security components will immediately terminate your license and may result in legal action under international copyright law.</li>
                       <li><strong>No SaaS Re-Hosting or Commercial Resale:</strong> You are strictly forbidden from repackaging, reselling, distributing unauthorized copies, or offering ClipVault as a multi-tenant cloud SaaS, web API, or remote bot service.</li>
@@ -925,10 +925,10 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                         Zero-Telemetry Privacy & Local On-Device Architecture
                       </span>
                     </div>
-                    <p style={{ margin: "0 0 8px" }}>
+                    <p style={{ margin: "0 0 8px", textAlign: "justify" }}>
                       ClipVault is engineered from the ground up to respect user confidentiality and sovereign privacy:
                     </p>
-                    <ul style={{ margin: 0, paddingLeft: 18, color: "rgba(255,255,255,0.6)", display: "flex", flexDirection: "column", gap: 5 }}>
+                    <ul style={{ margin: 0, paddingLeft: 18, color: "rgba(255,255,255,0.6)", display: "flex", flexDirection: "column", gap: 5, textAlign: "justify" }}>
                       <li><strong>No Remote Telemetry or Tracking:</strong> The application does not collect, harvest, transmit, or monetize your personal identity, IP address, browsing activity, or video content.</li>
                       <li><strong>GDPR, CCPA & Privacy Compliance:</strong> Full compliance with international privacy mandates is guaranteed by virtue of zero centralized server data storage. All temporary audio waveforms, facial landmark coordinates, and intermediate render files are stored exclusively on your local disk in `%LOCALAPPDATA%`.</li>
                       <li><strong>Encrypted Credential Security:</strong> All Bring-Your-Own-Key (BYOK) credentials are stored locally with platform-native OS encryption and are dispatched exclusively over direct TLS 1.3 encrypted HTTPS connections.</li>
@@ -948,10 +948,10 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                         Third-Party Ingestion & Sony Betamax Fair-Use Doctrine
                       </span>
                     </div>
-                    <p style={{ margin: "0 0 8px" }}>
+                    <p style={{ margin: "0 0 8px", textAlign: "justify" }}>
                       ClipVault incorporates open-source stream ingestion utilities (`ffmpeg`, `yt-dlp`) for local media management:
                     </p>
-                    <ul style={{ margin: 0, paddingLeft: 18, color: "rgba(255,255,255,0.6)", display: "flex", flexDirection: "column", gap: 5 }}>
+                    <ul style={{ margin: 0, paddingLeft: 18, color: "rgba(255,255,255,0.6)", display: "flex", flexDirection: "column", gap: 5, textAlign: "justify" }}>
                       <li><strong>Substantial Non-Infringing Uses:</strong> Under the legal principle established in <em>Sony Corp. of America v. Universal City Studios (the Betamax doctrine)</em>, this tool is designed for lawful purposes including personal media archiving, creator VOD clipping, educational commentary, and editing user-owned or creative commons content.</li>
                       <li><strong>No Central Proxy Servers:</strong> ClipVault does not host, stream, or maintain a centralized media library. All network requests originate directly from the user's personal IP address.</li>
                       <li><strong>End-User Copyright Compliance:</strong> You assume sole legal responsibility for ensuring you possess valid licenses, permissions, or fair-use justifications for any third-party media you choose to ingest or republish.</li>
@@ -971,10 +971,10 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                         AI Model Provider Billing & Rate-Limit Disclaimers
                       </span>
                     </div>
-                    <p style={{ margin: "0 0 8px" }}>
+                    <p style={{ margin: "0 0 8px", textAlign: "justify" }}>
                       ClipVault facilitates direct client-side integration with third-party neural providers (Google Gemini, Groq LPUs, OpenAI, Anthropic):
                     </p>
-                    <ul style={{ margin: 0, paddingLeft: 18, color: "rgba(255,255,255,0.6)", display: "flex", flexDirection: "column", gap: 5 }}>
+                    <ul style={{ margin: 0, paddingLeft: 18, color: "rgba(255,255,255,0.6)", display: "flex", flexDirection: "column", gap: 5, textAlign: "justify" }}>
                       <li><strong>API Quota & Billing Responsibility:</strong> You are solely responsible for monitoring your token usage, rate tiers, and billing arrangements with your selected AI providers. The Licensor is not responsible for API billing overages, credit expirations, or third-party pricing adjustments.</li>
                       <li><strong>Service Availability & Deprecation:</strong> The Licensor does not control upstream AI uptime or model deprecations. Temporary provider outages or latency spikes do not constitute a defect in ClipVault.</li>
                       <li><strong>AI Output Verification Duty:</strong> Automated transcripts, viral hooks, and keyword highlights should be reviewed by the creator for accuracy, safety, and compliance with platform content rules before publishing.</li>
@@ -994,10 +994,10 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                         Hardware Acceleration, Thermal Load & Storage Disclaimers
                       </span>
                     </div>
-                    <p style={{ margin: "0 0 8px" }}>
+                    <p style={{ margin: "0 0 8px", textAlign: "justify" }}>
                       Video composition, facial landmark tracking, and multi-pass MP4 rendering leverage heavy local system resources:
                     </p>
-                    <ul style={{ margin: 0, paddingLeft: 18, color: "rgba(255,255,255,0.6)", display: "flex", flexDirection: "column", gap: 5 }}>
+                    <ul style={{ margin: 0, paddingLeft: 18, color: "rgba(255,255,255,0.6)", display: "flex", flexDirection: "column", gap: 5, textAlign: "justify" }}>
                       <li><strong>Hardware Compute Loads:</strong> High-resolution export pipelines utilize NVIDIA NVENC, Intel QuickSync, or AMD AMF hardware encoders alongside multi-core CPU threads.</li>
                       <li><strong>User Thermal & Storage Responsibility:</strong> You are responsible for ensuring adequate computer cooling, power supply capacity, and free hard drive storage space in your configured export directories.</li>
                       <li><strong>Thermal Shutdown Disclaimer:</strong> The Licensor is not liable for system crashes, thermal throttling, or hardware interruptions caused by inadequate PC cooling or hardware instability during batch rendering.</li>
@@ -1017,10 +1017,10 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                         Trademark Attributions & Non-Affiliation Notices
                       </span>
                     </div>
-                    <p style={{ margin: "0 0 8px" }}>
+                    <p style={{ margin: "0 0 8px", textAlign: "justify" }}>
                       All third-party trademarks, service marks, trade names, and corporate logos referenced in the software or documentation remain the property of their respective owners:
                     </p>
-                    <div style={{ padding: "12px 14px", borderRadius: 8, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", fontSize: 11.5, color: "rgba(255,255,255,0.55)", lineHeight: 1.6 }}>
+                    <div style={{ padding: "12px 14px", borderRadius: 8, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", fontSize: 11.5, color: "rgba(255,255,255,0.55)", lineHeight: 1.6, textAlign: "justify" }}>
                       YouTube™ & Google™ are trademarks of Google LLC. TikTok™ is a trademark of ByteDance Ltd. Instagram™ & Facebook™ are trademarks of Meta Platforms, Inc. OpenAI™ is a trademark of OpenAI, Inc. Groq™ is a trademark of Groq, Inc. NVIDIA™, Intel™, and AMD™ are trademarks of their respective corporations. Mention of these trademarks does NOT constitute an endorsement, official partnership, or sponsorship of ClipVault AI.
                     </div>
                   </div>
@@ -1038,10 +1038,10 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                         Disclaimer of Warranties, Limitation of Liability & Arbitration
                       </span>
                     </div>
-                    <div style={{ margin: "0 0 10px", fontSize: 11, color: "rgba(255,255,255,0.5)", fontFamily: "'JetBrains Mono', monospace", background: "rgba(255,255,255,0.02)", padding: "12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.06)", lineHeight: 1.6 }}>
+                    <div style={{ margin: "0 0 10px", fontSize: 11, color: "rgba(255,255,255,0.5)", fontFamily: "'JetBrains Mono', monospace", background: "rgba(255,255,255,0.02)", padding: "12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.06)", lineHeight: 1.6, textAlign: "justify" }}>
                       THE SOFTWARE IS PROVIDED "AS IS" AND "AS AVAILABLE", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, OR NONINFRINGEMENT. CLIPVAULT DOES NOT GUARANTEE SPECIFIC VIEW COUNTS, ALGORITHMIC VIRALITY, FOLLOWER INCREASES, OR FINANCIAL REVENUE.
                     </div>
-                    <ul style={{ margin: 0, paddingLeft: 18, color: "rgba(255,255,255,0.6)", display: "flex", flexDirection: "column", gap: 5 }}>
+                    <ul style={{ margin: 0, paddingLeft: 18, color: "rgba(255,255,255,0.6)", display: "flex", flexDirection: "column", gap: 5, textAlign: "justify" }}>
                       <li><strong>Cap on Liability:</strong> Under no circumstances shall the Licensor's aggregate liability exceed the total amount actually paid by you for the software license.</li>
                       <li><strong>Indemnification:</strong> You agree to defend, indemnify, and hold harmless the Author (@jmarkTheDeveloper) against any third-party claims, damages, or legal costs arising from your misuse of the software or copyright infringement of ingested media.</li>
                       <li><strong>Binding Individual Dispute Resolution:</strong> Any disputes arising under this agreement shall be resolved through individual binding arbitration, and you expressly waive the right to participate in class-action lawsuits.</li>
@@ -1115,7 +1115,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                 <span style={{ fontSize: 11, color: "rgba(255,255,255,0.2)" }}>•</span>
 
                 <span style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", fontFamily: "'JetBrains Mono', monospace" }}>
-                  Exclusive License © 2026 Jae Mark (jmarkTheDeveloper)
+                  Exclusive Commercial License © 2026 @jmarkTheDeveloper
                 </span>
               </div>
 
@@ -1426,7 +1426,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                   letterSpacing: "-0.01em",
                 }}
               >
-                <p style={{ margin: 0 }}>
+                <p style={{ margin: 0, textAlign: "justify" }}>
                   This application was designed and coded entirely by an active <strong style={{ color: "#fff" }}>Computer Science college student</strong> aiming to achieve self-sufficiency, make a living through craftsmanship, and introduce an honest, powerful business impact into the video creator economy.
                 </p>
 
@@ -1441,12 +1441,13 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                     fontSize: 16,
                     fontStyle: "italic",
                     lineHeight: 1.65,
+                    textAlign: "justify",
                   }}
                 >
                   "Creators shouldn't be forced to rent their editing workflow from cloud servers when their own computer has all the processing power needed to do it locally, privately, and for free."
                 </div>
 
-                <p style={{ margin: 0 }}>
+                <p style={{ margin: 0, textAlign: "justify" }}>
                   Today's video clipping market is overcrowded with cloud SaaS platforms that lock basic video operations behind <span style={{ color: "#ff667a", fontWeight: 600 }}>$30 to $100+ monthly subscriptions</span>. They require you to upload massive gigabyte video files to remote queues, wait several minutes for simple cuts, and consume artificial credit pools.
                 </p>
 
@@ -1470,6 +1471,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                     flexDirection: "column",
                     gap: 12,
                     color: "rgba(255,255,255,0.8)",
+                    textAlign: "justify",
                   }}
                 >
                   <li>
@@ -1495,7 +1497,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                   Why ClipVault is a Paid Product
                 </h3>
 
-                <p style={{ margin: 0 }}>
+                <p style={{ margin: 0, textAlign: "justify" }}>
                   You might wonder why ClipVault is offered as a commercial tool rather than completely free software. The answer is rooted in transparency, financial independence, and long-term software sustainability:
                 </p>
 
@@ -1507,6 +1509,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                     flexDirection: "column",
                     gap: 12,
                     color: "rgba(255,255,255,0.8)",
+                    textAlign: "justify",
                   }}
                 >
                   <li>
@@ -1532,7 +1535,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                   A Respectful Plea: Please Do Not Break or Pirate This Software
                 </h3>
 
-                <p style={{ margin: 0 }}>
+                <p style={{ margin: 0, textAlign: "justify" }}>
                   If you ever consider attempting to crack, reverse-engineer, bypass license validations, redistribute unauthorized binaries, or repackage ClipVault AI: <strong style={{ color: "#ff667a" }}>please reconsider and avoid doing so</strong>.
                 </p>
 
@@ -1545,16 +1548,17 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                     color: "rgba(255,255,255,0.85)",
                     fontSize: 14.5,
                     lineHeight: 1.7,
+                    textAlign: "justify",
                   }}
                 >
                   <div style={{ fontWeight: 800, color: "#ff8595", marginBottom: 6, display: "flex", alignItems: "center", gap: 8 }}>
                     <ShieldCheck style={{ width: 18, height: 18, color: "#ff8595" }} />
                     <span>Please Respect Independent Student Engineering</span>
                   </div>
-                  <p style={{ margin: "0 0 10px" }}>
+                  <p style={{ margin: "0 0 10px", textAlign: "justify" }}>
                     ClipVault was architected and built through hundreds of late-night hours by a solo Computer Science college student with zero corporate funding or venture backing. Cracking or illicitly sharing this software does not harm a faceless multi-billion-dollar corporation — it directly deprives an independent student of tuition funds, living expenses, hardware upgrades, and the ability to make an honest living.
                   </p>
-                  <div style={{ color: "rgba(255,255,255,0.75)" }}>
+                  <div style={{ color: "rgba(255,255,255,0.75)", textAlign: "justify" }}>
                     If you are a student, educator, or facing severe financial hardship and cannot afford ClipVault, please reach out directly to <strong style={{ color: "#fff" }}>@jmarkTheDeveloper</strong> on GitHub instead of turning to unauthorized or cracked copies. Let's foster a creative software culture built on mutual respect and integrity.
                   </div>
                 </div>
@@ -1571,11 +1575,11 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                   Supporting This Project
                 </h3>
 
-                <p style={{ margin: 0 }}>
+                <p style={{ margin: 0, textAlign: "justify" }}>
                   Building and refining computer vision pipelines, multi-camera director algorithms, and cross-platform desktop installers as a student requires dedicated late-night engineering alongside university coursework.
                 </p>
 
-                <p style={{ margin: 0 }}>
+                <p style={{ margin: 0, textAlign: "justify" }}>
                   If you purchase ClipVault AI or recommend it to fellow creators, editors, and agencies, thank you from the bottom of my heart. You are not just buying software — you are directly empowering an independent student developer to build a sustainable business, pay for education, and continue crafting powerful creator tools.
                 </p>
               </div>
