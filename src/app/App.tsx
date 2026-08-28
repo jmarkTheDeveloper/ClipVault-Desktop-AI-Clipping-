@@ -59,8 +59,10 @@ export default function App() {
 
   // Interactive Guided Tour State
   const [tourActive, setTourActive] = useState<boolean>(false);
+  const [tourType, setTourType] = useState<"clipper" | "vault">("clipper");
   const [tourStep, setTourStep] = useState<number>(1);
   const [showWelcomePrompt, setShowWelcomePrompt] = useState<boolean>(false);
+  const [showVaultWelcomePrompt, setShowVaultWelcomePrompt] = useState<boolean>(false);
 
   useEffect(() => {
     try {
@@ -73,8 +75,20 @@ export default function App() {
 
   const handleStartTour = () => {
     setShowWelcomePrompt(false);
+    setShowVaultWelcomePrompt(false);
+    setTourType("clipper");
     setTourStep(1);
     setScreen("project-select");
+    setTourActive(true);
+  };
+
+  const handleStartVaultTour = () => {
+    setShowWelcomePrompt(false);
+    setShowVaultWelcomePrompt(false);
+    setTourType("vault");
+    setTourStep(1);
+    setScreen("ai-clipper");
+    setClipperViewMode("vault");
     setTourActive(true);
   };
 
@@ -85,35 +99,63 @@ export default function App() {
     } catch {}
   };
 
+  const handleSkipVaultWelcome = () => {
+    setShowVaultWelcomePrompt(false);
+    try {
+      localStorage.setItem("clipvault_vault_tour_completed", "true");
+    } catch {}
+  };
+
   const handleNextTourStep = () => {
-    if (tourStep === 1) {
-      setClipperViewMode("setup");
-      setScreen("ai-clipper");
-      setTourStep(2);
-    } else if (tourStep < 5) {
-      setTourStep((prev) => prev + 1);
-    } else {
-      // Completed Tour
-      setTourActive(false);
-      try {
-        localStorage.setItem("clipvault_tutorial_completed", "true");
-      } catch {}
+    if (tourType === "clipper") {
+      if (tourStep === 1) {
+        setClipperViewMode("setup");
+        setScreen("ai-clipper");
+        setTourStep(2);
+      } else if (tourStep < 5) {
+        setTourStep((prev) => prev + 1);
+      } else {
+        // Completed Tour
+        setTourActive(false);
+        try {
+          localStorage.setItem("clipvault_tutorial_completed", "true");
+        } catch {}
+      }
+    } else if (tourType === "vault") {
+      if (tourStep < 4) {
+        setTourStep((prev) => prev + 1);
+      } else {
+        setTourActive(false);
+        try {
+          localStorage.setItem("clipvault_vault_tour_completed", "true");
+        } catch {}
+      }
     }
   };
 
   const handlePrevTourStep = () => {
-    if (tourStep === 2) {
-      setScreen("project-select");
-      setTourStep(1);
-    } else if (tourStep > 1) {
-      setTourStep((prev) => prev - 1);
+    if (tourType === "clipper") {
+      if (tourStep === 2) {
+        setScreen("project-select");
+        setTourStep(1);
+      } else if (tourStep > 1) {
+        setTourStep((prev) => prev - 1);
+      }
+    } else if (tourType === "vault") {
+      if (tourStep > 1) {
+        setTourStep((prev) => prev - 1);
+      }
     }
   };
 
   const handleExitTour = () => {
     setTourActive(false);
     try {
-      localStorage.setItem("clipvault_tutorial_completed", "true");
+      if (tourType === "clipper") {
+        localStorage.setItem("clipvault_tutorial_completed", "true");
+      } else {
+        localStorage.setItem("clipvault_vault_tour_completed", "true");
+      }
     } catch {}
   };
 
@@ -147,21 +189,33 @@ export default function App() {
             onBack={() => setScreen("project-select")} 
             initialViewMode={clipperViewMode}
             onStartTour={handleStartTour}
+            onStartVaultTour={handleStartVaultTour}
+            onTriggerVaultWelcome={() => setShowVaultWelcomePrompt(true)}
           />
         </div>
 
         {screen === "movie-recapper" && <MovieRecapperScreen onBack={() => setScreen("project-select")} />}
 
-        {/* First-Time Welcome Prompt Modal */}
+        {/* First-Time Clipper Welcome Prompt Modal */}
         <FirstTimeWelcomeModal
           isOpen={showWelcomePrompt}
+          tourType="clipper"
           onStartTour={handleStartTour}
           onSkip={handleSkipWelcome}
+        />
+
+        {/* First-Time Saved Vault Welcome Prompt Modal */}
+        <FirstTimeWelcomeModal
+          isOpen={showVaultWelcomePrompt}
+          tourType="vault"
+          onStartTour={handleStartVaultTour}
+          onSkip={handleSkipVaultWelcome}
         />
 
         {/* Interactive Guided Tour Spotlight HUD */}
         <InteractiveTour
           active={tourActive}
+          tourType={tourType}
           currentStep={tourStep}
           onNext={handleNextTourStep}
           onPrev={handlePrevTourStep}

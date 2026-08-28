@@ -15,6 +15,8 @@ interface Props {
   onOpenEditor?: (url: string) => void;
   initialViewMode?: ViewMode;
   onStartTour?: () => void;
+  onStartVaultTour?: () => void;
+  onTriggerVaultWelcome?: () => void;
 }
 
 const AI_ENGINES: EngineOption[] = [
@@ -126,13 +128,31 @@ const AI_ENGINES: EngineOption[] = [
   },
 ];
 
-export const AiClipperScreen: React.FC<Props> = ({ onBack, initialViewMode = "setup", onStartTour }) => {
+export const AiClipperScreen: React.FC<Props> = ({ 
+  onBack, 
+  initialViewMode = "setup", 
+  onStartTour,
+  onStartVaultTour,
+  onTriggerVaultWelcome,
+}) => {
   // Navigation & View States
   const [viewMode, setViewMode] = useState<ViewMode>(initialViewMode);
   
   useEffect(() => {
     if (initialViewMode) setViewMode(initialViewMode);
   }, [initialViewMode]);
+
+  // First-Time Saved Vault Tutorial Trigger
+  useEffect(() => {
+    if (viewMode === "vault") {
+      try {
+        const vaultTourDone = localStorage.getItem("clipvault_vault_tour_completed");
+        if (!vaultTourDone && onTriggerVaultWelcome) {
+          onTriggerVaultWelcome();
+        }
+      } catch {}
+    }
+  }, [viewMode, onTriggerVaultWelcome]);
 
   const [showKeySettings, setShowKeySettings] = useState(false);
   const [showRateLimitModal, setShowRateLimitModal] = useState(false);
@@ -1110,10 +1130,16 @@ export const AiClipperScreen: React.FC<Props> = ({ onBack, initialViewMode = "se
 
         {/* AI Engine Badge & BYOK Toggle */}
         <div className="flex items-center gap-3">
-          {onStartTour && (
+          {(onStartTour || onStartVaultTour) && (
             <button
               type="button"
-              onClick={onStartTour}
+              onClick={() => {
+                if (viewMode === "vault" && onStartVaultTour) {
+                  onStartVaultTour();
+                } else if (onStartTour) {
+                  onStartTour();
+                }
+              }}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-sky-400/30 bg-sky-500/10 text-sky-300 text-xs font-bold hover:bg-sky-500/20 transition-all cursor-pointer shadow-sm"
               title="Start Interactive Guided Tour"
             >

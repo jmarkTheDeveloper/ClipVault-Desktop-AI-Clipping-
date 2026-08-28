@@ -916,7 +916,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-3 flex-wrap">
+        <div id="vault-tour-step-1-storage" className="flex items-center gap-3 flex-wrap">
           <button
             onClick={() => openOutputFolder(vaultSelectedFolder !== "all" && vaultSelectedFolder !== "Main Library" ? vaultSelectedFolder : undefined)}
             className="px-4 py-2.5 rounded-xl bg-amber-400 text-black font-extrabold text-xs hover:bg-amber-300 transition-all shadow-[0_0_20px_rgba(251,191,36,0.3)] flex items-center gap-2 cursor-pointer"
@@ -941,7 +941,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
       </div>
 
       {/* Explorer Breadcrumb Navigation Path Bar (with Drop Target Support) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 bg-[#121212] border border-white/10 rounded-2xl p-3">
+      <div id="vault-tour-step-2-breadcrumbs" className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 bg-[#121212] border border-white/10 rounded-2xl p-3">
         <div className="flex items-center gap-2 overflow-x-auto scrollbar-thin py-1">
           {!isRoot && (
             <button
@@ -1031,7 +1031,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
       </div>
 
       {/* Search & Filter & Sort Bar */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
+      <div id="vault-tour-step-3-search" className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
         <div className="flex items-center bg-[#111] border border-white/10 rounded-xl px-3 py-2">
           <Search className="w-4 h-4 text-gray-500 mr-2 shrink-0" />
           <input
@@ -1308,7 +1308,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
       </div>
 
       {/* Drag & Drop Interactivity Banner */}
-      <div className="mb-6 p-3 rounded-2xl bg-amber-400/5 border border-amber-400/20 flex flex-wrap items-center justify-between gap-3 text-xs text-amber-300/80">
+      <div id="vault-tour-step-4-drag" className="mb-6 p-3 rounded-2xl bg-amber-400/5 border border-amber-400/20 flex flex-wrap items-center justify-between gap-3 text-xs text-amber-300/80">
         <div className="flex items-center gap-2">
           <Move className="w-4 h-4 text-amber-400 shrink-0" />
           <span>

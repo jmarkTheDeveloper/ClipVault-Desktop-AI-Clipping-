@@ -129,8 +129,100 @@ export const TOUR_STEPS: TourStepInfo[] = [
   },
 ];
 
+export const VAULT_TOUR_STEPS: TourStepInfo[] = [
+  {
+    step: 1,
+    title: "Storage & Physical Explorer Access",
+    subtitle: "Step 1 of 4 • Storage Management",
+    description: "Manage where your saved clips live on your local drive:",
+    options: [
+      {
+        label: "Open Folder in Explorer",
+        desc: "Instantly launch native Windows File Explorer directly in your current folder.",
+        badge: "Direct Access",
+        badgeColor: "#fbbf24",
+      },
+      {
+        label: "Change Storage Directory",
+        desc: "Point ClipVault to any internal SSD/NVMe, HDD, or external storage drive.",
+        badge: "Custom Drive",
+        badgeColor: "#38bdf8",
+      },
+    ],
+    targetId: "vault-tour-step-1-storage",
+    position: "bottom",
+  },
+  {
+    step: 2,
+    title: "Folder Breadcrumbs & Organization",
+    subtitle: "Step 2 of 4 • Folders & Hierarchy",
+    description: "Organize your short-form library with custom nested folders:",
+    options: [
+      {
+        label: "Hierarchical Breadcrumbs",
+        desc: "Click path chips to navigate or drag clips directly onto breadcrumbs to move them.",
+        badge: "Navigation",
+        badgeColor: "#00e676",
+      },
+      {
+        label: "Create Category Folders",
+        desc: "Create custom folders for Gaming, Podcasts, Reactions, or Client batches.",
+        badge: "Categories",
+        badgeColor: "#a855f7",
+      },
+    ],
+    targetId: "vault-tour-step-2-breadcrumbs",
+    position: "bottom",
+  },
+  {
+    step: 3,
+    title: "Search, Filter & Virality Scoring",
+    subtitle: "Step 3 of 4 • Discovery & Filtering",
+    description: "Locate and rank your highest-performing moments:",
+    options: [
+      {
+        label: "Instant Search & Folder Filter",
+        desc: "Search by title/filename or filter down to specific category subfolders.",
+        badge: "Filter",
+        badgeColor: "#38bdf8",
+      },
+      {
+        label: "Virality Score Ranking",
+        desc: "Sort clips by AI Virality Score, newest creation date, or alphabetical order.",
+        badge: "Virality Rank",
+        badgeColor: "#fbbf24",
+      },
+    ],
+    targetId: "vault-tour-step-3-search",
+    position: "bottom",
+  },
+  {
+    step: 4,
+    title: "Desktop Drag & Drop & Direct Export",
+    subtitle: "Step 4 of 4 • File Management",
+    description: "Full desktop-native drag-and-drop and clip controls:",
+    options: [
+      {
+        label: "Drag & Drop Organizing",
+        desc: "Drag clips between folders, or drop external video files into ClipVault to import.",
+        badge: "Drag & Drop",
+        badgeColor: "#00e676",
+      },
+      {
+        label: "Drag Out to Desktop",
+        desc: "Drag clips straight out onto your Windows desktop or into your favorite video editor.",
+        badge: "Direct Export",
+        badgeColor: "#fbbf24",
+      },
+    ],
+    targetId: "vault-tour-step-4-drag",
+    position: "top",
+  },
+];
+
 interface Props {
   active: boolean;
+  tourType?: "clipper" | "vault";
   currentStep: number;
   onNext: () => void;
   onPrev: () => void;
@@ -139,6 +231,7 @@ interface Props {
 
 export const InteractiveTour: React.FC<Props> = ({
   active,
+  tourType = "clipper",
   currentStep,
   onNext,
   onPrev,
@@ -146,7 +239,8 @@ export const InteractiveTour: React.FC<Props> = ({
 }) => {
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
 
-  const stepInfo = TOUR_STEPS.find((s) => s.step === currentStep) || TOUR_STEPS[0];
+  const steps = tourType === "vault" ? VAULT_TOUR_STEPS : TOUR_STEPS;
+  const stepInfo = steps.find((s) => s.step === currentStep) || steps[0];
 
   // 1. Auto-scroll target element into view whenever tour step changes
   useEffect(() => {
@@ -217,7 +311,7 @@ export const InteractiveTour: React.FC<Props> = ({
 
   if (!active) return null;
 
-  const isLastStep = currentStep === TOUR_STEPS.length;
+  const isLastStep = currentStep === steps.length;
   // Adaptive HUD Placement: if target element is near the bottom, position HUD at the top so it never covers the button
   const shouldPlaceAtTop = stepInfo.position === "top" || (targetRect ? targetRect.bottom > (typeof window !== "undefined" ? window.innerHeight - 280 : 600) : false);
 
@@ -505,7 +599,7 @@ export const InteractiveTour: React.FC<Props> = ({
         >
           {/* Step Dots */}
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            {TOUR_STEPS.map((s) => (
+            {steps.map((s) => (
               <div
                 key={s.step}
                 style={{
@@ -599,7 +693,7 @@ export const InteractiveTour: React.FC<Props> = ({
             transform: translate(-50%, 20px);
           }
           to {
-            opacity: 1;
+                opacity: 1;
             transform: translate(-50%, 0);
           }
         }
@@ -608,26 +702,38 @@ export const InteractiveTour: React.FC<Props> = ({
   );
 };
 
-export const FirstTimeWelcomeModal: React.FC<{
+export interface FirstTimeWelcomeModalProps {
   isOpen: boolean;
+  tourType?: "clipper" | "vault";
   onStartTour: () => void;
   onSkip: () => void;
-}> = ({ isOpen, onStartTour, onSkip }) => {
+}
+
+export const FirstTimeWelcomeModal: React.FC<FirstTimeWelcomeModalProps> = ({
+  isOpen,
+  tourType = "clipper",
+  onStartTour,
+  onSkip,
+}) => {
   if (!isOpen) return null;
+
+  const isVault = tourType === "vault";
 
   return (
     <div
       style={{
         position: "fixed",
         inset: 0,
-        zIndex: 99999,
-        background: "rgba(0, 0, 0, 0.85)",
-        backdropFilter: "blur(14px)",
+        zIndex: 10005,
+        background: "rgba(0,0,0,0.82)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        padding: "20px",
+        padding: 20,
         fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
+        animation: "fadeInModal 0.2s ease-out",
       }}
       onClick={onSkip}
     >
@@ -635,8 +741,8 @@ export const FirstTimeWelcomeModal: React.FC<{
         style={{
           width: "min(520px, 94vw)",
           background: "#0c0c10",
-          border: "1px solid rgba(0, 230, 118, 0.35)",
-          boxShadow: "0 32px 100px rgba(0,0,0,0.95), 0 0 40px rgba(0, 230, 118, 0.2)",
+          border: isVault ? "1px solid rgba(251, 191, 36, 0.35)" : "1px solid rgba(0, 230, 118, 0.35)",
+          boxShadow: isVault ? "0 32px 100px rgba(0,0,0,0.95), 0 0 40px rgba(251, 191, 36, 0.2)" : "0 32px 100px rgba(0,0,0,0.95), 0 0 40px rgba(0, 230, 118, 0.2)",
           borderRadius: 24,
           padding: "32px 36px",
           display: "flex",
@@ -656,9 +762,9 @@ export const FirstTimeWelcomeModal: React.FC<{
               gap: 6,
               padding: "4px 10px",
               borderRadius: 999,
-              background: "rgba(0,230,118,0.1)",
-              border: "1px solid rgba(0,230,118,0.3)",
-              color: "#00e676",
+              background: isVault ? "rgba(251,191,36,0.1)" : "rgba(0,230,118,0.1)",
+              border: isVault ? "1px solid rgba(251,191,36,0.3)" : "1px solid rgba(0,230,118,0.3)",
+              color: isVault ? "#fbbf24" : "#00e676",
               fontSize: 11,
               fontWeight: 700,
               fontFamily: "'Geist Mono', monospace",
@@ -667,7 +773,7 @@ export const FirstTimeWelcomeModal: React.FC<{
             }}
           >
             <Sparkles style={{ width: 12, height: 12 }} />
-            <span>Welcome Creator</span>
+            <span>{isVault ? "Saved Clips Vault Walkthrough" : "Welcome Creator"}</span>
           </div>
 
           <button
@@ -701,7 +807,7 @@ export const FirstTimeWelcomeModal: React.FC<{
               lineHeight: 1.25,
             }}
           >
-            Are you new to ClipVault AI?
+            {isVault ? "Are you new to Saved Clips Vault?" : "Are you new to ClipVault AI?"}
           </h2>
           <p
             style={{
@@ -711,7 +817,9 @@ export const FirstTimeWelcomeModal: React.FC<{
               lineHeight: 1.6,
             }}
           >
-            Take a 45-second interactive guided walkthrough to see how smart stream slicing, AI face tracking, and dynamic kinetic typography work.
+            {isVault
+              ? "Take a 30-second interactive guided walkthrough to see how Windows Explorer folder organization, AI virality sorting, and native drag-and-drop export work."
+              : "Take a 45-second interactive guided walkthrough to see how smart stream slicing, AI face tracking, and dynamic kinetic typography work."}
           </p>
         </div>
 
