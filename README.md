@@ -180,6 +180,7 @@ If you find ClipVault useful or want to support ongoing open-source development,
 <div align="center">
 
 [![Patreon](https://img.shields.io/badge/Patreon-Support_on_Patreon-FF424D?style=for-the-badge&logo=patreon&logoColor=white)](https://patreon.com/jmarkTheDeveloper?utm_medium=unknown&utm_source=join_link&utm_campaign=creatorshare_creator&utm_content=copyLink)
+[![Email Support](https://img.shields.io/badge/Email-jmarkthedeveloper%40gmail.com-00E676?style=for-the-badge&logo=gmail&logoColor=white)](mailto:jmarkthedeveloper@gmail.com)
 
 <p><sub>Built with 💚 by <b>@jmarkTheDeveloper</b> — Computer Science Student Developer.</sub></p>
 

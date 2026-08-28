@@ -22,6 +22,7 @@ import {
   Code2,
   Coffee,
   User,
+  Mail,
 } from "lucide-react";
 
 const G = "#00e676";
@@ -1045,6 +1046,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                       <li><strong>Cap on Liability:</strong> Under no circumstances shall the Licensor's aggregate liability exceed the total amount actually paid by you for the software license.</li>
                       <li><strong>Indemnification:</strong> You agree to defend, indemnify, and hold harmless the Author (@jmarkTheDeveloper) against any third-party claims, damages, or legal costs arising from your misuse of the software or copyright infringement of ingested media.</li>
                       <li><strong>Binding Individual Dispute Resolution:</strong> Any disputes arising under this agreement shall be resolved through individual binding arbitration, and you expressly waive the right to participate in class-action lawsuits.</li>
+                      <li><strong>Commercial & Support Inquiries:</strong> For enterprise licensing, volume seat inquiries, or formal compliance notices, contact: <a href="mailto:jmarkthedeveloper@gmail.com" style={{ color: G, textDecoration: "none", fontWeight: 700 }}>jmarkthedeveloper@gmail.com</a>.</li>
                     </ul>
                   </div>
                 )}
@@ -1091,7 +1093,27 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                 flexShrink: 0,
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+                <a
+                  href="mailto:jmarkthedeveloper@gmail.com"
+                  style={{
+                    fontSize: 11.5,
+                    color: G,
+                    textDecoration: "none",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 5,
+                    transition: "opacity 0.2s",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.8"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
+                >
+                  <Mail style={{ width: 12, height: 12 }} />
+                  <span>jmarkthedeveloper@gmail.com</span>
+                </a>
+
+                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.2)" }}>•</span>
+
                 <a
                   href="https://patreon.com/jmarkTheDeveloper?utm_medium=unknown&utm_source=join_link&utm_campaign=creatorshare_creator&utm_content=copyLink"
                   target="_blank"
@@ -1380,38 +1402,70 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                   </span>
                 </div>
 
-                <a
-                  href="https://github.com/jmarkTheDeveloper"
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 8,
-                    padding: "7px 14px",
-                    borderRadius: 8,
-                    background: "rgba(255,255,255,0.05)",
-                    border: "1px solid rgba(255,255,255,0.12)",
-                    color: "#fff",
-                    textDecoration: "none",
-                    fontSize: 12,
-                    fontWeight: 600,
-                    fontFamily: "'Geist Mono', monospace",
-                    transition: "all 0.15s",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "rgba(255,255,255,0.12)";
-                    e.currentTarget.style.borderColor = "rgba(255,255,255,0.3)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "rgba(255,255,255,0.05)";
-                    e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)";
-                  }}
-                >
-                  <Github style={{ width: 14, height: 14 }} />
-                  <span>github.com/jmarkTheDeveloper</span>
-                  <ExternalLink style={{ width: 12, height: 12, opacity: 0.6 }} />
-                </a>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                  <a
+                    href="mailto:jmarkthedeveloper@gmail.com"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 7,
+                      padding: "7px 14px",
+                      borderRadius: 8,
+                      background: "rgba(0,230,118,0.08)",
+                      border: "1px solid rgba(0,230,118,0.25)",
+                      color: "#fff",
+                      textDecoration: "none",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      fontFamily: "'Geist Mono', monospace",
+                      transition: "all 0.15s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "rgba(0,230,118,0.18)";
+                      e.currentTarget.style.borderColor = "rgba(0,230,118,0.4)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "rgba(0,230,118,0.08)";
+                      e.currentTarget.style.borderColor = "rgba(0,230,118,0.25)";
+                    }}
+                  >
+                    <Mail style={{ width: 13, height: 13, color: G }} />
+                    <span>jmarkthedeveloper@gmail.com</span>
+                  </a>
+
+                  <a
+                    href="https://github.com/jmarkTheDeveloper"
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "7px 14px",
+                      borderRadius: 8,
+                      background: "rgba(255,255,255,0.05)",
+                      border: "1px solid rgba(255,255,255,0.12)",
+                      color: "#fff",
+                      textDecoration: "none",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      fontFamily: "'Geist Mono', monospace",
+                      transition: "all 0.15s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "rgba(255,255,255,0.12)";
+                      e.currentTarget.style.borderColor = "rgba(255,255,255,0.3)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+                      e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)";
+                    }}
+                  >
+                    <Github style={{ width: 14, height: 14 }} />
+                    <span>github.com/jmarkTheDeveloper</span>
+                    <ExternalLink style={{ width: 12, height: 12, opacity: 0.6 }} />
+                  </a>
+                </div>
               </div>
 
               {/* Manifesto Text Content */}
