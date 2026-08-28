@@ -151,7 +151,14 @@ export const InteractiveTour: React.FC<Props> = ({
     }
 
     const updateRect = () => {
-      const el = document.getElementById(stepInfo.targetId);
+      let targetId = stepInfo.targetId;
+      if (currentStep === 3) {
+        const dialogEl = document.getElementById("engine-settings-dialog");
+        if (dialogEl && dialogEl.offsetParent !== null) {
+          targetId = "engine-settings-dialog";
+        }
+      }
+      const el = document.getElementById(targetId);
       if (el) {
         setTargetRect(el.getBoundingClientRect());
       } else {
@@ -160,7 +167,7 @@ export const InteractiveTour: React.FC<Props> = ({
     };
 
     updateRect();
-    const interval = setInterval(updateRect, 300);
+    const interval = setInterval(updateRect, 200);
     window.addEventListener("resize", updateRect);
     window.addEventListener("scroll", updateRect, true);
 
@@ -180,7 +187,7 @@ export const InteractiveTour: React.FC<Props> = ({
       style={{
         position: "fixed",
         inset: 0,
-        zIndex: 9999,
+        zIndex: 10000,
         pointerEvents: "none",
         fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
       }}
@@ -267,11 +274,11 @@ export const InteractiveTour: React.FC<Props> = ({
           width: "min(640px, 92vw)",
           background: "#0d0d11",
           border: "1px solid rgba(0, 230, 118, 0.4)",
-          boxShadow: "0 24px 60px rgba(0,0,0,0.9), 0 0 30px rgba(0, 230, 118, 0.2)",
+          boxShadow: "0 24px 60px rgba(0,0,0,0.95), 0 0 35px rgba(0, 230, 118, 0.25)",
           borderRadius: 18,
           padding: "20px 24px",
           pointerEvents: "auto",
-          zIndex: 10001,
+          zIndex: 10010,
           display: "flex",
           flexDirection: "column",
           gap: 14,

@@ -510,8 +510,8 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
-      <div className="relative w-full max-w-[640px] rounded-3xl bg-[#0d0d0f] border border-white/15 shadow-[0_0_50px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-[10002] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+      <div id="engine-settings-dialog" className="relative w-full max-w-[640px] rounded-3xl bg-[#0d0d0f] border border-white/15 shadow-[0_0_50px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col max-h-[90vh]">
         {/* 5-Second Popup Toast Notification */}
         {apiWarning && (
           <div className="absolute top-3 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-lg pointer-events-auto animate-fadeIn">
