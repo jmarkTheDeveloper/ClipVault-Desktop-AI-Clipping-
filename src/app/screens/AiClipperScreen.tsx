@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { ArrowLeft, Zap, FolderCheck, Cpu, Download, Folder, Plus, FolderOpen, AlertCircle, HardDrive, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Zap, FolderCheck, Cpu, Download, Folder, Plus, FolderOpen, AlertCircle, HardDrive, ShieldCheck, Sparkles } from "lucide-react";
 import { EngineSettingsModal } from "../components/clipper/EngineSettingsModal";
 import { CropEditorModal } from "../components/clipper/CropEditorModal";
 import { SetupSidebar } from "../components/clipper/SetupSidebar";
@@ -14,6 +14,7 @@ interface Props {
   onBack: () => void;
   onOpenEditor?: (url: string) => void;
   initialViewMode?: ViewMode;
+  onStartTour?: () => void;
 }
 
 const AI_ENGINES: EngineOption[] = [
@@ -125,7 +126,7 @@ const AI_ENGINES: EngineOption[] = [
   },
 ];
 
-export const AiClipperScreen: React.FC<Props> = ({ onBack, initialViewMode = "setup" }) => {
+export const AiClipperScreen: React.FC<Props> = ({ onBack, initialViewMode = "setup", onStartTour }) => {
   // Navigation & View States
   const [viewMode, setViewMode] = useState<ViewMode>(initialViewMode);
   
@@ -1109,6 +1110,18 @@ export const AiClipperScreen: React.FC<Props> = ({ onBack, initialViewMode = "se
 
         {/* AI Engine Badge & BYOK Toggle */}
         <div className="flex items-center gap-3">
+          {onStartTour && (
+            <button
+              type="button"
+              onClick={onStartTour}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-sky-400/30 bg-sky-500/10 text-sky-300 text-xs font-bold hover:bg-sky-500/20 transition-all cursor-pointer shadow-sm"
+              title="Start Interactive Guided Tour"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-sky-400" />
+              <span>Tour</span>
+            </button>
+          )}
+
           {done && (
             <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#00e676] text-black font-bold text-xs hover:brightness-110 transition-all cursor-pointer shadow-[0_0_20px_rgba(0,230,118,0.3)]">
               <Download className="w-4 h-4" strokeWidth={2.5} />
@@ -1116,6 +1129,7 @@ export const AiClipperScreen: React.FC<Props> = ({ onBack, initialViewMode = "se
             </button>
           )}
           <button
+            id="tour-step-3-engine"
             type="button"
             onClick={() => setShowKeySettings(!showKeySettings)}
             className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl border text-xs text-white transition-all cursor-pointer shadow-md ${

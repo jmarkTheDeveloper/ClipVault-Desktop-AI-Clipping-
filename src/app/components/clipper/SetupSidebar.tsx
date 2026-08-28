@@ -201,81 +201,83 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
     <div className="w-[520px] flex-shrink-0 border-r border-white/5 overflow-y-auto px-8 py-6 bg-[#070707] flex flex-col">
       <div className="space-y-7 w-full animate-fadeIn">
         {/* Media Source Section */}
-        <Section title="Media Source">
-          <div className="flex items-center bg-white/5 rounded-xl p-1 mb-3 border border-white/10">
-            <button
-              onClick={() => setInputType("youtube")}
-              className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                inputType === "youtube" ? "bg-amber-400 text-black shadow-md" : "text-gray-400 hover:text-white"
-              }`}
-            >
-              YouTube Link
-            </button>
-            <button
-              onClick={() => setInputType("local")}
-              className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                inputType === "local" ? "bg-amber-400 text-black shadow-md" : "text-gray-400 hover:text-white"
-              }`}
-            >
-              Local Upload
-            </button>
-          </div>
-
-          {inputType === "youtube" ? (
-            <>
-              <p className="text-xs text-gray-400 mb-2.5">
-                Paste a YouTube URL to automatically download and extract high-energy clips.
-              </p>
-              <div className="flex items-center gap-2 rounded-xl px-3.5 py-2.5 bg-white/5 border border-amber-400/30">
-                <Link2 className="w-4 h-4 text-amber-400 flex-shrink-0" />
-                <input
-                  value={ytUrl}
-                  onChange={(e) => setYtUrl(e.target.value)}
-                  placeholder="https://www.youtube.com/watch?v=..."
-                  className="flex-1 bg-transparent text-xs text-white outline-none placeholder-gray-500 font-mono"
-                />
-              </div>
-            </>
-          ) : (
-            <>
-              <p className="text-xs text-gray-400 mb-2.5">Select a local video file from your computer to process.</p>
+        <div id="tour-step-2-ingest">
+          <Section title="Media Source">
+            <div className="flex items-center bg-white/5 rounded-xl p-1 mb-3 border border-white/10">
               <button
-                onClick={async () => {
-                  try {
-                    const filePaths = await (window as any).electronAPI?.showOpenDialog?.({
-                      properties: ["openFile"],
-                      filters: [{ name: "Videos", extensions: ["mp4", "mkv", "mov", "webm"] }],
-                    });
-                    if (filePaths && filePaths.length > 0) {
-                      const filePath = filePaths[0];
-                      const url = `http://127.0.0.1:8000/stream?path=${encodeURIComponent(filePath)}`;
-                      setActiveVideoUrl(url);
-                      setLocalFilePath(filePath);
-                      setYtUrl("");
-                    }
-                  } catch (err) {
-                    console.error("Failed to select file:", err);
-                  }
-                }}
-                className="w-full flex items-center justify-center gap-2 rounded-xl px-3.5 py-4 bg-white/5 border border-dashed border-amber-400/30 cursor-pointer hover:bg-white/10 transition-colors"
+                onClick={() => setInputType("youtube")}
+                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                  inputType === "youtube" ? "bg-amber-400 text-black shadow-md" : "text-gray-400 hover:text-white"
+                }`}
               >
-                {localFilePath ? (
-                  <>
-                    <CheckCircle2 className="w-4 h-4 text-green-400" />
-                    <span className="text-xs font-bold text-green-400 truncate max-w-[200px]" title={localFilePath}>
-                      {localFilePath.split("\\").pop()?.split("/").pop() || "Video Selected"}
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <Upload className="w-4 h-4 text-amber-400" />
-                    <span className="text-xs font-bold text-white">Choose Video File...</span>
-                  </>
-                )}
+                YouTube Link
               </button>
-            </>
-          )}
-        </Section>
+              <button
+                onClick={() => setInputType("local")}
+                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                  inputType === "local" ? "bg-amber-400 text-black shadow-md" : "text-gray-400 hover:text-white"
+                }`}
+              >
+                Local Upload
+              </button>
+            </div>
+
+            {inputType === "youtube" ? (
+              <>
+                <p className="text-xs text-gray-400 mb-2.5">
+                  Paste a YouTube URL to automatically download and extract high-energy clips.
+                </p>
+                <div className="flex items-center gap-2 rounded-xl px-3.5 py-2.5 bg-white/5 border border-amber-400/30">
+                  <Link2 className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                  <input
+                    value={ytUrl}
+                    onChange={(e) => setYtUrl(e.target.value)}
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    className="flex-1 bg-transparent text-xs text-white outline-none placeholder-gray-500 font-mono"
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-xs text-gray-400 mb-2.5">Select a local video file from your computer to process.</p>
+                <button
+                  onClick={async () => {
+                    try {
+                      const filePaths = await (window as any).electronAPI?.showOpenDialog?.({
+                        properties: ["openFile"],
+                        filters: [{ name: "Videos", extensions: ["mp4", "mkv", "mov", "webm"] }],
+                      });
+                      if (filePaths && filePaths.length > 0) {
+                        const filePath = filePaths[0];
+                        const url = `http://127.0.0.1:8000/stream?path=${encodeURIComponent(filePath)}`;
+                        setActiveVideoUrl(url);
+                        setLocalFilePath(filePath);
+                        setYtUrl("");
+                      }
+                    } catch (err) {
+                      console.error("Failed to select file:", err);
+                    }
+                  }}
+                  className="w-full flex items-center justify-center gap-2 rounded-xl px-3.5 py-4 bg-white/5 border border-dashed border-amber-400/30 cursor-pointer hover:bg-white/10 transition-colors"
+                >
+                  {localFilePath ? (
+                    <>
+                      <CheckCircle2 className="w-4 h-4 text-green-400" />
+                      <span className="text-xs font-bold text-green-400 truncate max-w-[200px]" title={localFilePath}>
+                        {localFilePath.split("\\").pop()?.split("/").pop() || "Video Selected"}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4 text-amber-400" />
+                      <span className="text-xs font-bold text-white">Choose Video File...</span>
+                    </>
+                  )}
+                </button>
+              </>
+            )}
+          </Section>
+        </div>
 
         {/* Download Quality */}
         <Section title="Download Quality">
@@ -298,81 +300,82 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
         </Section>
 
         {/* Video Layout Options */}
-        <Section title="Video Layout">
-          <div className="space-y-2">
-            {LAYOUTS.map((l, i) => (
-              <div key={l.id} className="flex flex-col gap-1">
-                <button
-                  onClick={() => setLayout(l.id)}
-                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-left border transition-all cursor-pointer ${
-                    layout === l.id
-                      ? "bg-amber-400/10 border-amber-400/50 shadow-[0_0_12px_rgba(251,191,36,0.15)]"
-                      : "bg-white/[0.02] border-white/5 hover:border-white/10"
-                  }`}
-                >
-                  <span
-                    className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                      layout === l.id ? "bg-amber-400 text-black" : "bg-white/10 text-gray-400"
+        <div id="tour-step-4-reframe">
+          <Section title="Video Layout">
+            <div className="space-y-2">
+              {LAYOUTS.map((l, i) => (
+                <div key={l.id} className="flex flex-col gap-1">
+                  <button
+                    onClick={() => setLayout(l.id)}
+                    className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-left border transition-all cursor-pointer ${
+                      layout === l.id
+                        ? "bg-amber-400/10 border-amber-400/50 shadow-[0_0_12px_rgba(251,191,36,0.15)]"
+                        : "bg-white/[0.02] border-white/5 hover:border-white/10"
                     }`}
                   >
-                    {i + 1}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-white truncate">{l.label}</p>
-                    <p className="text-[10px] text-gray-500 truncate">{l.desc}</p>
-                  </div>
-                  {layout === l.id && <Check className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />}
-                </button>
-                {layout === l.id && l.id === "custom_split" && (
-                  <button
-                    onClick={() => setCropModalOpen("top")}
-                    className="w-full py-2 bg-amber-400/20 text-amber-400 border border-amber-400/30 rounded-xl text-[10px] font-bold uppercase tracking-wider hover:bg-amber-400 hover:text-black transition-all flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <Move className="w-3.5 h-3.5" /> Adjust Crop Positions
-                  </button>
-                )}
-
-                {layout === l.id && l.id === "gameplay_bg" && (
-                  <div className="p-3.5 mt-1.5 rounded-xl bg-amber-400/5 border border-amber-400/25 space-y-2.5 animate-fadeIn">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
-                        <Gamepad2 className="w-3.5 h-3.5" /> Satisfying Background Video
-                      </span>
-                      {gameplayBgVideo ? (
-                        <span className="text-[9px] font-bold text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full border border-emerald-400/20">
-                          ✓ Ready
-                        </span>
-                      ) : (
-                        <span className="text-[9px] font-bold text-red-400 bg-red-400/10 px-2 py-0.5 rounded-full border border-red-400/20 animate-pulse">
-                          Import Required
-                        </span>
-                      )}
+                    <span
+                      className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                        layout === l.id ? "bg-amber-400 text-black" : "bg-white/10 text-gray-400"
+                      }`}
+                    >
+                      {i + 1}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-white truncate">{l.label}</p>
+                      <p className="text-[10px] text-gray-500 truncate">{l.desc}</p>
                     </div>
+                    {layout === l.id && <Check className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />}
+                  </button>
+                  {layout === l.id && l.id === "custom_split" && (
+                    <button
+                      onClick={() => setCropModalOpen("top")}
+                      className="w-full py-2 bg-amber-400/20 text-amber-400 border border-amber-400/30 rounded-xl text-[10px] font-bold uppercase tracking-wider hover:bg-amber-400 hover:text-black transition-all flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <Move className="w-3.5 h-3.5" /> Adjust Crop Positions
+                    </button>
+                  )}
 
-                    {gameplayBgVideo ? (
-                      <div className="p-2.5 rounded-lg bg-black/50 border border-white/10 flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <Film className="w-4 h-4 text-amber-400 shrink-0" />
-                          <span className="text-xs text-white font-mono truncate" title={gameplayBgVideo}>
-                            {gameplayBgVideo.split(/[\\/]/).pop()}
+                  {layout === l.id && l.id === "gameplay_bg" && (
+                    <div className="p-3.5 mt-1.5 rounded-xl bg-amber-400/5 border border-amber-400/25 space-y-2.5 animate-fadeIn">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                          <Gamepad2 className="w-3.5 h-3.5" /> Satisfying Background Video
+                        </span>
+                        {gameplayBgVideo ? (
+                          <span className="text-[9px] font-bold text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full border border-emerald-400/20">
+                            ✓ Ready
                           </span>
+                        ) : (
+                          <span className="text-[9px] font-bold text-red-400 bg-red-400/10 px-2 py-0.5 rounded-full border border-red-400/20 animate-pulse">
+                            Import Required
+                          </span>
+                        )}
+                      </div>
+
+                      {gameplayBgVideo ? (
+                        <div className="p-2.5 rounded-lg bg-black/50 border border-white/10 flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Film className="w-4 h-4 text-amber-400 shrink-0" />
+                            <span className="text-xs text-white font-mono truncate" title={gameplayBgVideo}>
+                              {gameplayBgVideo.split(/[\\/]/).pop()}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setGameplayBgVideo("")}
+                            className="text-[10px] text-gray-400 hover:text-red-400 font-bold shrink-0 transition-colors cursor-pointer"
+                          >
+                            Clear
+                          </button>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => setGameplayBgVideo("")}
-                          className="text-[10px] text-gray-400 hover:text-red-400 font-bold shrink-0 transition-colors cursor-pointer"
-                        >
-                          Clear
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="p-3 rounded-lg bg-black/30 border border-dashed border-amber-400/30 text-center space-y-1">
-                        <p className="text-[11px] font-bold text-gray-200">No Background Video Imported</p>
-                        <p className="text-[9px] text-gray-400">
-                          Import a video of your choice (Subway Surfers, GTA 5, Minecraft, Satisfying ASMR, etc.)
-                        </p>
-                      </div>
-                    )}
+                      ) : (
+                        <div className="p-3 rounded-lg bg-black/30 border border-dashed border-amber-400/30 text-center space-y-1">
+                          <p className="text-[11px] font-bold text-gray-200">No Background Video Imported</p>
+                          <p className="text-[9px] text-gray-400">
+                            Import a video of your choice (Subway Surfers, GTA 5, Minecraft, Satisfying ASMR, etc.)
+                          </p>
+                        </div>
+                      )}
 
                     {/* Import Button */}
                     <label className="w-full py-2 px-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-extrabold text-[11px] transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md">
@@ -419,6 +422,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
             ))}
           </div>
         </Section>
+        </div>
 
         {/* Camera Tracking Style */}
         <div className={layout === "custom_split" ? "opacity-30 pointer-events-none transition-opacity" : "transition-opacity"}>
@@ -936,7 +940,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
         </Section>
 
         {/* Run Button Panel */}
-        <div className="pt-4 border-t border-white/10 space-y-3">
+        <div id="tour-step-5-export" className="pt-4 border-t border-white/10 space-y-3">
           {running && (
             <div className="p-4 rounded-2xl bg-amber-400/10 border border-amber-400/20 space-y-2">
               <div className="flex items-center justify-between text-xs">

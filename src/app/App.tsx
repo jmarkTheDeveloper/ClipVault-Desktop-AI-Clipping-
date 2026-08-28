@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { LoginScreen } from "./screens/LoginScreen";
 import { HomeScreen } from "./screens/HomeScreen";
 import { EditorScreen } from "./screens/EditorScreen";
@@ -7,6 +7,7 @@ import { AiClipperScreen } from "./screens/AiClipperScreen";
 import { MovieRecapperScreen } from "./screens/MovieRecapperScreen";
 import { LyricCreatorScreen } from "./screens/LyricCreatorScreen";
 import { AiChatVideoScreen } from "./screens/AiChatVideoScreen";
+import { InteractiveTour, FirstTimeWelcomeModal } from "./components/InteractiveTour";
 
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; error: any }> {
   constructor(props: any) {
@@ -56,16 +57,80 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>("project-select");
   const [clipperViewMode, setClipperViewMode] = useState<"setup" | "vault">("setup");
 
+  // Interactive Guided Tour State
+  const [tourActive, setTourActive] = useState<boolean>(false);
+  const [tourStep, setTourStep] = useState<number>(1);
+  const [showWelcomePrompt, setShowWelcomePrompt] = useState<boolean>(false);
+
+  useEffect(() => {
+    try {
+      const completed = localStorage.getItem("clipvault_tutorial_completed");
+      if (!completed) {
+        setShowWelcomePrompt(true);
+      }
+    } catch {}
+  }, []);
+
+  const handleStartTour = () => {
+    setShowWelcomePrompt(false);
+    setTourStep(1);
+    setScreen("project-select");
+    setTourActive(true);
+  };
+
+  const handleSkipWelcome = () => {
+    setShowWelcomePrompt(false);
+    try {
+      localStorage.setItem("clipvault_tutorial_completed", "true");
+    } catch {}
+  };
+
+  const handleNextTourStep = () => {
+    if (tourStep === 1) {
+      setClipperViewMode("setup");
+      setScreen("ai-clipper");
+      setTourStep(2);
+    } else if (tourStep < 5) {
+      setTourStep((prev) => prev + 1);
+    } else {
+      // Completed Tour
+      setTourActive(false);
+      try {
+        localStorage.setItem("clipvault_tutorial_completed", "true");
+      } catch {}
+    }
+  };
+
+  const handlePrevTourStep = () => {
+    if (tourStep === 2) {
+      setScreen("project-select");
+      setTourStep(1);
+    } else if (tourStep > 1) {
+      setTourStep((prev) => prev - 1);
+    }
+  };
+
+  const handleExitTour = () => {
+    setTourActive(false);
+    try {
+      localStorage.setItem("clipvault_tutorial_completed", "true");
+    } catch {}
+  };
+
   return (
     <ErrorBoundary>
       <div className="h-screen w-screen overflow-hidden" style={{ background: "#050505" }}>
         {screen === "project-select" && (
           <ProjectSelectorScreen
             onBack={() => {}}
+            onStartTour={handleStartTour}
             onSelect={(mode) => {
               if (mode === "ai-clipper") {
                 setClipperViewMode("setup");
                 setScreen("ai-clipper");
+                if (tourActive && tourStep === 1) {
+                  setTourStep(2);
+                }
               } else if (mode === "movie-recapper") {
                 setScreen("movie-recapper");
               } else if (mode === "saved-vault") {
@@ -81,11 +146,29 @@ export default function App() {
           <AiClipperScreen 
             onBack={() => setScreen("project-select")} 
             initialViewMode={clipperViewMode}
+            onStartTour={handleStartTour}
           />
         </div>
 
         {screen === "movie-recapper" && <MovieRecapperScreen onBack={() => setScreen("project-select")} />}
+
+        {/* First-Time Welcome Prompt Modal */}
+        <FirstTimeWelcomeModal
+          isOpen={showWelcomePrompt}
+          onStartTour={handleStartTour}
+          onSkip={handleSkipWelcome}
+        />
+
+        {/* Interactive Guided Tour Spotlight HUD */}
+        <InteractiveTour
+          active={tourActive}
+          currentStep={tourStep}
+          onNext={handleNextTourStep}
+          onPrev={handlePrevTourStep}
+          onExit={handleExitTour}
+        />
       </div>
     </ErrorBoundary>
   );
 }
+
