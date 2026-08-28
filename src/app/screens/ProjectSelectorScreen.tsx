@@ -396,7 +396,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
               </div>
 
               <p style={{ fontSize: 10.5, color: "rgba(255,255,255,0.35)", margin: 0, lineHeight: 1.4 }}>
-                Computer Science student at National University Philippines building advanced AI tools.
+                Independent Computer Science student developer building creator-first video AI tools.
               </p>
             </div>
 
