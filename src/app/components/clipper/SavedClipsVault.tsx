@@ -402,19 +402,10 @@ const VaultClipCard: React.FC<{
         {/* Selection Checkbox */}
         <button
           type="button"
-          onMouseDown={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-          }}
-          onMouseUp={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-          }}
-          onPointerDown={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-          }}
+          onMouseDown={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => {
+            e.preventDefault();
             e.stopPropagation();
             onToggleSelect(e);
           }}
@@ -430,31 +421,18 @@ const VaultClipCard: React.FC<{
         {/* Quick Delete Hover Button */}
         <button
           type="button"
-          onMouseDown={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-          }}
-          onMouseUp={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-          }}
-          onPointerDown={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-          }}
-          onPointerUp={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-          }}
+          onMouseDown={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            if (window.confirm(`Permanently delete "${clip.title || clip.filename}"?`)) {
-              onDelete(clip.path || clip.url || clip.filename);
+            const targetPath = clip.path || clip.url || clip.filename;
+            if (targetPath) {
+              onDelete(targetPath);
             }
           }}
           title="Delete Clip Permanently"
-          className="absolute top-2 right-2 z-30 p-2 rounded-xl bg-red-600 hover:bg-red-500 text-white border border-red-400/50 transition-all cursor-pointer shadow-2xl opacity-0 group-hover:opacity-100 flex items-center justify-center"
+          className="absolute top-2 right-2 z-30 p-2 rounded-xl bg-red-600 hover:bg-red-500 text-white border border-red-400/50 transition-all cursor-pointer shadow-2xl opacity-0 group-hover:opacity-100 flex items-center justify-center hover:scale-110 active:scale-95"
         >
           <Trash2 className="w-4 h-4 text-white pointer-events-none" />
         </button>
@@ -804,7 +782,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
 
             <button
               onClick={() => {
-                deleteVaultClip(contextMenu.clip.path);
+                deleteVaultClip(contextMenu.clip.path || contextMenu.clip.url || contextMenu.clip.filename);
                 setContextMenu(null);
               }}
               className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-red-400 hover:text-red-300 hover:bg-red-500/20 transition-colors text-left cursor-pointer font-bold"
