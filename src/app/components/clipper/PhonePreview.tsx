@@ -648,12 +648,12 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
           />
 
           {/* Transport Buttons & Quick Scene Jumps */}
-          <div className="flex items-center justify-between gap-1 pt-1">
+          <div className="flex items-center justify-center gap-2 pt-1">
             <button
               type="button"
-              onClick={() => seekRelative(-5)}
-              className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-gray-300 hover:text-white transition-colors cursor-pointer"
-              title="Rewind 5 seconds"
+              onClick={() => seekRelative(-10)}
+              className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/15 text-gray-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
+              title="Rewind 10 seconds"
             >
               <RotateCcw className="w-3.5 h-3.5" />
             </button>
@@ -661,35 +661,37 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
             <button
               type="button"
               onClick={togglePlayAll}
-              className="px-3.5 py-1.5 rounded-xl bg-amber-400 text-black font-extrabold text-xs flex items-center gap-1 hover:bg-amber-300 transition-all shadow-md cursor-pointer"
+              className="w-[84px] h-7 rounded-xl bg-amber-400 text-black font-extrabold text-xs flex items-center justify-center gap-1.5 hover:bg-amber-300 transition-all shadow-md cursor-pointer shrink-0"
             >
-              {isPlaying ? <Pause className="w-3.5 h-3.5 fill-black" /> : <Play className="w-3.5 h-3.5 fill-black" />}
+              {isPlaying ? <Pause className="w-3.5 h-3.5 fill-black" /> : <Play className="w-3.5 h-3.5 fill-black ml-0.5" />}
               <span>{isPlaying ? "Pause" : "Play"}</span>
             </button>
 
             <button
               type="button"
-              onClick={() => seekRelative(5)}
-              className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-gray-300 hover:text-white transition-colors cursor-pointer"
-              title="Forward 5 seconds"
+              onClick={() => seekRelative(10)}
+              className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/15 text-gray-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
+              title="Forward 10 seconds"
             >
               <RotateCw className="w-3.5 h-3.5" />
             </button>
 
-            <div className="w-px h-4 bg-white/10 mx-0.5" />
+            <div className="w-px h-4 bg-white/15 mx-0.5 shrink-0" />
 
             {/* Fast Scene Hoppers */}
             <button
               type="button"
               onClick={() => seekRelative(15)}
-              className="px-2 py-1 rounded-md bg-white/5 hover:bg-white/10 text-[10px] font-bold text-gray-300 cursor-pointer"
+              className="h-7 px-2.5 rounded-lg bg-white/5 hover:bg-white/10 text-[10px] font-bold text-gray-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
+              title="Jump forward 15 seconds"
             >
               +15s
             </button>
             <button
               type="button"
               onClick={() => seekRelative(60)}
-              className="px-2 py-1 rounded-md bg-white/5 hover:bg-white/10 text-[10px] font-bold text-gray-300 cursor-pointer"
+              className="h-7 px-2.5 rounded-lg bg-white/5 hover:bg-white/10 text-[10px] font-bold text-gray-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
+              title="Jump forward 1 minute"
             >
               +1m
             </button>
