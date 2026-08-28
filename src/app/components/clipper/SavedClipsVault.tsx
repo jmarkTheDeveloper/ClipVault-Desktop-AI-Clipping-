@@ -25,6 +25,7 @@ import {
   UploadCloud,
   ArrowUpDown,
   Copy,
+  Sparkles,
 } from "lucide-react";
 import type { ClipMetadata } from "./types";
 
