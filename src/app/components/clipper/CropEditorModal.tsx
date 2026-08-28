@@ -1,6 +1,6 @@
 import React from "react";
 import { Rnd } from "react-rnd";
-import { Sparkles, RefreshCw, Gamepad2, Mic, Film, ArrowUpDown, Clock, FastForward, Rewind } from "lucide-react";
+import { Sparkles, RefreshCw, Gamepad2, Mic, Film, ArrowUpDown } from "lucide-react";
 import type { CropBox } from "./types";
 import { extractYouTubeId } from "./types";
 
@@ -13,10 +13,10 @@ interface CropEditorModalProps {
   setCropTop: React.Dispatch<React.SetStateAction<CropBox>>;
   cropBottom: CropBox;
   setCropBottom: React.Dispatch<React.SetStateAction<CropBox>>;
-  startTs: string;
-  setStartTs: (ts: string) => void;
-  endTs: string;
-  setEndTs: (ts: string) => void;
+  startTs?: string;
+  setStartTs?: (ts: string) => void;
+  endTs?: string;
+  setEndTs?: (ts: string) => void;
 }
 
 export const CropEditorModal: React.FC<CropEditorModalProps> = ({
@@ -28,33 +28,9 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
   setCropTop,
   cropBottom,
   setCropBottom,
-  startTs,
-  setStartTs,
-  endTs,
-  setEndTs,
 }) => {
   if (!isOpen) return null;
   const youtubeId = extractYouTubeId(ytUrl);
-
-  const seekVideoBy = (seconds: number) => {
-    const vids = document.querySelectorAll("video");
-    vids.forEach((v) => {
-      try {
-        v.currentTime = Math.max(0, Math.min((v.currentTime || 0) + seconds, v.duration || 0));
-      } catch {}
-    });
-  };
-
-  const getCurrentTimeFormatted = () => {
-    const vids = document.querySelectorAll("video");
-    const vid = Array.from(vids).find((v) => v.src.includes(activeVideoUrl)) || vids[0];
-    if (vid) {
-      const mins = Math.floor(vid.currentTime / 60).toString().padStart(2, "0");
-      const secs = Math.floor(vid.currentTime % 60).toString().padStart(2, "0");
-      return `${mins}:${secs}`;
-    }
-    return "00:00";
-  };
 
   // Preset Handlers
   const applyTinyWebcamPreset = () => {
@@ -240,71 +216,6 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
             </div>
           </div>
         </Rnd>
-      </div>
-
-      {/* Scene Navigation & Timestamp Controls */}
-      <div className="w-[456px] mx-auto bg-white/5 border border-white/10 rounded-2xl p-3.5 space-y-3">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-bold text-white flex items-center gap-1.5">
-            <Clock className="w-3.5 h-3.5 text-amber-400" /> Preview Other Scenes
-          </span>
-          <span className="text-[10px] font-mono text-gray-400">Jump along the timeline to test crops</span>
-        </div>
-
-        {/* Fast Scene Jump Chips */}
-        <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => seekVideoBy(-10)}
-            className="flex-1 py-1.5 rounded-lg bg-black/40 hover:bg-white/10 border border-white/10 text-[11px] font-bold text-gray-300 hover:text-white flex items-center justify-center gap-1 transition-colors cursor-pointer"
-          >
-            <Rewind className="w-3 h-3 text-amber-400" /> -10s
-          </button>
-          <button
-            type="button"
-            onClick={() => seekVideoBy(10)}
-            className="flex-1 py-1.5 rounded-lg bg-black/40 hover:bg-white/10 border border-white/10 text-[11px] font-bold text-gray-300 hover:text-white flex items-center justify-center gap-1 transition-colors cursor-pointer"
-          >
-            <FastForward className="w-3 h-3 text-amber-400" /> +10s
-          </button>
-          <button
-            type="button"
-            onClick={() => seekVideoBy(30)}
-            className="flex-1 py-1.5 rounded-lg bg-black/40 hover:bg-white/10 border border-white/10 text-[11px] font-bold text-gray-300 hover:text-white transition-colors cursor-pointer"
-          >
-            +30s
-          </button>
-          <button
-            type="button"
-            onClick={() => seekVideoBy(60)}
-            className="flex-1 py-1.5 rounded-lg bg-black/40 hover:bg-white/10 border border-white/10 text-[11px] font-bold text-gray-300 hover:text-white transition-colors cursor-pointer"
-          >
-            +1 min
-          </button>
-          <button
-            type="button"
-            onClick={() => seekVideoBy(300)}
-            className="flex-1 py-1.5 rounded-lg bg-black/40 hover:bg-white/10 border border-white/10 text-[11px] font-bold text-gray-300 hover:text-white transition-colors cursor-pointer"
-          >
-            +5 min
-          </button>
-        </div>
-
-        {/* Set Start / End Timestamp Buttons */}
-        <div className="flex gap-2 pt-1 border-t border-white/10">
-          <button
-            onClick={() => setStartTs(getCurrentTimeFormatted())}
-            className="flex-1 py-2 rounded-xl text-xs font-bold bg-amber-400/20 text-amber-300 hover:bg-amber-400 hover:text-black transition-all border border-amber-400/30 cursor-pointer shadow-sm"
-          >
-            📍 Set Start ({startTs || "00:00"})
-          </button>
-          <button
-            onClick={() => setEndTs(getCurrentTimeFormatted())}
-            className="flex-1 py-2 rounded-xl text-xs font-bold bg-cyan-400/20 text-cyan-300 hover:bg-cyan-400 hover:text-black transition-all border border-cyan-400/30 cursor-pointer shadow-sm"
-          >
-            🏁 Set End ({endTs || "00:00"})
-          </button>
-        </div>
       </div>
     </div>
   );
