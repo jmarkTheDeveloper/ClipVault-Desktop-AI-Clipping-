@@ -95,8 +95,8 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
     "Active Speaker Face Tracking (9:16)",
     "Dynamic Word-by-Word Subtitles & SFX",
     "Satisfying Gameplay & ASMR Split",
-    "Smart Stream Slicing (yt-dlp)",
-    "Whisper AI Multi-Language Auto-Sync",
+    "Smart Stream Slicing Technology",
+    "AI Multi-Language Audio-Sync Engine",
   ];
 
   const stats = [
