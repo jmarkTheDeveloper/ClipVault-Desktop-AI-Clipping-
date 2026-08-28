@@ -747,17 +747,19 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
               >
                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                   <span style={{ fontSize: 9.5, fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, color: "rgba(255,255,255,0.3)", padding: "0 8px 6px", textTransform: "uppercase", letterSpacing: "0.1em" }}>
-                    Compliance Index
+                    Compliance & EULA Index
                   </span>
 
                   {[
-                    { id: "all", label: "View All Sections", icon: FileCheck },
-                    { id: "byok", label: "01. BYOK & Privacy", icon: Key },
-                    { id: "device", label: "02. On-Device Processing", icon: Cpu },
-                    { id: "platform", label: "03. Platform Terms & yt-dlp", icon: Globe },
-                    { id: "ai", label: "04. AI Models & Billing", icon: Zap },
-                    { id: "liability", label: "05. Liability & Warranty", icon: AlertTriangle },
-                    { id: "license", label: "06. DMCA & Software License", icon: Scale },
+                    { id: "all", label: "Complete Agreement (All)", icon: FileCheck },
+                    { id: "eula", label: "01. EULA & Commercial License", icon: Scale },
+                    { id: "restrictions", label: "02. Anti-Reverse Engineering", icon: Lock },
+                    { id: "privacy", label: "03. Zero-Telemetry & Privacy", icon: Key },
+                    { id: "platform", label: "04. Ingestion & Betamax Doctrine", icon: Globe },
+                    { id: "ai", label: "05. AI Models & API Billing", icon: Zap },
+                    { id: "hardware", label: "06. Hardware Acceleration & Load", icon: Cpu },
+                    { id: "trademark", label: "07. Trademarks & Fair Use", icon: FileCheck },
+                    { id: "liability", label: "08. Warranty & Binding Terms", icon: AlertTriangle },
                   ].map((tab) => {
                     const IconComponent = tab.icon;
                     const isActive = complianceTab === tab.id;
@@ -816,13 +818,13 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                   }}
                 >
                   <span style={{ fontWeight: 700, color: G, display: "flex", alignItems: "center", gap: 5 }}>
-                    <Lock style={{ width: 11, height: 11 }} /> LOCAL AUDIT
+                    <Lock style={{ width: 11, height: 11 }} /> LOCAL AUDIT ACTIVE
                   </span>
                   <div style={{ color: "rgba(255,255,255,0.45)", lineHeight: 1.4 }}>
-                    • Port: 127.0.0.1:8000<br />
+                    • Binding EULA v1.0<br />
+                    • Telemetry: 0% Collected<br />
                     • Remote Proxies: 0<br />
-                    • Telemetry: Inactive<br />
-                    • Keys: Local Only
+                    • Hardware: Native Desktop
                   </div>
                 </div>
               </div>
@@ -845,18 +847,28 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                   }
                 }}
                 style={{
-                  padding: "24px 30px",
+                  padding: "26px 32px",
                   overflowY: "auto",
                   display: "flex",
                   flexDirection: "column",
-                  gap: 24,
+                  gap: 28,
                   fontSize: 12.5,
-                  lineHeight: 1.65,
-                  color: "rgba(255,255,255,0.7)",
+                  lineHeight: 1.7,
+                  color: "rgba(255,255,255,0.75)",
                 }}
               >
-                {/* Section 01 */}
-                {(complianceTab === "all" || complianceTab === "byok") && (
+                {/* Intro Header */}
+                <div style={{ paddingBottom: 14, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: "#fff", marginBottom: 4 }}>
+                    ClipVault AI End-User License Agreement & Legal Compliance Master Agreement
+                  </div>
+                  <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.45)" }}>
+                    Effective Date: August 2026 • Published by @jmarkTheDeveloper • Applicable to all Desktop Builds & Commercial Copies
+                  </div>
+                </div>
+
+                {/* Section 01: EULA */}
+                {(complianceTab === "all" || complianceTab === "eula") && (
                   <div>
                     <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 8 }}>
                       <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, fontWeight: 700, color: G }}>
@@ -864,45 +876,45 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                       </span>
                       <span style={{ color: "rgba(255,255,255,0.2)" }}>/</span>
                       <span style={{ fontWeight: 800, color: "#fff", fontSize: 14 }}>
-                        Bring Your Own Key (BYOK) & Credential Privacy
+                        Grant of Commercial License & Proprietary Rights
                       </span>
                     </div>
                     <p style={{ margin: "0 0 8px" }}>
-                      ClipVault operates under a strict <strong>zero-telemetry, local-first architecture</strong>. When you input your API keys for AI models (OpenAI GPT-4o, Anthropic Claude 3.5 Sonnet, Google Gemini 2.0, Groq Llama 3.3, or DeepSeek):
+                      This End-User License Agreement ("EULA") is a legally binding contract between you (either an individual creator, professional editor, or corporate entity) and <strong>Jae Mark (@jmarkTheDeveloper)</strong> ("Licensor / Author").
                     </p>
-                    <ul style={{ margin: 0, paddingLeft: 18, color: "rgba(255,255,255,0.55)", display: "flex", flexDirection: "column", gap: 4 }}>
-                      <li><strong>Local Encrypted Storage:</strong> Keys are stored only within your machine's local environment (`%LOCALAPPDATA%` and encrypted Electron safeStorage).</li>
-                      <li><strong>Direct TLS Encrypted Dispatch:</strong> API calls connect directly from your computer to official provider endpoints (e.g. `api.openai.com`, `generativelanguage.googleapis.com`) over TLS 1.3 / HTTPS.</li>
-                      <li><strong>No Middleman Proxies:</strong> ClipVault does not operate remote servers, proxy relays, or central databases. Your keys and prompts are never intercepted, cached, or logged by the application author.</li>
+                    <ul style={{ margin: 0, paddingLeft: 18, color: "rgba(255,255,255,0.6)", display: "flex", flexDirection: "column", gap: 5 }}>
+                      <li><strong>License Scope:</strong> You are granted a limited, non-exclusive, non-transferable, revocable license to install and execute ClipVault AI Video Studio on your authorized personal or business computer.</li>
+                      <li><strong>Creator Asset Ownership:</strong> You retain 100% full intellectual property ownership, monetization rights, and commercial distribution rights over all final video master outputs, vertical clips, and subtitle assets created using this software without paying royalties or ongoing fees to the Licensor.</li>
+                      <li><strong>Proprietary Code Architecture:</strong> The underlying algorithms, computer vision pipelines, multi-camera director logic, interface layouts, and source binaries remain the exclusive intellectual property of the Author.</li>
                     </ul>
                   </div>
                 )}
 
-                {/* Section 02 */}
-                {(complianceTab === "all" || complianceTab === "device") && (
+                {/* Section 02: Strict Prohibitions & Anti-Reverse Engineering */}
+                {(complianceTab === "all" || complianceTab === "restrictions") && (
                   <div>
                     <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 8 }}>
-                      <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, fontWeight: 700, color: G }}>
+                      <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, fontWeight: 700, color: "#ff667a" }}>
                         02
                       </span>
                       <span style={{ color: "rgba(255,255,255,0.2)" }}>/</span>
                       <span style={{ fontWeight: 800, color: "#fff", fontSize: 14 }}>
-                        Zero-Telemetry & 100% On-Device Processing
+                        Strict Prohibitions, Anti-Cracking & Reverse Engineering
                       </span>
                     </div>
                     <p style={{ margin: "0 0 8px" }}>
-                      All computationally intensive media operations run locally on your computer's native CPU and GPU hardware (Intel QSV, NVIDIA NVENC, AMD AMF):
+                      To protect independent student development and software integrity, the following activities are strictly prohibited by law:
                     </p>
-                    <ul style={{ margin: 0, paddingLeft: 18, color: "rgba(255,255,255,0.55)", display: "flex", flexDirection: "column", gap: 4 }}>
-                      <li><strong>No Media Uploads:</strong> Video files, raw audio tracks, sliced clips, and exported MP4 master files never leave your hard drive.</li>
-                      <li><strong>Privacy Compliance:</strong> Compliant with global privacy standards (GDPR, CCPA) by virtue of zero personal data collection, zero tracking cookies, and zero user IP harvesting.</li>
-                      <li><strong>Local Computer Vision:</strong> OpenCV facial landmark tracking and speaker detection run on your local Python runtime.</li>
+                    <ul style={{ margin: 0, paddingLeft: 18, color: "rgba(255,255,255,0.6)", display: "flex", flexDirection: "column", gap: 5 }}>
+                      <li><strong>No Decompilation or Reverse Engineering:</strong> You may not disassemble, reverse-engineer, decompile, trace, attach debuggers to, or attempt to extract source algorithms, models, or binary architectures from the software.</li>
+                      <li><strong>No License Circumvention or Memory Patching:</strong> Any attempt to modify, patch, crack, or bypass license validation routines, activation checks, or security components will immediately terminate your license and may result in legal action under international copyright law.</li>
+                      <li><strong>No SaaS Re-Hosting or Commercial Resale:</strong> You are strictly forbidden from repackaging, reselling, distributing unauthorized copies, or offering ClipVault as a multi-tenant cloud SaaS, web API, or remote bot service.</li>
                     </ul>
                   </div>
                 )}
 
-                {/* Section 03 */}
-                {(complianceTab === "all" || complianceTab === "platform") && (
+                {/* Section 03: Privacy & Zero-Telemetry */}
+                {(complianceTab === "all" || complianceTab === "privacy") && (
                   <div>
                     <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 8 }}>
                       <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, fontWeight: 700, color: G }}>
@@ -910,81 +922,129 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                       </span>
                       <span style={{ color: "rgba(255,255,255,0.2)" }}>/</span>
                       <span style={{ fontWeight: 800, color: "#fff", fontSize: 14 }}>
-                        Platform Terms of Service & Stream Slicing Ingestion
+                        Zero-Telemetry Privacy & Local On-Device Architecture
                       </span>
                     </div>
                     <p style={{ margin: "0 0 8px" }}>
-                      ClipVault integrates open-source media utilities (`yt-dlp`, `ffmpeg`) to process user-provided video URLs:
+                      ClipVault is engineered from the ground up to respect user confidentiality and sovereign privacy:
                     </p>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 11.5, color: "rgba(255,255,255,0.55)", paddingLeft: 14, borderLeft: "2px solid rgba(0,230,118,0.3)" }}>
-                      <div>• <strong>Independent Utility:</strong> ClipVault is an independent project and is NOT affiliated, authorized, endorsed, or sponsored by YouTube, Google LLC, ByteDance (TikTok), Meta Platforms (Instagram/Facebook), Twitch, or any subsidiary.</div>
-                      <div>• <strong>Substantial Non-Infringing Uses:</strong> The software is engineered for lawful workflows including personal archiving, education, fair-use commentary, video editing, and processing user-created or public domain media.</div>
-                      <div>• <strong>User Legal Responsibility:</strong> The end user is solely responsible for respecting platform Terms of Service and ensuring they have legal rights or fair-use justification for any third-party media ingested.</div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Section 04 */}
-                {(complianceTab === "all" || complianceTab === "ai") && (
-                  <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 8 }}>
-                      <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, fontWeight: 700, color: "#f59e0b" }}>
-                        04
-                      </span>
-                      <span style={{ color: "rgba(255,255,255,0.2)" }}>/</span>
-                      <span style={{ fontWeight: 800, color: "#fff", fontSize: 14 }}>
-                        Third-Party AI Models & API Billing Disclaimer
-                      </span>
-                    </div>
-                    <p style={{ margin: "0 0 8px" }}>
-                      Users are subject to the respective Terms of Service and Acceptable Use Policies of their configured AI providers (OpenAI, Anthropic, Google, Groq, DeepSeek):
-                    </p>
-                    <ul style={{ margin: 0, paddingLeft: 18, color: "rgba(255,255,255,0.55)", display: "flex", flexDirection: "column", gap: 4 }}>
-                      <li><strong>Billing & Quota Responsibility:</strong> You are solely responsible for monitoring your token usage, rate limits, and billing tiers with each provider. ClipVault and its maintainer assume zero liability for unexpected charges or API billing overages.</li>
-                      <li><strong>AI Output Verification:</strong> AI-generated titles, hooks, and captions should be reviewed by the user prior to publishing to ensure factual accuracy and compliance with content distribution policies.</li>
+                    <ul style={{ margin: 0, paddingLeft: 18, color: "rgba(255,255,255,0.6)", display: "flex", flexDirection: "column", gap: 5 }}>
+                      <li><strong>No Remote Telemetry or Tracking:</strong> The application does not collect, harvest, transmit, or monetize your personal identity, IP address, browsing activity, or video content.</li>
+                      <li><strong>GDPR, CCPA & Privacy Compliance:</strong> Full compliance with international privacy mandates is guaranteed by virtue of zero centralized server data storage. All temporary audio waveforms, facial landmark coordinates, and intermediate render files are stored exclusively on your local disk in `%LOCALAPPDATA%`.</li>
+                      <li><strong>Encrypted Credential Security:</strong> All Bring-Your-Own-Key (BYOK) credentials are stored locally with platform-native OS encryption and are dispatched exclusively over direct TLS 1.3 encrypted HTTPS connections.</li>
                     </ul>
                   </div>
                 )}
 
-                {/* Section 05 */}
-                {(complianceTab === "all" || complianceTab === "liability") && (
+                {/* Section 04: Ingestion & Betamax */}
+                {(complianceTab === "all" || complianceTab === "platform") && (
                   <div>
                     <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 8 }}>
-                      <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, fontWeight: 700, color: "#ef4444" }}>
+                      <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, fontWeight: 700, color: G }}>
+                        04
+                      </span>
+                      <span style={{ color: "rgba(255,255,255,0.2)" }}>/</span>
+                      <span style={{ fontWeight: 800, color: "#fff", fontSize: 14 }}>
+                        Third-Party Ingestion & Sony Betamax Fair-Use Doctrine
+                      </span>
+                    </div>
+                    <p style={{ margin: "0 0 8px" }}>
+                      ClipVault incorporates open-source stream ingestion utilities (`ffmpeg`, `yt-dlp`) for local media management:
+                    </p>
+                    <ul style={{ margin: 0, paddingLeft: 18, color: "rgba(255,255,255,0.6)", display: "flex", flexDirection: "column", gap: 5 }}>
+                      <li><strong>Substantial Non-Infringing Uses:</strong> Under the legal principle established in <em>Sony Corp. of America v. Universal City Studios (the Betamax doctrine)</em>, this tool is designed for lawful purposes including personal media archiving, creator VOD clipping, educational commentary, and editing user-owned or creative commons content.</li>
+                      <li><strong>No Central Proxy Servers:</strong> ClipVault does not host, stream, or maintain a centralized media library. All network requests originate directly from the user's personal IP address.</li>
+                      <li><strong>End-User Copyright Compliance:</strong> You assume sole legal responsibility for ensuring you possess valid licenses, permissions, or fair-use justifications for any third-party media you choose to ingest or republish.</li>
+                    </ul>
+                  </div>
+                )}
+
+                {/* Section 05: AI Models & API Billing */}
+                {(complianceTab === "all" || complianceTab === "ai") && (
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 8 }}>
+                      <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, fontWeight: 700, color: "#f59e0b" }}>
                         05
                       </span>
                       <span style={{ color: "rgba(255,255,255,0.2)" }}>/</span>
                       <span style={{ fontWeight: 800, color: "#fff", fontSize: 14 }}>
-                        Disclaimer of Warranties & Limitation of Liability
+                        AI Model Provider Billing & Rate-Limit Disclaimers
                       </span>
                     </div>
-                    <p style={{ margin: "0 0 8px", fontSize: 11.5, color: "rgba(255,255,255,0.5)", fontFamily: "'JetBrains Mono', monospace", background: "rgba(255,255,255,0.02)", padding: "10px 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.06)" }}>
-                      THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT.
+                    <p style={{ margin: "0 0 8px" }}>
+                      ClipVault facilitates direct client-side integration with third-party neural providers (Google Gemini, Groq LPUs, OpenAI, Anthropic):
                     </p>
-                    <p style={{ margin: 0, fontSize: 12, color: "rgba(255,255,255,0.55)" }}>
-                      IN NO EVENT SHALL THE AUTHOR (JMARKTHEDEVELOPER), CONTRIBUTORS, OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, LOSS OF DATA, SYSTEM HALTS, HARDWARE STRAIN, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-                    </p>
+                    <ul style={{ margin: 0, paddingLeft: 18, color: "rgba(255,255,255,0.6)", display: "flex", flexDirection: "column", gap: 5 }}>
+                      <li><strong>API Quota & Billing Responsibility:</strong> You are solely responsible for monitoring your token usage, rate tiers, and billing arrangements with your selected AI providers. The Licensor is not responsible for API billing overages, credit expirations, or third-party pricing adjustments.</li>
+                      <li><strong>Service Availability & Deprecation:</strong> The Licensor does not control upstream AI uptime or model deprecations. Temporary provider outages or latency spikes do not constitute a defect in ClipVault.</li>
+                      <li><strong>AI Output Verification Duty:</strong> Automated transcripts, viral hooks, and keyword highlights should be reviewed by the creator for accuracy, safety, and compliance with platform content rules before publishing.</li>
+                    </ul>
                   </div>
                 )}
 
-                {/* Section 06 */}
-                {(complianceTab === "all" || complianceTab === "license") && (
+                {/* Section 06: Hardware & Performance */}
+                {(complianceTab === "all" || complianceTab === "hardware") && (
                   <div>
                     <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 8 }}>
-                      <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, fontWeight: 700, color: G }}>
+                      <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, fontWeight: 700, color: "#38bdf8" }}>
                         06
                       </span>
                       <span style={{ color: "rgba(255,255,255,0.2)" }}>/</span>
                       <span style={{ fontWeight: 800, color: "#fff", fontSize: 14 }}>
-                        DMCA Compliance & Exclusive Proprietary Commercial License
+                        Hardware Acceleration, Thermal Load & Storage Disclaimers
                       </span>
                     </div>
                     <p style={{ margin: "0 0 8px" }}>
-                      ClipVault is dedicated to intellectual property respect and ethical desktop software distribution:
+                      Video composition, facial landmark tracking, and multi-pass MP4 rendering leverage heavy local system resources:
                     </p>
-                    <ul style={{ margin: 0, paddingLeft: 18, color: "rgba(255,255,255,0.55)", display: "flex", flexDirection: "column", gap: 4 }}>
-                      <li><strong>DMCA & No Content Hosting:</strong> ClipVault does not host, stream, index, or distribute media assets. All media streams are ingested directly by the user on their own local device.</li>
-                      <li><strong>Exclusive Proprietary Commercial License:</strong> Copyright &copy; 2026 Jae Mark (jmarkTheDeveloper). All rights reserved. Free permission is granted for personal, non-commercial local use. Any commercial resale, SaaS re-hosting, redistribution, or unauthorized monetization without express written consent from the author is strictly prohibited.</li>
+                    <ul style={{ margin: 0, paddingLeft: 18, color: "rgba(255,255,255,0.6)", display: "flex", flexDirection: "column", gap: 5 }}>
+                      <li><strong>Hardware Compute Loads:</strong> High-resolution export pipelines utilize NVIDIA NVENC, Intel QuickSync, or AMD AMF hardware encoders alongside multi-core CPU threads.</li>
+                      <li><strong>User Thermal & Storage Responsibility:</strong> You are responsible for ensuring adequate computer cooling, power supply capacity, and free hard drive storage space in your configured export directories.</li>
+                      <li><strong>Thermal Shutdown Disclaimer:</strong> The Licensor is not liable for system crashes, thermal throttling, or hardware interruptions caused by inadequate PC cooling or hardware instability during batch rendering.</li>
+                    </ul>
+                  </div>
+                )}
+
+                {/* Section 07: Trademark Attributions */}
+                {(complianceTab === "all" || complianceTab === "trademark") && (
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 8 }}>
+                      <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, fontWeight: 700, color: "#a855f7" }}>
+                        07
+                      </span>
+                      <span style={{ color: "rgba(255,255,255,0.2)" }}>/</span>
+                      <span style={{ fontWeight: 800, color: "#fff", fontSize: 14 }}>
+                        Trademark Attributions & Non-Affiliation Notices
+                      </span>
+                    </div>
+                    <p style={{ margin: "0 0 8px" }}>
+                      All third-party trademarks, service marks, trade names, and corporate logos referenced in the software or documentation remain the property of their respective owners:
+                    </p>
+                    <div style={{ padding: "12px 14px", borderRadius: 8, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", fontSize: 11.5, color: "rgba(255,255,255,0.55)", lineHeight: 1.6 }}>
+                      YouTube™ & Google™ are trademarks of Google LLC. TikTok™ is a trademark of ByteDance Ltd. Instagram™ & Facebook™ are trademarks of Meta Platforms, Inc. OpenAI™ is a trademark of OpenAI, Inc. Groq™ is a trademark of Groq, Inc. NVIDIA™, Intel™, and AMD™ are trademarks of their respective corporations. Mention of these trademarks does NOT constitute an endorsement, official partnership, or sponsorship of ClipVault AI.
+                    </div>
+                  </div>
+                )}
+
+                {/* Section 08: Liability & Binding Terms */}
+                {(complianceTab === "all" || complianceTab === "liability") && (
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 8 }}>
+                      <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, fontWeight: 700, color: "#ef4444" }}>
+                        08
+                      </span>
+                      <span style={{ color: "rgba(255,255,255,0.2)" }}>/</span>
+                      <span style={{ fontWeight: 800, color: "#fff", fontSize: 14 }}>
+                        Disclaimer of Warranties, Limitation of Liability & Arbitration
+                      </span>
+                    </div>
+                    <div style={{ margin: "0 0 10px", fontSize: 11, color: "rgba(255,255,255,0.5)", fontFamily: "'JetBrains Mono', monospace", background: "rgba(255,255,255,0.02)", padding: "12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.06)", lineHeight: 1.6 }}>
+                      THE SOFTWARE IS PROVIDED "AS IS" AND "AS AVAILABLE", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, OR NONINFRINGEMENT. CLIPVAULT DOES NOT GUARANTEE SPECIFIC VIEW COUNTS, ALGORITHMIC VIRALITY, FOLLOWER INCREASES, OR FINANCIAL REVENUE.
+                    </div>
+                    <ul style={{ margin: 0, paddingLeft: 18, color: "rgba(255,255,255,0.6)", display: "flex", flexDirection: "column", gap: 5 }}>
+                      <li><strong>Cap on Liability:</strong> Under no circumstances shall the Licensor's aggregate liability exceed the total amount actually paid by you for the software license.</li>
+                      <li><strong>Indemnification:</strong> You agree to defend, indemnify, and hold harmless the Author (@jmarkTheDeveloper) against any third-party claims, damages, or legal costs arising from your misuse of the software or copyright infringement of ingested media.</li>
+                      <li><strong>Binding Individual Dispute Resolution:</strong> Any disputes arising under this agreement shall be resolved through individual binding arbitration, and you expressly waive the right to participate in class-action lawsuits.</li>
                     </ul>
                   </div>
                 )}
