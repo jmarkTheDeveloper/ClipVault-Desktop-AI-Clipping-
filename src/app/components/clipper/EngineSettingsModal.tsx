@@ -776,13 +776,10 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
 
           {/* Quick Setup Tutorial & Warning Advisory Banner */}
           <div className="p-3.5 rounded-2xl bg-amber-500/[0.07] border border-amber-400/25 space-y-2 text-xs">
-            <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-1.5">
               <span className="font-bold text-amber-300 flex items-center gap-1.5 text-xs">
                 <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
                 API Requirement &amp; Quality Notice
-              </span>
-              <span className="text-[10px] font-bold text-sky-400 bg-sky-500/10 px-2.5 py-0.5 rounded-full border border-sky-400/20">
-                💡 You can configure this later
               </span>
             </div>
             <p className="text-[11px] text-zinc-300 leading-relaxed" style={{ textAlign: "justify" }}>
