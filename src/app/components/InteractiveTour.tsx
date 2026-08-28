@@ -113,21 +113,34 @@ export const InteractiveTour: React.FC<Props> = ({
         fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
       }}
     >
-      {/* Dark Dimmed Backdrop with cutout effect */}
+      {/* Backdrop Blur Layer with Cutout Hole: Background is blurred, target is 100% sharp */}
       <div
         style={{
-          position: "absolute",
+          position: "fixed",
           inset: 0,
-          background: "rgba(0, 0, 0, 0.65)",
-          backdropFilter: "blur(2px)",
+          backdropFilter: "blur(8px)",
+          WebkitBackdropFilter: "blur(8px)",
+          clipPath: targetRect
+            ? `polygon(
+                0% 0%, 
+                0% 100%, 
+                ${targetRect.left - 8}px 100%, 
+                ${targetRect.left - 8}px ${targetRect.top - 8}px, 
+                ${targetRect.left + targetRect.width + 8}px ${targetRect.top - 8}px, 
+                ${targetRect.left + targetRect.width + 8}px ${targetRect.top + targetRect.height + 8}px, 
+                ${targetRect.left - 8}px ${targetRect.top + targetRect.height + 8}px, 
+                ${targetRect.left - 8}px 100%, 
+                100% 100%, 
+                100% 0%
+              )`
+            : "none",
+          zIndex: 9998,
           pointerEvents: "auto",
         }}
-        onClick={(e) => {
-          e.stopPropagation();
-        }}
+        onClick={(e) => e.stopPropagation()}
       />
 
-      {/* Spotlight Glow on Target Element */}
+      {/* Spotlight Frame: Giant 9999px box shadow darkens the rest of the screen while keeping the hole clear */}
       {targetRect && (
         <div
           style={{
@@ -136,37 +149,37 @@ export const InteractiveTour: React.FC<Props> = ({
             left: targetRect.left - 8,
             width: targetRect.width + 16,
             height: targetRect.height + 16,
-            borderRadius: 14,
-            border: "2px solid #00e676",
-            boxShadow: "0 0 35px rgba(0, 230, 118, 0.45), inset 0 0 20px rgba(0, 230, 118, 0.25)",
+            borderRadius: 16,
+            border: "2.5px solid #00e676",
+            boxShadow: "0 0 0 9999px rgba(0, 0, 0, 0.78), 0 0 45px rgba(0, 230, 118, 0.65), inset 0 0 25px rgba(0, 230, 118, 0.35)",
             pointerEvents: "none",
             animation: "pulseGlow 2s infinite ease-in-out",
             zIndex: 10000,
-            transition: "all 0.35s cubic-bezier(0.16, 1, 0.3, 1)",
+            transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
           }}
         >
           {/* Animated Target Reticle / Pointer Tag */}
           <div
             style={{
               position: "absolute",
-              top: -14,
-              left: 14,
+              top: -15,
+              left: 16,
               background: "#00e676",
               color: "#000",
-              fontSize: 10.5,
+              fontSize: 11,
               fontWeight: 800,
               fontFamily: "'Geist Mono', monospace",
-              padding: "2px 8px",
+              padding: "3px 10px",
               borderRadius: 6,
               display: "flex",
               alignItems: "center",
-              gap: 4,
-              boxShadow: "0 4px 12px rgba(0,230,118,0.5)",
-              letterSpacing: "0.04em",
+              gap: 5,
+              boxShadow: "0 4px 16px rgba(0,230,118,0.6)",
+              letterSpacing: "0.05em",
               textTransform: "uppercase",
             }}
           >
-            <Target style={{ width: 11, height: 11 }} />
+            <Target style={{ width: 12, height: 12 }} />
             <span>Target Action</span>
           </div>
         </div>
