@@ -254,6 +254,15 @@ def execute_rendering_task(task_id: str, request: ProcessRequest, cancel_event: 
         tasks_db[task_id]["is_rate_limit"] = is_rate_limit
         tasks_db[task_id]["error"] = clean_msg
         tasks_db[task_id]["message"] = clean_msg
+    finally:
+        if task_id in cancellation_events:
+            cancellation_events.pop(task_id, None)
+        try:
+            from utils.helpers import cleanup_temp_files
+            cleanup_temp_files()
+        except Exception:
+            pass
+        gc.collect()
 
 def purge_ghost_files():
     """
