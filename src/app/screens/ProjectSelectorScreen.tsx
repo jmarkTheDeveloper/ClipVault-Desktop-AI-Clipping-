@@ -603,42 +603,31 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
             </button>
           </div>
 
-          {/* Guided Tour button directly underneath the Studio Card container */}
+          {/* Guided Tour link directly underneath the Studio Card container */}
           {onStartTour && (
-            <button
-              type="button"
-              onClick={onStartTour}
-              style={{
-                width: "100%",
-                marginTop: 10,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 7,
-                padding: "10px 16px",
-                borderRadius: 12,
-                background: "rgba(56, 189, 248, 0.08)",
-                border: "1px solid rgba(56, 189, 248, 0.22)",
-                color: "#38bdf8",
-                fontSize: 12,
-                fontWeight: 700,
-                cursor: "pointer",
-                transition: "all 0.2s ease",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "rgba(56, 189, 248, 0.16)";
-                e.currentTarget.style.borderColor = "rgba(56, 189, 248, 0.45)";
-                e.currentTarget.style.transform = "translateY(-1px)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "rgba(56, 189, 248, 0.08)";
-                e.currentTarget.style.borderColor = "rgba(56, 189, 248, 0.22)";
-                e.currentTarget.style.transform = "none";
-              }}
-            >
-              <Sparkles style={{ width: 13, height: 13, color: "#38bdf8" }} />
-              <span>Take Interactive Guided Tour</span>
-            </button>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", marginTop: 10 }}>
+              <button
+                type="button"
+                onClick={onStartTour}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 5,
+                  fontSize: 10.5,
+                  color: "rgba(255,255,255,0.4)",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: 0,
+                  transition: "color 0.2s",
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = "#38bdf8"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.4)"; }}
+              >
+                <Sparkles style={{ width: 12, height: 12, color: "#38bdf8" }} />
+                <span style={{ fontWeight: 600 }}>Interactive Guided Tour</span>
+              </button>
+            </div>
           )}
         </div>
       </main>
