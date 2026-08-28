@@ -17,6 +17,11 @@ import {
   ExternalLink,
   CheckCircle2,
   ArrowDown,
+  GraduationCap,
+  Sparkles,
+  Code2,
+  Coffee,
+  User,
 } from "lucide-react";
 
 const G = "#00e676";
@@ -62,6 +67,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
     }
   });
   const [showPrivacyModal, setShowPrivacyModal] = useState<boolean>(false);
+  const [showAboutModal, setShowAboutModal] = useState<boolean>(false);
   const [complianceTab, setComplianceTab] = useState<string>("all");
   const [hasScrolledToBottom, setHasScrolledToBottom] = useState<boolean>(false);
   const [showScrollPrompt, setShowScrollPrompt] = useState<boolean>(false);
@@ -394,29 +400,56 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
               </p>
             </div>
 
-            {/* Privacy & Compliance Trigger Link */}
-            <button
-              type="button"
-              onClick={() => setShowPrivacyModal(true)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 5,
-                fontSize: 10.5,
-                color: "rgba(255,255,255,0.35)",
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                padding: 0,
-                marginTop: 2,
-                transition: "color 0.2s",
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = "rgba(0,230,118,0.9)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.35)"; }}
-            >
-              <ShieldCheck style={{ width: 12, height: 12, color: G }} />
-              <span>Privacy Policy, BYOK Compliance & Software License</span>
-            </button>
+            {/* Footer Links Row */}
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 2, flexWrap: "wrap" }}>
+              {/* Privacy & Compliance Trigger Link */}
+              <button
+                type="button"
+                onClick={() => setShowPrivacyModal(true)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 5,
+                  fontSize: 10.5,
+                  color: "rgba(255,255,255,0.35)",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: 0,
+                  transition: "color 0.2s",
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = "rgba(0,230,118,0.9)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.35)"; }}
+              >
+                <ShieldCheck style={{ width: 12, height: 12, color: G }} />
+                <span>Privacy Policy, BYOK Compliance & Software License</span>
+              </button>
+
+              <span style={{ fontSize: 10, color: "rgba(255,255,255,0.2)" }}>•</span>
+
+              {/* About the Creator / About Us */}
+              <button
+                type="button"
+                onClick={() => setShowAboutModal(true)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 5,
+                  fontSize: 10.5,
+                  color: "rgba(255,255,255,0.45)",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: 0,
+                  transition: "color 0.2s",
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = "#fbbf24"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.45)"; }}
+              >
+                <Heart style={{ width: 12, height: 12, color: "#fbbf24", fill: "rgba(251,191,36,0.3)" }} />
+                <span style={{ fontWeight: 600 }}>About Us</span>
+              </button>
+            </div>
           </div>
 
           {/* Right Column: Studio Card */}
@@ -1129,6 +1162,253 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                   </button>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── About the Creator / About Us Modal ── */}
+      {showAboutModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 110,
+            background: "rgba(0,0,0,0.85)",
+            backdropFilter: "blur(14px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 20,
+          }}
+          onClick={() => setShowAboutModal(false)}
+        >
+          <div
+            style={{
+              position: "relative",
+              width: "min(640px, 94vw)",
+              maxHeight: "88vh",
+              background: "#0c0c0f",
+              border: "1px solid rgba(251,191,36,0.25)",
+              borderRadius: 20,
+              boxShadow: "0 35px 120px rgba(0,0,0,0.98), 0 0 30px rgba(251,191,36,0.08)",
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "20px 24px",
+                borderBottom: "1px solid rgba(255,255,255,0.07)",
+                background: "linear-gradient(180deg, rgba(251,191,36,0.04) 0%, transparent 100%)",
+                flexShrink: 0,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div
+                  style={{
+                    width: 38,
+                    height: 38,
+                    borderRadius: 12,
+                    background: "linear-gradient(135deg, rgba(251,191,36,0.2) 0%, rgba(245,158,11,0.08) 100%)",
+                    border: "1px solid rgba(251,191,36,0.35)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <GraduationCap style={{ width: 20, height: 20, color: "#fbbf24" }} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "#fff", letterSpacing: "-0.02em" }}>
+                    About the Creator & Mission
+                  </h3>
+                  <p style={{ margin: "2px 0 0", fontSize: 11, color: "rgba(255,255,255,0.45)" }}>
+                    The story behind ClipVault AI Video Studio
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAboutModal(false)}
+                style={{
+                  width: 30,
+                  height: 30,
+                  borderRadius: 8,
+                  background: "rgba(255,255,255,0.05)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  color: "rgba(255,255,255,0.6)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  transition: "all 0.15s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "rgba(255,255,255,0.12)";
+                  e.currentTarget.style.color = "#fff";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+                  e.currentTarget.style.color = "rgba(255,255,255,0.6)";
+                }}
+              >
+                <X style={{ width: 14, height: 14 }} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div
+              style={{
+                flex: 1,
+                overflowY: "auto",
+                padding: "24px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 16,
+              }}
+            >
+              {/* Developer Spotlight Card */}
+              <div
+                style={{
+                  padding: "16px",
+                  borderRadius: 14,
+                  background: "rgba(255,255,255,0.03)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  flexWrap: "wrap",
+                  gap: 12,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: "50%",
+                      background: "linear-gradient(135deg, #00e676 0%, #00b0ff 100%)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontWeight: 800,
+                      fontSize: 16,
+                      color: "#000",
+                      boxShadow: "0 0 15px rgba(0,230,118,0.3)",
+                    }}
+                  >
+                    JM
+                  </div>
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 14, fontWeight: 800, color: "#fff" }}>Jae Mark</span>
+                      <span style={{ fontSize: 10, fontFamily: "'Geist Mono', monospace", color: "rgba(255,255,255,0.4)" }}>@jmarkTheDeveloper</span>
+                    </div>
+                    <span style={{ fontSize: 11, color: "#fbbf24", fontWeight: 600, display: "flex", alignItems: "center", gap: 4, marginTop: 2 }}>
+                      🎓 Computer Science Student • Philippines
+                    </span>
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "4px 10px",
+                    borderRadius: 999,
+                    background: "rgba(0,230,118,0.1)",
+                    border: "1px solid rgba(0,230,118,0.25)",
+                    fontSize: 10,
+                    fontWeight: 700,
+                    color: G,
+                  }}
+                >
+                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: G, boxShadow: "0 0 8px #00e676" }} />
+                  Solo Indie Founder
+                </div>
+              </div>
+
+              {/* Story Description */}
+              <div style={{ spaceY: 10, color: "rgba(255,255,255,0.75)", fontSize: 12.5, lineHeight: 1.65 }}>
+                <p style={{ margin: "0 0 12px 0" }}>
+                  This application was built entirely by a passionate <strong style={{ color: "#fff" }}>Computer Science college student</strong> who is striving to make a living, become financially independent, and create a real, positive business impact in the video editing and creator industry.
+                </p>
+                <p style={{ margin: "0 0 12px 0" }}>
+                  Most video clipping tools charge predatory <span style={{ color: "#ff667a" }}>$30–$100/month cloud subscriptions</span> and place your renders in long online waiting lines. ClipVault AI is built on the philosophy of <strong style={{ color: G }}>privacy, local hardware power, and zero recurring server costs</strong> — giving you professional AI clipping directly on your machine.
+                </p>
+              </div>
+
+              {/* Support & Appreciation Box */}
+              <div
+                style={{
+                  padding: "16px 18px",
+                  borderRadius: 14,
+                  background: "linear-gradient(135deg, rgba(251,191,36,0.08) 0%, rgba(245,158,11,0.02) 100%)",
+                  border: "1px solid rgba(251,191,36,0.25)",
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: 12,
+                }}
+              >
+                <Heart style={{ width: 18, height: 18, color: "#fbbf24", fill: "#fbbf24", flexShrink: 0, marginTop: 2 }} />
+                <div>
+                  <h4 style={{ margin: "0 0 4px", fontSize: 12.5, fontWeight: 800, color: "#fbbf24" }}>
+                    Thank You for Supporting My Journey!
+                  </h4>
+                  <p style={{ margin: 0, fontSize: 11.5, color: "rgba(255,255,255,0.7)", lineHeight: 1.55 }}>
+                    If you find this application helpful for your YouTube, TikTok, or client workflow, thank you for using it! Your feedback, sharing ClipVault with fellow editors, and word-of-mouth support directly funds my college education and ongoing software development.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div
+              style={{
+                padding: "14px 24px",
+                borderTop: "1px solid rgba(255,255,255,0.07)",
+                background: "rgba(255,255,255,0.015)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                flexShrink: 0,
+              }}
+            >
+              <span style={{ fontSize: 10.5, color: "rgba(255,255,255,0.4)", fontFamily: "'Geist Mono', monospace" }}>
+                ClipVault AI Video Studio • v1.0.0
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowAboutModal(false)}
+                style={{
+                  padding: "8px 24px",
+                  borderRadius: 10,
+                  fontWeight: 700,
+                  fontSize: 12,
+                  color: "#000",
+                  background: "#fbbf24",
+                  border: "none",
+                  cursor: "pointer",
+                  transition: "all 0.15s",
+                  boxShadow: "0 0 15px rgba(251,191,36,0.25)",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.filter = "brightness(1.1)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.filter = "none";
+                }}
+              >
+                Back to Studio
+              </button>
             </div>
           </div>
         </div>
