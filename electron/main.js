@@ -120,6 +120,8 @@ function createWindow() {
   const iconPath = path.join(__dirname, '../public/icon.ico');
   const appIcon = nativeImage.createFromPath(iconPath);
 
+  const isDev = process.env.NODE_ENV === 'development' && !app.isPackaged;
+
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 720,
@@ -132,6 +134,7 @@ function createWindow() {
       contextIsolation: true,
       webSecurity: false,
       backgroundThrottling: false,
+      devTools: isDev, // Completely disable DevTools in compiled .exe production builds
     },
     titleBarStyle: 'hidden',
     titleBarOverlay: {
@@ -158,7 +161,6 @@ function createWindow() {
     }
   });
 
-  const isDev = process.env.NODE_ENV === 'development';
   const distPath = path.join(__dirname, '../dist/index.html');
 
   if (isDev) {
@@ -175,9 +177,29 @@ function createWindow() {
     mainWindow.focus();
   });
 
-  // Local Ctrl+R and F5 for clean backend reboot and UI reload
+  // Strict Production Security: Prevent opening DevTools in packaged .exe builds
+  if (!isDev) {
+    mainWindow.webContents.on('devtools-opened', () => {
+      mainWindow.webContents.closeDevTools();
+    });
+  }
+
+  // Input Event Interceptor: Handle clean reload (Ctrl+R/F5) & block DevTools shortcuts in production
   let isReloading = false;
   mainWindow.webContents.on('before-input-event', (event, input) => {
+    // 1. Block DevTools inspection keys in production EXE
+    if (!isDev) {
+      if (
+        input.key === 'F12' ||
+        (input.control && input.shift && (input.key.toLowerCase() === 'i' || input.key.toLowerCase() === 'j' || input.key.toLowerCase() === 'c')) ||
+        (input.control && input.key.toLowerCase() === 'u')
+      ) {
+        event.preventDefault();
+        return;
+      }
+    }
+
+    // 2. Clean backend reboot and UI reload
     if (
       input.type === 'keyDown' &&
       ((input.control && input.key.toLowerCase() === 'r') || input.key === 'F5')
