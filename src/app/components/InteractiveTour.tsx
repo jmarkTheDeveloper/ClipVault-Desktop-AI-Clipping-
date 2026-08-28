@@ -97,7 +97,7 @@ export const TOUR_STEPS: TourStepInfo[] = [
       },
       {
         label: "Satisfying Gameplay Split",
-        desc: "Stacks speaker on top with Subway Surfers or GTA gameplay on the bottom.",
+        desc: "Stacks speaker on top with satisfying gameplay or ASMR footage on the bottom.",
         badge: "Split-Screen",
         badgeColor: "#38bdf8",
       },
@@ -112,7 +112,7 @@ export const TOUR_STEPS: TourStepInfo[] = [
     description: "Finalize dynamic typography and render your short-form master:",
     options: [
       {
-        label: "CapCut & Opus Kinetic Subtitles",
+        label: "Dynamic Kinetic Subtitles",
         desc: "Word-by-word highlighted text with sound effects and animated emojis.",
         badge: "High Retention",
         badgeColor: "#fbbf24",
@@ -711,7 +711,7 @@ export const FirstTimeWelcomeModal: React.FC<{
               lineHeight: 1.6,
             }}
           >
-            Take a 45-second interactive guided walkthrough to see how smart stream slicing, AI face tracking, and viral CapCut-style typography work.
+            Take a 45-second interactive guided walkthrough to see how smart stream slicing, AI face tracking, and dynamic kinetic typography work.
           </p>
         </div>
 

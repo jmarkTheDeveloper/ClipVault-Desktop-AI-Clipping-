@@ -361,7 +361,7 @@ const VaultClipCard: React.FC<{
     <div
       draggable
       onDragStart={(e) => {
-        // Native Electron Drag-Out to Windows desktop / Premiere Pro / CapCut
+        // Native Electron Drag-Out to Windows desktop / Video Editors
         if ((window as any).electronAPI?.startDrag && clip.path) {
           (window as any).electronAPI.startDrag(clip.path);
         }

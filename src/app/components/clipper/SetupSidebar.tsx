@@ -40,7 +40,7 @@ const LAYOUTS = [
   { id: "landscape_blur", label: "Landscape + Blurred Canvas", desc: "Preserves horizontal video with soft blur" },
   { id: "landscape_fit", label: "Landscape Fit (Letterbox)", desc: "Pads inside vertical canvas" },
   { id: "custom_split", label: "Custom Split-Screen (2 Boxes)", desc: "Visual multi-box crop editor" },
-  { id: "gameplay_bg", label: "Satisfying Gameplay Split", desc: "Speaker + Subway Surfers / GTA background" },
+  { id: "gameplay_bg", label: "Satisfying Gameplay Split", desc: "Speaker + Satisfying 3D Gameplay background" },
 ];
 
 const DURATION_MODES = [
@@ -372,7 +372,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                         <div className="p-3 rounded-lg bg-black/30 border border-dashed border-amber-400/30 text-center space-y-1">
                           <p className="text-[11px] font-bold text-gray-200">No Background Video Imported</p>
                           <p className="text-[9px] text-gray-400">
-                            Import a video of your choice (Subway Surfers, GTA 5, Minecraft, Satisfying ASMR, etc.)
+                            Import a video of your choice (Satisfying 3D gameplay, parkour, runner loop, ASMR, etc.)
                           </p>
                         </div>
                       )}
