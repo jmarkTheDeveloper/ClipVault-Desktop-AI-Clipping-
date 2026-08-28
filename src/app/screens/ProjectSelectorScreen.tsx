@@ -404,42 +404,6 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
 
             {/* Footer Links Row */}
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 2, flexWrap: "wrap" }}>
-              {/* Quick Tour Trigger */}
-              {onStartTour && (
-                <>
-                  <button
-                    type="button"
-                    onClick={onStartTour}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 5,
-                      fontSize: 10.5,
-                      fontWeight: 700,
-                      color: "#38bdf8",
-                      background: "rgba(56, 189, 248, 0.08)",
-                      border: "1px solid rgba(56, 189, 248, 0.25)",
-                      borderRadius: 6,
-                      padding: "3px 8px",
-                      cursor: "pointer",
-                      transition: "all 0.2s",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "rgba(56, 189, 248, 0.18)";
-                      e.currentTarget.style.color = "#7dd3fc";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "rgba(56, 189, 248, 0.08)";
-                      e.currentTarget.style.color = "#38bdf8";
-                    }}
-                  >
-                    <Sparkles style={{ width: 11, height: 11, color: "#38bdf8" }} />
-                    <span>Guided Tour</span>
-                  </button>
-                  <span style={{ fontSize: 10, color: "rgba(255,255,255,0.2)" }}>•</span>
-                </>
-              )}
-
               {/* Privacy & Compliance Trigger Link */}
               <button
                 type="button"
@@ -637,6 +601,44 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
                 <ChevronRight style={{ width: 14, height: 14 }} />
               </div>
             </button>
+
+            {/* Guided Tour button directly under Launch Studio */}
+            {onStartTour && (
+              <button
+                type="button"
+                onClick={onStartTour}
+                style={{
+                  width: "100%",
+                  marginTop: 8,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 7,
+                  padding: "9px 16px",
+                  borderRadius: 10,
+                  background: "rgba(56, 189, 248, 0.08)",
+                  border: "1px solid rgba(56, 189, 248, 0.22)",
+                  color: "#38bdf8",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "rgba(56, 189, 248, 0.16)";
+                  e.currentTarget.style.borderColor = "rgba(56, 189, 248, 0.45)";
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "rgba(56, 189, 248, 0.08)";
+                  e.currentTarget.style.borderColor = "rgba(56, 189, 248, 0.22)";
+                  e.currentTarget.style.transform = "none";
+                }}
+              >
+                <Sparkles style={{ width: 13, height: 13, color: "#38bdf8" }} />
+                <span>Take Interactive Guided Tour</span>
+              </button>
+            )}
           </div>
         </div>
       </main>
