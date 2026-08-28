@@ -1613,7 +1613,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect }: Props) {
                     ClipVault was architected and built through hundreds of late-night hours by a solo Computer Science college student with zero corporate funding or venture backing. Cracking or illicitly sharing this software does not harm a faceless multi-billion-dollar corporation — it directly deprives an independent student of tuition funds, living expenses, hardware upgrades, and the ability to make an honest living.
                   </p>
                   <div style={{ color: "rgba(255,255,255,0.75)", textAlign: "justify" }}>
-                    If you are a student, educator, or facing severe financial hardship and cannot afford ClipVault, please reach out directly to <strong style={{ color: "#fff" }}>@jmarkTheDeveloper</strong> on GitHub instead of turning to unauthorized or cracked copies. Let's foster a creative software culture built on mutual respect and integrity.
+                    If you are a student, educator, or facing severe financial hardship and cannot afford ClipVault, please reach out directly to <strong style={{ color: "#fff" }}>@jmarkTheDeveloper</strong> on GitHub or email <a href="mailto:jmarkthedeveloper@gmail.com" style={{ color: "#fff", textDecoration: "underline", fontWeight: 700 }}>jmarkthedeveloper@gmail.com</a> instead of turning to unauthorized or cracked copies. Let's foster a creative software culture built on mutual respect and integrity.
                   </div>
                 </div>
 
