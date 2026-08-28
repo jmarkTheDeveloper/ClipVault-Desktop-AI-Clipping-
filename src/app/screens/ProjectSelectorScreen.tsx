@@ -454,19 +454,20 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
             </div>
           </div>
 
-          {/* Right Column: Studio Card */}
-          <div
-            id="tour-step-1-clipper-card"
-            className="wf-card-body"
-            style={{
-              position: "relative", overflow: "hidden",
-              background: "linear-gradient(155deg, #111113 0%, #09090b 100%)",
-              borderRadius: 18, padding: "24px 28px",
-              border: "1px solid rgba(0,230,118,0.2)",
-              animationName: "wfGlowPulse", animationDuration: "3.5s",
-              animationTimingFunction: "ease-in-out", animationIterationCount: "infinite",
-            }}
-          >
+          {/* Right Column: Studio Card Box & Guided Tour Link */}
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <div
+              id="tour-step-1-clipper-card"
+              className="wf-card-body"
+              style={{
+                position: "relative", overflow: "hidden",
+                background: "linear-gradient(155deg, #111113 0%, #09090b 100%)",
+                borderRadius: 18, padding: "24px 28px",
+                border: "1px solid rgba(0,230,118,0.2)",
+                animationName: "wfGlowPulse", animationDuration: "3.5s",
+                animationTimingFunction: "ease-in-out", animationIterationCount: "infinite",
+              }}
+            >
             {/* Top highlight edge */}
             <div style={{
               position: "absolute", top: 0, left: 0, right: 0, height: 1, pointerEvents: "none",
@@ -601,36 +602,37 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
                 <ChevronRight style={{ width: 14, height: 14 }} />
               </div>
             </button>
-
-            {/* Guided Tour link inside card right under Launch Studio */}
-            {onStartTour && (
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", marginTop: 12 }}>
-                <button
-                  type="button"
-                  onClick={onStartTour}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 5.5,
-                    fontSize: 11,
-                    color: "rgba(255,255,255,0.4)",
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    padding: 0,
-                    transition: "color 0.2s",
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.color = "#38bdf8"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.4)"; }}
-                >
-                  <Sparkles style={{ width: 12, height: 12, color: "#38bdf8" }} />
-                  <span style={{ fontWeight: 600 }}>Interactive Guided Tour</span>
-                </button>
-              </div>
-            )}
           </div>
+
+          {/* Guided Tour link underneath the box that holds Launch Studio */}
+          {onStartTour && (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", marginTop: 12 }}>
+              <button
+                type="button"
+                onClick={onStartTour}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 5.5,
+                  fontSize: 11,
+                  color: "rgba(255,255,255,0.4)",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: 0,
+                  transition: "color 0.2s",
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = "#38bdf8"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.4)"; }}
+              >
+                <Sparkles style={{ width: 12, height: 12, color: "#38bdf8" }} />
+                <span style={{ fontWeight: 600 }}>Interactive Guided Tour</span>
+              </button>
+            </div>
+          )}
         </div>
-      </main>
+      </div>
+    </main>
 
       {/* ── Widescreen Industry-Grade Privacy, BYOK Compliance & Legal Center Modal ── */}
       {showPrivacyModal && (
