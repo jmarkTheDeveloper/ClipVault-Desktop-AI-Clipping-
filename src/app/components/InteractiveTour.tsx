@@ -148,11 +148,42 @@ export const InteractiveTour: React.FC<Props> = ({
 
   const stepInfo = TOUR_STEPS.find((s) => s.step === currentStep) || TOUR_STEPS[0];
 
+  // 1. Auto-scroll target element into view whenever tour step changes
+  useEffect(() => {
+    if (!active) return;
+
+    let targetId = stepInfo.targetId;
+    if (currentStep === 3) {
+      const dialogEl = document.getElementById("engine-settings-dialog");
+      if (dialogEl && dialogEl.offsetParent !== null) {
+        targetId = "engine-settings-dialog";
+      }
+    }
+
+    const scrollTarget = () => {
+      const el = document.getElementById(targetId);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
+      }
+    };
+
+    scrollTarget();
+    const t1 = setTimeout(scrollTarget, 100);
+    const t2 = setTimeout(scrollTarget, 350);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [active, currentStep, stepInfo.targetId]);
+
+  // 2. 60fps continuous requestAnimationFrame for buttery-smooth tracking on scroll and animation
   useEffect(() => {
     if (!active) {
       setTargetRect(null);
       return;
     }
+
+    let animId: number;
 
     const updateRect = () => {
       let targetId = stepInfo.targetId;
@@ -164,27 +195,31 @@ export const InteractiveTour: React.FC<Props> = ({
       }
       const el = document.getElementById(targetId);
       if (el) {
-        setTargetRect(el.getBoundingClientRect());
+        const rect = el.getBoundingClientRect();
+        setTargetRect((prev) => {
+          if (!prev || Math.abs(prev.top - rect.top) > 0.5 || Math.abs(prev.left - rect.left) > 0.5 || Math.abs(prev.width - rect.width) > 0.5 || Math.abs(prev.height - rect.height) > 0.5) {
+            return rect;
+          }
+          return prev;
+        });
       } else {
         setTargetRect(null);
       }
+      animId = requestAnimationFrame(updateRect);
     };
 
-    updateRect();
-    const interval = setInterval(updateRect, 200);
-    window.addEventListener("resize", updateRect);
-    window.addEventListener("scroll", updateRect, true);
+    animId = requestAnimationFrame(updateRect);
 
     return () => {
-      clearInterval(interval);
-      window.removeEventListener("resize", updateRect);
-      window.removeEventListener("scroll", updateRect, true);
+      cancelAnimationFrame(animId);
     };
   }, [active, currentStep, stepInfo.targetId]);
 
   if (!active) return null;
 
   const isLastStep = currentStep === TOUR_STEPS.length;
+  // Adaptive HUD Placement: if target element is near the bottom, position HUD at the top so it never covers the button
+  const shouldPlaceAtTop = stepInfo.position === "top" || (targetRect ? targetRect.bottom > (typeof window !== "undefined" ? window.innerHeight - 280 : 600) : false);
 
   return (
     <div
@@ -238,7 +273,7 @@ export const InteractiveTour: React.FC<Props> = ({
             pointerEvents: "none",
             animation: "pulseGlow 2s infinite ease-in-out",
             zIndex: 10000,
-            transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+            transition: "all 0.15s cubic-bezier(0.16, 1, 0.3, 1)",
           }}
         >
           {/* Animated Target Reticle / Pointer Tag */}
@@ -268,11 +303,12 @@ export const InteractiveTour: React.FC<Props> = ({
         </div>
       )}
 
-      {/* Floating Interactive Guide HUD (Centered at Bottom) */}
+      {/* Floating Interactive Guide HUD (Centered at Bottom or Top depending on target) */}
       <div
         style={{
           position: "fixed",
-          bottom: 32,
+          top: shouldPlaceAtTop ? 32 : "auto",
+          bottom: shouldPlaceAtTop ? "auto" : 32,
           left: "50%",
           transform: "translateX(-50%)",
           width: "min(640px, 92vw)",
@@ -287,6 +323,7 @@ export const InteractiveTour: React.FC<Props> = ({
           flexDirection: "column",
           gap: 14,
           animation: "slideUpHUD 0.35s cubic-bezier(0.16, 1, 0.3, 1)",
+          transition: "top 0.3s ease, bottom 0.3s ease",
         }}
       >
         {/* Header Row: Badge & Exit */}
