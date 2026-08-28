@@ -695,19 +695,20 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                   className="w-full rounded-lg px-3 py-1.5 text-xs text-white bg-black/30 border border-white/10 outline-none focus:border-amber-400 placeholder-gray-600 transition-colors select-text cursor-text pointer-events-auto shadow-inner"
                 />
               </div>
-            </div>
 
-            <div className="space-y-1 mt-3">
-              <label className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">
-                Export File Name Prefix (Optional)
-              </label>
-              <input
-                type="text"
-                value={exportFileName}
-                onChange={(e) => setExportFileName(e.target.value)}
-                placeholder="e.g. MyViralClip"
-                className="w-full rounded-lg px-3 py-2 text-xs text-white bg-white/5 border border-white/10 outline-none focus:border-amber-400 placeholder-gray-600 transition-colors"
-              />
+              {/* Export File Name Prefix (Optional) */}
+              <div className="space-y-1.5 pt-1.5 border-t border-white/5">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                  Export File Name Prefix (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={exportFileName}
+                  onChange={(e) => setExportFileName(e.target.value)}
+                  placeholder="e.g. MyViralClip"
+                  className="w-full rounded-lg px-3 py-1.5 text-xs text-white bg-black/30 border border-white/10 outline-none focus:border-amber-400 placeholder-gray-600 transition-colors select-text cursor-text pointer-events-auto shadow-inner"
+                />
+              </div>
             </div>
 
             <div className="space-y-1 mt-3 mb-2">
