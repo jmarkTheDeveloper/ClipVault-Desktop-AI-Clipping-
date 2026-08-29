@@ -19,7 +19,8 @@ import {
   Eye,
   EyeOff,
   Lock,
-  ShieldAlert
+  ShieldAlert,
+  Trash2,
 } from "lucide-react";
 import type { EngineOption } from "./types";
 
@@ -493,10 +494,26 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
     }
   };
 
+  const [cacheSizeMb, setCacheSizeMb] = useState<number | null>(null);
+  const [isCleaningCache, setIsCleaningCache] = useState(false);
+  const [cacheCleanNotice, setCacheCleanNotice] = useState<string | null>(null);
+
+  const fetchCacheInfo = () => {
+    fetch("http://127.0.0.1:8000/api/cache_info")
+      .then((r) => r.json())
+      .then((data) => {
+        if (typeof data.size_mb === "number") setCacheSizeMb(data.size_mb);
+      })
+      .catch(() => {});
+  };
+
   // Automatically scan whenever modal opens if not yet scanned
   useEffect(() => {
-    if (isOpen && !hardwareInfo) {
-      runHardwareScan();
+    if (isOpen) {
+      fetchCacheInfo();
+      if (!hardwareInfo) {
+        runHardwareScan();
+      }
     }
   }, [isOpen, hardwareInfo]);
 
@@ -1510,6 +1527,36 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
               </div>
             </div>
           )}
+
+          {/* Storage & Disk Space Cache Cleaner */}
+          <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center">
+                <Trash2 className="w-4 h-4 text-amber-400" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-white">Temporary Cache &amp; Download Space</h4>
+                <p className="text-[10.5px] text-gray-400">
+                  {cacheCleanNotice ? (
+                    <span className="text-emerald-400 font-bold">{cacheCleanNotice}</span>
+                  ) : cacheSizeMb !== null ? (
+                    `Used by audio/video temp chunks: ${cacheSizeMb} MB`
+                  ) : (
+                    "Cleans temporary audio chunks &amp; downloads"
+                  )}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleClearCache}
+              disabled={isCleaningCache}
+              className="px-3 py-1.5 rounded-xl bg-amber-400 text-black font-extrabold text-xs hover:bg-amber-300 transition-all flex items-center gap-1.5 cursor-pointer shadow-md disabled:opacity-50"
+            >
+              <Trash2 className="w-3.5 h-3.5 text-black" />
+              <span>{isCleaningCache ? "Cleaning..." : "Clear Cache"}</span>
+            </button>
+          </div>
 
           {/* Compliance and Trademark Attribution Notice */}
           <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/5 space-y-1 text-[10px] text-gray-400">

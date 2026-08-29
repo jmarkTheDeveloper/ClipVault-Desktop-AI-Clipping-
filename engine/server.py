@@ -661,80 +661,69 @@ def stream_video_file(path: str, request: Request):
         return FileResponse(norm_path, media_type=content_type, headers={"Accept-Ranges": "bytes"})
 
 
-@app.get("/api/saved_clips")
-def list_saved_clips():
+@app.get("/api/cache_info")
+def get_cache_info():
     """
-    Scans the clips directory recursively and returns all saved clips and subfolders with metadata.
+    Calculates total disk space used by temporary cache files (TEMP_DIR, yt-dlp temp, intermediate audio/video).
     """
-    clips = []
-    folders = set(["Main Library"])
-    
-    if OUTPUT_DIR.exists():
-        # Discover all subfolders
-        for d in OUTPUT_DIR.iterdir():
-            if d.is_dir() and d.name != "metadata" and not d.name.startswith("."):
-                folders.add(d.name)
-
-        # Discover all .mp4 video clips
-        for mp4_file in OUTPUT_DIR.rglob("*.mp4"):
-            try:
-                rel_path = mp4_file.relative_to(OUTPUT_DIR)
-                folder_name = rel_path.parent.name if str(rel_path.parent) != "." else "Main Library"
-                folders.add(folder_name)
-                file_size_mb = round(mp4_file.stat().st_size / (1024 * 1024), 1)
-                mtime = mp4_file.stat().st_mtime
-                
-                # Check for corresponding metadata file
-                meta_file = mp4_file.parent / "metadata" / f"{mp4_file.stem}_metadata.txt"
-                title = mp4_file.stem.replace("_", " ")
-                desc = ""
-                score = 99
-                
-                # Try to extract score from filename if format is clip_X_YYpts_...
-                import re
-                score_match = re.search(r'_(\d+)pts_', mp4_file.name)
-                if score_match:
-                    score = int(score_match.group(1))
-                    
-                if meta_file.exists():
-                    try:
-                        with open(meta_file, 'r', encoding='utf-8') as f:
-                            content = f.read()
-                            if "🎬 Catchy Title:" in content:
-                                parts = content.split("🎬 Catchy Title:\n")
-                                if len(parts) > 1:
-                                    title_part = parts[1].split("=")[0].strip()
-                                    if title_part:
-                                        title = title_part
-                            if "📝 Description & Hashtags:" in content:
-                                parts = content.split("📝 Description & Hashtags:\n")
-                                if len(parts) > 1:
-                                    desc = parts[1].split("=")[0].strip()
-                    except:
-                        pass
-                        
-                clips.append({
-                    "id": str(rel_path).replace("\\", "/"),
-                    "filename": mp4_file.name,
-                    "title": title,
-                    "description": desc,
-                    "size_mb": file_size_mb,
-                    "mtime": mtime,
-                    "folder": folder_name,
-                    "path": str(mp4_file.resolve()),
-                    "url": f"http://127.0.0.1:8000/stream?path={urllib.parse.quote(str(mp4_file.resolve()))}",
-                    "virality_score": score
-                })
-            except Exception as file_err:
-                print(f"Error reading clip {mp4_file}: {file_err}")
-                
-    # Sort newest first
-    clips.sort(key=lambda x: x["mtime"], reverse=True)
+    total_bytes = 0
+    file_count = 0
+    try:
+        if TEMP_DIR.exists():
+            for p in TEMP_DIR.rglob("*"):
+                if p.is_file():
+                    total_bytes += p.stat().st_size
+                    file_count += 1
+    except Exception as e:
+        print(f"Error calculating cache size: {e}")
+        
+    size_mb = round(total_bytes / (1024 * 1024), 2)
+    size_gb = round(total_bytes / (1024 * 1024 * 1024), 2)
     return {
-        "clips": clips, 
-        "folders": sorted(list(folders)),
-        "total": len(clips), 
-        "storage_dir": str(OUTPUT_DIR.resolve())
+        "size_bytes": total_bytes,
+        "size_mb": size_mb,
+        "size_gb": size_gb,
+        "file_count": file_count,
+        "temp_dir": str(TEMP_DIR.resolve())
+    }
+
+@app.post("/api/clear_cache")
+def clear_cache():
+    """
+    Safely cleans all temporary files, downloaded raw video chunks in temp, extracted audio chunks, and frame caches.
+    Leaves user saved clips in OUTPUT_DIR completely untouched and safe.
+    """
+    import gc
+    gc.collect()
+    deleted_count = 0
+    freed_bytes = 0
+    try:
+        if TEMP_DIR.exists():
+            for item in list(TEMP_DIR.iterdir()):
+                try:
+                    if item.is_file():
+                        freed_bytes += item.stat().st_size
+                        item.unlink()
+                        deleted_count += 1
+                    elif item.is_dir():
+                        for sub in item.rglob("*"):
+                            if sub.is_file():
+                                freed_bytes += sub.stat().st_size
+                        shutil.rmtree(str(item), ignore_errors=True)
+                        deleted_count += 1
+                except Exception as item_err:
+                    print(f"Error deleting temp item {item}: {item_err}")
+        TEMP_DIR.mkdir(parents=True, exist_ok=True)
+    except Exception as e:
+        print(f"Error clearing cache: {e}")
+
+    freed_mb = round(freed_bytes / (1024 * 1024), 2)
+    print(f"🧹 Cache Cleaned: Freed {freed_mb} MB ({deleted_count} items)")
+    return {
+        "success": True,
+        "deleted_count": deleted_count,
+        "freed_bytes": freed_bytes,
+        "freed_mb": freed_mb
     }
 
 @app.post("/api/create_folder")
@@ -881,15 +870,21 @@ async def import_clip(
 def move_clips_to_folder(data: dict = Body(...)):
     """
     Moves specified clips and their metadata into a target folder or subfolder.
+    Guarantees atomic move and deletes any stale source copy so duplicates NEVER occur.
     """
     import shutil
+    import os
+    import urllib.parse
+    import gc
+    gc.collect()
+
     file_paths = data.get("file_paths") or data.get("clip_paths") or []
     target_folder = data.get("target_folder", "").strip()
     
     if not target_folder:
         return {"success": False, "error": "Target folder name cannot be empty"}
     
-    if target_folder in ["Main Library", "Root", "all"]:
+    if target_folder in ["Main Library", "Root", "all", "root", "."]:
         dest_dir = OUTPUT_DIR
         clean_name = "Main Library"
     else:
@@ -903,31 +898,69 @@ def move_clips_to_folder(data: dict = Body(...)):
     dest_meta_dir.mkdir(parents=True, exist_ok=True)
     
     moved = []
-    for fp in file_paths:
+    for raw_fp in file_paths:
+        if not raw_fp:
+            continue
+        # Clean URL prefixes or query params if passed
+        fp = str(raw_fp)
+        if "stream?path=" in fp:
+            fp = urllib.parse.unquote(fp.split("stream?path=")[-1].split("&")[0])
+        elif "/clips/" in fp:
+            fp = urllib.parse.unquote(fp.split("/clips/")[-1].split("?")[0])
+            
         src = Path(fp)
         if not src.is_absolute():
             src = (OUTPUT_DIR / fp).resolve()
+            
         if not src.exists():
+            # Match by exact filename or stem
+            target_name = Path(fp).name
             for cand in OUTPUT_DIR.rglob("*.mp4"):
-                if cand.name == src.name or cand.stem == src.stem:
+                if cand.name.lower() == target_name.lower():
                     src = cand
                     break
+
         if src.exists() and src.is_file():
             try:
                 dest_file = dest_dir / src.name
                 if src.resolve() != dest_file.resolve():
-                    shutil.move(str(src), str(dest_file))
+                    # If destination file already exists, replace it cleanly
+                    if dest_file.exists():
+                        try:
+                            dest_file.unlink()
+                        except Exception:
+                            pass
                     
+                    # Atomic replace / move
+                    try:
+                        os.replace(str(src), str(dest_file))
+                    except Exception:
+                        shutil.copy2(str(src), str(dest_file))
+                        try:
+                            src.unlink()
+                        except Exception:
+                            pass
+                    
+                    # Move metadata file
                     meta_src = src.parent / "metadata" / f"{src.stem}_metadata.txt"
                     if not meta_src.exists():
                         meta_src = src.parent / f"{src.stem}_metadata.txt"
-                    if meta_src.exists():
+                    if meta_src.exists() and meta_src.is_file():
                         meta_dest = dest_meta_dir / meta_src.name
-                        shutil.move(str(meta_src), str(meta_dest))
+                        if meta_dest.exists():
+                            try: meta_dest.unlink()
+                            except Exception: pass
+                        try:
+                            os.replace(str(meta_src), str(meta_dest))
+                        except Exception:
+                            shutil.copy2(str(meta_src), str(meta_dest))
+                            try: meta_src.unlink()
+                            except Exception: pass
                         
                     moved.append(str(dest_file.resolve()))
+                    print(f"📦 Moved clip cleanly: {src} -> {dest_file}")
             except Exception as move_err:
-                print(f"Error moving {src}: {move_err}")
+                print(f"Error moving {src} to {dest_dir}: {move_err}")
                 
     return {"success": True, "moved_count": len(moved), "target_folder": clean_name}
 

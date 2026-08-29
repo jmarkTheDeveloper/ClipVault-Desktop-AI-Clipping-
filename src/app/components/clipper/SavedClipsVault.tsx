@@ -525,6 +525,41 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
     newName: "",
   });
 
+  const [cacheSizeMb, setCacheSizeMb] = useState<number | null>(null);
+  const [isCleaningCache, setIsCleaningCache] = useState(false);
+
+  const fetchCacheInfo = async () => {
+    try {
+      const res = await fetch("http://127.0.0.1:8000/api/cache_info");
+      if (res.ok) {
+        const data = await res.json();
+        setCacheSizeMb(data.size_mb);
+      }
+    } catch {}
+  };
+
+  useEffect(() => {
+    fetchCacheInfo();
+  }, []);
+
+  const handleCleanCache = async () => {
+    if (isCleaningCache) return;
+    setIsCleaningCache(true);
+    try {
+      const res = await fetch("http://127.0.0.1:8000/api/clear_cache", { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (data.success) {
+        setExportNotice(`✓ Cleared cache! Freed ${data.freed_mb} MB of temporary disk space.`);
+        setTimeout(() => setExportNotice(""), 4000);
+        fetchCacheInfo();
+      }
+    } catch (err) {
+      console.error("Failed to clean cache:", err);
+    } finally {
+      setIsCleaningCache(false);
+    }
+  };
+
   // -------------------------------------------------------------------------
   // Keyboard Shortcuts (Delete, Escape, Ctrl+A)
   // -------------------------------------------------------------------------
@@ -920,6 +955,16 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
             className="px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs border border-white/10 transition-all flex items-center gap-2 cursor-pointer"
           >
             <FolderPlus className="w-4 h-4 text-amber-400" /> Change Directory
+          </button>
+
+          <button
+            onClick={handleCleanCache}
+            disabled={isCleaningCache}
+            className="px-3.5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white font-bold text-xs border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            title="Clean temporary downloads, audio chunks, and frame cache to free up hard drive space"
+          >
+            <Trash2 className="w-4 h-4 text-amber-400" />
+            <span>{isCleaningCache ? "Cleaning..." : cacheSizeMb !== null && cacheSizeMb > 0 ? `Free Space (${cacheSizeMb} MB)` : "Free Space"}</span>
           </button>
 
           <button
