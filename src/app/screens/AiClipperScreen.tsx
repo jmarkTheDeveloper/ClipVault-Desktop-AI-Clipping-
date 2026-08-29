@@ -142,9 +142,10 @@ export const AiClipperScreen: React.FC<Props> = ({
     if (initialViewMode) setViewMode(initialViewMode);
   }, [initialViewMode]);
 
-  // First-Time Saved Vault Tutorial Trigger
+  // Auto-Fetch Clips & First-Time Saved Vault Tutorial Trigger
   useEffect(() => {
     if (viewMode === "vault") {
+      loadVaultClips(false);
       try {
         const vaultTourDone = localStorage.getItem("clipvault_vault_tour_completed");
         if (!vaultTourDone && onTriggerVaultWelcome) {
@@ -383,9 +384,9 @@ export const AiClipperScreen: React.FC<Props> = ({
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const currentTaskIdRef = useRef<string | null>(null);
 
-  // Load Saved Clips Vault (supports silent background sync without flashing loader spinner)
+  // Load Saved Clips Vault
   const loadVaultClips = async (silent = false) => {
-    if (!silent && vaultClips.length === 0) setVaultLoading(true);
+    if (!silent) setVaultLoading(true);
     try {
       const res = await fetch("http://127.0.0.1:8000/api/saved_clips");
       if (res.ok) {
@@ -393,12 +394,9 @@ export const AiClipperScreen: React.FC<Props> = ({
         setVaultClips(data.clips || []);
         setVaultFolders(data.folders || ["Main Library"]);
         if (data.storage_dir || data.output_dir) setLastOutputFolder(data.storage_dir || data.output_dir);
-      } else {
-        setTimeout(() => loadVaultClips(true), 1000);
       }
     } catch (err) {
       console.error("Failed to load vault clips:", err);
-      setTimeout(() => loadVaultClips(true), 1200);
     } finally {
       setVaultLoading(false);
     }
@@ -1109,8 +1107,8 @@ export const AiClipperScreen: React.FC<Props> = ({
             <button
               type="button"
               onClick={() => {
-                loadVaultClips(true);
                 setViewMode("vault");
+                loadVaultClips(false);
               }}
               className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                 viewMode === "vault"
@@ -1464,6 +1462,7 @@ export const AiClipperScreen: React.FC<Props> = ({
             setPreviewVaultClip={setPreviewVaultClip}
             onBackToEditor={() => setViewMode("setup")}
             onStartVaultTour={onStartVaultTour}
+            onRefresh={() => loadVaultClips(false)}
           />
         )}
 

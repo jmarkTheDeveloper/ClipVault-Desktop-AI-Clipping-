@@ -26,6 +26,7 @@ import {
   ArrowUpDown,
   Copy,
   Sparkles,
+  RefreshCw,
 } from "lucide-react";
 import type { ClipMetadata } from "./types";
 
@@ -60,6 +61,7 @@ interface SavedClipsVaultProps {
   setPreviewVaultClip: (clip: ClipMetadata | null) => void;
   onBackToEditor: () => void;
   onStartVaultTour?: () => void;
+  onRefresh?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -511,6 +513,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
   setPreviewVaultClip,
   onBackToEditor,
   onStartVaultTour,
+  onRefresh,
 }) => {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; clip: ClipMetadata } | null>(null);
   const [folderContextMenu, setFolderContextMenu] = useState<{ x: number; y: number; folder: string } | null>(null);
@@ -956,6 +959,19 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
             <Trash2 className="w-3.5 h-3.5 text-amber-400" />
             <span>{isCleaningCache ? "Cleaning..." : cacheSizeMb !== null && cacheSizeMb > 0 ? `Free Space (${cacheSizeMb} MB)` : "Free Space"}</span>
           </button>
+
+          {/* Sync / Refresh Button */}
+          {onRefresh && (
+            <button
+              onClick={onRefresh}
+              disabled={vaultLoading}
+              className="px-3 py-2 rounded-xl bg-[#141416] hover:bg-white/10 text-gray-200 hover:text-white font-bold text-xs border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0 hover:border-amber-400/40"
+              title="Refresh and sync clips and folders directly from local disk"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 text-amber-400 ${vaultLoading ? "animate-spin" : ""}`} />
+              <span>{vaultLoading ? "Syncing..." : "Sync"}</span>
+            </button>
+          )}
 
           {/* Guided Walkthrough Button */}
           {onStartVaultTour && (
