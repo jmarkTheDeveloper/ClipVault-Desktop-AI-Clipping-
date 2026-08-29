@@ -375,10 +375,6 @@ const VaultClipCard: React.FC<{
             videoRef.current.pause();
           } catch {}
         }
-        // Native Electron Drag-Out to Windows desktop / Video Editors
-        if ((window as any).electronAPI?.startDrag && clip.path) {
-          (window as any).electronAPI.startDrag(clip.path);
-        }
         onDragStart(e);
       }}
       onDragEnd={onDragEnd}
@@ -642,11 +638,14 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
   // Handle Drag Move (Multi-clip or single)
   const handleDropClips = (e: React.DragEvent, targetFolder: string) => {
     e.preventDefault();
+    e.stopPropagation();
     setDragOverFolder(null);
     setDragOverBreadcrumb(null);
 
-    // If external files dropped from OS
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+    const isInternal = Boolean(draggedClipPath) || e.dataTransfer.types.includes("application/clipvault-clip");
+
+    // Only import if files were dropped from OUTSIDE the app (external Windows Explorer drag)
+    if (!isInternal && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       if (onImportClips) {
         onImportClips(e.dataTransfer.files, targetFolder === "all" ? "Main Library" : targetFolder);
       }
@@ -1531,7 +1530,9 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
                         ? JSON.stringify(selectedClipPaths)
                         : clip.path;
                     setDraggedClipPath(clip.path);
+                    e.dataTransfer.setData("application/clipvault-clip", clip.path);
                     e.dataTransfer.setData("text/plain", dragPayload);
+                    e.dataTransfer.effectAllowed = "move";
                   }}
                   onDragEnd={() => setDraggedClipPath(null)}
                 />
