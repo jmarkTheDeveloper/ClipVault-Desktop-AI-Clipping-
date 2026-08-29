@@ -977,12 +977,18 @@ def move_clips_to_folder(data: dict = Body(...)):
                             except Exception:
                                 # If Windows filesystem lock blocks delete, rename to hidden trash
                                 try:
-                                    trash_target = src.with_name(f".trash_{int(time.time())}_{src.name}")
+                                    trash_target = src.with_name(f".trash_{int(time.time()*1000)}_{src.name}")
                                     src.rename(trash_target)
                                 except Exception:
                                     pass
                         except Exception as copy_err:
                             print(f"Fallback move error for {src}: {copy_err}")
+                    
+                    if moved_ok and dest_file.exists():
+                        try:
+                            os.utime(str(dest_file), None)
+                        except Exception:
+                            pass
                     
                     # Move metadata file
                     meta_src = src.parent / "metadata" / f"{src.stem}_metadata.txt"
@@ -999,6 +1005,11 @@ def move_clips_to_folder(data: dict = Body(...)):
                             try:
                                 shutil.copy2(str(meta_src), str(meta_dest))
                                 meta_src.unlink()
+                            except Exception:
+                                pass
+                        if meta_dest.exists():
+                            try:
+                                os.utime(str(meta_dest), None)
                             except Exception:
                                 pass
                         
