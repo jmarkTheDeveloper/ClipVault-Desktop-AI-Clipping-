@@ -47,11 +47,19 @@ except Exception as _ffmpeg_setup_err:
 
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', 'YOUR_API_KEY_HERE')
 
-# Writable paths — always go to user data dir in production
-OUTPUT_DIR    = Path(os.getenv('OUTPUT_DIR',    str(_USER_DATA_DIR / 'clips'))).resolve()
-TEMP_DIR      = Path(os.getenv('TEMP_DIR',      str(_USER_DATA_DIR / 'temp'))).resolve()
-BACKGROUNDS_DIR = Path(os.getenv('BACKGROUNDS_DIR', str(_USER_DATA_DIR / 'backgrounds'))).resolve()
-MUSIC_DIR     = Path(os.getenv('MUSIC_DIR',     str(_USER_DATA_DIR / 'music'))).resolve()
+def _resolve_dir(env_key: str, default_name: str) -> Path:
+    val = os.getenv(env_key, '').strip()
+    if val:
+        p = Path(val)
+        if p.is_absolute():
+            return p.resolve()
+        return (_USER_DATA_DIR / p).resolve()
+    return (_USER_DATA_DIR / default_name).resolve()
+
+OUTPUT_DIR      = _resolve_dir('OUTPUT_DIR', 'clips')
+TEMP_DIR        = _resolve_dir('TEMP_DIR', 'temp')
+BACKGROUNDS_DIR = _resolve_dir('BACKGROUNDS_DIR', 'backgrounds')
+MUSIC_DIR       = _resolve_dir('MUSIC_DIR', 'music')
 
 # Model / behaviour settings
 WHISPER_MODEL = os.getenv('WHISPER_MODEL', 'small')
