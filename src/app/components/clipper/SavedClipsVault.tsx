@@ -28,6 +28,8 @@ import {
   Sparkles,
   RefreshCw,
   AlertTriangle,
+  X,
+  Film,
 } from "lucide-react";
 import type { ClipMetadata } from "./types";
 
@@ -762,78 +764,119 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
         </div>
       )}
 
-      {/* Delete Confirmation Warning Modal */}
+      {/* Industry-Standard Delete Confirmation Modal */}
       {deleteConfirmState.isOpen && (
         <div
           className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn"
           onClick={() => setDeleteConfirmState({ isOpen: false, type: "clip" })}
         >
           <div
-            className="bg-[#141416] border border-red-500/40 rounded-3xl p-6 max-w-md w-full shadow-[0_0_50px_rgba(239,68,68,0.25)] space-y-4"
+            className="bg-[#111113] border border-white/15 rounded-3xl p-6 max-w-lg w-full shadow-[0_20px_70px_rgba(0,0,0,0.85)] space-y-5 animate-scaleUp text-left"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-red-500/15 border border-red-500/30 flex items-center justify-center shrink-0">
-                <AlertTriangle className="w-6 h-6 text-red-500 animate-pulse" />
+            {/* Header with Title and Close Button */}
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-red-500/10 border border-red-500/30 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="w-5 h-5 text-red-500" />
+                </div>
+                <div>
+                  <h3 className="text-white font-bold text-base tracking-tight">
+                    {deleteConfirmState.type === "folder"
+                      ? "Delete Project Folder"
+                      : deleteConfirmState.type === "batch_clips"
+                      ? `Delete ${deleteConfirmState.targetPaths?.length || 0} Clips`
+                      : "Delete Video Clip"}
+                  </h3>
+                  <p className="text-[11px] text-gray-400 font-medium">
+                    Permanent File Deletion
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-white font-extrabold text-base">
-                  {deleteConfirmState.type === "folder" ? "Delete Project Folder?" : "Delete Video Clip?"}
-                </h3>
-                <p className="text-[11px] text-red-400 font-bold">
-                  ⚠️ Action cannot be undone
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmState({ isOpen: false, type: "clip" })}
+                className="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Target Item Inset Card */}
+            <div className="p-4 rounded-2xl bg-black/50 border border-white/10 flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0 text-amber-400">
+                {deleteConfirmState.type === "folder" ? (
+                  <Folder className="w-5 h-5" />
+                ) : (
+                  <Film className="w-5 h-5" />
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold text-white truncate">
+                  {deleteConfirmState.type === "batch_clips"
+                    ? `${deleteConfirmState.targetPaths?.length || 0} Selected Video Clips`
+                    : deleteConfirmState.targetName || deleteConfirmState.targetPath}
+                </p>
+                <p className="text-[10px] text-gray-400 mt-0.5 flex items-center gap-2">
+                  <span>Storage: Local Vault</span>
+                  <span>•</span>
+                  <span className="text-red-400/90 font-medium">Permanent Disk Removal</span>
                 </p>
               </div>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-black/50 border border-white/5 space-y-1">
-              <p className="text-xs text-gray-300 leading-relaxed">
-                {deleteConfirmState.type === "clip" && (
-                  <>Are you sure you want to permanently delete <span className="font-bold text-white">"{deleteConfirmState.targetName || deleteConfirmState.targetPath}"</span> from disk?</>
-                )}
-                {deleteConfirmState.type === "batch_clips" && (
-                  <>Are you sure you want to permanently delete <span className="font-bold text-white">{deleteConfirmState.targetPaths?.length || 0} selected clips</span> from disk?</>
-                )}
-                {deleteConfirmState.type === "folder" && (
-                  <>Are you sure you want to delete folder <span className="font-bold text-white">"{deleteConfirmState.targetName}"</span>? Any video clips inside will safely remain in Main Library.</>
+            {/* Warning Callout Box */}
+            <div className="p-3.5 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-start gap-2.5">
+              <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+              <p className="text-xs text-red-300 leading-relaxed font-medium">
+                {deleteConfirmState.type === "folder" ? (
+                  <>Deleting this folder will remove its categorization. Any video clips inside will be safely moved to <strong className="text-white">Main Library</strong>.</>
+                ) : (
+                  <>This file will be permanently erased from your hard drive. This action <strong className="text-red-200">cannot be undone</strong>.</>
                 )}
               </p>
             </div>
 
-            <div className="flex items-center justify-end gap-2.5 pt-2">
-              <button
-                type="button"
-                onClick={() => setDeleteConfirmState({ isOpen: false, type: "clip" })}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 transition-all cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={async () => {
-                  if (deleteConfirmState.type === "clip" && deleteConfirmState.targetPath) {
-                    await deleteVaultClip(deleteConfirmState.targetPath);
-                  } else if (deleteConfirmState.type === "batch_clips" && deleteConfirmState.targetPaths) {
-                    if (deleteVaultClips) {
-                      await deleteVaultClips(deleteConfirmState.targetPaths);
-                    } else {
-                      for (const path of deleteConfirmState.targetPaths) {
-                        await deleteVaultClip(path);
+            {/* Action Buttons */}
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-[10px] text-gray-500 font-mono hidden sm:inline">
+                Press <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-gray-300">Esc</kbd> to cancel
+              </span>
+              <div className="flex items-center gap-2.5 ml-auto">
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirmState({ isOpen: false, type: "clip" })}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-gray-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (deleteConfirmState.type === "clip" && deleteConfirmState.targetPath) {
+                      await deleteVaultClip(deleteConfirmState.targetPath);
+                    } else if (deleteConfirmState.type === "batch_clips" && deleteConfirmState.targetPaths) {
+                      if (deleteVaultClips) {
+                        await deleteVaultClips(deleteConfirmState.targetPaths);
+                      } else {
+                        for (const path of deleteConfirmState.targetPaths) {
+                          await deleteVaultClip(path);
+                        }
+                        setSelectedClipPaths([]);
                       }
-                      setSelectedClipPaths([]);
+                    } else if (deleteConfirmState.type === "folder" && deleteConfirmState.targetName) {
+                      if (deleteFolder) {
+                        deleteFolder(deleteConfirmState.targetName);
+                      }
                     }
-                  } else if (deleteConfirmState.type === "folder" && deleteConfirmState.targetName) {
-                    if (deleteFolder) {
-                      deleteFolder(deleteConfirmState.targetName);
-                    }
-                  }
-                  setDeleteConfirmState({ isOpen: false, type: "clip" });
-                }}
-                className="px-5 py-2 rounded-xl text-xs font-black bg-red-600 hover:bg-red-500 text-white transition-all shadow-lg shadow-red-600/30 flex items-center gap-1.5 cursor-pointer hover:scale-[1.02] active:scale-95"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span>Yes, Delete</span>
-              </button>
+                    setDeleteConfirmState({ isOpen: false, type: "clip" });
+                  }}
+                  className="px-5 py-2 rounded-xl text-xs font-bold bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-600/30 transition-all flex items-center gap-1.5 cursor-pointer hover:scale-[1.02] active:scale-95"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Delete Permanently</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
