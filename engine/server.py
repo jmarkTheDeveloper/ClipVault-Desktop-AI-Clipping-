@@ -923,10 +923,14 @@ def move_clips_to_folder(data: dict = Body(...)):
             continue
         # Clean URL prefixes or query params if passed
         fp = str(raw_fp)
+        if "local:///" in fp:
+            fp = fp.replace("local:///", "")
         if "stream?path=" in fp:
             fp = urllib.parse.unquote(fp.split("stream?path=")[-1].split("&")[0])
         elif "/clips/" in fp:
             fp = urllib.parse.unquote(fp.split("/clips/")[-1].split("?")[0])
+        else:
+            fp = urllib.parse.unquote(fp)
             
         src = Path(fp)
         if not src.is_absolute():
@@ -951,12 +955,18 @@ def move_clips_to_folder(data: dict = Body(...)):
                         except Exception:
                             pass
                     
-                    # Atomic replace / move
+                    # Atomic replace / move with handle-release retry
                     moved_ok = False
-                    try:
-                        os.replace(str(src), str(dest_file))
-                        moved_ok = True
-                    except Exception:
+                    for attempt in range(3):
+                        try:
+                            os.replace(str(src), str(dest_file))
+                            moved_ok = True
+                            break
+                        except Exception:
+                            gc.collect()
+                            time.sleep(0.02)
+                    
+                    if not moved_ok:
                         try:
                             shutil.copy2(str(src), str(dest_file))
                             moved_ok = True
