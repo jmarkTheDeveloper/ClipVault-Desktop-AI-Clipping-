@@ -384,8 +384,8 @@ export const AiClipperScreen: React.FC<Props> = ({
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const currentTaskIdRef = useRef<string | null>(null);
 
-  // Load Saved Clips Vault
-  const loadVaultClips = async (silent = false) => {
+  // Load Saved Clips Vault with automatic startup retry poller
+  const loadVaultClips = async (silent = false, retries = 6) => {
     if (!silent) setVaultLoading(true);
     try {
       const res = await fetch("http://127.0.0.1:8000/api/saved_clips");
@@ -394,11 +394,16 @@ export const AiClipperScreen: React.FC<Props> = ({
         setVaultClips(data.clips || []);
         setVaultFolders(data.folders || ["Main Library"]);
         if (data.storage_dir || data.output_dir) setLastOutputFolder(data.storage_dir || data.output_dir);
+        setVaultLoading(false);
+        return;
       }
+      throw new Error(`HTTP ${res.status}`);
     } catch (err) {
-      console.error("Failed to load vault clips:", err);
-    } finally {
-      setVaultLoading(false);
+      if (retries > 0) {
+        setTimeout(() => loadVaultClips(silent, retries - 1), 1000);
+      } else {
+        setVaultLoading(false);
+      }
     }
   };
 

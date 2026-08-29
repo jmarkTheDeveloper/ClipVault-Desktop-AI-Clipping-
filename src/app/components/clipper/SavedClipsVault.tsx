@@ -543,6 +543,9 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
 
   useEffect(() => {
     fetchCacheInfo();
+    if (onRefresh) {
+      onRefresh();
+    }
   }, []);
 
   const handleCleanCache = async () => {
