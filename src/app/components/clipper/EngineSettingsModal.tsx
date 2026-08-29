@@ -507,6 +507,25 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
       .catch(() => {});
   };
 
+  const handleClearCache = async () => {
+    if (isCleaningCache) return;
+    setIsCleaningCache(true);
+    try {
+      const res = await fetch("http://127.0.0.1:8000/api/clear_cache", { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (data.success) {
+        setCacheCleanNotice(`✓ Freed ${data.freed_mb} MB of space!`);
+        fetchCacheInfo();
+        setTimeout(() => setCacheCleanNotice(null), 4000);
+      }
+    } catch {
+      setCacheCleanNotice("Failed to clear cache");
+      setTimeout(() => setCacheCleanNotice(null), 3000);
+    } finally {
+      setIsCleaningCache(false);
+    }
+  };
+
   // Automatically scan whenever modal opens if not yet scanned
   useEffect(() => {
     if (isOpen) {
