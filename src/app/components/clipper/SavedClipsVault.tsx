@@ -27,6 +27,7 @@ import {
   Copy,
   Sparkles,
   RefreshCw,
+  AlertTriangle,
 } from "lucide-react";
 import type { ClipMetadata } from "./types";
 
@@ -533,6 +534,16 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
     oldFolder: "",
     newName: "",
   });
+  const [deleteConfirmState, setDeleteConfirmState] = useState<{
+    isOpen: boolean;
+    type: "clip" | "batch_clips" | "folder";
+    targetPath?: string;
+    targetPaths?: string[];
+    targetName?: string;
+  }>({
+    isOpen: false,
+    type: "clip",
+  });
 
   const [cacheSizeMb, setCacheSizeMb] = useState<number | null>(null);
   const [isCleaningCache, setIsCleaningCache] = useState(false);
@@ -751,6 +762,83 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
         </div>
       )}
 
+      {/* Delete Confirmation Warning Modal */}
+      {deleteConfirmState.isOpen && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn"
+          onClick={() => setDeleteConfirmState({ isOpen: false, type: "clip" })}
+        >
+          <div
+            className="bg-[#141416] border border-red-500/40 rounded-3xl p-6 max-w-md w-full shadow-[0_0_50px_rgba(239,68,68,0.25)] space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-red-500/15 border border-red-500/30 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-6 h-6 text-red-500 animate-pulse" />
+              </div>
+              <div>
+                <h3 className="text-white font-extrabold text-base">
+                  {deleteConfirmState.type === "folder" ? "Delete Project Folder?" : "Delete Video Clip?"}
+                </h3>
+                <p className="text-[11px] text-red-400 font-bold">
+                  ⚠️ Action cannot be undone
+                </p>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-black/50 border border-white/5 space-y-1">
+              <p className="text-xs text-gray-300 leading-relaxed">
+                {deleteConfirmState.type === "clip" && (
+                  <>Are you sure you want to permanently delete <span className="font-bold text-white">"{deleteConfirmState.targetName || deleteConfirmState.targetPath}"</span> from disk?</>
+                )}
+                {deleteConfirmState.type === "batch_clips" && (
+                  <>Are you sure you want to permanently delete <span className="font-bold text-white">{deleteConfirmState.targetPaths?.length || 0} selected clips</span> from disk?</>
+                )}
+                {deleteConfirmState.type === "folder" && (
+                  <>Are you sure you want to delete folder <span className="font-bold text-white">"{deleteConfirmState.targetName}"</span>? Any video clips inside will safely remain in Main Library.</>
+                )}
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmState({ isOpen: false, type: "clip" })}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (deleteConfirmState.type === "clip" && deleteConfirmState.targetPath) {
+                    await deleteVaultClip(deleteConfirmState.targetPath);
+                  } else if (deleteConfirmState.type === "batch_clips" && deleteConfirmState.targetPaths) {
+                    if (deleteVaultClips) {
+                      await deleteVaultClips(deleteConfirmState.targetPaths);
+                    } else {
+                      for (const path of deleteConfirmState.targetPaths) {
+                        await deleteVaultClip(path);
+                      }
+                      setSelectedClipPaths([]);
+                    }
+                  } else if (deleteConfirmState.type === "folder" && deleteConfirmState.targetName) {
+                    if (deleteFolder) {
+                      deleteFolder(deleteConfirmState.targetName);
+                    }
+                  }
+                  setDeleteConfirmState({ isOpen: false, type: "clip" });
+                }}
+                className="px-5 py-2 rounded-xl text-xs font-black bg-red-600 hover:bg-red-500 text-white transition-all shadow-lg shadow-red-600/30 flex items-center gap-1.5 cursor-pointer hover:scale-[1.02] active:scale-95"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Yes, Delete</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Clip Right-Click Context Menu */}
       {contextMenu && (
         <div
@@ -832,7 +920,12 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
 
             <button
               onClick={() => {
-                deleteVaultClip(contextMenu.clip.path || contextMenu.clip.url || contextMenu.clip.filename);
+                setDeleteConfirmState({
+                  isOpen: true,
+                  type: "clip",
+                  targetPath: contextMenu.clip.path || contextMenu.clip.url || contextMenu.clip.filename,
+                  targetName: contextMenu.clip.title || contextMenu.clip.filename,
+                });
                 setContextMenu(null);
               }}
               className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-red-400 hover:text-red-300 hover:bg-red-500/20 transition-colors text-left cursor-pointer font-bold"
@@ -921,7 +1014,11 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
             {deleteFolder && (
               <button
                 onClick={() => {
-                  deleteFolder(folderContextMenu.folder);
+                  setDeleteConfirmState({
+                    isOpen: true,
+                    type: "folder",
+                    targetName: folderContextMenu.folder,
+                  });
                   setFolderContextMenu(null);
                 }}
                 className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-red-400 hover:text-red-300 hover:bg-red-500/20 transition-colors text-left cursor-pointer font-bold"
@@ -1117,7 +1214,13 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
               {deleteFolder && (
                 <button
                   type="button"
-                  onClick={() => deleteFolder(vaultSelectedFolder)}
+                  onClick={() => {
+                    setDeleteConfirmState({
+                      isOpen: true,
+                      type: "folder",
+                      targetName: vaultSelectedFolder,
+                    });
+                  }}
                   className="px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500 hover:text-white text-red-400 border border-red-500/20 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
                   title="Delete this folder"
                 >
@@ -1297,7 +1400,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
                     }}
                     onDragLeave={() => setDragOverFolder(null)}
                     onDrop={(e) => handleDropClips(e, folderPath)}
-                    onDelete={deleteFolder ? () => deleteFolder(folderPath) : undefined}
+                    onDelete={deleteFolder ? () => setDeleteConfirmState({ isOpen: true, type: "folder", targetName: folderPath }) : undefined}
                     onRename={() => {
                       setRenameModalState({
                         isOpen: true,
@@ -1367,7 +1470,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
                     }}
                     onDragLeave={() => setDragOverFolder(null)}
                     onDrop={(e) => handleDropClips(e, folderPath)}
-                    onDelete={deleteFolder ? () => deleteFolder(folderPath) : undefined}
+                    onDelete={deleteFolder ? () => setDeleteConfirmState({ isOpen: true, type: "folder", targetName: folderPath }) : undefined}
                     onRename={() => {
                       setRenameModalState({
                         isOpen: true,
@@ -1426,15 +1529,13 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
               </button>
             )}
             <button
-              onClick={async () => {
-                if (deleteVaultClips) {
-                  await deleteVaultClips(selectedClipPaths);
-                } else {
-                  for (const path of selectedClipPaths) {
-                    await deleteVaultClip(path);
-                  }
-                  setSelectedClipPaths([]);
-                }
+              onClick={() => {
+                setDeleteConfirmState({
+                  isOpen: true,
+                  type: "batch_clips",
+                  targetPaths: selectedClipPaths,
+                  targetName: `${selectedClipPaths.length} clips`,
+                });
               }}
               className="px-3 py-1.5 rounded-xl bg-red-500/20 text-red-400 border border-red-500/30 font-bold text-xs hover:bg-red-500/30 transition-all flex items-center gap-1 cursor-pointer"
             >
@@ -1512,7 +1613,14 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
                   isSelected={isSelected}
                   selectedCount={selectedClipPaths.length}
                   onClick={() => setPreviewVaultClip(clip)}
-                  onDelete={(path) => deleteVaultClip(path)}
+                  onDelete={(path) => {
+                    setDeleteConfirmState({
+                      isOpen: true,
+                      type: "clip",
+                      targetPath: path,
+                      targetName: clip.title || clip.filename,
+                    });
+                  }}
                   onContextMenu={(e, c) => {
                     e.preventDefault();
                     setContextMenu({ x: e.clientX, y: e.clientY, clip: c });
