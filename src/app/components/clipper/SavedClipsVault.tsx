@@ -365,6 +365,12 @@ const VaultClipCard: React.FC<{
     <div
       draggable
       onDragStart={(e) => {
+        // Release video file handle in browser to avoid Windows file locks
+        if (videoRef.current) {
+          try {
+            videoRef.current.pause();
+          } catch {}
+        }
         // Native Electron Drag-Out to Windows desktop / Video Editors
         if ((window as any).electronAPI?.startDrag && clip.path) {
           (window as any).electronAPI.startDrag(clip.path);

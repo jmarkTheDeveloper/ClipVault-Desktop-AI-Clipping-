@@ -266,19 +266,44 @@ def execute_rendering_task(task_id: str, request: ProcessRequest, cancel_event: 
 
 def purge_ghost_files():
     """
-    Permanently purges any 0-byte ghost MP4 files from the clips directory.
+    Cleans 0-byte ghost files, .trash temporary leftovers, and any stale root duplicates of clips that were moved to subfolders.
     """
+    import time
     try:
         if OUTPUT_DIR.exists():
-            for p in OUTPUT_DIR.glob("**/*.mp4"):
+            # 1. Clean 0-byte ghost files and .trash leftovers
+            for p in list(OUTPUT_DIR.rglob("*")):
                 try:
-                    if p.exists() and p.is_file() and p.stat().st_size == 0:
-                        p.unlink()
-                        print(f"🧹 Purged 0-byte ghost clip: {p.name}")
+                    if p.is_file():
+                        if p.name.startswith(".trash") or p.name.endswith(".trash"):
+                            try: p.unlink()
+                            except Exception: pass
+                        elif p.suffix.lower() == ".mp4" and p.stat().st_size == 0:
+                            try: p.unlink()
+                            except Exception: pass
                 except Exception:
                     pass
-    except Exception:
-        pass
+
+            # 2. Stale root duplicate detection:
+            # If a clip exists in a subfolder, check if an orphaned copy exists directly in root OUTPUT_DIR.
+            subfolder_clips = set()
+            for sub_p in OUTPUT_DIR.rglob("*.mp4"):
+                if sub_p.parent != OUTPUT_DIR and not sub_p.name.startswith("."):
+                    subfolder_clips.add(sub_p.name.lower())
+
+            for root_p in list(OUTPUT_DIR.glob("*.mp4")):
+                if root_p.name.lower() in subfolder_clips:
+                    print(f"🧹 Purging stale root duplicate of moved clip: {root_p.name}")
+                    try:
+                        root_p.unlink()
+                    except Exception:
+                        try:
+                            trash_target = root_p.with_name(f".trash_{int(time.time())}_{root_p.name}")
+                            root_p.rename(trash_target)
+                        except Exception:
+                            pass
+    except Exception as e:
+        print(f"Error in purge_ghost_files: {e}")
 
 @app.get("/api/saved_clips")
 def get_saved_clips():
@@ -932,14 +957,26 @@ def move_clips_to_folder(data: dict = Body(...)):
                             pass
                     
                     # Atomic replace / move
+                    moved_ok = False
                     try:
                         os.replace(str(src), str(dest_file))
+                        moved_ok = True
                     except Exception:
-                        shutil.copy2(str(src), str(dest_file))
                         try:
-                            src.unlink()
-                        except Exception:
-                            pass
+                            shutil.copy2(str(src), str(dest_file))
+                            moved_ok = True
+                            gc.collect()
+                            try:
+                                src.unlink()
+                            except Exception:
+                                # If Windows filesystem lock blocks delete, rename to hidden trash
+                                try:
+                                    trash_target = src.with_name(f".trash_{int(time.time())}_{src.name}")
+                                    src.rename(trash_target)
+                                except Exception:
+                                    pass
+                        except Exception as copy_err:
+                            print(f"Fallback move error for {src}: {copy_err}")
                     
                     # Move metadata file
                     meta_src = src.parent / "metadata" / f"{src.stem}_metadata.txt"
@@ -953,15 +990,20 @@ def move_clips_to_folder(data: dict = Body(...)):
                         try:
                             os.replace(str(meta_src), str(meta_dest))
                         except Exception:
-                            shutil.copy2(str(meta_src), str(meta_dest))
-                            try: meta_src.unlink()
-                            except Exception: pass
+                            try:
+                                shutil.copy2(str(meta_src), str(meta_dest))
+                                meta_src.unlink()
+                            except Exception:
+                                pass
                         
-                    moved.append(str(dest_file.resolve()))
-                    print(f"📦 Moved clip cleanly: {src} -> {dest_file}")
+                    if moved_ok:
+                        moved.append(str(dest_file.resolve()))
+                        print(f"📦 Moved clip cleanly: {src} -> {dest_file}")
             except Exception as move_err:
                 print(f"Error moving {src} to {dest_dir}: {move_err}")
                 
+    # Run immediate ghost and duplicate purge
+    purge_ghost_files()
     return {"success": True, "moved_count": len(moved), "target_folder": clean_name}
 
 @app.post("/api/duplicate_clip")
