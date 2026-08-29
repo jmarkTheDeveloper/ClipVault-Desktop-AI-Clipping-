@@ -919,59 +919,74 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
       )}
 
       {/* Header Toolbar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 pb-6 border-b border-white/10">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 pb-6 border-b border-white/10">
         <div>
-          <h2 className="text-2xl font-black text-white flex items-center gap-3">
-            <FolderCheck className="text-amber-400 w-7 h-7" /> Saved Clips Vault
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-400/20 text-amber-400 border border-amber-400/30 font-bold">
-              {vaultClips.length} Saved Videos
+          <div className="flex items-center gap-3">
+            <h2 className="text-2xl font-black text-white flex items-center gap-2.5">
+              <FolderCheck className="text-amber-400 w-7 h-7" />
+              <span>Saved Clips Vault</span>
+            </h2>
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-400/15 text-amber-400 border border-amber-400/30 font-extrabold tracking-wide">
+              {vaultClips.length} {vaultClips.length === 1 ? "Video" : "Videos"}
             </span>
-          </h2>
+          </div>
           <p className="text-xs text-gray-400 mt-1">
             Windows Explorer-style file organization. Drag clips between folders, drag out to desktop, or drop external videos to import.
           </p>
         </div>
 
-        <div id="vault-tour-step-1-storage" className="flex items-center gap-3 flex-wrap">
-          {onStartVaultTour && (
-            <button
-              onClick={onStartVaultTour}
-              className="px-3.5 py-2.5 rounded-xl bg-amber-400/10 hover:bg-amber-400/20 text-amber-300 border border-amber-400/30 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
-              title="Launch Saved Clips Vault Walkthrough"
-            >
-              <Sparkles className="w-4 h-4 text-amber-400" /> Walkthrough
-            </button>
-          )}
-
+        <div id="vault-tour-step-1-storage" className="flex items-center gap-2 flex-wrap lg:flex-nowrap shrink-0">
+          {/* Primary Action: Open in Windows Explorer */}
           <button
             onClick={() => openOutputFolder(vaultSelectedFolder !== "all" && vaultSelectedFolder !== "Main Library" ? vaultSelectedFolder : undefined)}
-            className="px-4 py-2.5 rounded-xl bg-amber-400 text-black font-extrabold text-xs hover:bg-amber-300 transition-all shadow-[0_0_20px_rgba(251,191,36,0.3)] flex items-center gap-2 cursor-pointer"
+            className="px-3.5 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-extrabold text-xs transition-all shadow-[0_0_20px_rgba(251,191,36,0.25)] flex items-center gap-1.5 cursor-pointer shrink-0 hover:scale-[1.02] active:scale-95"
+            title="Open the active folder in native Windows Explorer"
           >
-            <FolderOpen className="w-4 h-4 text-black" /> Open Folder in Explorer
+            <FolderOpen className="w-4 h-4 text-black" />
+            <span>Open in Explorer</span>
           </button>
 
+          {/* Secondary Action: Change Directory */}
           <button
             onClick={chooseCustomDirectory}
-            className="px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs border border-white/10 transition-all flex items-center gap-2 cursor-pointer"
+            className="px-3 py-2 rounded-xl bg-[#141416] hover:bg-white/10 text-gray-200 hover:text-white font-bold text-xs border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer shrink-0 hover:border-amber-400/40"
+            title="Change output storage drive or custom directory"
           >
-            <FolderPlus className="w-4 h-4 text-amber-400" /> Change Directory
+            <FolderPlus className="w-3.5 h-3.5 text-amber-400" />
+            <span>Change Dir</span>
           </button>
 
+          {/* Free Up Space / Clean Temp Cache */}
           <button
             onClick={handleCleanCache}
             disabled={isCleaningCache}
-            className="px-3.5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white font-bold text-xs border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            className="px-3 py-2 rounded-xl bg-[#141416] hover:bg-white/10 text-gray-200 hover:text-white font-bold text-xs border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0 hover:border-amber-400/40"
             title="Clean temporary downloads, audio chunks, and frame cache to free up hard drive space"
           >
-            <Trash2 className="w-4 h-4 text-amber-400" />
+            <Trash2 className="w-3.5 h-3.5 text-amber-400" />
             <span>{isCleaningCache ? "Cleaning..." : cacheSizeMb !== null && cacheSizeMb > 0 ? `Free Space (${cacheSizeMb} MB)` : "Free Space"}</span>
           </button>
 
+          {/* Guided Walkthrough Button */}
+          {onStartVaultTour && (
+            <button
+              onClick={onStartVaultTour}
+              className="px-3 py-2 rounded-xl bg-amber-400/10 hover:bg-amber-400/20 text-amber-300 border border-amber-400/30 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 shadow-sm hover:scale-[1.02] active:scale-95"
+              title="Launch Saved Clips Vault Walkthrough"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span>Walkthrough</span>
+            </button>
+          )}
+
+          {/* Back to Studio Navigation */}
           <button
             onClick={onBackToEditor}
-            className="px-3.5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+            className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/15 transition-all flex items-center gap-1.5 cursor-pointer shrink-0 hover:scale-[1.02] active:scale-95 shadow-sm"
+            title="Return to AI Clipper Studio"
           >
-            <ArrowLeft className="w-4 h-4" /> Back to Studio
+            <ArrowLeft className="w-3.5 h-3.5 text-white" />
+            <span>Back to Studio</span>
           </button>
         </div>
       </div>
