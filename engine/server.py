@@ -266,7 +266,8 @@ def execute_rendering_task(task_id: str, request: ProcessRequest, cancel_event: 
 
 def purge_ghost_files():
     """
-    Cleans 0-byte ghost files, .trash temporary leftovers, and any stale root duplicates of clips that were moved to subfolders.
+    Cleans 0-byte ghost files, .trash temporary leftovers, and any stale duplicates across ALL folders.
+    Guarantees that every unique clip appears EXACTLY ONCE across the entire application.
     """
     import time
     try:
@@ -284,24 +285,29 @@ def purge_ghost_files():
                 except Exception:
                     pass
 
-            # 2. Stale root duplicate detection:
-            # If a clip exists in a subfolder, check if an orphaned copy exists directly in root OUTPUT_DIR.
-            subfolder_clips = set()
-            for sub_p in OUTPUT_DIR.rglob("*.mp4"):
-                if sub_p.parent != OUTPUT_DIR and not sub_p.name.startswith("."):
-                    subfolder_clips.add(sub_p.name.lower())
+            # 2. Universal Multi-Folder Deduplication across ALL folders at any depth:
+            # Group all MP4 files by lowercase filename
+            clips_by_name = {}
+            for p in OUTPUT_DIR.rglob("*.mp4"):
+                if not p.name.startswith(".") and not p.name.startswith(".trash") and p.stat().st_size > 0:
+                    clips_by_name.setdefault(p.name.lower(), []).append(p)
 
-            for root_p in list(OUTPUT_DIR.glob("*.mp4")):
-                if root_p.name.lower() in subfolder_clips:
-                    print(f"🧹 Purging stale root duplicate of moved clip: {root_p.name}")
-                    try:
-                        root_p.unlink()
-                    except Exception:
+            # For each clip with multiple copies, keep the NEWEST copy and purge all older stale copies!
+            for name, paths in clips_by_name.items():
+                if len(paths) > 1:
+                    paths.sort(key=lambda x: x.stat().st_mtime, reverse=True)
+                    active_clip = paths[0]
+                    stale_clips = paths[1:]
+                    print(f"🧹 Deduplicating '{name}': keeping newest in '{active_clip.parent.name}', purging {len(stale_clips)} older copy/copies")
+                    for old_p in stale_clips:
                         try:
-                            trash_target = root_p.with_name(f".trash_{int(time.time())}_{root_p.name}")
-                            root_p.rename(trash_target)
+                            old_p.unlink()
                         except Exception:
-                            pass
+                            try:
+                                trash_target = old_p.with_name(f".trash_{int(time.time())}_{old_p.name}")
+                                old_p.rename(trash_target)
+                            except Exception:
+                                pass
     except Exception as e:
         print(f"Error in purge_ghost_files: {e}")
 
