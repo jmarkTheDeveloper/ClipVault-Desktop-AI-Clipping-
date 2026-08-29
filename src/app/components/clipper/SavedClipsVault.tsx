@@ -946,16 +946,6 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
             <span>Open in Explorer</span>
           </button>
 
-          {/* Secondary Action: Change Directory */}
-          <button
-            onClick={chooseCustomDirectory}
-            className="px-3 py-2 rounded-xl bg-[#141416] hover:bg-white/10 text-gray-200 hover:text-white font-bold text-xs border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer shrink-0 hover:border-amber-400/40"
-            title="Change output storage drive or custom directory"
-          >
-            <FolderPlus className="w-3.5 h-3.5 text-amber-400" />
-            <span>Change Dir</span>
-          </button>
-
           {/* Free Up Space / Clean Temp Cache */}
           <button
             onClick={handleCleanCache}
@@ -1135,21 +1125,15 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
         </div>
 
         <div className="bg-[#111] border border-white/10 rounded-xl px-3 py-1.5 flex items-center justify-between gap-2 overflow-hidden">
-          <span className="text-[10px] text-gray-500 font-bold uppercase shrink-0">Saved In:</span>
+          <span className="text-[10px] text-gray-500 font-bold uppercase shrink-0">Vault Storage:</span>
           <button
             type="button"
-            onClick={openOutputFolder}
-            title="Click to open this folder in Explorer"
-            className="text-xs font-mono text-amber-400 hover:text-amber-300 underline truncate max-w-[150px] text-left cursor-pointer"
+            onClick={() => openOutputFolder(vaultSelectedFolder !== "all" && vaultSelectedFolder !== "Main Library" ? vaultSelectedFolder : undefined)}
+            title="Click to open this folder in Windows Explorer"
+            className="text-xs font-mono text-amber-400 hover:text-amber-300 underline truncate text-left cursor-pointer flex items-center gap-1.5"
           >
-            {customOutputDir || lastOutputFolder || "Default (engine/clips)"}
-          </button>
-          <button
-            type="button"
-            onClick={chooseCustomDirectory}
-            className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/15 text-[10px] font-bold text-gray-300 hover:text-white border border-white/10 shrink-0 transition-colors cursor-pointer"
-          >
-            Change
+            <FolderOpen className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <span className="truncate">Open In Explorer</span>
           </button>
         </div>
       </div>

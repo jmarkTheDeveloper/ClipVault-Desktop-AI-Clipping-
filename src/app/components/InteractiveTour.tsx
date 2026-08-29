@@ -134,7 +134,7 @@ export const VAULT_TOUR_STEPS: TourStepInfo[] = [
     step: 1,
     title: "Storage & Physical Explorer Access",
     subtitle: "Step 1 of 4 • Storage Management",
-    description: "Manage where your saved clips live on your local drive:",
+    description: "Access and manage where your saved clips live on your local drive:",
     options: [
       {
         label: "Open Folder in Explorer",
@@ -143,9 +143,9 @@ export const VAULT_TOUR_STEPS: TourStepInfo[] = [
         badgeColor: "#fbbf24",
       },
       {
-        label: "Change Storage Directory",
-        desc: "Point ClipVault to any internal SSD/NVMe, HDD, or external storage drive.",
-        badge: "Custom Drive",
+        label: "Dedicated Local Vault",
+        desc: "All master MP4 videos and viral hook metadata are preserved locally with zero cloud dependencies.",
+        badge: "100% Private",
         badgeColor: "#38bdf8",
       },
     ],
