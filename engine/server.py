@@ -760,35 +760,26 @@ def clear_cache():
 @app.post("/api/create_folder")
 def create_new_folder(data: dict = Body(...)):
     """
-    Creates a new folder or subfolder in the clips storage directory.
+    Creates a new project folder in the clips storage directory.
     """
-    folder_name = data.get("folder_name", "").strip()
-    parent_folder = data.get("parent_folder", "").strip()
-    if not folder_name:
+    raw_name = data.get("folder_name", "").strip()
+    if not raw_name:
         return {"success": False, "error": "Folder name cannot be empty"}
     
-    if parent_folder and parent_folder.strip().lower() not in ["all", "main library", "root", "", "none"]:
-        full_rel = f"{parent_folder}/{folder_name}"
-    else:
-        full_rel = folder_name
-        
-    segments = [s.strip() for s in full_rel.replace("\\", "/").split("/") if s.strip()]
-    safe_segments = ["".join(c for c in seg if c.isalnum() or c in (' ', '_', '-', '.')).strip() for seg in segments]
-    safe_segments = [s for s in safe_segments if s]
-    if not safe_segments:
+    clean_name = "".join(c for c in raw_name if c.isalnum() or c in (' ', '_', '-', '.')).strip()
+    if not clean_name:
         return {"success": False, "error": "Invalid folder name"}
         
-    rel_path_str = "/".join(safe_segments)
-    new_dir = OUTPUT_DIR / Path(*safe_segments)
+    new_dir = OUTPUT_DIR / clean_name
     new_dir.mkdir(parents=True, exist_ok=True)
     (new_dir / "metadata").mkdir(exist_ok=True)
-    print(f"📁 Created folder/subfolder: {new_dir.resolve()}")
-    return {"success": True, "folder_name": rel_path_str, "folder": rel_path_str, "path": str(new_dir.resolve())}
+    print(f"📁 Created folder: {new_dir.resolve()}")
+    return {"success": True, "folder_name": clean_name, "folder": clean_name, "path": str(new_dir.resolve())}
 
 @app.post("/api/delete_folder")
 def delete_folder(data: dict = Body(...)):
     """
-    Deletes a folder or subfolder from disk.
+    Deletes a folder from disk.
     Moves any clips inside back to the Main Library before deleting to prevent media loss.
     """
     import shutil
@@ -796,11 +787,11 @@ def delete_folder(data: dict = Body(...)):
     if not folder_name or folder_name.strip().lower() in ["all", "main library", "root", "", "none"]:
         return {"success": False, "error": "Cannot delete root library"}
         
-    segments = [s.strip() for s in folder_name.replace("\\", "/").split("/") if s.strip()]
-    target_dir = OUTPUT_DIR / Path(*segments)
+    clean_name = folder_name.split("/")[-1].split("\\")[-1].strip()
+    target_dir = OUTPUT_DIR / clean_name
     if not target_dir.exists() or not target_dir.is_dir():
-        for p in OUTPUT_DIR.rglob("*"):
-            if p.is_dir() and p.name.lower() == segments[-1].lower():
+        for p in OUTPUT_DIR.iterdir():
+            if p.is_dir() and p.name.lower() == clean_name.lower():
                 target_dir = p
                 break
                 
@@ -808,7 +799,7 @@ def delete_folder(data: dict = Body(...)):
         return {"success": False, "error": "Folder not found on disk"}
 
     # Move any clips inside it back to root OUTPUT_DIR before deleting
-    for mp4 in target_dir.glob("**/*.mp4"):
+    for mp4 in list(target_dir.glob("*.mp4")):
         try:
             dest = OUTPUT_DIR / mp4.name
             if not dest.exists():
@@ -819,7 +810,8 @@ def delete_folder(data: dict = Body(...)):
     try:
         shutil.rmtree(str(target_dir))
         print(f"🗑️ Deleted folder: {target_dir}")
-        return {"success": True, "deleted_folder": folder_name}
+        purge_ghost_files()
+        return {"success": True, "deleted_folder": clean_name}
     except Exception as e:
         print(f"⚠️ Error deleting folder {target_dir}: {e}")
         return {"success": False, "error": str(e)}
@@ -827,7 +819,7 @@ def delete_folder(data: dict = Body(...)):
 @app.post("/api/rename_folder")
 def rename_folder(data: dict = Body(...)):
     """
-    Renames an existing folder or subfolder on disk.
+    Renames an existing folder on disk.
     """
     import shutil
     old_folder = data.get("old_folder", "").strip()
@@ -838,33 +830,30 @@ def rename_folder(data: dict = Body(...)):
     if not new_name:
         return {"success": False, "error": "New folder name cannot be empty"}
         
-    old_segments = [s.strip() for s in old_folder.replace("\\", "/").split("/") if s.strip()]
-    old_dir = OUTPUT_DIR / Path(*old_segments)
-    
-    if not old_dir.exists():
-        for p in OUTPUT_DIR.rglob("*"):
-            if p.is_dir() and p.name.lower() == old_segments[-1].lower():
-                old_dir = p
-                break
-                
-    if not old_dir.exists():
-        return {"success": False, "error": "Source folder not found on disk"}
-
-    clean_new_name = "".join(c for c in new_name if c.isalnum() or c in (' ', '_', '-', '.')).strip()
-    if not clean_new_name:
+    old_clean = old_folder.split("/")[-1].split("\\")[-1].strip()
+    new_clean = "".join(c for c in new_name if c.isalnum() or c in (' ', '_', '-', '.')).strip()
+    if not new_clean:
         return {"success": False, "error": "Invalid new folder name"}
         
-    new_dir = old_dir.parent / clean_new_name
-    if new_dir.exists() and new_dir.resolve() != old_dir.resolve():
-        return {"success": False, "error": f"Folder '{clean_new_name}' already exists"}
-
+    src_dir = OUTPUT_DIR / old_clean
+    dest_dir = OUTPUT_DIR / new_clean
+    
+    if not src_dir.exists():
+        return {"success": False, "error": f"Source folder '{old_clean}' does not exist"}
+        
+    if src_dir.resolve() == dest_dir.resolve():
+        return {"success": True, "old_folder": old_clean, "new_folder": new_clean}
+        
+    if dest_dir.exists():
+        return {"success": False, "error": f"A folder named '{new_clean}' already exists"}
+        
     try:
-        shutil.move(str(old_dir), str(new_dir))
-        new_rel_path = new_dir.relative_to(OUTPUT_DIR).as_posix()
-        print(f"✏️ Renamed folder {old_dir} -> {new_dir}")
-        return {"success": True, "old_folder": old_folder, "new_folder": new_rel_path}
+        os.rename(str(src_dir), str(dest_dir))
+        print(f"✏️ Renamed folder: {src_dir} -> {dest_dir}")
+        purge_ghost_files()
+        return {"success": True, "old_folder": old_clean, "new_folder": new_clean}
     except Exception as e:
-        print(f"⚠️ Error renaming folder {old_dir}: {e}")
+        print(f"⚠️ Error renaming folder: {e}")
         return {"success": False, "error": str(e)}
 
 @app.post("/api/import_clip")
