@@ -138,7 +138,7 @@ export const VAULT_TOUR_STEPS: TourStepInfo[] = [
     options: [
       {
         label: "Open Folder in Explorer",
-        desc: "Instantly launch native Windows File Explorer directly in your current folder.",
+        desc: "Instantly launch native Windows File Explorer directly in your current project folder.",
         badge: "Direct Access",
         badgeColor: "#fbbf24",
       },
@@ -154,20 +154,20 @@ export const VAULT_TOUR_STEPS: TourStepInfo[] = [
   },
   {
     step: 2,
-    title: "Folder Breadcrumbs & Organization",
-    subtitle: "Step 2 of 4 • Folders & Hierarchy",
-    description: "Organize your short-form library with custom nested folders:",
+    title: "Project Folders & Navigation",
+    subtitle: "Step 2 of 4 • Project Folders",
+    description: "Organize your short-form library with custom project folders:",
     options: [
       {
-        label: "Hierarchical Breadcrumbs",
-        desc: "Click path chips to navigate or drag clips directly onto breadcrumbs to move them.",
-        badge: "Navigation",
+        label: "Project Category Folders",
+        desc: "Create and rename custom folders for Gaming, Podcasts, Highlights, or Client batches.",
+        badge: "Categories",
         badgeColor: "#00e676",
       },
       {
-        label: "Create Category Folders",
-        desc: "Create custom folders for Gaming, Podcasts, Reactions, or Client batches.",
-        badge: "Categories",
+        label: "Folder Breadcrumbs",
+        desc: "Click or drag clips onto breadcrumbs to return them to the Main Library at any time.",
+        badge: "Navigation",
         badgeColor: "#a855f7",
       },
     ],
@@ -182,7 +182,7 @@ export const VAULT_TOUR_STEPS: TourStepInfo[] = [
     options: [
       {
         label: "Instant Search & Folder Filter",
-        desc: "Search by title/filename or filter down to specific category subfolders.",
+        desc: "Search by title/filename or filter down to specific project folders instantly.",
         badge: "Filter",
         badgeColor: "#38bdf8",
       },
@@ -204,7 +204,7 @@ export const VAULT_TOUR_STEPS: TourStepInfo[] = [
     options: [
       {
         label: "Drag & Drop Organizing",
-        desc: "Drag clips between folders, or drop external video files into ClipVault to import.",
+        desc: "Drag clips between project folders, or drop external video files into ClipVault to import.",
         badge: "Drag & Drop",
         badgeColor: "#00e676",
       },

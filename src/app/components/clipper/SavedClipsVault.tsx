@@ -340,13 +340,17 @@ const VaultClipCard: React.FC<{
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [hasError, setHasError] = useState(false);
 
+  const [isHovered, setIsHovered] = useState(false);
+
   const handleMouseEnter = () => {
+    setIsHovered(true);
     if (videoRef.current && !hasError) {
       videoRef.current.play().catch(() => {});
     }
   };
 
   const handleMouseLeave = () => {
+    setIsHovered(false);
     if (videoRef.current && !hasError) {
       videoRef.current.pause();
       try {
@@ -381,24 +385,24 @@ const VaultClipCard: React.FC<{
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onContextMenu={(e) => onContextMenu(e, clip)}
-      className={`bg-[#141414] rounded-2xl border transition-all cursor-pointer group flex flex-col relative overflow-hidden active:scale-95 ${
+      className={`bg-[#141414] rounded-2xl border transition-transform duration-150 cursor-pointer group flex flex-col relative overflow-hidden will-change-transform ${
         isSelected
-          ? "border-amber-400 ring-1 ring-amber-400/40 shadow-xl"
-          : "border-white/5 hover:border-amber-400/50 hover:shadow-xl"
+          ? "border-amber-400 ring-1 ring-amber-400/40 shadow-xl scale-[1.01]"
+          : "border-white/5 hover:border-amber-400/50 hover:shadow-xl hover:scale-[1.01]"
       }`}
       onClick={onClick}
     >
-      <div className="relative w-full aspect-[9/16] bg-black overflow-hidden shadow-inner flex items-center justify-center">
+      <div className="relative w-full aspect-[9/16] bg-[#0d0d0f] overflow-hidden shadow-inner flex items-center justify-center">
         {!hasError && videoSrc ? (
           <video
             ref={videoRef}
             src={videoSrc}
-            preload="metadata"
+            preload="none"
             muted
             loop
             playsInline
             onError={() => setHasError(true)}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 bg-black pointer-events-none"
+            className="w-full h-full object-cover bg-black pointer-events-none"
           />
         ) : (
           <div className="flex flex-col items-center justify-center text-gray-600 gap-2 p-4 text-center">
