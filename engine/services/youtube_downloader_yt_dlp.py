@@ -77,13 +77,18 @@ class YouTubeDownloader:
             'ignoreerrors': True,
             'quiet': True,
             'no_warnings': True,
-            'retries': 15,
-            'extractor_retries': 15,
+            'retries': 20,
+            'extractor_retries': 20,
+            'extractor_args': {
+                'youtube': {
+                    'player_client': ['web_creator', 'android', 'web', 'ios', 'mweb', 'tv'],
+                }
+            },
             'user_agent': user_agent,
             'http_chunk_size': 10485760, # 10MB chunk streaming
             'concurrent_fragment_downloads': 16, # 16 parallel connections
             'buffersize': 4194304,
-            'socket_timeout': 25,
+            'socket_timeout': 30,
             'ffmpeg_location': ffmpeg_bin,
             'js_runtimes': js_runtimes
         }
