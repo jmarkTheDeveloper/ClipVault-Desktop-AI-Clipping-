@@ -338,7 +338,9 @@ export const AiClipperScreen: React.FC<Props> = ({
   const [activeClipIndex, setActiveClipIndex] = useState(0);
   const [lastOutputFolder, setLastOutputFolder] = useState("");
 
-  // Phone Preview State
+  // Phone Preview & Crop Editor Shared Playback State
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [currentTime, setCurrentTime] = useState(0);
   const [isMuted, setIsMuted] = useState(true);
   const [isDraggingCaption, setIsDraggingCaption] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -1290,6 +1292,12 @@ export const AiClipperScreen: React.FC<Props> = ({
                   setStartTs={setStartTs}
                   endTs={endTs}
                   setEndTs={setEndTs}
+                  currentTime={currentTime}
+                  setCurrentTime={setCurrentTime}
+                  isPlaying={isPlaying}
+                  setIsPlaying={setIsPlaying}
+                  isMuted={isMuted}
+                  setIsMuted={setIsMuted}
                 />
               </div>
             ) : (
@@ -1394,6 +1402,10 @@ export const AiClipperScreen: React.FC<Props> = ({
               setStartTs={setStartTs}
               endTs={endTs}
               setEndTs={setEndTs}
+              currentTime={currentTime}
+              setCurrentTime={setCurrentTime}
+              isPlaying={isPlaying}
+              setIsPlaying={setIsPlaying}
               onCancel={cancelClipper}
               gameplayBgVideo={gameplayBgVideo}
             />

@@ -1,6 +1,20 @@
-import React from "react";
+import React, { useRef, useEffect } from "react";
 import { Rnd } from "react-rnd";
-import { Sparkles, RefreshCw, Gamepad2, Mic, Film, ArrowUpDown } from "lucide-react";
+import {
+  Sparkles,
+  RefreshCw,
+  Gamepad2,
+  Mic,
+  Film,
+  ArrowUpDown,
+  Play,
+  Pause,
+  RotateCcw,
+  RotateCw,
+  Clock,
+  Pin,
+  Flag,
+} from "lucide-react";
 import type { CropBox } from "./types";
 import { extractYouTubeId } from "./types";
 
@@ -20,6 +34,23 @@ interface CropEditorModalProps {
   setStartTs?: (ts: string) => void;
   endTs?: string;
   setEndTs?: (ts: string) => void;
+  currentTime?: number;
+  setCurrentTime?: (t: number) => void;
+  isPlaying?: boolean;
+  setIsPlaying?: React.Dispatch<React.SetStateAction<boolean>>;
+  isMuted?: boolean;
+  setIsMuted?: (m: boolean) => void;
+}
+
+function formatTime(seconds: number): string {
+  if (isNaN(seconds) || seconds < 0 || !isFinite(seconds)) return "00:00";
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  if (h > 0) {
+    return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  }
+  return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
 }
 
 export const CropEditorModal: React.FC<CropEditorModalProps> = ({
@@ -31,38 +62,92 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
   setCropTop,
   cropBottom,
   setCropBottom,
-  mediaDuration,
+  mediaDuration = 0,
   durationMode,
   setDurationMode,
   startTs = "",
   setStartTs,
   endTs = "",
   setEndTs,
+  currentTime = 0,
+  setCurrentTime,
+  isPlaying = true,
+  setIsPlaying,
+  isMuted = true,
 }) => {
   if (!isOpen) return null;
   const youtubeId = extractYouTubeId(ytUrl);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const lastUpdateTimeRef = useRef<number>(0);
+
+  // Synchronize playback & seek state with the shared currentTime / isPlaying
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+
+    v.muted = isMuted;
+    if (Math.abs((v.currentTime || 0) - currentTime) > 0.5) {
+      try {
+        v.currentTime = currentTime;
+      } catch {}
+    }
+
+    if (isPlaying) {
+      v.play().catch(() => {});
+    } else {
+      v.pause();
+    }
+  }, [isPlaying, isMuted, currentTime, activeVideoUrl]);
+
+  const handleTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement>) => {
+    const now = Date.now();
+    if (now - lastUpdateTimeRef.current > 150) {
+      lastUpdateTimeRef.current = now;
+      if (setCurrentTime) {
+        setCurrentTime(e.currentTarget.currentTime || 0);
+      }
+    }
+  };
+
+  const togglePlay = () => {
+    if (setIsPlaying) {
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  const seekTo = (seconds: number) => {
+    const target = Math.max(0, Math.min(seconds, mediaDuration || 3600));
+    if (videoRef.current) {
+      try {
+        videoRef.current.currentTime = target;
+      } catch {}
+    }
+    if (setCurrentTime) {
+      setCurrentTime(target);
+    }
+  };
+
+  const seekDelta = (delta: number) => {
+    seekTo(currentTime + delta);
+  };
 
   // Preset Handlers
   const applyTinyWebcamPreset = () => {
-    // Tiny Facecam box on bottom-left (140x110), Bottom: Full game screen (456x256)
     setCropTop({ x: 20, y: 130, width: 140, height: 110 });
     setCropBottom({ x: 0, y: 0, width: 456, height: 256 });
   };
 
   const applyStreamerPreset = () => {
-    // Top: Facecam box on top-left (150x115), Bottom: Full game screen (456x256)
     setCropTop({ x: 15, y: 15, width: 150, height: 115 });
     setCropBottom({ x: 0, y: 0, width: 456, height: 256 });
   };
 
   const applyPodcastPreset = () => {
-    // Top: Host left half (228x256), Bottom: Guest right half (228x256)
     setCropTop({ x: 0, y: 0, width: 228, height: 256 });
     setCropBottom({ x: 228, y: 0, width: 228, height: 256 });
   };
 
   const applyCinematicPreset = () => {
-    // Top: 70% Action focus (456x180), Bottom: 30% Reaction (200x120)
     setCropTop({ x: 0, y: 20, width: 456, height: 180 });
     setCropBottom({ x: 128, y: 136, width: 200, height: 120 });
   };
@@ -79,12 +164,12 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
   };
 
   return (
-    <div className="w-full flex-1 flex flex-col space-y-4 animate-fadeIn">
+    <div className="w-full flex-1 flex flex-col space-y-3.5 animate-fadeIn select-none">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-white font-bold text-lg flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-amber-400" /> Visual Crop Editor
+          <h3 className="text-white font-bold text-base flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-amber-400" /> Visual Crop Editor
           </h3>
           <p className="text-gray-400 text-xs mt-0.5">
             Position the glowing crop boxes over the camera and gameplay scenes.
@@ -92,17 +177,17 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
         </div>
         <button
           onClick={onClose}
-          className="px-5 py-2 rounded-xl text-xs font-bold bg-amber-400 text-black hover:brightness-110 transition-all shadow-[0_0_15px_rgba(251,191,36,0.3)] cursor-pointer"
+          className="px-4 py-1.5 rounded-xl text-xs font-bold bg-amber-400 text-black hover:brightness-110 transition-all shadow-[0_0_15px_rgba(251,191,36,0.3)] cursor-pointer"
         >
           Done Cropping
         </button>
       </div>
 
       {/* AI Smart Crop Presets */}
-      <div className="space-y-1.5 bg-white/[0.03] border border-white/10 rounded-2xl p-3">
-        <div className="flex items-center justify-between">
+      <div className="space-y-1.5 bg-white/[0.03] border border-white/10 rounded-2xl p-2.5">
+        <div className="flex items-center justify-between px-1">
           <span className="text-[10px] font-extrabold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5" /> 1-Click Pro Crop Presets
+            <Sparkles className="w-3 h-3" /> 1-Click Pro Crop Presets
           </span>
           <button
             type="button"
@@ -116,7 +201,7 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
           <button
             type="button"
             onClick={applyTinyWebcamPreset}
-            className="px-1.5 py-2 rounded-xl bg-amber-400/15 hover:bg-amber-400/30 border border-amber-400/40 text-amber-300 font-black text-[10px] flex flex-col items-center gap-1 transition-all cursor-pointer shadow-sm"
+            className="px-1 py-1.5 rounded-xl bg-amber-400/15 hover:bg-amber-400/30 border border-amber-400/40 text-amber-300 font-black text-[10px] flex flex-col items-center gap-1 transition-all cursor-pointer shadow-sm"
           >
             <Gamepad2 className="w-3.5 h-3.5 text-amber-400" />
             <span>Tiny Box</span>
@@ -124,7 +209,7 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
           <button
             type="button"
             onClick={applyStreamerPreset}
-            className="px-1.5 py-2 rounded-xl bg-white/5 hover:bg-amber-400/20 border border-white/10 hover:border-amber-400/50 text-white font-bold text-[10px] flex flex-col items-center gap-1 transition-all cursor-pointer"
+            className="px-1 py-1.5 rounded-xl bg-white/5 hover:bg-amber-400/20 border border-white/10 hover:border-amber-400/50 text-white font-bold text-[10px] flex flex-col items-center gap-1 transition-all cursor-pointer"
           >
             <Gamepad2 className="w-3.5 h-3.5 text-amber-400" />
             <span>Top-Left Cam</span>
@@ -132,7 +217,7 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
           <button
             type="button"
             onClick={applyPodcastPreset}
-            className="px-1.5 py-2 rounded-xl bg-white/5 hover:bg-amber-400/20 border border-white/10 hover:border-amber-400/50 text-white font-bold text-[10px] flex flex-col items-center gap-1 transition-all cursor-pointer"
+            className="px-1 py-1.5 rounded-xl bg-white/5 hover:bg-amber-400/20 border border-white/10 hover:border-amber-400/50 text-white font-bold text-[10px] flex flex-col items-center gap-1 transition-all cursor-pointer"
           >
             <Mic className="w-3.5 h-3.5 text-cyan-400" />
             <span>Podcast</span>
@@ -140,7 +225,7 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
           <button
             type="button"
             onClick={applyCinematicPreset}
-            className="px-1.5 py-2 rounded-xl bg-white/5 hover:bg-amber-400/20 border border-white/10 hover:border-amber-400/50 text-white font-bold text-[10px] flex flex-col items-center gap-1 transition-all cursor-pointer"
+            className="px-1 py-1.5 rounded-xl bg-white/5 hover:bg-amber-400/20 border border-white/10 hover:border-amber-400/50 text-white font-bold text-[10px] flex flex-col items-center gap-1 transition-all cursor-pointer"
           >
             <Film className="w-3.5 h-3.5 text-purple-400" />
             <span>Cinematic</span>
@@ -148,7 +233,7 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
           <button
             type="button"
             onClick={applyStandard5050}
-            className="px-1.5 py-2 rounded-xl bg-white/5 hover:bg-amber-400/20 border border-white/10 hover:border-amber-400/50 text-white font-bold text-[10px] flex flex-col items-center gap-1 transition-all cursor-pointer"
+            className="px-1 py-1.5 rounded-xl bg-white/5 hover:bg-amber-400/20 border border-white/10 hover:border-amber-400/50 text-white font-bold text-[10px] flex flex-col items-center gap-1 transition-all cursor-pointer"
           >
             <RefreshCw className="w-3.5 h-3.5 text-emerald-400" />
             <span>Full 50/50</span>
@@ -159,7 +244,19 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
       {/* 456x256 Fixed Canvas Stage for Precise Crop Coordinates */}
       <div className="relative w-[456px] h-[256px] bg-[#111] rounded-2xl overflow-hidden shadow-2xl border border-white/10 ring-2 ring-white/5 mx-auto select-none">
         {activeVideoUrl ? (
-          <video src={activeVideoUrl} autoPlay loop muted playsInline className="w-full h-full object-cover" />
+          <video
+            ref={videoRef}
+            src={activeVideoUrl}
+            autoPlay
+            loop
+            muted={isMuted}
+            playsInline
+            onTimeUpdate={handleTimeUpdate}
+            onCanPlay={(e) => {
+              if (isPlaying) e.currentTarget.play().catch(() => {});
+            }}
+            className="w-full h-full object-cover pointer-events-none"
+          />
         ) : youtubeId ? (
           <iframe
             src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=1&loop=1&playlist=${youtubeId}&controls=0&modestbranding=1&rel=0&playsinline=1`}
@@ -228,9 +325,60 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
         </Rnd>
       </div>
 
+      {/* Synchronized Playback Dock for Precise Scene Scrubbing */}
+      <div className="w-[456px] mx-auto p-2.5 rounded-xl bg-[#121212] border border-white/10 space-y-2">
+        <div className="flex items-center justify-between text-[11px] font-mono text-gray-300 font-bold">
+          <span className="text-amber-400 flex items-center gap-1">
+            <Clock className="w-3 h-3 text-amber-400" /> {formatTime(currentTime)}
+          </span>
+          <span className="text-gray-400">
+            {mediaDuration > 0 ? formatTime(mediaDuration) : "--:--"}
+          </span>
+        </div>
+
+        <input
+          type="range"
+          min="0"
+          max={mediaDuration || 100}
+          step="0.5"
+          value={currentTime}
+          onChange={(e) => seekTo(parseFloat(e.target.value))}
+          className="w-full accent-amber-400 h-1.5 bg-black/60 rounded-lg cursor-pointer"
+        />
+
+        <div className="flex items-center justify-center gap-2 pt-0.5">
+          <button
+            type="button"
+            onClick={() => seekDelta(-10)}
+            className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/15 text-gray-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
+            title="Rewind 10 seconds"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+          </button>
+
+          <button
+            type="button"
+            onClick={togglePlay}
+            className="w-[84px] h-7 rounded-xl bg-amber-400 text-black font-extrabold text-xs flex items-center justify-center gap-1.5 hover:bg-amber-300 transition-all shadow-md cursor-pointer shrink-0"
+          >
+            {isPlaying ? <Pause className="w-3.5 h-3.5 fill-black" /> : <Play className="w-3.5 h-3.5 fill-black ml-0.5" />}
+            <span>{isPlaying ? "Pause" : "Play"}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => seekDelta(10)}
+            className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/15 text-gray-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
+            title="Forward 10 seconds"
+          >
+            <RotateCw className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+
       {/* Clip Timestamp Bounds in Crop Editor */}
       {(setStartTs || setEndTs) && (
-        <div className="w-[456px] mx-auto p-3 rounded-xl bg-white/[0.03] border border-white/10 space-y-2">
+        <div className="w-[456px] mx-auto p-2.5 rounded-xl bg-white/[0.03] border border-white/10 space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">Clip Timestamp Bounds</span>
             {(startTs || endTs) && (
@@ -246,9 +394,23 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
               </button>
             )}
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-gray-300 block">Start Timestamp</label>
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-bold text-gray-300 block">Start Timestamp</label>
+                {setStartTs && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStartTs(formatTime(currentTime));
+                      if (setDurationMode) setDurationMode("custom");
+                    }}
+                    className="text-[9px] text-amber-400 hover:underline font-bold cursor-pointer"
+                  >
+                    Pin Current
+                  </button>
+                )}
+              </div>
               <input
                 type="text"
                 value={startTs}
@@ -257,11 +419,25 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
                   if (setDurationMode) setDurationMode("custom");
                 }}
                 placeholder="0:00"
-                className="w-full rounded-lg px-3 py-1.5 text-xs font-bold text-white bg-black/40 border border-white/10 outline-none focus:border-amber-400 transition-colors"
+                className="w-full rounded-lg px-2.5 py-1.5 text-xs font-bold text-white bg-black/40 border border-white/10 outline-none focus:border-amber-400 transition-colors"
               />
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-gray-300 block">End Timestamp</label>
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-bold text-gray-300 block">End Timestamp</label>
+                {setEndTs && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEndTs(formatTime(currentTime));
+                      if (setDurationMode) setDurationMode("custom");
+                    }}
+                    className="text-[9px] text-cyan-400 hover:underline font-bold cursor-pointer"
+                  >
+                    Pin Current
+                  </button>
+                )}
+              </div>
               <input
                 type="text"
                 value={endTs}
@@ -269,8 +445,8 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
                   if (setEndTs) setEndTs(e.target.value);
                   if (setDurationMode) setDurationMode("custom");
                 }}
-                placeholder={mediaDuration && mediaDuration > 0 ? `${Math.floor(mediaDuration / 60)}:${Math.floor(mediaDuration % 60).toString().padStart(2, "0")}` : "e.g. 1:45"}
-                className="w-full rounded-lg px-3 py-1.5 text-xs font-bold text-white bg-black/40 border border-white/10 outline-none focus:border-amber-400 transition-colors"
+                placeholder={mediaDuration && mediaDuration > 0 ? formatTime(mediaDuration) : "e.g. 1:45"}
+                className="w-full rounded-lg px-2.5 py-1.5 text-xs font-bold text-white bg-black/40 border border-white/10 outline-none focus:border-amber-400 transition-colors"
               />
             </div>
           </div>

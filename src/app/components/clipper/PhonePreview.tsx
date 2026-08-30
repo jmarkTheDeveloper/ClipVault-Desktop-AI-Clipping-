@@ -42,6 +42,10 @@ interface PhonePreviewProps {
   setStartTs?: (ts: string) => void;
   endTs?: string;
   setEndTs?: (ts: string) => void;
+  currentTime?: number;
+  setCurrentTime?: (t: number) => void;
+  isPlaying?: boolean;
+  setIsPlaying?: React.Dispatch<React.SetStateAction<boolean>>;
   onCancel?: () => void;
   gameplayBgVideo?: string;
 }
@@ -216,6 +220,10 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
   setStartTs,
   endTs = "",
   setEndTs,
+  currentTime: currentTimeProp,
+  setCurrentTime: setCurrentTimeProp,
+  isPlaying: isPlayingProp,
+  setIsPlaying: setIsPlayingProp,
   onCancel,
   gameplayBgVideo = "",
 }) => {
@@ -227,8 +235,15 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
   const lastUpdateTimeRef = useRef<number>(0);
 
   // Playback & Scrubber States
-  const [isPlaying, setIsPlaying] = useState(true);
-  const [currentTime, setCurrentTime] = useState(0);
+  const [internalPlaying, setInternalPlaying] = useState(true);
+  const [internalCurrentTime, setInternalCurrentTime] = useState(0);
+
+  const isPlaying = isPlayingProp !== undefined ? isPlayingProp : internalPlaying;
+  const setIsPlaying = setIsPlayingProp || setInternalPlaying;
+
+  const currentTime = currentTimeProp !== undefined ? currentTimeProp : internalCurrentTime;
+  const setCurrentTime = setCurrentTimeProp || setInternalCurrentTime;
+
   const [duration, setDuration] = useState<number>(() => (mediaDuration && mediaDuration > 0 ? mediaDuration : 0));
 
   // Sync duration whenever mediaDuration from server updates
