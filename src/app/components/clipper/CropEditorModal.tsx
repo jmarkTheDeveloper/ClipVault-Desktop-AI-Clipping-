@@ -320,11 +320,10 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
             )}
           </div>
         ) : youtubeId ? (
-          <iframe
-            src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=1&loop=1&playlist=${youtubeId}&controls=0&modestbranding=1&rel=0&playsinline=1`}
-            title="Crop Editor YouTube Preview"
-            className="w-full h-full object-cover pointer-events-none scale-125"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          <img
+            src={`https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`}
+            alt="Crop Editor YouTube Preview"
+            className="w-full h-full object-cover pointer-events-none select-none"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-xs text-gray-500 font-bold">

@@ -1406,6 +1406,7 @@ export const AiClipperScreen: React.FC<Props> = ({
               setCurrentTime={setCurrentTime}
               isPlaying={isPlaying}
               setIsPlaying={setIsPlaying}
+              isCropEditorOpen={cropModalOpen !== "none"}
               onCancel={cancelClipper}
               gameplayBgVideo={gameplayBgVideo}
             />

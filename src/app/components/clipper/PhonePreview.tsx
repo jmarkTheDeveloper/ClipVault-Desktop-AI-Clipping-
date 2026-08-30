@@ -46,6 +46,7 @@ interface PhonePreviewProps {
   setCurrentTime?: (t: number) => void;
   isPlaying?: boolean;
   setIsPlaying?: React.Dispatch<React.SetStateAction<boolean>>;
+  isCropEditorOpen?: boolean;
   onCancel?: () => void;
   gameplayBgVideo?: string;
 }
@@ -128,10 +129,10 @@ const CroppedVideo: React.FC<{
   if (youtubeId) {
     return (
       <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center select-none">
-        <iframe
-          src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=${isMuted ? 1 : 0}&loop=1&playlist=${youtubeId}&controls=0&modestbranding=1&rel=0&playsinline=1`}
-          title="YouTube Crop Preview"
-          className="pointer-events-none"
+        <img
+          src={`https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`}
+          alt="YouTube Preview"
+          className="pointer-events-none select-none"
           style={{
             position: "absolute",
             width: `${scaleW}%`,
@@ -140,9 +141,9 @@ const CroppedVideo: React.FC<{
             maxHeight: "none",
             left: `${leftP}%`,
             top: `${topP}%`,
+            objectFit: "fill",
             transform: "translateZ(0)",
           }}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
         />
       </div>
     );
@@ -235,6 +236,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
   setCurrentTime: setCurrentTimeProp,
   isPlaying: isPlayingProp,
   setIsPlaying: setIsPlayingProp,
+  isCropEditorOpen = false,
   onCancel,
   gameplayBgVideo = "",
 }) => {
@@ -350,8 +352,9 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
     seekAllVideos(currentTime + deltaSeconds);
   };
 
+  // SINGLE MASTER CLOCK: Only fire timeupdate if Crop Editor is closed and not currently seeking
   const handleTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement>) => {
-    if (isSeekingRef.current) return; // Prevent old frames from overwriting seek destination
+    if (isCropEditorOpen || isSeekingRef.current) return;
     const v = e.currentTarget;
     if (v.duration && !isNaN(v.duration) && isFinite(v.duration) && v.duration > 0) {
       if (!duration || Math.abs(duration - v.duration) > 1) {
@@ -504,11 +507,10 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                     className="w-full h-full object-cover pointer-events-none"
                   />
                 ) : youtubeId ? (
-                  <iframe
-                    src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=${isMuted ? 1 : 0}&loop=1&playlist=${youtubeId}&controls=0&modestbranding=1&rel=0&playsinline=1`}
-                    title="YouTube Speaker Preview"
-                    className="w-full h-full object-cover pointer-events-none scale-125"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  <img
+                    src={posterUrl}
+                    alt="Speaker Preview"
+                    className="w-full h-full object-cover pointer-events-none"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-xs text-gray-500 font-bold">
@@ -654,48 +656,44 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                   </div>
                 )
               ) : youtubeId ? (
-                /* Fallback for YouTube Stream before stream slicing is cached */
+                /* High-Res Clean Poster Fallback */
                 layout === "landscape_blur" ? (
                   <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center">
-                    <iframe
-                      src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=1&loop=1&playlist=${youtubeId}&controls=0&modestbranding=1&rel=0&playsinline=1`}
-                      title="YouTube Blur Background"
+                    <img
+                      src={posterUrl}
+                      alt="Poster Blur"
                       className="absolute inset-0 w-full h-full object-cover filter blur-2xl scale-150 opacity-60 pointer-events-none"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     />
-                    <iframe
-                      src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=${isMuted ? 1 : 0}&loop=1&playlist=${youtubeId}&controls=0&modestbranding=1&rel=0&playsinline=1`}
-                      title="YouTube Foreground"
+                    <img
+                      src={posterUrl}
+                      alt="Poster"
                       className="w-full h-[56.25%] object-contain relative z-10 pointer-events-none shadow-2xl"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     />
                     <div className="absolute top-10 left-3 z-20 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-white/20 text-[9px] font-bold text-white/80 flex items-center gap-1 shadow-lg">
-                      🌫️ Blurred Canvas (9:16)
+                      Blurred Canvas (9:16)
                     </div>
                   </div>
                 ) : layout === "landscape_fit" ? (
                   <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center">
-                    <iframe
-                      src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=${isMuted ? 1 : 0}&loop=1&playlist=${youtubeId}&controls=0&modestbranding=1&rel=0&playsinline=1`}
-                      title="YouTube Letterbox"
+                    <img
+                      src={posterUrl}
+                      alt="Poster Fit"
                       className="w-full h-[56.25%] object-contain relative z-10 pointer-events-none"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     />
                     <div className="absolute top-10 left-3 z-20 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-white/20 text-[9px] font-bold text-white/80 flex items-center gap-1 shadow-lg">
-                      📺 Letterbox (9:16)
+                      Letterbox (9:16)
                     </div>
                   </div>
                 ) : (
                   <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center">
-                    <iframe
-                      src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=${isMuted ? 1 : 0}&loop=1&playlist=${youtubeId}&controls=0&modestbranding=1&rel=0&playsinline=1`}
-                      title="YouTube 9:16 Face Tracking Preview"
-                      className="w-full h-full object-cover pointer-events-none scale-175"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    <img
+                      src={posterUrl}
+                      alt="Poster Cover"
+                      className="w-full h-full object-cover pointer-events-none scale-125"
                     />
                     <div className="absolute top-10 left-3 z-20 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-amber-400/40 text-[9px] font-bold text-amber-400 flex items-center gap-1 shadow-lg">
                       <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                      🎯 9:16 Face Tracking Active
+                      9:16 Face Tracking Active
                     </div>
                   </div>
                 )

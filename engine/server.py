@@ -587,17 +587,32 @@ def get_video_info(url: str, current_user: dict = Depends(get_current_user)):
             
             # Prefer 360p or 720p progressive MP4 for ultra-smooth preview streaming in HTML5 video tag
             for fmt in formats:
-                if fmt.get("ext") == "mp4" and fmt.get("acodec") != "none" and fmt.get("vcodec") != "none":
+                if fmt.get("format_id") in ["18", "22"] and fmt.get("url"):
                     stream_url = fmt.get("url")
-                    if fmt.get("format_id") in ["18", "22"]:
+                    break
+            
+            if not stream_url and formats:
+                for fmt in formats:
+                    if fmt.get("ext") == "mp4" and fmt.get("acodec") != "none" and fmt.get("vcodec") != "none" and fmt.get("url"):
+                        stream_url = fmt.get("url")
                         break
             
+            # Fallback to any progressive video+audio format
+            if not stream_url and formats:
+                for fmt in formats:
+                    if fmt.get("vcodec") != "none" and fmt.get("acodec") != "none" and fmt.get("url"):
+                        stream_url = fmt.get("url")
+                        break
+
             # Fallback to any direct streamable URL
             if not stream_url and formats:
                 for fmt in formats:
                     if fmt.get("url") and fmt.get("vcodec") != "none":
                         stream_url = fmt.get("url")
                         break
+
+            if not stream_url and info:
+                stream_url = info.get("url")
 
             return {
                 "success": True,
