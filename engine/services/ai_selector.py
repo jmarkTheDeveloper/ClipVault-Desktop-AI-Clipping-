@@ -28,8 +28,12 @@ class AISelector:
 
         self.supported_gemini_models = [
             'gemini-2.5-flash',
-            'gemini-2.0-flash',
-            'gemini-1.5-flash'
+            'gemini-flash-latest',
+            'gemini-3.7-flash',
+            'gemini-3.6-flash',
+            'gemini-2.5-flash-lite',
+            'gemini-2.5-pro',
+            'gemini-pro-latest'
         ]
 
     def _call_openai_compatible(self, base_url: str, model: str, prompt: str) -> str:
@@ -143,26 +147,30 @@ class AISelector:
                 print(f"⚠️ Qwen note: {e}. Falling back to smart chapter analyzer.")
                 raise RuntimeError(e)
 
-        # 7. Google Gemini (Default / Gemini Flash)
+        # 7. Google Gemini (Gemini 2.5 Flash / Gemini Flash Latest)
         else:
-            def _call(m):
-                return m.generate_content(prompt, generation_config=generation_config)
-
-            last_error = None
-            for model_name in self.supported_gemini_models:
+            gemini_models = ["gemini-2.5-flash", "gemini-flash-latest", "gemini-2.5-flash-lite", "gemini-2.5-pro"]
+            for model_name in gemini_models:
                 try:
-                    model = genai.GenerativeModel(model_name)
-                    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-                        future = executor.submit(_call, model)
-                        return future.result(timeout=6.0)
-                except concurrent.futures.TimeoutError:
-                    print(f"⚠️ Google Gemini call timed out (6s). Using instant chapter highlight analyzer.")
-                    break
+                    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={self.api_key}"
+                    headers = {"Content-Type": "application/json"}
+                    payload = {
+                        "contents": [{"parts": [{"text": prompt}]}],
+                        "generationConfig": {"temperature": 0.4}
+                    }
+                    r = requests.post(url, headers=headers, json=payload, timeout=12.0)
+                    if r.status_code == 200:
+                        res_json = r.json()
+                        text = res_json["candidates"][0]["content"]["parts"][0]["text"]
+                        class MockRes: text: str
+                        m = MockRes(); m.text = text
+                        return m
+                    else:
+                        print(f"⚠️ Google Gemini note ({model_name}): HTTP {r.status_code}")
                 except Exception as e:
-                    last_error = e
-                    print(f"⚠️ Google Gemini note: {e}. Using instant smart chapter analyzer.")
-                    break
-            raise RuntimeError(f"Gemini generation error: {last_error}")
+                    print(f"⚠️ Google Gemini note ({model_name}): {e}")
+                    continue
+            raise RuntimeError("Gemini API call failed across all available models.")
 
     def select_clips(self, segments, video_duration, n, target_duration, topic=None):
         """
@@ -291,7 +299,20 @@ Return ONLY valid JSON with EXACT timestamps from the transcript:
                 print(f"🤖 {self.provider} evaluating transcript & chapters for viral thoughts...")
             
             response = self._generate_with_fallback(prompt, generation_config={"response_mime_type": "application/json"})
-            data = json.loads(response.text)
+            raw_text = getattr(response, "text", str(response)).strip()
+            clean_text = raw_text
+            if clean_text.startswith("```"):
+                parts = clean_text.split("```")
+                if len(parts) >= 3:
+                    clean_text = parts[1]
+                else:
+                    clean_text = parts[-1]
+                if clean_text.startswith("json"):
+                    clean_text = clean_text[4:].strip()
+            if clean_text.endswith("```"):
+                clean_text = clean_text[:-3].strip()
+
+            data = json.loads(clean_text)
             validated_clips = []
             if isinstance(data, list):
                 clips_list = data
