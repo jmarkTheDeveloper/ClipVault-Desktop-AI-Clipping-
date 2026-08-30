@@ -123,19 +123,22 @@ class YouTubeDownloader:
             'writeautomaticsub': True,
             'subtitleslangs': target_langs,
             'subtitlesformat': 'json3',
+            'socket_timeout': 8,
+            'retries': 2,
+            'extractor_retries': 2,
             'outtmpl': str(self.temp_dir / f'subs_{video_id}.%(ext)s'),
         })
 
         try:
             print(f"⚡ Probing YouTube for instant native captions ({target_langs[0]})...")
             with yt_dlp.YoutubeDL(opts) as ydl:
-                info = ydl.extract_info(url, download=True)
-                if not info:
-                    return None
+                try:
+                    ydl.extract_info(url, download=True)
+                except Exception as dl_err:
+                    print(f"Native subtitle probe note: {dl_err}")
 
             # Look for written json3 subtitle file
             sub_files = list(self.temp_dir.glob(f'*{video_id}*.json3')) + list(Path('temp').resolve().glob(f'*{video_id}*.json3'))
-            print(f"DEBUG: Found sub_files in temp_dir ({self.temp_dir}):", sub_files)
             if not sub_files:
                 # Try vtt as fallback
                 sub_files = list(self.temp_dir.glob(f'*{video_id}*.vtt')) + list(Path('temp').resolve().glob(f'*{video_id}*.vtt'))
