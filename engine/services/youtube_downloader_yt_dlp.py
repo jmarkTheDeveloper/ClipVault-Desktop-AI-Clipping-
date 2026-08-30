@@ -385,11 +385,18 @@ class YouTubeDownloader:
 
     def download(self, url: str, quality: str = "720p", custom_range: Optional[List[float]] = None) -> Tuple[Path, Optional[Path], str, float]:
         """
-        Legacy full-video or custom-range downloader.
+        Full-video or fast custom-range stream downloader.
         """
         video_id = self.get_video_id(url)
         if not video_id:
             raise ValueError("Invalid YouTube URL provided.")
+
+        if custom_range:
+            start_sec, end_sec = custom_range
+            print(f"⚡ Fast direct slice download for range [{start_sec}s - {end_sec}s]...")
+            slice_path = self.download_slice(url, start_sec, end_sec, quality=quality)
+            info = self.get_video_info(url)
+            return slice_path, None, info.get('title', 'YouTube Video'), max(1.0, end_sec - start_sec)
 
         if quality.lower() == "4k":
             format_str = 'bestvideo[height<=2160]+bestaudio/best[height<=2160]/best'
@@ -406,11 +413,6 @@ class YouTubeDownloader:
             'outtmpl': os.path.join(self.temp_dir, f'{video_id}.%(ext)s'),
             'merge_output_format': 'mp4',
         })
-
-        if custom_range:
-            start_sec, end_sec = custom_range
-            opts['download_ranges'] = yt_dlp.utils.download_range_func(None, [(start_sec, end_sec)])
-            opts['force_keyframes_at_cuts'] = True
 
         for old_file in self.temp_dir.glob(f'{video_id}.*'):
             try:

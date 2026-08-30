@@ -57,7 +57,7 @@ class VideoProcessor:
     @staticmethod
     def detect_hardware_encoder():
         """Detects available hardware video encoders (NVIDIA NVENC, Intel QSV, AMD AMF) or falls back to CPU."""
-        thread_count = min(4, max(1, multiprocessing.cpu_count() // 2))
+        thread_count = max(2, multiprocessing.cpu_count())
         try:
             import torch
             if torch.cuda.is_available():
@@ -91,8 +91,8 @@ class VideoProcessor:
         except Exception:
             pass
 
-        print(f"    🚀 Multi-threaded CPU encoder (libx264, {thread_count} threads)...")
-        return 'libx264', 'fast', ['-pix_fmt', 'yuv420p', '-threads', str(thread_count), '-crf', '16', '-b:v', '25M', '-maxrate', '35M', '-movflags', '+faststart', '-tune', 'film'], thread_count
+        print(f"    🚀 High-speed Multi-threaded CPU encoder (libx264, {thread_count} threads)...")
+        return 'libx264', 'veryfast', ['-pix_fmt', 'yuv420p', '-threads', str(thread_count), '-crf', '19', '-b:v', '25M', '-maxrate', '35M', '-movflags', '+faststart'], thread_count
 
     def process_video(
         self,
@@ -172,20 +172,28 @@ class VideoProcessor:
         lang_hint = transcription_language if transcription_language and transcription_language != "auto" else None
         words, transcript, segments = [], "", []
 
-        if use_smart_slicing:
+        # Only transcribe if captions are needed OR if AI needs to auto-select clips from transcript
+        needs_transcription = add_captions or (custom_range is None and target_duration != -1)
+
+        if not needs_transcription:
+            print("⏩ Custom clip range specified with AI Captions disabled. Skipping transcription (Instant 0.0s)!")
+        elif not os.path.isfile(url):
             if progress_callback: progress_callback("Fetching instant AI subtitles from YouTube...", 12)
             subs = self.downloader.get_native_subtitles(url, language=lang_hint or "en")
             if subs:
                 words, transcript, segments = subs
                 print(f"🚀 Loaded instant YouTube native captions in 0.5s ({len(words)} words)!")
             else:
-                if progress_callback: progress_callback("Downloading audio track for Whisper...", 15)
-                audio_path, title, duration = self.downloader.download_audio_only(url)
-                if progress_callback: progress_callback("Transcribing audio with Whisper...", 20)
-                words, transcript, segments = self.transcriber.transcribe(
-                    str(audio_path), language=lang_hint, progress_callback=progress_callback,
-                    api_key=self.api_key, ai_engine=self.ai_engine
-                )
+                if use_smart_slicing:
+                    if progress_callback: progress_callback("Downloading audio track for Whisper...", 15)
+                    audio_path, title, duration = self.downloader.download_audio_only(url)
+                transcribe_path = audio_path if audio_path else video_path
+                if transcribe_path:
+                    if progress_callback: progress_callback("Transcribing audio with Whisper...", 20)
+                    words, transcript, segments = self.transcriber.transcribe(
+                        str(transcribe_path), language=lang_hint, progress_callback=progress_callback,
+                        api_key=self.api_key, ai_engine=self.ai_engine
+                    )
         else:
             video_stem = Path(video_path).name if video_path else "video"
             cache_path = TEMP_DIR / f"{video_stem}_whisper.json"
