@@ -13,6 +13,9 @@ import multiprocessing
 import subprocess
 from pathlib import Path
 from typing import List, Dict, Any, Tuple, Optional
+import builtins
+
+os.environ["PYTHONIOENCODING"] = "utf-8"
 
 if hasattr(sys.stdout, 'reconfigure'):
     try: sys.stdout.reconfigure(encoding='utf-8', errors='replace')
@@ -20,6 +23,18 @@ if hasattr(sys.stdout, 'reconfigure'):
 if hasattr(sys.stderr, 'reconfigure'):
     try: sys.stderr.reconfigure(encoding='utf-8', errors='replace')
     except Exception: pass
+
+_original_builtin_print = builtins.print
+def _safe_system_print(*args, **kwargs):
+    try:
+        _original_builtin_print(*args, **kwargs)
+    except Exception:
+        try:
+            cleaned = [str(a).encode('ascii', errors='backslashreplace').decode('ascii') for a in args]
+            _original_builtin_print(*cleaned, **kwargs)
+        except Exception:
+            pass
+builtins.print = _safe_system_print
 
 import cv2
 import numpy as np

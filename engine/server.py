@@ -1,39 +1,42 @@
 import asyncio
 import sys
+import os
+import builtins
+
+# Force UTF-8 encoding environment for all child processes and threads
+os.environ["PYTHONIOENCODING"] = "utf-8"
 
 # Silence harmless Windows asyncio ConnectionResetError spam
 if sys.platform == 'win32':
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     try:
         import ctypes
-        # Set process priority to NORMAL_PRIORITY_CLASS (0x00000020) for full multi-core performance
         process_handle = ctypes.windll.kernel32.GetCurrentProcess()
         ctypes.windll.kernel32.SetPriorityClass(process_handle, 0x00000020)
-        print("⚡ Background engine priority set to 'Normal High-Speed Priority'.")
     except Exception:
         pass
 
-from fastapi import FastAPI, BackgroundTasks, Depends, HTTPException, Header, Body, UploadFile, File, Form, Request
-from fastapi.responses import FileResponse, StreamingResponse
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
-from typing import Optional, List, Any, Dict, Union
-import uuid
-import sys
-import os
-import json
-import mimetypes
-import threading
-from pathlib import Path
-
-# Force UTF-8 encoding for stdout and stderr on Windows to prevent charmap errors with emojis
+# Configure standard streams for UTF-8 with fallback
 if hasattr(sys.stdout, 'reconfigure'):
     try: sys.stdout.reconfigure(encoding='utf-8', errors='replace')
     except Exception: pass
 if hasattr(sys.stderr, 'reconfigure'):
     try: sys.stderr.reconfigure(encoding='utf-8', errors='replace')
     except Exception: pass
+
+# Global safe_print guard against CP1252 Windows terminal crashes
+_original_builtin_print = builtins.print
+def _safe_system_print(*args, **kwargs):
+    try:
+        _original_builtin_print(*args, **kwargs)
+    except Exception:
+        try:
+            cleaned = [str(a).encode('ascii', errors='backslashreplace').decode('ascii') for a in args]
+            _original_builtin_print(*cleaned, **kwargs)
+        except Exception:
+            pass
+builtins.print = _safe_system_print
+print("⚡ Background engine priority set to 'Normal High-Speed Priority'.")
 
 # Add project root to path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
