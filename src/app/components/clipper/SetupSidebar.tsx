@@ -790,9 +790,11 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
 
           <div className="space-y-3">
             {/* Background Music Toggle */}
-            <div className="flex flex-col gap-2 p-3.5 rounded-xl bg-white/5 border border-white/5 transition-colors">
+            <div className={`flex flex-col gap-2 p-3.5 rounded-xl bg-white/5 border border-white/5 transition-colors ${
+              !addBgMusic ? "cursor-pointer hover:bg-white/10 hover:border-white/10" : ""
+            }`}>
               <div
-                className="flex items-center justify-between cursor-pointer select-none"
+                className={`flex items-center justify-between select-none ${addBgMusic ? "cursor-pointer p-1 -m-1 rounded-lg hover:bg-white/5 transition-colors" : ""}`}
                 onClick={() => setAddBgMusic(!addBgMusic)}
               >
                 <div className="pr-2">
@@ -872,7 +874,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
 
             {/* Auto SFX & Emojis */}
             <div
-              className="flex items-center justify-between p-3.5 rounded-xl bg-white/5 border border-white/5 cursor-pointer hover:bg-white/10 transition-colors select-none"
+              className="flex items-center justify-between p-3.5 rounded-xl bg-white/5 border border-white/5 cursor-pointer hover:bg-white/10 hover:border-white/10 transition-colors select-none"
               onClick={() => setAutoSfx(!autoSfx)}
             >
               <div className="pr-2">
@@ -895,9 +897,11 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
             </div>
 
             {/* Captions Toggle & Styles */}
-            <div className="flex flex-col gap-3 p-3.5 rounded-xl bg-white/5 border border-white/5 transition-colors">
+            <div className={`flex flex-col gap-3 p-3.5 rounded-xl bg-white/5 border border-white/5 transition-colors ${
+              !addCaptions ? "cursor-pointer hover:bg-white/10 hover:border-white/10" : ""
+            }`}>
               <div
-                className="flex items-center justify-between cursor-pointer select-none"
+                className={`flex items-center justify-between select-none ${addCaptions ? "cursor-pointer p-1 -m-1 rounded-lg hover:bg-white/5 transition-colors" : ""}`}
                 onClick={() => setAddCaptions(!addCaptions)}
               >
                 <div className="pr-2">
@@ -953,7 +957,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
 
             {/* Anti-Duplicate Algorithm Bypass */}
             <div
-              className="flex items-center justify-between p-3.5 rounded-xl bg-white/5 border border-white/5 cursor-pointer hover:bg-white/10 transition-colors select-none"
+              className="flex items-center justify-between p-3.5 rounded-xl bg-white/5 border border-white/5 cursor-pointer hover:bg-white/10 hover:border-white/10 transition-colors select-none"
               onClick={() => setAvoidCopyright(!avoidCopyright)}
             >
               <div className="pr-2">
