@@ -201,6 +201,7 @@ class LayoutCompositor:
 
                 target_half_w = target_width
                 target_half_h = target_height // 2
+                target_ar = float(target_half_w) / float(target_half_h)
 
                 def crop_and_fit_half(box, fallback_y_pct=0.0):
                     x_pct = float(box.get('x', 0))
@@ -213,35 +214,30 @@ class LayoutCompositor:
                     x2 = max(x1 + 4, min(W, int(round(((x_pct + w_pct) / 100.0) * W))))
                     y2 = max(y1 + 4, min(H, int(round(((y_pct + h_pct) / 100.0) * H))))
 
-                    # 1. Exact bounding crop from source video
-                    raw_cropped = clip.crop(x1=x1, y1=y1, x2=x2, y2=y2)
-                    cw, ch = raw_cropped.size
+                    cw = max(4, x2 - x1)
+                    ch = max(4, y2 - y1)
+                    box_ar = float(cw) / float(ch)
 
-                    if cw <= 0 or ch <= 0:
-                        return raw_cropped.resize((target_half_w, target_half_h))
+                    # Calculate direct cover-fit source crop box in a single operation
+                    if box_ar > target_ar:
+                        # Box is wider than target half: crop width to match target aspect ratio
+                        sw = max(4, int(round(ch * target_ar)))
+                        xc = (x1 + x2) / 2.0
+                        sx1 = max(0, min(W - sw, int(round(xc - sw / 2.0))))
+                        sx2 = min(W, sx1 + sw)
+                        sy1, sy2 = y1, y2
+                    else:
+                        # Box is taller than target half: crop height to match target aspect ratio
+                        sh = max(4, int(round(cw / target_ar)))
+                        yc = (y1 + y2) / 2.0
+                        sy1 = max(0, min(H - sh, int(round(yc - sh / 2.0))))
+                        sy2 = min(H, sy1 + sh)
+                        sx1, sx2 = x1, x2
 
-                    # 2. Scale to cover (target_half_w, target_half_h) preserving natural aspect ratio
-                    scale = max(target_half_w / float(cw), target_half_h / float(ch))
-                    scaled_w = max(4, int(round(cw * scale)))
-                    scaled_h = max(4, int(round(ch * scale)))
-                    if scaled_w % 2 != 0: scaled_w += 1
-                    if scaled_h % 2 != 0: scaled_h += 1
-
-                    scaled_clip = raw_cropped.resize((scaled_w, scaled_h))
-
-                    # 3. Center-crop to exact target dimensions
-                    xc = scaled_w / 2.0
-                    yc = scaled_h / 2.0
-                    fitted = scaled_clip.crop(
-                        x_center=xc,
-                        y_center=yc,
-                        width=target_half_w,
-                        height=target_half_h
-                    )
-                    clips_to_close.append(raw_cropped)
-                    clips_to_close.append(scaled_clip)
-                    clips_to_close.append(fitted)
-                    return fitted
+                    # Single-pass C-level crop and resize
+                    half_clip = clip.crop(x1=sx1, y1=sy1, x2=sx2, y2=sy2).resize((target_half_w, target_half_h))
+                    clips_to_close.append(half_clip)
+                    return half_clip
 
                 top_half = crop_and_fit_half(box_top, 0.0)
                 bot_half = crop_and_fit_half(box_bot, 50.0)
