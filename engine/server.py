@@ -247,8 +247,10 @@ def execute_rendering_task(task_id: str, request: ProcessRequest, cancel_event: 
             clean_msg = "Processing stopped by user."
         elif "rejection" in lower_err or "background video" in lower_err:
             clean_msg = err_str
-        elif "youtube" in lower_err or "download" in lower_err:
-            clean_msg = "Could not fetch or download the video. Please verify the URL or try another video."
+        elif "unavailable" in lower_err or "not found" in lower_err or "does not exist" in lower_err or "private video" in lower_err:
+            clean_msg = "Video unavailable on YouTube. Please check the URL for typos (YouTube video IDs are case-sensitive, e.g. uppercase 'I' vs digit '1')."
+        elif "youtube" in lower_err or "download" in lower_err or "audio stream" in lower_err:
+            clean_msg = "Could not fetch the video stream from YouTube. Please verify the link or try pasting a fresh URL."
 
         print(f"⚠️ Task {task_id} error: {clean_msg}")
         tasks_db[task_id]["status"] = "failed"
