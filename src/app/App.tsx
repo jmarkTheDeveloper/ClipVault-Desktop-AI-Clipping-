@@ -93,13 +93,6 @@ export default function App() {
     };
     window.addEventListener("keydown", handleKeyDown);
 
-    try {
-      const completed = localStorage.getItem("clipvault_tutorial_completed");
-      if (!completed) {
-        setShowWelcomePrompt(true);
-      }
-    } catch {}
-
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 

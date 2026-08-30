@@ -203,18 +203,12 @@ export const AiClipperScreen: React.FC<Props> = ({
     }
   }, []);
 
-  // Auto-Fetch Clips & First-Time Saved Vault Tutorial Trigger
+  // Auto-Fetch Clips on Vault View
   useEffect(() => {
     if (viewMode === "vault") {
       loadVaultClips(false);
-      try {
-        const vaultTourDone = localStorage.getItem("clipvault_vault_tour_completed");
-        if (!vaultTourDone && onTriggerVaultWelcome) {
-          onTriggerVaultWelcome();
-        }
-      } catch {}
     }
-  }, [viewMode, onTriggerVaultWelcome]);
+  }, [viewMode]);
 
   const [showKeySettings, setShowKeySettings] = useState(false);
   const [showRateLimitModal, setShowRateLimitModal] = useState(false);
