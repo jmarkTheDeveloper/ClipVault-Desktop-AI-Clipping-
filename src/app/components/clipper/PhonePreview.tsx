@@ -275,6 +275,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
   }, [isMuted]);
 
   const isSeekingRef = useRef<boolean>(false);
+  const isDraggingRef = useRef<boolean>(false);
   const seekTimeoutRef = useRef<any>(null);
 
   // Synchronize play/pause state across all video elements in the preview
@@ -313,7 +314,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
   }, [layout, activeVideoUrl, gameplayBgVideo]);
 
   // Synchronized seek across all active video elements without glitching or rubber-banding
-  const seekAllVideos = (timeInSeconds: number) => {
+  const commitSeek = (timeInSeconds: number) => {
     isSeekingRef.current = true;
     if (seekTimeoutRef.current) clearTimeout(seekTimeoutRef.current);
 
@@ -329,10 +330,14 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
 
     setCurrentTime(target);
 
-    // Release lock once seek buffering stabilizes
+    // Safety timeout in case onSeeked is delayed
     seekTimeoutRef.current = setTimeout(() => {
       isSeekingRef.current = false;
-    }, 350);
+    }, 1500);
+  };
+
+  const seekAllVideos = (timeInSeconds: number) => {
+    commitSeek(timeInSeconds);
   };
 
   const togglePlayAll = () => {
@@ -349,12 +354,12 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
   };
 
   const seekRelative = (deltaSeconds: number) => {
-    seekAllVideos(currentTime + deltaSeconds);
+    commitSeek(currentTime + deltaSeconds);
   };
 
-  // SINGLE MASTER CLOCK: Only fire timeupdate if Crop Editor is closed and not currently seeking
+  // SINGLE MASTER CLOCK: Only fire timeupdate if not dragging, not seeking, and Crop Editor is closed
   const handleTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement>) => {
-    if (isCropEditorOpen || isSeekingRef.current) return;
+    if (isDraggingRef.current || isSeekingRef.current || isCropEditorOpen) return;
     const v = e.currentTarget;
     if (v.duration && !isNaN(v.duration) && isFinite(v.duration) && v.duration > 0) {
       if (!duration || Math.abs(duration - v.duration) > 1) {
@@ -765,7 +770,28 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
             max={duration || mediaDuration || 100}
             step="0.5"
             value={currentTime}
-            onChange={(e) => seekAllVideos(parseFloat(e.target.value))}
+            onPointerDown={() => { isDraggingRef.current = true; }}
+            onMouseDown={() => { isDraggingRef.current = true; }}
+            onTouchStart={() => { isDraggingRef.current = true; }}
+            onChange={(e) => {
+              const val = parseFloat(e.target.value);
+              setCurrentTime(val);
+            }}
+            onPointerUp={(e) => {
+              isDraggingRef.current = false;
+              commitSeek(parseFloat(e.currentTarget.value));
+            }}
+            onMouseUp={(e) => {
+              isDraggingRef.current = false;
+              commitSeek(parseFloat(e.currentTarget.value));
+            }}
+            onTouchEnd={(e) => {
+              isDraggingRef.current = false;
+              commitSeek(parseFloat(e.currentTarget.value));
+            }}
+            onKeyUp={(e) => {
+              commitSeek(parseFloat(e.currentTarget.value));
+            }}
             className="w-full accent-amber-400 h-1.5 bg-black/60 rounded-lg cursor-pointer"
           />
 

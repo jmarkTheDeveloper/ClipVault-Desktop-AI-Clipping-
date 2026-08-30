@@ -80,6 +80,7 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const lastUpdateTimeRef = useRef<number>(0);
   const isSeekingRef = useRef<boolean>(false);
+  const isDraggingRef = useRef<boolean>(false);
   const seekTimeoutRef = useRef<any>(null);
   const [isBuffering, setIsBuffering] = useState(false);
 
@@ -109,7 +110,7 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
   }, [activeVideoUrl]);
 
   const handleTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement>) => {
-    if (isSeekingRef.current) return;
+    if (isDraggingRef.current || isSeekingRef.current) return;
     const now = Date.now();
     if (now - lastUpdateTimeRef.current > 120) {
       lastUpdateTimeRef.current = now;
@@ -140,7 +141,7 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
     });
   };
 
-  const seekTo = (seconds: number) => {
+  const commitSeek = (seconds: number) => {
     isSeekingRef.current = true;
     if (seekTimeoutRef.current) clearTimeout(seekTimeoutRef.current);
 
@@ -160,11 +161,15 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
 
     seekTimeoutRef.current = setTimeout(() => {
       isSeekingRef.current = false;
-    }, 350);
+    }, 1500);
+  };
+
+  const seekTo = (seconds: number) => {
+    commitSeek(seconds);
   };
 
   const seekDelta = (delta: number) => {
-    seekTo(currentTime + delta);
+    commitSeek(currentTime + delta);
   };
 
   // Preset Handlers
@@ -403,7 +408,28 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
           max={mediaDuration || 100}
           step="0.5"
           value={currentTime}
-          onChange={(e) => seekTo(parseFloat(e.target.value))}
+          onPointerDown={() => { isDraggingRef.current = true; }}
+          onMouseDown={() => { isDraggingRef.current = true; }}
+          onTouchStart={() => { isDraggingRef.current = true; }}
+          onChange={(e) => {
+            const val = parseFloat(e.target.value);
+            if (setCurrentTime) setCurrentTime(val);
+          }}
+          onPointerUp={(e) => {
+            isDraggingRef.current = false;
+            commitSeek(parseFloat(e.currentTarget.value));
+          }}
+          onMouseUp={(e) => {
+            isDraggingRef.current = false;
+            commitSeek(parseFloat(e.currentTarget.value));
+          }}
+          onTouchEnd={(e) => {
+            isDraggingRef.current = false;
+            commitSeek(parseFloat(e.currentTarget.value));
+          }}
+          onKeyUp={(e) => {
+            commitSeek(parseFloat(e.currentTarget.value));
+          }}
           className="w-full accent-amber-400 h-1.5 bg-black/60 rounded-lg cursor-pointer"
         />
 
