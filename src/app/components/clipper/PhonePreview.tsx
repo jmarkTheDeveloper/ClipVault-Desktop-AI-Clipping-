@@ -277,9 +277,8 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
   const isSeekingRef = useRef<boolean>(false);
   const isDraggingRef = useRef<boolean>(false);
   const seekTimeoutRef = useRef<any>(null);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  // Synchronize play/pause and mute across all video elements & fallback iframe
+  // Synchronize play/pause state across all video elements in the preview
   useEffect(() => {
     const vids = document.querySelectorAll("video");
     vids.forEach((v) => {
@@ -289,21 +288,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
         v.pause();
       }
     });
-
-    try {
-      if (iframeRef.current?.contentWindow) {
-        const playCmd = isPlaying
-          ? JSON.stringify({ event: 'command', func: 'playVideo', args: '' })
-          : JSON.stringify({ event: 'command', func: 'pauseVideo', args: '' });
-        iframeRef.current.contentWindow.postMessage(playCmd, '*');
-        
-        const muteCmd = isMuted
-          ? JSON.stringify({ event: 'command', func: 'mute', args: '' })
-          : JSON.stringify({ event: 'command', func: 'unMute', args: '' });
-        iframeRef.current.contentWindow.postMessage(muteCmd, '*');
-      }
-    } catch {}
-  }, [isPlaying, isMuted]);
+  }, [isPlaying]);
 
   // Re-synchronize newly mounted video elements whenever layout, video source, or background video changes
   useEffect(() => {
@@ -676,47 +661,40 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                   </div>
                 )
               ) : youtubeId ? (
-                /* Clean Seamless Video Player (No 3rd Party UI Clutter) */
+                /* High-Res Clean Poster Fallback */
                 layout === "landscape_blur" ? (
-                  <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center pointer-events-none">
-                    <iframe
-                      src={`https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&iv_load_policy=3&disablekb=1&playsinline=1&enablejsapi=1&loop=1&playlist=${youtubeId}`}
-                      title="Background Blur"
-                      className="absolute inset-0 w-full h-full object-cover filter blur-2xl scale-150 opacity-60 border-0 pointer-events-none"
-                      tabIndex={-1}
+                  <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center">
+                    <img
+                      src={posterUrl}
+                      alt="Poster Blur"
+                      className="absolute inset-0 w-full h-full object-cover filter blur-2xl scale-150 opacity-60 pointer-events-none"
                     />
-                    <iframe
-                      ref={iframeRef}
-                      src={`https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1&mute=${isMuted ? 1 : 0}&controls=0&modestbranding=1&rel=0&iv_load_policy=3&disablekb=1&playsinline=1&enablejsapi=1&loop=1&playlist=${youtubeId}`}
-                      title="Video Player"
-                      className="w-full h-[56.25%] relative z-10 border-0 pointer-events-none shadow-2xl scale-105"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    <img
+                      src={posterUrl}
+                      alt="Poster"
+                      className="w-full h-[56.25%] object-contain relative z-10 pointer-events-none shadow-2xl"
                     />
                     <div className="absolute top-10 left-3 z-20 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-white/20 text-[9px] font-bold text-white/80 flex items-center gap-1 shadow-lg">
                       Blurred Canvas (9:16)
                     </div>
                   </div>
                 ) : layout === "landscape_fit" ? (
-                  <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center pointer-events-none">
-                    <iframe
-                      ref={iframeRef}
-                      src={`https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1&mute=${isMuted ? 1 : 0}&controls=0&modestbranding=1&rel=0&iv_load_policy=3&disablekb=1&playsinline=1&enablejsapi=1&loop=1&playlist=${youtubeId}`}
-                      title="Video Player"
-                      className="w-full h-[56.25%] relative z-10 border-0 pointer-events-none scale-105"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center">
+                    <img
+                      src={posterUrl}
+                      alt="Poster Fit"
+                      className="w-full h-[56.25%] object-contain relative z-10 pointer-events-none"
                     />
                     <div className="absolute top-10 left-3 z-20 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-white/20 text-[9px] font-bold text-white/80 flex items-center gap-1 shadow-lg">
                       Letterbox (9:16)
                     </div>
                   </div>
                 ) : (
-                  <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center pointer-events-none">
-                    <iframe
-                      ref={iframeRef}
-                      src={`https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1&mute=${isMuted ? 1 : 0}&controls=0&modestbranding=1&rel=0&iv_load_policy=3&disablekb=1&playsinline=1&enablejsapi=1&loop=1&playlist=${youtubeId}`}
-                      title="Video Player"
-                      className="w-full h-full relative z-10 border-0 scale-140 pointer-events-none"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center">
+                    <img
+                      src={posterUrl}
+                      alt="Poster Cover"
+                      className="w-full h-full object-cover pointer-events-none scale-125"
                     />
                     <div className="absolute top-10 left-3 z-20 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-amber-400/40 text-[9px] font-bold text-amber-400 flex items-center gap-1 shadow-lg">
                       <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
