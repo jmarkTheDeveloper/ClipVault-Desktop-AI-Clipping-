@@ -385,9 +385,17 @@ Return ONLY valid JSON with EXACT timestamps from the transcript:
         for i in range(n):
             idx = min(len(segments) - 1, int((i + 1) * stride))
             start_seg = segments[idx]
-            start_time = start_seg['start']
-            end_time = min(video_duration, start_time + target_duration)
-            seg_text = start_seg.get('text', f'Highlight {i+1}').strip()[:35]
+            if isinstance(start_seg, dict):
+                start_time = float(start_seg.get('start', 0.0))
+                seg_text = str(start_seg.get('text', f'Highlight {i+1}')).strip()[:35]
+            elif isinstance(start_seg, (list, tuple)) and len(start_seg) >= 2:
+                start_time = float(start_seg[0])
+                seg_text = str(start_seg[2])[:35] if len(start_seg) > 2 else f'Highlight {i+1}'
+            else:
+                start_time = float(i * target_duration)
+                seg_text = f'Highlight {i+1}'
+
+            end_time = min(video_duration, start_time + max(5.0, float(target_duration)))
             clips.append({
                 'start': start_time,
                 'end': end_time,

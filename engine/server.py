@@ -232,8 +232,10 @@ def execute_rendering_task(task_id: str, request: ProcessRequest, cancel_event: 
             "file_paths": raw_files
         }
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         err_str = str(e)
-        clean_msg = "An unexpected error occurred during processing. Please check your settings or try again."
+        clean_msg = err_str if (err_str and len(err_str) < 180 and "\n" not in err_str) else "An unexpected error occurred during processing. Please check your settings or try again."
         is_rate_limit = False
 
         # Detect rate limits and quota limits across providers with zero source code leakage
@@ -248,7 +250,7 @@ def execute_rendering_task(task_id: str, request: ProcessRequest, cancel_event: 
         elif "youtube" in lower_err or "download" in lower_err:
             clean_msg = "Could not fetch or download the video. Please verify the URL or try another video."
 
-        print(f"⚠️ Task {task_id} error sanitized: {clean_msg}")
+        print(f"⚠️ Task {task_id} error: {clean_msg}")
         tasks_db[task_id]["status"] = "failed"
         tasks_db[task_id]["is_rate_limit"] = is_rate_limit
         tasks_db[task_id]["error"] = clean_msg
