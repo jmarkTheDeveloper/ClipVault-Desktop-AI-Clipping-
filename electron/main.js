@@ -1,5 +1,6 @@
 import { app, BrowserWindow, shell, globalShortcut, nativeImage, protocol, net, dialog, ipcMain, Notification } from 'electron';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { spawn, exec } from 'child_process';
 import util from 'util';
@@ -15,9 +16,22 @@ app.setName('ClipVault Studio');
 // Disable Electron console security warnings in dev mode (packaged app already excludes these)
 process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true';
 
-// Windows Taskbar UserModelID for App Icon & Notification Persistence
+// Windows Taskbar & Toast Notification Identity Registration
 if (process.platform === 'win32') {
   app.setAppUserModelId('com.clipvault.studio');
+  try {
+    const shortcutDir = path.join(app.getPath('appData'), 'Microsoft', 'Windows', 'Start Menu', 'Programs');
+    const shortcutPath = path.join(shortcutDir, 'ClipVault Studio.lnk');
+    const iconFile = path.join(__dirname, '../public/icon.ico');
+    shell.writeShortcutLink(shortcutPath, 'create', {
+      target: process.execPath,
+      args: app.isPackaged ? '' : `"${path.join(__dirname, '..')}"`,
+      appUserModelId: 'com.clipvault.studio',
+      description: 'ClipVault AI Video Studio',
+      icon: iconFile,
+      iconIndex: 0
+    });
+  } catch (e) {}
 }
 
 // Register privileged scheme BEFORE app is ready to bypass all security blocks
