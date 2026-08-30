@@ -292,6 +292,7 @@ class VideoProcessor:
 
         print(f"\n🎬 Processing {len(clip_specs)} viral clips (Saving to: {target_dir})...")
 
+        last_clip_error = None
         for i, clip_info in enumerate(clip_specs, 1):
             start = clip_info['start']
             end = clip_info['end']
@@ -401,8 +402,6 @@ class VideoProcessor:
                 is_none_style = self.caption_maker.styles.get(self.caption_maker.selected_style, {}).get('no_captions', False)
                 if add_captions and not is_none_style:
                     # High-Accuracy Direct Clip Transcription (CapCut & Opus Clip Standard)
-                    # Transcribing the specific 30-60s clip audio ensures 100% accurate per-word timestamps,
-                    # zero A/V sync drift, and captures fast or slow speech accurately.
                     clip_words = []
                     clip_audio_tmp = None
                     try:
@@ -513,6 +512,7 @@ class VideoProcessor:
 
             except Exception as e:
                 print(f"    ❌ Error processing clip {i}: {e}")
+                last_clip_error = str(e)
                 continue
             finally:
                 for c in clips_to_close:
@@ -534,4 +534,9 @@ class VideoProcessor:
 
         self.face_tracker.close()
         cleanup_temp_files()
+
+        if not output_files and clip_specs:
+            err_detail = f": {last_clip_error}" if last_clip_error else ""
+            raise RuntimeError(f"No clips could be successfully rendered{err_detail}. Please verify your video source and rendering settings.")
+
         return output_files, title, str(target_dir.resolve())

@@ -776,7 +776,10 @@ export const AiClipperScreen: React.FC<Props> = ({
     } catch (err: any) {
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
       setRunning(false);
-      const msg = err.message || "An unexpected error occurred.";
+      let msg = err.message || "An unexpected error occurred.";
+      if (msg.includes("Failed to fetch") || msg.includes("NetworkError") || msg.includes("network")) {
+        msg = "Could not connect to the local AI engine backend (port 8000). Please ensure the backend server is running.";
+      }
       const msgLower = msg.toLowerCase();
       if (msgLower.includes("limit") || msgLower.includes("quota") || msgLower.includes("429")) {
         setShowRateLimitModal(true);
@@ -1447,6 +1450,7 @@ export const AiClipperScreen: React.FC<Props> = ({
                 isKeyMissingForActiveEngine={isKeyMissingForActiveEngine}
                 activeEngineName={activeEngineName}
                 onOpenEngineSettings={() => setShowKeySettings(true)}
+                onClearError={() => setErrorMsg("")}
               />
             )}
 

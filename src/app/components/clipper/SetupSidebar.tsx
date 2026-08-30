@@ -19,6 +19,8 @@ import {
   Gamepad2,
   Film,
   AlertCircle,
+  X,
+  Key,
 } from "lucide-react";
 
 const Section = ({ title, children, accent = "text-amber-400" }: { title: string; children: React.ReactNode; accent?: string }) => (
@@ -122,6 +124,7 @@ interface SetupSidebarProps {
   isKeyMissingForActiveEngine?: boolean;
   activeEngineName?: string;
   onOpenEngineSettings?: () => void;
+  onClearError?: () => void;
 }
 
 export const SetupSidebar: React.FC<SetupSidebarProps> = ({
@@ -137,6 +140,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
   isKeyMissingForActiveEngine = false,
   activeEngineName = "Cloud AI",
   onOpenEngineSettings,
+  onClearError,
   quality,
   setQuality,
   layout,
@@ -1040,8 +1044,34 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
           )}
 
           {errorMsg && (
-            <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold whitespace-pre-wrap">
-              {errorMsg}
+            <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/25 text-red-400 text-xs font-medium flex flex-col gap-2.5 shadow-lg animate-in fade-in duration-200">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 font-bold text-red-300">
+                  <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+                  <span>Clipping Notice</span>
+                </div>
+                {onClearError && (
+                  <button
+                    onClick={onClearError}
+                    className="text-red-400/70 hover:text-red-200 hover:bg-red-500/20 p-1 rounded-lg transition-all cursor-pointer"
+                    title="Dismiss notification"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+              <div className="whitespace-pre-wrap leading-relaxed font-semibold text-red-300/90">
+                {errorMsg}
+              </div>
+              {isKeyMissingForActiveEngine && onOpenEngineSettings && (
+                <button
+                  onClick={onOpenEngineSettings}
+                  className="mt-1 px-3 py-2 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold text-xs hover:bg-amber-500/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                >
+                  <Key className="w-3.5 h-3.5" />
+                  Enter {activeEngineName} API Key
+                </button>
+              )}
             </div>
           )}
 
