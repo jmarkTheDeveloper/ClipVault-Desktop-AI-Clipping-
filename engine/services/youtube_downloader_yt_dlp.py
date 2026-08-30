@@ -47,13 +47,11 @@ class YouTubeDownloader:
 
     def _get_base_opts(self) -> Dict[str, Any]:
         """Returns standard resilient yt-dlp options with 16 parallel threads."""
-        node_path = shutil.which('node')
-        if not node_path and os.path.exists(r'C:\Program Files\nodejs\node.exe'):
-            node_path = r'C:\Program Files\nodejs\node.exe'
+        node_path = shutil.which('node') or (r'C:\Program Files\nodejs\node.exe' if os.path.exists(r'C:\Program Files\nodejs\node.exe') else None)
 
-        js_runtimes = {'node': {}}
+        js_runtimes = {}
         if node_path:
-            js_runtimes['node']['path'] = node_path
+            js_runtimes['node'] = {'path': node_path}
 
         # Resolve standard ffmpeg.exe binary and add directory to PATH for yt-dlp range slicing
         img_exe = imageio_ffmpeg.get_ffmpeg_exe()
@@ -81,7 +79,8 @@ class YouTubeDownloader:
             'extractor_retries': 20,
             'extractor_args': {
                 'youtube': {
-                    'player_client': ['web_creator', 'android', 'web', 'ios', 'mweb', 'tv'],
+                    'player_client': ['mweb', 'web_creator', 'tv', 'web', 'android', 'ios'],
+                    'player_skip': ['configs'],
                 }
             },
             'user_agent': user_agent,
