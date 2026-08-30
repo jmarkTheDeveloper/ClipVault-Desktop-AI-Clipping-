@@ -339,12 +339,12 @@ function startPythonBackend() {
             const pid = parts[parts.length - 1];
             if (pid && pid !== '0' && pid !== process.pid.toString()) {
               console.log(`[Electron]: Killing zombie process (PID: ${pid}) on port 8000...`);
-              try { exec(`taskkill /F /PID ${pid}`); } catch (e) {}
+              try { exec(`taskkill /F /T /PID ${pid}`); } catch (e) {}
             }
           }
         }
       }
-      setTimeout(spawnPython, 400);
+      setTimeout(spawnPython, 600);
     });
   } else {
     exec('lsof -ti:8000 | xargs kill -9', () => {
@@ -370,6 +370,11 @@ function killPythonBackend() {
       }
     }
     pythonProcess = null;
+  }
+  if (process.platform === 'win32') {
+    try {
+      exec('for /f "tokens=5" %a in (\'netstat -aon ^| findstr :8000 ^| findstr LISTENING\') do taskkill /f /t /pid %a');
+    } catch (e) {}
   }
 }
 
