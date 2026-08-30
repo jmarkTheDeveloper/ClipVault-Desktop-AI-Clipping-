@@ -35,6 +35,9 @@ interface PhonePreviewProps {
   selectedEffectId: string;
   cropTop: CropBox;
   cropBottom: CropBox;
+  mediaDuration?: number;
+  durationMode?: string;
+  setDurationMode?: (mode: string) => void;
   startTs?: string;
   setStartTs?: (ts: string) => void;
   endTs?: string;
@@ -206,6 +209,9 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
   selectedEffectId,
   cropTop,
   cropBottom,
+  mediaDuration,
+  durationMode,
+  setDurationMode,
   startTs = "",
   setStartTs,
   endTs = "",
@@ -223,7 +229,14 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
   // Playback & Scrubber States
   const [isPlaying, setIsPlaying] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
+  const [duration, setDuration] = useState<number>(() => (mediaDuration && mediaDuration > 0 ? mediaDuration : 0));
+
+  // Sync duration whenever mediaDuration from server updates
+  useEffect(() => {
+    if (mediaDuration && mediaDuration > 0) {
+      setDuration(mediaDuration);
+    }
+  }, [mediaDuration]);
 
   // Synchronize mute state across all video elements in the preview
   useEffect(() => {
@@ -706,13 +719,15 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
             <span className="text-amber-400 flex items-center gap-1">
               <Clock className="w-3 h-3 text-amber-400" /> {formatTime(currentTime)}
             </span>
-            <span className="text-gray-500">{duration > 0 ? formatTime(duration) : "--:--"}</span>
+            <span className="text-gray-400 font-mono">
+              {duration > 0 ? formatTime(duration) : (mediaDuration && mediaDuration > 0 ? formatTime(mediaDuration) : "--:--")}
+            </span>
           </div>
 
           <input
             type="range"
             min="0"
-            max={duration || 100}
+            max={duration || mediaDuration || 100}
             step="0.5"
             value={currentTime}
             onChange={(e) => seekAllVideos(parseFloat(e.target.value))}
@@ -769,27 +784,64 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
             </button>
           </div>
 
-          {/* Quick Mark Start / End Timestamps */}
+          {/* Quick Mark Start / End Timestamps with Active Highlighting & Reset */}
           {(setStartTs || setEndTs) && (
-            <div className="flex gap-1.5 pt-1.5 border-t border-white/5">
-              {setStartTs && (
-                <button
-                  type="button"
-                  onClick={() => setStartTs(formatTime(currentTime))}
-                  className="flex-1 py-1 px-2 rounded-lg bg-amber-400/10 hover:bg-amber-400/25 border border-amber-400/30 text-[10px] font-bold text-amber-300 flex items-center justify-center gap-1 transition-all cursor-pointer"
-                >
-                  <Pin className="w-2.5 h-2.5" /> Start ({startTs || "00:00"})
-                </button>
-              )}
-              {setEndTs && (
-                <button
-                  type="button"
-                  onClick={() => setEndTs(formatTime(currentTime))}
-                  className="flex-1 py-1 px-2 rounded-lg bg-cyan-400/10 hover:bg-cyan-400/25 border border-cyan-400/30 text-[10px] font-bold text-cyan-300 flex items-center justify-center gap-1 transition-all cursor-pointer"
-                >
-                  <Flag className="w-2.5 h-2.5" /> End ({endTs || "00:00"})
-                </button>
-              )}
+            <div className="space-y-1.5 pt-2 border-t border-white/5">
+              <div className="flex items-center justify-between px-0.5">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Clip Time Bounds</span>
+                {(startTs || endTs) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (setStartTs) setStartTs("");
+                      if (setEndTs) setEndTs("");
+                    }}
+                    className="text-[9px] text-red-400 hover:text-red-300 font-bold transition-colors cursor-pointer"
+                  >
+                    Clear Bounds
+                  </button>
+                )}
+              </div>
+              <div className="flex gap-2">
+                {setStartTs && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const formatted = formatTime(currentTime);
+                      setStartTs(formatted);
+                      if (setDurationMode) setDurationMode("custom");
+                    }}
+                    title={`Click to set Start timestamp to current playback time (${formatTime(currentTime)})`}
+                    className={`flex-1 py-1.5 px-2 rounded-xl border text-[10px] font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm ${
+                      startTs
+                        ? "bg-amber-400/20 border-amber-400 text-amber-300 ring-1 ring-amber-400/30"
+                        : "bg-white/5 hover:bg-white/10 border-white/10 text-gray-300 hover:text-white"
+                    }`}
+                  >
+                    <Pin className={`w-3 h-3 ${startTs ? "text-amber-400" : "text-gray-400"}`} />
+                    <span>Start: {startTs || "00:00"}</span>
+                  </button>
+                )}
+                {setEndTs && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const formatted = formatTime(currentTime);
+                      setEndTs(formatted);
+                      if (setDurationMode) setDurationMode("custom");
+                    }}
+                    title={`Click to set End timestamp to current playback time (${formatTime(currentTime)})`}
+                    className={`flex-1 py-1.5 px-2 rounded-xl border text-[10px] font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm ${
+                      endTs
+                        ? "bg-cyan-400/20 border-cyan-400 text-cyan-300 ring-1 ring-cyan-400/30"
+                        : "bg-white/5 hover:bg-white/10 border-white/10 text-gray-300 hover:text-white"
+                    }`}
+                  >
+                    <Flag className={`w-3 h-3 ${endTs ? "text-cyan-400" : "text-gray-400"}`} />
+                    <span>End: {endTs || (duration > 0 ? formatTime(duration) : (mediaDuration && mediaDuration > 0 ? formatTime(mediaDuration) : "00:00"))}</span>
+                  </button>
+                )}
+              </div>
             </div>
           )}
         </div>

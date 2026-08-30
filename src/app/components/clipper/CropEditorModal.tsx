@@ -13,6 +13,9 @@ interface CropEditorModalProps {
   setCropTop: React.Dispatch<React.SetStateAction<CropBox>>;
   cropBottom: CropBox;
   setCropBottom: React.Dispatch<React.SetStateAction<CropBox>>;
+  mediaDuration?: number;
+  durationMode?: string;
+  setDurationMode?: (mode: string) => void;
   startTs?: string;
   setStartTs?: (ts: string) => void;
   endTs?: string;
@@ -28,6 +31,13 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
   setCropTop,
   cropBottom,
   setCropBottom,
+  mediaDuration,
+  durationMode,
+  setDurationMode,
+  startTs = "",
+  setStartTs,
+  endTs = "",
+  setEndTs,
 }) => {
   if (!isOpen) return null;
   const youtubeId = extractYouTubeId(ytUrl);
@@ -217,6 +227,55 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
           </div>
         </Rnd>
       </div>
+
+      {/* Clip Timestamp Bounds in Crop Editor */}
+      {(setStartTs || setEndTs) && (
+        <div className="w-[456px] mx-auto p-3 rounded-xl bg-white/[0.03] border border-white/10 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">Clip Timestamp Bounds</span>
+            {(startTs || endTs) && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (setStartTs) setStartTs("");
+                  if (setEndTs) setEndTs("");
+                }}
+                className="text-[9px] text-red-400 hover:text-red-300 font-bold transition-colors cursor-pointer"
+              >
+                Reset Bounds
+              </button>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-gray-300 block">Start Timestamp</label>
+              <input
+                type="text"
+                value={startTs}
+                onChange={(e) => {
+                  if (setStartTs) setStartTs(e.target.value);
+                  if (setDurationMode) setDurationMode("custom");
+                }}
+                placeholder="0:00"
+                className="w-full rounded-lg px-3 py-1.5 text-xs font-bold text-white bg-black/40 border border-white/10 outline-none focus:border-amber-400 transition-colors"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-gray-300 block">End Timestamp</label>
+              <input
+                type="text"
+                value={endTs}
+                onChange={(e) => {
+                  if (setEndTs) setEndTs(e.target.value);
+                  if (setDurationMode) setDurationMode("custom");
+                }}
+                placeholder={mediaDuration && mediaDuration > 0 ? `${Math.floor(mediaDuration / 60)}:${Math.floor(mediaDuration % 60).toString().padStart(2, "0")}` : "e.g. 1:45"}
+                className="w-full rounded-lg px-3 py-1.5 text-xs font-bold text-white bg-black/40 border border-white/10 outline-none focus:border-amber-400 transition-colors"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

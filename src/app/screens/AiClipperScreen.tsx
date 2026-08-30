@@ -298,6 +298,7 @@ export const AiClipperScreen: React.FC<Props> = ({
   const [localFilePath, setLocalFilePath] = useState("");
   const [activeVideoUrl, setActiveVideoUrl] = useState("");
   const [loadingPreview, setLoadingPreview] = useState(false);
+  const [mediaDuration, setMediaDuration] = useState<number>(0);
 
   // Processing Parameters
   const [quality, setQuality] = useState("1080p");
@@ -506,6 +507,9 @@ export const AiClipperScreen: React.FC<Props> = ({
           const data = await res.json();
           if (data.stream_url || data.url) {
             setActiveVideoUrl(data.stream_url || data.url);
+          }
+          if (data.duration && !isNaN(data.duration) && data.duration > 0) {
+            setMediaDuration(data.duration);
           }
         }
       } catch (err) {
@@ -1279,6 +1283,9 @@ export const AiClipperScreen: React.FC<Props> = ({
                   setCropTop={setCropTop}
                   cropBottom={cropBottom}
                   setCropBottom={setCropBottom}
+                  mediaDuration={mediaDuration}
+                  durationMode={durationMode}
+                  setDurationMode={setDurationMode}
                   startTs={startTs}
                   setStartTs={setStartTs}
                   endTs={endTs}
@@ -1294,6 +1301,7 @@ export const AiClipperScreen: React.FC<Props> = ({
                 localFilePath={localFilePath}
                 setLocalFilePath={setLocalFilePath}
                 setActiveVideoUrl={setActiveVideoUrl}
+                mediaDuration={mediaDuration}
                 quality={quality}
                 setQuality={setQuality}
                 layout={layout}
@@ -1379,6 +1387,9 @@ export const AiClipperScreen: React.FC<Props> = ({
               selectedEffectId={selectedEffectId}
               cropTop={cropTop}
               cropBottom={cropBottom}
+              mediaDuration={mediaDuration}
+              durationMode={durationMode}
+              setDurationMode={setDurationMode}
               startTs={startTs}
               setStartTs={setStartTs}
               endTs={endTs}

@@ -97,6 +97,7 @@ interface SetupSidebarProps {
   setSelectedEffectId: (id: string) => void;
   avoidCopyright: boolean;
   setAvoidCopyright: (a: boolean) => void;
+  mediaDuration?: number;
   startTs: string;
   setStartTs: (ts: string) => void;
   endTs: string;
@@ -131,6 +132,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
   localFilePath,
   setLocalFilePath,
   setActiveVideoUrl,
+  mediaDuration,
   onCancel,
   isKeyMissingForActiveEngine = false,
   activeEngineName = "Cloud AI",
@@ -494,29 +496,62 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                 </button>
 
                 {/* Custom Timestamp Range Inputs - Appears directly under this option when chosen */}
-                {d.id === "custom" && durationMode === "custom" && (
-                  <div className="grid grid-cols-2 gap-3 p-3.5 rounded-xl bg-amber-400/5 border border-amber-400/30 animate-fadeIn">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">Start Timestamp</label>
-                      <input
-                        type="text"
-                        value={startTs}
-                        onChange={(e) => setStartTs(e.target.value)}
-                        placeholder="e.g. 0:15"
-                        className="w-full rounded-lg px-3 py-2 text-xs font-bold text-white bg-black/40 border border-white/10 outline-none focus:border-amber-400 transition-colors"
-                      />
+                {d.id === "custom" && (
+                  durationMode === "custom" ? (
+                    <div className="space-y-2 p-3.5 rounded-xl bg-amber-400/5 border border-amber-400/30 animate-fadeIn">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">Custom Clip Time Bounds</span>
+                        {(startTs || endTs) && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setStartTs("");
+                              setEndTs("");
+                            }}
+                            className="text-[9px] text-red-400 hover:text-red-300 font-bold transition-colors cursor-pointer"
+                          >
+                            Reset Bounds
+                          </button>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-gray-300 block">Start Timestamp</label>
+                          <input
+                            type="text"
+                            value={startTs}
+                            onChange={(e) => setStartTs(e.target.value)}
+                            placeholder="0:00"
+                            className="w-full rounded-lg px-3 py-2 text-xs font-bold text-white bg-black/40 border border-white/10 outline-none focus:border-amber-400 transition-colors"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-gray-300 block">End Timestamp</label>
+                          <input
+                            type="text"
+                            value={endTs}
+                            onChange={(e) => setEndTs(e.target.value)}
+                            placeholder={mediaDuration && mediaDuration > 0 ? `${Math.floor(mediaDuration / 60)}:${Math.floor(mediaDuration % 60).toString().padStart(2, "0")}` : "e.g. 1:45"}
+                            className="w-full rounded-lg px-3 py-2 text-xs font-bold text-white bg-black/40 border border-white/10 outline-none focus:border-amber-400 transition-colors"
+                          />
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-gray-400">
+                        Tip: You can also click the <span className="text-amber-300 font-bold">Start</span> and <span className="text-cyan-300 font-bold">End</span> buttons on the phone player dock to pin timestamps instantly while watching.
+                      </p>
                     </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">End Timestamp</label>
-                      <input
-                        type="text"
-                        value={endTs}
-                        onChange={(e) => setEndTs(e.target.value)}
-                        placeholder="e.g. 1:45"
-                        className="w-full rounded-lg px-3 py-2 text-xs font-bold text-white bg-black/40 border border-white/10 outline-none focus:border-amber-400 transition-colors"
-                      />
+                  ) : (startTs || endTs) ? (
+                    <div className="px-3 py-1.5 rounded-lg bg-amber-400/10 border border-amber-400/20 text-[10px] font-bold text-amber-300 flex items-center justify-between">
+                      <span>Bounds Set: {startTs || "00:00"} - {endTs || "End"}</span>
+                      <button
+                        type="button"
+                        onClick={() => setDurationMode("custom")}
+                        className="text-amber-400 underline hover:text-amber-300 cursor-pointer"
+                      >
+                        Activate
+                      </button>
                     </div>
-                  </div>
+                  ) : null
                 )}
               </div>
             ))}
