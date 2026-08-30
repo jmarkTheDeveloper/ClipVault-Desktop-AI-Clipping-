@@ -41,6 +41,18 @@ print("⚡ Background engine priority set to 'Normal High-Speed Priority'.")
 # Add project root to path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
+from fastapi import FastAPI, BackgroundTasks, Depends, HTTPException, Header, Body, UploadFile, File, Form, Request
+from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
+from typing import Optional, List, Any, Dict, Union
+import uuid
+import json
+import mimetypes
+import threading
+from pathlib import Path
+
 from services.video_processor import VideoProcessor
 from services.auth_verifier import AuthVerifier
 
