@@ -237,9 +237,11 @@ def execute_rendering_task(task_id: str, request: ProcessRequest, cancel_event: 
     except Exception as e:
         import traceback
         traceback.print_exc()
+        import traceback
+        traceback.print_exc()
         err_str = str(e)
         first_line = err_str.strip().split("\n")[0] if err_str else ""
-        clean_msg = first_line if (first_line and len(first_line) < 250) else (err_str[:250] if err_str else "Processing could not be completed.")
+        clean_msg = err_str if len(err_str) < 300 else (first_line if first_line else err_str[:300])
         is_rate_limit = False
 
         # Detect rate limits and quota limits across providers with zero source code leakage
@@ -253,10 +255,6 @@ def execute_rendering_task(task_id: str, request: ProcessRequest, cancel_event: 
             clean_msg = err_str
         elif "unavailable" in lower_err or "not found" in lower_err or "does not exist" in lower_err or "private video" in lower_err:
             clean_msg = "Video unavailable on YouTube. Please check the URL for typos (YouTube video IDs are case-sensitive, e.g. uppercase 'I' vs digit '1')."
-        elif "bot" in lower_err or "sign in" in lower_err or "403" in lower_err or "forbidden" in lower_err:
-            clean_msg = "YouTube blocked access to this video stream (HTTP 403 / bot protection). Please try another video URL or import a local video file."
-        elif "download" in lower_err and ("stream" in lower_err or "audio" in lower_err):
-            clean_msg = "Could not fetch the stream from YouTube. Please verify the link or try a local video file."
         elif "api_key" in lower_err or "api key" in lower_err or "unauthorized" in lower_err or "authentication" in lower_err or "invalid key" in lower_err:
             clean_msg = f"API Key Authentication failed for {request.ai_engine}. Please verify or update your API key in Settings."
 
