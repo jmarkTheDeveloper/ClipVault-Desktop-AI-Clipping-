@@ -128,6 +128,60 @@ const AI_ENGINES: EngineOption[] = [
   },
 ];
 
+const triggerDesktopNotification = (title: string, body: string) => {
+  // 1. Play pleasant melodic completion chime (Web Audio API)
+  try {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (AudioContextClass) {
+      const ctx = new AudioContextClass();
+      const now = ctx.currentTime;
+      // C5, E5, G5, C6 uplifting chime
+      const freqs = [523.25, 659.25, 783.99, 1046.50];
+      freqs.forEach((freq, idx) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(freq, now + idx * 0.09);
+        gain.gain.setValueAtTime(0, now + idx * 0.09);
+        gain.gain.linearRampToValueAtTime(0.2, now + idx * 0.09 + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.09 + 0.45);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + idx * 0.09);
+        osc.stop(now + idx * 0.09 + 0.5);
+      });
+    }
+  } catch {}
+
+  // 2. Electron Native Notification (Windows / macOS / Linux PC)
+  let electronShown = false;
+  try {
+    if ((window as any).electronAPI?.showNotification) {
+      (window as any).electronAPI.showNotification({ title, body });
+      electronShown = true;
+    }
+  } catch {}
+
+  // 3. Fallback to Web Notification API
+  if (!electronShown && "Notification" in window) {
+    if (Notification.permission === "granted") {
+      new Notification(title, {
+        body,
+        icon: "/icon.ico"
+      });
+    } else if (Notification.permission !== "denied") {
+      Notification.requestPermission().then((permission) => {
+        if (permission === "granted") {
+          new Notification(title, {
+            body,
+            icon: "/icon.ico"
+          });
+        }
+      });
+    }
+  }
+};
+
 export const AiClipperScreen: React.FC<Props> = ({ 
   onBack, 
   initialViewMode = "setup", 
@@ -141,6 +195,13 @@ export const AiClipperScreen: React.FC<Props> = ({
   useEffect(() => {
     if (initialViewMode) setViewMode(initialViewMode);
   }, [initialViewMode]);
+
+  // Request Desktop Notification Permissions for Background Alerts
+  useEffect(() => {
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission().catch(() => {});
+    }
+  }, []);
 
   // Auto-Fetch Clips & First-Time Saved Vault Tutorial Trigger
   useEffect(() => {
@@ -725,6 +786,11 @@ export const AiClipperScreen: React.FC<Props> = ({
               if (data.output_dir) setLastOutputFolder(data.output_dir);
               loadVaultClips();
               setViewMode("gallery");
+              const clipCount = (data.clips || []).length || 1;
+              triggerDesktopNotification(
+                "🎉 Video Processing Complete!",
+                `Generated ${clipCount} viral clip(s) ready in ClipVault Studio!`
+              );
             } else if (data.cancelled) {
               if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
               setRunning(false);

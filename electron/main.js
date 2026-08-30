@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell, globalShortcut, nativeImage, protocol, net, dialog, ipcMain } from 'electron';
+import { app, BrowserWindow, shell, globalShortcut, nativeImage, protocol, net, dialog, ipcMain, Notification } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { spawn, exec } from 'child_process';
@@ -117,6 +117,32 @@ let pythonProcess;
     } catch (err) {
       console.error('[Electron]: startDrag error:', err);
     }
+  });
+
+  ipcMain.handle('show-notification', async (event, { title, body, icon }) => {
+    try {
+      if (Notification.isSupported()) {
+        const notifIcon = icon || path.join(__dirname, '../public/icon.ico');
+        const notif = new Notification({
+          title: title || 'ClipVault Studio',
+          body: body || 'Your viral clips are ready!',
+          icon: nativeImage.createFromPath(notifIcon),
+          silent: false,
+        });
+        notif.on('click', () => {
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            if (mainWindow.isMinimized()) mainWindow.restore();
+            mainWindow.show();
+            mainWindow.focus();
+          }
+        });
+        notif.show();
+        return true;
+      }
+    } catch (err) {
+      console.error('[Electron]: notification error:', err);
+    }
+    return false;
   });
 
 function createWindow() {
