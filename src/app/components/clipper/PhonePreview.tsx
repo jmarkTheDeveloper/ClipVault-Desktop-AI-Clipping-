@@ -261,9 +261,12 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
     });
   }, [isMuted]);
 
+  const isSeekingRef = useRef<boolean>(false);
+  const seekTimeoutRef = useRef<any>(null);
+
   // Synchronize play/pause state across all video elements in the preview
   useEffect(() => {
-    const vids = containerRef.current?.querySelectorAll("video") || [];
+    const vids = document.querySelectorAll("video");
     vids.forEach((v) => {
       if (isPlaying) {
         v.play().catch(() => {});
@@ -279,11 +282,6 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
       const vids = containerRef.current?.querySelectorAll("video") || [];
       vids.forEach((v) => {
         v.muted = isMuted;
-        if (currentTime > 0 && Math.abs((v.currentTime || 0) - currentTime) > 0.5) {
-          try {
-            v.currentTime = currentTime;
-          } catch {}
-        }
         if (isPlaying) {
           v.play().catch(() => {});
         } else {
@@ -301,22 +299,34 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
     };
   }, [layout, activeVideoUrl, gameplayBgVideo]);
 
-  // Synchronized seek on active video elements within the phone container
+  // Synchronized seek across all active video elements without glitching or rubber-banding
   const seekAllVideos = (timeInSeconds: number) => {
-    const vids = containerRef.current?.querySelectorAll("video") || [];
-    vids.forEach((vid) => {
+    isSeekingRef.current = true;
+    if (seekTimeoutRef.current) clearTimeout(seekTimeoutRef.current);
+
+    const maxDur = duration > 0 ? duration : (mediaDuration && mediaDuration > 0 ? mediaDuration : 3600);
+    const target = Math.max(0, Math.min(timeInSeconds, maxDur));
+
+    const allVideos = document.querySelectorAll("video");
+    allVideos.forEach((vid) => {
       try {
-        vid.currentTime = Math.max(0, Math.min(timeInSeconds, vid.duration || duration || 3600));
+        vid.currentTime = target;
       } catch {}
     });
-    setCurrentTime(timeInSeconds);
+
+    setCurrentTime(target);
+
+    // Release lock once seek buffering stabilizes
+    seekTimeoutRef.current = setTimeout(() => {
+      isSeekingRef.current = false;
+    }, 350);
   };
 
   const togglePlayAll = () => {
     const nextState = !isPlaying;
     setIsPlaying(nextState);
-    const vids = containerRef.current?.querySelectorAll("video") || [];
-    vids.forEach((vid) => {
+    const allVideos = document.querySelectorAll("video");
+    allVideos.forEach((vid) => {
       if (nextState) {
         vid.play().catch(() => {});
       } else {
@@ -326,18 +336,19 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
   };
 
   const seekRelative = (deltaSeconds: number) => {
-    const maxDur = duration > 0 ? duration : 3600;
-    const target = Math.max(0, Math.min(maxDur, currentTime + deltaSeconds));
-    seekAllVideos(target);
+    seekAllVideos(currentTime + deltaSeconds);
   };
 
   const handleTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement>) => {
+    if (isSeekingRef.current) return; // Prevent old frames from overwriting seek destination
     const v = e.currentTarget;
-    if (v.duration && (!duration || Math.abs(duration - v.duration) > 1)) {
-      setDuration(v.duration);
+    if (v.duration && !isNaN(v.duration) && isFinite(v.duration) && v.duration > 0) {
+      if (!duration || Math.abs(duration - v.duration) > 1) {
+        setDuration(v.duration);
+      }
     }
     const now = Date.now();
-    if (now - lastUpdateTimeRef.current > 150) {
+    if (now - lastUpdateTimeRef.current > 120) {
       lastUpdateTimeRef.current = now;
       setCurrentTime(v.currentTime || 0);
     }
@@ -345,7 +356,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
 
   const handleLoadedMetadata = (e: React.SyntheticEvent<HTMLVideoElement>) => {
     const target = e.currentTarget;
-    if (target.duration && !isNaN(target.duration)) {
+    if (target.duration && !isNaN(target.duration) && isFinite(target.duration) && target.duration > 0) {
       setDuration(target.duration);
     }
   };

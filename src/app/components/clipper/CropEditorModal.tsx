@@ -79,29 +79,36 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
   const youtubeId = extractYouTubeId(ytUrl);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const lastUpdateTimeRef = useRef<number>(0);
+  const isSeekingRef = useRef<boolean>(false);
+  const seekTimeoutRef = useRef<any>(null);
 
-  // Synchronize playback & seek state with the shared currentTime / isPlaying
+  // Synchronize playback & mute state with isPlaying / isMuted (without currentTime loop!)
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
 
     v.muted = isMuted;
-    if (Math.abs((v.currentTime || 0) - currentTime) > 0.5) {
-      try {
-        v.currentTime = currentTime;
-      } catch {}
-    }
 
     if (isPlaying) {
       v.play().catch(() => {});
     } else {
       v.pause();
     }
-  }, [isPlaying, isMuted, currentTime, activeVideoUrl]);
+  }, [isPlaying, isMuted, activeVideoUrl]);
+
+  // Initial time sync when mounting or changing url
+  useEffect(() => {
+    if (videoRef.current && currentTime > 0) {
+      try {
+        videoRef.current.currentTime = currentTime;
+      } catch {}
+    }
+  }, [activeVideoUrl]);
 
   const handleTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement>) => {
+    if (isSeekingRef.current) return;
     const now = Date.now();
-    if (now - lastUpdateTimeRef.current > 150) {
+    if (now - lastUpdateTimeRef.current > 120) {
       lastUpdateTimeRef.current = now;
       if (setCurrentTime) {
         setCurrentTime(e.currentTarget.currentTime || 0);
@@ -110,21 +117,41 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
   };
 
   const togglePlay = () => {
+    const nextState = !isPlaying;
     if (setIsPlaying) {
-      setIsPlaying(!isPlaying);
+      setIsPlaying(nextState);
     }
+    const allVideos = document.querySelectorAll("video");
+    allVideos.forEach((v) => {
+      if (nextState) {
+        v.play().catch(() => {});
+      } else {
+        v.pause();
+      }
+    });
   };
 
   const seekTo = (seconds: number) => {
-    const target = Math.max(0, Math.min(seconds, mediaDuration || 3600));
-    if (videoRef.current) {
+    isSeekingRef.current = true;
+    if (seekTimeoutRef.current) clearTimeout(seekTimeoutRef.current);
+
+    const maxDur = mediaDuration > 0 ? mediaDuration : 3600;
+    const target = Math.max(0, Math.min(seconds, maxDur));
+
+    const allVideos = document.querySelectorAll("video");
+    allVideos.forEach((v) => {
       try {
-        videoRef.current.currentTime = target;
+        v.currentTime = target;
       } catch {}
-    }
+    });
+
     if (setCurrentTime) {
       setCurrentTime(target);
     }
+
+    seekTimeoutRef.current = setTimeout(() => {
+      isSeekingRef.current = false;
+    }, 350);
   };
 
   const seekDelta = (delta: number) => {
