@@ -81,6 +81,7 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
   const lastUpdateTimeRef = useRef<number>(0);
   const isSeekingRef = useRef<boolean>(false);
   const seekTimeoutRef = useRef<any>(null);
+  const [isBuffering, setIsBuffering] = useState(false);
 
   // Synchronize playback & mute state with isPlaying / isMuted (without currentTime loop!)
   useEffect(() => {
@@ -90,7 +91,9 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
     v.muted = isMuted;
 
     if (isPlaying) {
-      v.play().catch(() => {});
+      if (v.paused) {
+        v.play().catch(() => {});
+      }
     } else {
       v.pause();
     }
@@ -124,6 +127,12 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
     const allVideos = document.querySelectorAll("video");
     allVideos.forEach((v) => {
       if (nextState) {
+        if (v.error || v.networkState === HTMLMediaElement.NETWORK_NO_SOURCE) {
+          try {
+            v.load();
+            v.currentTime = currentTime;
+          } catch {}
+        }
         v.play().catch(() => {});
       } else {
         v.pause();
@@ -271,19 +280,45 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
       {/* 456x256 Fixed Canvas Stage for Precise Crop Coordinates */}
       <div className="relative w-[456px] h-[256px] bg-[#111] rounded-2xl overflow-hidden shadow-2xl border border-white/10 ring-2 ring-white/5 mx-auto select-none">
         {activeVideoUrl ? (
-          <video
-            ref={videoRef}
-            src={activeVideoUrl}
-            autoPlay
-            loop
-            muted={isMuted}
-            playsInline
-            onTimeUpdate={handleTimeUpdate}
-            onCanPlay={(e) => {
-              if (isPlaying) e.currentTarget.play().catch(() => {});
-            }}
-            className="w-full h-full object-cover pointer-events-none"
-          />
+          <div className="w-full h-full relative">
+            <video
+              ref={videoRef}
+              src={activeVideoUrl}
+              autoPlay
+              loop
+              muted={isMuted}
+              playsInline
+              onTimeUpdate={handleTimeUpdate}
+              onWaiting={() => setIsBuffering(true)}
+              onPlaying={() => setIsBuffering(false)}
+              onCanPlay={(e) => {
+                setIsBuffering(false);
+                if (isPlaying) e.currentTarget.play().catch(() => {});
+              }}
+              onError={(e) => {
+                setIsBuffering(false);
+                const target = e.currentTarget;
+                setTimeout(() => {
+                  if (target && target.src) {
+                    try {
+                      target.load();
+                      target.currentTime = currentTime;
+                      if (isPlaying) target.play().catch(() => {});
+                    } catch {}
+                  }
+                }, 600);
+              }}
+              className="w-full h-full object-cover pointer-events-none"
+            />
+            {isBuffering && (
+              <div className="absolute inset-0 bg-black/50 backdrop-blur-[1px] flex items-center justify-center pointer-events-none z-30">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-black/80 border border-amber-400/50 text-amber-300 text-xs font-bold shadow-lg animate-pulse">
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-amber-400" />
+                  <span>Buffering video...</span>
+                </div>
+              </div>
+            )}
+          </div>
         ) : youtubeId ? (
           <iframe
             src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=1&loop=1&playlist=${youtubeId}&controls=0&modestbranding=1&rel=0&playsinline=1`}

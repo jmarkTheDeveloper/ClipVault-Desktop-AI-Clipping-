@@ -96,6 +96,17 @@ const CroppedVideo: React.FC<{
           onCanPlay={(e) => {
             e.currentTarget.play().catch(() => {});
           }}
+          onError={(e) => {
+            const target = e.currentTarget;
+            setTimeout(() => {
+              if (target && target.src) {
+                try {
+                  target.load();
+                  target.play().catch(() => {});
+                } catch {}
+              }
+            }, 700);
+          }}
           className="pointer-events-none"
           style={{
             position: "absolute",
