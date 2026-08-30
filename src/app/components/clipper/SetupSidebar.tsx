@@ -788,17 +788,17 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
             {/* Background Music Toggle */}
             <div className="flex flex-col gap-2 p-3.5 rounded-xl bg-white/5 border border-white/5 transition-colors">
               <div
-                className="flex items-center justify-between cursor-pointer hover:bg-white/10 p-1 rounded-lg"
+                className="flex items-center justify-between cursor-pointer select-none"
                 onClick={() => setAddBgMusic(!addBgMusic)}
               >
-                <div>
+                <div className="pr-2">
                   <span className="text-xs text-white font-medium flex items-center gap-1.5">
-                    <Music className="w-3.5 h-3.5 text-amber-400" /> Background Music
+                    <Music className="w-3.5 h-3.5 text-amber-400 shrink-0" /> Background Music
                   </span>
-                  <span className="text-[10px] text-gray-500">Auto-ducked background soundtrack</span>
+                  <span className="text-[10px] text-gray-500 block mt-0.5">Auto-ducked background soundtrack</span>
                 </div>
                 <div
-                  className={`w-8 h-4 rounded-full flex items-center p-0.5 transition-colors ${
+                  className={`w-8 h-4 rounded-full flex items-center p-0.5 transition-colors shrink-0 ${
                     addBgMusic ? "bg-amber-400" : "bg-white/20"
                   }`}
                 >
@@ -811,7 +811,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
               </div>
 
               {addBgMusic && (
-                <div className="mt-2 pl-5 pr-2 space-y-2.5">
+                <div className="mt-2 pt-2 border-t border-white/5 pl-2 pr-2 space-y-2.5">
                   <div className="flex justify-between items-center mb-1">
                     <span className="text-[10px] text-gray-400">Volume</span>
                     <span className="text-[10px] text-amber-400 font-bold">{Math.round(bgMusicVol * 100)}%</span>
@@ -868,17 +868,17 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
 
             {/* Auto SFX & Emojis */}
             <div
-              className="flex items-center justify-between p-3.5 rounded-xl bg-white/5 border border-white/5 cursor-pointer hover:bg-white/10 transition-colors"
+              className="flex items-center justify-between p-3.5 rounded-xl bg-white/5 border border-white/5 cursor-pointer hover:bg-white/10 transition-colors select-none"
               onClick={() => setAutoSfx(!autoSfx)}
             >
-              <div>
+              <div className="pr-2">
                 <span className="text-xs text-white font-medium flex items-center gap-1.5">
-                  <Volume2 className="w-3.5 h-3.5 text-amber-400" /> Auto Emojis & SFX
+                  <Volume2 className="w-3.5 h-3.5 text-amber-400 shrink-0" /> Auto Emojis & SFX
                 </span>
-                <span className="text-[10px] text-gray-500">Pop sound effects and animated emojis</span>
+                <span className="text-[10px] text-gray-500 block mt-0.5">Pop sound effects and animated emojis</span>
               </div>
               <div
-                className={`w-8 h-4 rounded-full flex items-center p-0.5 transition-colors ${
+                className={`w-8 h-4 rounded-full flex items-center p-0.5 transition-colors shrink-0 ${
                   autoSfx ? "bg-amber-400" : "bg-white/20"
                 }`}
               >
@@ -893,17 +893,17 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
             {/* Captions Toggle & Styles */}
             <div className="flex flex-col gap-3 p-3.5 rounded-xl bg-white/5 border border-white/5 transition-colors">
               <div
-                className="flex items-center justify-between cursor-pointer hover:bg-white/10 p-1 rounded-lg"
+                className="flex items-center justify-between cursor-pointer select-none"
                 onClick={() => setAddCaptions(!addCaptions)}
               >
-                <div>
+                <div className="pr-2">
                   <span className="text-xs text-white font-medium flex items-center gap-1.5">
-                    <Type className="w-3.5 h-3.5 text-amber-400" /> AI Captions
+                    <Type className="w-3.5 h-3.5 text-amber-400 shrink-0" /> AI Captions
                   </span>
-                  <span className="text-[10px] text-gray-500">Generate animated word-by-word subtitles</span>
+                  <span className="text-[10px] text-gray-500 block mt-0.5">Generate animated word-by-word subtitles</span>
                 </div>
                 <div
-                  className={`w-8 h-4 rounded-full flex items-center p-0.5 transition-colors ${
+                  className={`w-8 h-4 rounded-full flex items-center p-0.5 transition-colors shrink-0 ${
                     addCaptions ? "bg-amber-400" : "bg-white/20"
                   }`}
                 >
@@ -917,7 +917,6 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
 
               {addCaptions && (
                 <div className="space-y-3 pt-2 border-t border-white/5 animate-fadeIn">
-
                   <div className="space-y-1.5 pt-1">
                     <label className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">Subtitle Style</label>
                     <div className="grid grid-cols-3 gap-1.5">
@@ -944,23 +943,45 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                       ))}
                     </div>
                   </div>
+
+                  {/* Caption Vertical Position Slider */}
+                  <div className="pt-2 border-t border-white/5 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Vertical Height</span>
+                      <span className="text-[10px] text-amber-400 font-mono font-bold">{captionYPct}% from top</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="20"
+                      max="90"
+                      step="5"
+                      value={captionYPct}
+                      onChange={(e) => setCaptionYPct(parseInt(e.target.value, 10))}
+                      className="w-full accent-amber-400 cursor-pointer"
+                    />
+                    <div className="flex justify-between text-[9px] text-gray-500 font-medium">
+                      <span>Top (20%)</span>
+                      <span>Center (50%)</span>
+                      <span>Bottom (90%)</span>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* Anti-Duplicate Filter */}
+            {/* Anti-Duplicate Algorithm Bypass */}
             <div
-              className="flex items-center justify-between p-3.5 rounded-xl bg-white/5 border border-white/5 cursor-pointer hover:bg-white/10 transition-colors"
+              className="flex items-center justify-between p-3.5 rounded-xl bg-white/5 border border-white/5 cursor-pointer hover:bg-white/10 transition-colors select-none"
               onClick={() => setAvoidCopyright(!avoidCopyright)}
             >
-              <div className="flex flex-col">
+              <div className="pr-2">
                 <span className="text-xs text-white font-medium flex items-center gap-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-amber-400" /> Anti-Duplicate Filter
+                  <ShieldCheck className="w-3.5 h-3.5 text-amber-400 shrink-0" /> Anti-Duplicate Filter
                 </span>
-                <span className="text-[10px] text-gray-500">Flips video & shifts tempo for fresh algorithmic ranking</span>
+                <span className="text-[10px] text-gray-500 block mt-0.5">Flips video & shifts tempo for fresh algorithmic ranking</span>
               </div>
               <div
-                className={`w-8 h-4 rounded-full flex items-center p-0.5 transition-colors ${
+                className={`w-8 h-4 rounded-full flex items-center p-0.5 transition-colors shrink-0 ${
                   avoidCopyright ? "bg-amber-400" : "bg-white/20"
                 }`}
               >
