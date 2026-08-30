@@ -8,12 +8,16 @@ const execAsync = util.promisify(exec);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Set Application Name & Identity so Windows Task Manager, Settings, and Notifications show ClipVault Studio
+app.name = 'ClipVault Studio';
+app.setName('ClipVault Studio');
+
 // Disable Electron console security warnings in dev mode (packaged app already excludes these)
 process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true';
 
-// Windows Taskbar UserModelID for App Icon Persistence
+// Windows Taskbar UserModelID for App Icon & Notification Persistence
 if (process.platform === 'win32') {
-  app.setAppUserModelId('ClipVault.AI.VideoStudio');
+  app.setAppUserModelId('com.clipvault.studio');
 }
 
 // Register privileged scheme BEFORE app is ready to bypass all security blocks
@@ -122,11 +126,12 @@ let pythonProcess;
   ipcMain.handle('show-notification', async (event, { title, body, icon }) => {
     try {
       if (Notification.isSupported()) {
-        const notifIcon = icon || path.join(__dirname, '../public/icon.ico');
+        const notifIconPath = icon || path.join(__dirname, '../public/icon.png');
+        const notifIcon = nativeImage.createFromPath(notifIconPath);
         const notif = new Notification({
           title: title || 'ClipVault Studio',
           body: body || 'Your viral clips are ready!',
-          icon: nativeImage.createFromPath(notifIcon),
+          icon: notifIcon.isEmpty() ? undefined : notifIcon,
           silent: false,
         });
         notif.on('click', () => {
