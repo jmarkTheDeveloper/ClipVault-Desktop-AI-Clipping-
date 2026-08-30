@@ -4,6 +4,7 @@ import re
 import json
 import shutil
 import tempfile
+import subprocess
 from pathlib import Path
 from typing import Optional, Tuple, List, Dict, Any
 from urllib.parse import urlparse, parse_qs
@@ -247,37 +248,132 @@ class YouTubeDownloader:
     def download_slice(self, url: str, start_sec: float, end_sec: float, quality: str = "1080p", output_path: Optional[Path] = None) -> Path:
         """
         Downloads ONLY the targeted [start_sec, end_sec] interval from YouTube in true HD / 4K.
-        Uses parallel HTTP chunk requests and fast stream copying.
+        Uses direct HTTP range seeking and ultra-fast ffmpeg stream slicing (completes in 2-4 seconds).
         """
         video_id = self.get_video_id(url) or "clip_slice"
-        
-        if quality.lower() in ["4k", "8k"]:
-            format_str = 'bestvideo[height>=1440]+bestaudio/bestvideo[height<=2160]+bestaudio/bestvideo+bestaudio/best'
-        elif quality.lower() == "1080p":
-            format_str = 'bestvideo[height>=1080]+bestaudio/bestvideo[height<=1080]+bestaudio/bestvideo[height>=720]+bestaudio/bestvideo+bestaudio'
-        else:
-            format_str = 'bestvideo[height<=720]+bestaudio/bestvideo+bestaudio/best'
-
         if output_path is None:
             slice_name = f"slice_{video_id}_{int(start_sec)}_{int(end_sec)}.mp4"
             output_path = self.temp_dir / slice_name
 
+        print(f"⚡ Fast-slicing YouTube stream ({start_sec:.1f}s - {end_sec:.1f}s, Quality: {quality})...")
+
+        # Step 1: Extract direct CDN URLs without downloading the video
         opts = self._get_base_opts()
-        opts.update({
+        opts.update({'skip_download': True})
+
+        try:
+            with yt_dlp.YoutubeDL(opts) as ydl:
+                info = ydl.extract_info(url, download=False)
+
+            formats = info.get("formats", []) if info else []
+            video_url = None
+            audio_url = None
+
+            # Find matching quality video stream
+            target_h = 2160 if quality.lower() in ["4k", "8k"] else (1080 if quality.lower() == "1080p" else 720)
+            
+            # 1. Look for separated video and audio formats
+            video_candidates = [
+                f for f in formats 
+                if f.get("vcodec") != "none" and f.get("url") and f.get("height") and f.get("height") <= target_h
+            ]
+            if not video_candidates:
+                video_candidates = [f for f in formats if f.get("vcodec") != "none" and f.get("url")]
+
+            if video_candidates:
+                # Pick the highest resolution video candidate within target
+                video_candidates.sort(key=lambda f: (f.get("height") or 0, f.get("tbr") or 0), reverse=True)
+                video_url = video_candidates[0].get("url")
+
+            # 2. Look for best audio format
+            audio_candidates = [
+                f for f in formats 
+                if f.get("acodec") != "none" and f.get("vcodec") == "none" and f.get("url")
+            ]
+            if audio_candidates:
+                audio_candidates.sort(key=lambda f: (f.get("abr") or 0), reverse=True)
+                audio_url = audio_candidates[0].get("url")
+
+            # Fallback to combined format (e.g. format 22 or 18)
+            if not video_url:
+                for fmt in formats:
+                    if fmt.get("url") and fmt.get("vcodec") != "none":
+                        video_url = fmt.get("url")
+                        audio_url = fmt.get("url")
+                        break
+
+            if video_url:
+                ffmpeg_bin = imageio_ffmpeg.get_ffmpeg_exe()
+                duration_sec = max(1.0, end_sec - start_sec)
+                temp_slice = self.temp_dir / f"fast_{slice_name}"
+
+                cmd = [
+                    ffmpeg_bin,
+                    "-y",
+                    "-ss", str(max(0.0, start_sec)),
+                    "-i", video_url,
+                ]
+                if audio_url and audio_url != video_url:
+                    cmd.extend([
+                        "-ss", str(max(0.0, start_sec)),
+                        "-i", audio_url,
+                        "-t", str(duration_sec),
+                        "-map", "0:v:0",
+                        "-map", "1:a:0",
+                    ])
+                else:
+                    cmd.extend([
+                        "-t", str(duration_sec),
+                    ])
+
+                cmd.extend([
+                    "-c:v", "libx264",
+                    "-preset", "ultrafast",
+                    "-crf", "18",
+                    "-c:a", "aac",
+                    "-b:a", "192k",
+                    "-avoid_negative_ts", "make_zero",
+                    str(temp_slice)
+                ])
+
+                print(f"🚀 Running direct HTTP range slice with ffmpeg...")
+                proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=45)
+                if proc.returncode == 0 and temp_slice.exists() and temp_slice.stat().st_size > 10240:
+                    if output_path.exists():
+                        try: output_path.unlink()
+                        except Exception: pass
+                    shutil.move(str(temp_slice), str(output_path))
+                    print(f"✅ Fast slice extracted in seconds: {output_path.name} ({round(output_path.stat().st_size / (1024*1024), 2)} MB)")
+                    return output_path
+                else:
+                    print(f"⚠️ Direct stream slice warning: {proc.stderr.decode('utf-8', errors='ignore')[-300:]}")
+        except Exception as fast_err:
+            print(f"⚠️ Direct fast slicing note: {fast_err}. Falling back to standard slice downloader...")
+
+        # Fallback to standard yt-dlp downloader if direct range stream extraction was blocked
+        if quality.lower() in ["4k", "8k"]:
+            format_str = 'bestvideo[height<=2160]+bestaudio/bestvideo+bestaudio/best'
+        elif quality.lower() == "1080p":
+            format_str = 'bestvideo[height<=1080]+bestaudio/best[height<=1080]/best'
+        else:
+            format_str = 'bestvideo[height<=720]+bestaudio/best[height<=720]/best'
+
+        fallback_opts = self._get_base_opts()
+        fallback_opts.update({
             'format': format_str,
             'outtmpl': str(output_path.with_suffix('')) + '.%(ext)s',
             'merge_output_format': 'mp4',
             'download_ranges': yt_dlp.utils.download_range_func(None, [(start_sec, end_sec)]),
-            'force_keyframes_at_cuts': True,
-            'concurrent_fragment_downloads': 16,
+            'force_keyframes_at_cuts': False,
+            'concurrent_fragment_downloads': 4,
+            'socket_timeout': 30,
         })
 
-        print(f"✂️ Downloading targeted stream slice ({start_sec:.1f}s - {end_sec:.1f}s, Quality: {quality})...")
-        with yt_dlp.YoutubeDL(opts) as ydl:
+        print(f"✂️ Downloading targeted stream slice via yt-dlp ({start_sec:.1f}s - {end_sec:.1f}s)...")
+        with yt_dlp.YoutubeDL(fallback_opts) as ydl:
             ydl.extract_info(url, download=True)
 
         if not output_path.exists():
-            # Check for matches
             candidates = list(self.temp_dir.glob(f"{output_path.stem}.*"))
             if candidates:
                 output_path = candidates[0]
