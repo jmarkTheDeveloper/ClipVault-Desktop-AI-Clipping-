@@ -235,7 +235,8 @@ def execute_rendering_task(task_id: str, request: ProcessRequest, cancel_event: 
         import traceback
         traceback.print_exc()
         err_str = str(e)
-        clean_msg = err_str if (err_str and len(err_str) < 180 and "\n" not in err_str) else "An unexpected error occurred during processing. Please check your settings or try again."
+        first_line = err_str.strip().split("\n")[0] if err_str else ""
+        clean_msg = first_line if (first_line and len(first_line) < 250) else (err_str[:250] if err_str else "Processing could not be completed.")
         is_rate_limit = False
 
         # Detect rate limits and quota limits across providers with zero source code leakage
@@ -249,7 +250,7 @@ def execute_rendering_task(task_id: str, request: ProcessRequest, cancel_event: 
             clean_msg = err_str
         elif "unavailable" in lower_err or "not found" in lower_err or "does not exist" in lower_err or "private video" in lower_err:
             clean_msg = "Video unavailable on YouTube. Please check the URL for typos (YouTube video IDs are case-sensitive, e.g. uppercase 'I' vs digit '1')."
-        elif "youtube" in lower_err or "download" in lower_err or "audio stream" in lower_err:
+        elif "download" in lower_err and "stream" in lower_err:
             clean_msg = "Could not fetch the video stream from YouTube. Please verify the link or try pasting a fresh URL."
 
         print(f"⚠️ Task {task_id} error: {clean_msg}")

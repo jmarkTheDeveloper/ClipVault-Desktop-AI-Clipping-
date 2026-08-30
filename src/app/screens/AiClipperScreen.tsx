@@ -564,6 +564,7 @@ export const AiClipperScreen: React.FC<Props> = ({
 
   // Automatically fetch YouTube stream preview when user types or pastes YouTube link
   useEffect(() => {
+    setErrorMsg("");
     if (inputType !== "youtube") {
       if (localFilePath) {
         const localUrl = `http://127.0.0.1:8000/stream?path=${encodeURIComponent(localFilePath)}`;
