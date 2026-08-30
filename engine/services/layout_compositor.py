@@ -199,26 +199,61 @@ class LayoutCompositor:
                 box_top = custom_crop_boxes[0]
                 box_bot = custom_crop_boxes[1]
 
-                # Top half crop
-                x_pct_t, y_pct_t = float(box_top.get('x', 0)), float(box_top.get('y', 0))
-                w_pct_t, h_pct_t = float(box_top.get('width', 100)), float(box_top.get('height', 50))
-                x1_t, y1_t = max(0, int((x_pct_t / 100.0) * W)), max(0, int((y_pct_t / 100.0) * H))
-                w_t, h_t = min(W - x1_t, int((w_pct_t / 100.0) * W)), min(H - y1_t, int((h_pct_t / 100.0) * H))
-                top_half = clip.crop(x1=x1_t, y1=y1_t, width=w_t, height=h_t).resize((target_width, target_height // 2))
-                clips_to_close.append(top_half)
+                target_half_w = target_width
+                target_half_h = target_height // 2
 
-                # Bottom half crop
-                x_pct_b, y_pct_b = float(box_bot.get('x', 0)), float(box_bot.get('y', 50))
-                w_pct_b, h_pct_b = float(box_bot.get('width', 100)), float(box_bot.get('height', 50))
-                x1_b, y1_b = max(0, int((x_pct_b / 100.0) * W)), max(0, int((y_pct_b / 100.0) * H))
-                w_b, h_b = min(W - x1_b, int((w_pct_b / 100.0) * W)), min(H - y1_b, int((h_pct_b / 100.0) * H))
-                bot_half = clip.crop(x1=x1_b, y1=y1_b, width=w_b, height=h_b).resize((target_width, target_height // 2))
-                clips_to_close.append(bot_half)
+                def crop_and_fit_half(box, fallback_y_pct=0.0):
+                    x_pct = float(box.get('x', 0))
+                    y_pct = float(box.get('y', fallback_y_pct))
+                    w_pct = float(box.get('width', 100))
+                    h_pct = float(box.get('height', 50))
+
+                    x1 = max(0, min(W - 4, int(round((x_pct / 100.0) * W))))
+                    y1 = max(0, min(H - 4, int(round((y_pct / 100.0) * H))))
+                    x2 = max(x1 + 4, min(W, int(round(((x_pct + w_pct) / 100.0) * W))))
+                    y2 = max(y1 + 4, min(H, int(round(((y_pct + h_pct) / 100.0) * H))))
+
+                    # 1. Exact bounding crop from source video
+                    raw_cropped = clip.crop(x1=x1, y1=y1, x2=x2, y2=y2)
+                    cw, ch = raw_cropped.size
+
+                    if cw <= 0 or ch <= 0:
+                        return raw_cropped.resize((target_half_w, target_half_h))
+
+                    # 2. Scale to cover (target_half_w, target_half_h) preserving natural aspect ratio
+                    scale = max(target_half_w / float(cw), target_half_h / float(ch))
+                    scaled_w = max(4, int(round(cw * scale)))
+                    scaled_h = max(4, int(round(ch * scale)))
+                    if scaled_w % 2 != 0: scaled_w += 1
+                    if scaled_h % 2 != 0: scaled_h += 1
+
+                    scaled_clip = raw_cropped.resize((scaled_w, scaled_h))
+
+                    # 3. Center-crop to exact target dimensions
+                    xc = scaled_w / 2.0
+                    yc = scaled_h / 2.0
+                    fitted = scaled_clip.crop(
+                        x_center=xc,
+                        y_center=yc,
+                        width=target_half_w,
+                        height=target_half_h
+                    )
+                    clips_to_close.append(raw_cropped)
+                    clips_to_close.append(scaled_clip)
+                    clips_to_close.append(fitted)
+                    return fitted
+
+                top_half = crop_and_fit_half(box_top, 0.0)
+                bot_half = crop_and_fit_half(box_bot, 50.0)
 
                 composed = CompositeVideoClip([
                     top_half.set_position((0, 0)),
-                    bot_half.set_position((0, target_height // 2))
+                    bot_half.set_position((0, target_half_h))
                 ], size=(target_width, target_height))
+
+                if clip.audio is not None:
+                    composed = composed.set_audio(clip.audio)
+
                 clips_to_close.append(composed)
                 return composed
             except Exception as split_err:
