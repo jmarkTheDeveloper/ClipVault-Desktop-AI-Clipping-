@@ -661,18 +661,15 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                   </div>
                 )
               ) : youtubeId ? (
-                /* High-Res Clean Poster Fallback */
+                /* Live YouTube Iframe Player Fallback */
                 layout === "landscape_blur" ? (
                   <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center">
-                    <img
-                      src={posterUrl}
-                      alt="Poster Blur"
-                      className="absolute inset-0 w-full h-full object-cover filter blur-2xl scale-150 opacity-60 pointer-events-none"
-                    />
-                    <img
-                      src={posterUrl}
-                      alt="Poster"
-                      className="w-full h-[56.25%] object-contain relative z-10 pointer-events-none shadow-2xl"
+                    <iframe
+                      src={`https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1&mute=${isMuted ? 1 : 0}&controls=1&modestbranding=1&rel=0`}
+                      title="YouTube Video Player"
+                      className="w-full h-[56.25%] relative z-10 border-0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
                     />
                     <div className="absolute top-10 left-3 z-20 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-white/20 text-[9px] font-bold text-white/80 flex items-center gap-1 shadow-lg">
                       Blurred Canvas (9:16)
@@ -680,10 +677,12 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                   </div>
                 ) : layout === "landscape_fit" ? (
                   <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center">
-                    <img
-                      src={posterUrl}
-                      alt="Poster Fit"
-                      className="w-full h-[56.25%] object-contain relative z-10 pointer-events-none"
+                    <iframe
+                      src={`https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1&mute=${isMuted ? 1 : 0}&controls=1&modestbranding=1&rel=0`}
+                      title="YouTube Video Player"
+                      className="w-full h-[56.25%] relative z-10 border-0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
                     />
                     <div className="absolute top-10 left-3 z-20 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-white/20 text-[9px] font-bold text-white/80 flex items-center gap-1 shadow-lg">
                       Letterbox (9:16)
@@ -691,10 +690,12 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                   </div>
                 ) : (
                   <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center">
-                    <img
-                      src={posterUrl}
-                      alt="Poster Cover"
-                      className="w-full h-full object-cover pointer-events-none scale-125"
+                    <iframe
+                      src={`https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1&mute=${isMuted ? 1 : 0}&controls=1&modestbranding=1&rel=0`}
+                      title="YouTube Video Player"
+                      className="w-full h-full relative z-10 border-0 scale-125"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
                     />
                     <div className="absolute top-10 left-3 z-20 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-amber-400/40 text-[9px] font-bold text-amber-400 flex items-center gap-1 shadow-lg">
                       <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
