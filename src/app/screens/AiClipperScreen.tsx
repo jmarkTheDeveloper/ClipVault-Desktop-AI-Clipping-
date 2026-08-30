@@ -353,17 +353,24 @@ export const AiClipperScreen: React.FC<Props> = ({
     }
   }, [anthropicKey, higgsfieldKey, seeDanceKey, openAiKey, geminiKey, groqKey, deepseekKey, moonlightKey, qwenKey, customBaseUrl]);
 
-  // Clean session reset: Clear stale leftover URLs and timestamps from previous runs
+  // Clean session reset: Clear all leftover clipping settings, URLs, and state from past sessions
   useEffect(() => {
     try {
-      localStorage.removeItem("clipvault_yt_url");
-      localStorage.removeItem("clipvault_local_path");
-      localStorage.removeItem("clipvault_start_ts");
-      localStorage.removeItem("clipvault_end_ts");
+      const keysToPurge = [
+        "clipvault_input_type", "clipvault_yt_url", "clipvault_local_path",
+        "clipvault_quality", "clipvault_layout", "clipvault_camera_style",
+        "clipvault_duration_mode", "clipvault_num_clips", "clipvault_target_duration",
+        "clipvault_topic_prompt", "clipvault_custom_folder_name", "clipvault_export_file_name",
+        "clipvault_transcription_language", "clipvault_auto_broll", "clipvault_add_bg_music",
+        "clipvault_bg_music_vol", "clipvault_auto_sfx", "clipvault_add_captions",
+        "clipvault_caption_y_pct", "clipvault_selected_effect_id", "clipvault_avoid_copyright",
+        "clipvault_start_ts", "clipvault_end_ts", "clipvault_crop_top", "clipvault_crop_bottom"
+      ];
+      keysToPurge.forEach((k) => localStorage.removeItem(k));
     } catch {}
   }, []);
 
-  // Input & Media (Always starts clean and fresh)
+  // Input & Media (Always starts 100% clean and fresh in default state)
   const [inputType, setInputType] = useState<"youtube" | "local">("youtube");
   const [ytUrl, setYtUrl] = useState("");
   const [localFilePath, setLocalFilePath] = useState("");
@@ -371,26 +378,26 @@ export const AiClipperScreen: React.FC<Props> = ({
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [mediaDuration, setMediaDuration] = useState<number>(0);
 
-  // Processing Parameters
-  const [quality, setQuality] = useState(() => localStorage.getItem("clipvault_quality") || "1080p");
-  const [layout, setLayout] = useState(() => localStorage.getItem("clipvault_layout") || "vertical_crop");
-  const [cameraStyle, setCameraStyle] = useState<"instant" | "snappy" | "smooth">(() => (localStorage.getItem("clipvault_camera_style") as any) || "instant");
-  const [durationMode, setDurationMode] = useState(() => localStorage.getItem("clipvault_duration_mode") || "auto");
-  const [numClips, setNumClips] = useState<number | string>(() => localStorage.getItem("clipvault_num_clips") || 3);
-  const [targetDuration, setTargetDuration] = useState<number | string>(() => localStorage.getItem("clipvault_target_duration") || 30);
-  const [topicPrompt, setTopicPrompt] = useState(() => localStorage.getItem("clipvault_topic_prompt") || "");
-  const [customOutputDir, setCustomOutputDir] = useState(() => localStorage.getItem("clipvault_custom_output_dir") || "");
-  const [customFolderName, setCustomFolderName] = useState(() => localStorage.getItem("clipvault_custom_folder_name") || "");
+  // Processing Parameters (Clean studio defaults on every launch)
+  const [quality, setQuality] = useState("1080p");
+  const [layout, setLayout] = useState("vertical_crop");
+  const [cameraStyle, setCameraStyle] = useState<"instant" | "snappy" | "smooth">("instant");
+  const [durationMode, setDurationMode] = useState("auto");
+  const [numClips, setNumClips] = useState<number | string>(3);
+  const [targetDuration, setTargetDuration] = useState<number | string>(30);
+  const [topicPrompt, setTopicPrompt] = useState("");
+  const [customOutputDir, setCustomOutputDir] = useState("");
+  const [customFolderName, setCustomFolderName] = useState("");
   const [exportFileName, setExportFileName] = useState("");
-  const [transcriptionLanguage, setTranscriptionLanguage] = useState(() => localStorage.getItem("clipvault_transcription_language") || "auto");
-  const [autoBroll, setAutoBroll] = useState(() => localStorage.getItem("clipvault_auto_broll") === "true");
-  const [addBgMusic, setAddBgMusic] = useState(() => localStorage.getItem("clipvault_add_bg_music") === "true");
-  const [bgMusicVol, setBgMusicVol] = useState(() => parseFloat(localStorage.getItem("clipvault_bg_music_vol") || "0.1"));
-  const [autoSfx, setAutoSfx] = useState(() => localStorage.getItem("clipvault_auto_sfx") !== "false");
-  const [addCaptions, setAddCaptions] = useState(() => localStorage.getItem("clipvault_add_captions") !== "false");
-  const [captionYPct, setCaptionYPct] = useState(() => parseInt(localStorage.getItem("clipvault_caption_y_pct") || "70", 10));
-  const [selectedEffectId, setSelectedEffectId] = useState(() => localStorage.getItem("clipvault_selected_effect_id") || "capcut_yellow");
-  const [avoidCopyright, setAvoidCopyright] = useState(() => localStorage.getItem("clipvault_avoid_copyright") === "true");
+  const [transcriptionLanguage, setTranscriptionLanguage] = useState("auto");
+  const [autoBroll, setAutoBroll] = useState(false);
+  const [addBgMusic, setAddBgMusic] = useState(false);
+  const [bgMusicVol, setBgMusicVol] = useState(0.1);
+  const [autoSfx, setAutoSfx] = useState(true);
+  const [addCaptions, setAddCaptions] = useState(true);
+  const [captionYPct, setCaptionYPct] = useState(70);
+  const [selectedEffectId, setSelectedEffectId] = useState("capcut_yellow");
+  const [avoidCopyright, setAvoidCopyright] = useState(false);
   const [startTs, setStartTs] = useState("");
   const [endTs, setEndTs] = useState("");
 
@@ -398,33 +405,6 @@ export const AiClipperScreen: React.FC<Props> = ({
   const [cropModalOpen, setCropModalOpen] = useState<"none" | "top" | "bottom">("none");
   const [cropTop, setCropTop] = useState<CropBox>({ x: 20, y: 130, width: 140, height: 110 });
   const [cropBottom, setCropBottom] = useState<CropBox>({ x: 0, y: 0, width: 456, height: 256 });
-
-  // Persistent settings auto-saver (General preferences only, never stale URLs or clip bounds)
-  useEffect(() => {
-    try {
-      localStorage.setItem("clipvault_quality", quality);
-      localStorage.setItem("clipvault_layout", layout);
-      localStorage.setItem("clipvault_camera_style", cameraStyle);
-      localStorage.setItem("clipvault_duration_mode", durationMode);
-      localStorage.setItem("clipvault_num_clips", String(numClips));
-      localStorage.setItem("clipvault_target_duration", String(targetDuration));
-      localStorage.setItem("clipvault_topic_prompt", topicPrompt);
-      localStorage.setItem("clipvault_custom_folder_name", customFolderName);
-      localStorage.setItem("clipvault_transcription_language", transcriptionLanguage);
-      localStorage.setItem("clipvault_auto_broll", String(autoBroll));
-      localStorage.setItem("clipvault_add_bg_music", String(addBgMusic));
-      localStorage.setItem("clipvault_bg_music_vol", String(bgMusicVol));
-      localStorage.setItem("clipvault_auto_sfx", String(autoSfx));
-      localStorage.setItem("clipvault_add_captions", String(addCaptions));
-      localStorage.setItem("clipvault_caption_y_pct", String(captionYPct));
-      localStorage.setItem("clipvault_selected_effect_id", selectedEffectId);
-      localStorage.setItem("clipvault_avoid_copyright", String(avoidCopyright));
-    } catch {}
-  }, [
-    quality, layout, cameraStyle, durationMode, numClips, targetDuration,
-    topicPrompt, customFolderName, transcriptionLanguage, autoBroll, addBgMusic,
-    bgMusicVol, autoSfx, addCaptions, captionYPct, selectedEffectId, avoidCopyright
-  ]);
 
   // Progress & Execution
   const [running, setRunning] = useState(false);
