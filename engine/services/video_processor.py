@@ -273,18 +273,18 @@ class VideoProcessor:
         best_codec, best_preset, ffmpeg_params, thread_count = self.detect_hardware_encoder()
         if quality.lower() in ['4k', '8k']:
             if best_codec == 'h264_qsv':
-                ffmpeg_params.extend(['-b:v', '55M', '-maxrate', '80M', '-global_quality', '13'])
+                ffmpeg_params.extend(['-b:v', '35M', '-maxrate', '50M', '-global_quality', '18'])
             elif best_codec == 'h264_nvenc':
-                ffmpeg_params.extend(['-b:v', '55M', '-maxrate', '80M', '-cq', '13'])
+                ffmpeg_params.extend(['-b:v', '35M', '-maxrate', '50M', '-cq', '18'])
             elif best_codec == 'libx264':
-                ffmpeg_params.extend(['-crf', '14', '-b:v', '55M', '-maxrate', '80M', '-bufsize', '100M'])
+                ffmpeg_params.extend(['-crf', '19', '-preset', 'veryfast'])
         elif quality.lower() == '1080p':
             if best_codec == 'h264_qsv':
-                ffmpeg_params.extend(['-b:v', '25M', '-maxrate', '35M', '-global_quality', '15'])
+                ffmpeg_params.extend(['-b:v', '18M', '-maxrate', '25M', '-global_quality', '20'])
             elif best_codec == 'h264_nvenc':
-                ffmpeg_params.extend(['-b:v', '25M', '-maxrate', '35M', '-cq', '16'])
+                ffmpeg_params.extend(['-b:v', '18M', '-maxrate', '25M', '-cq', '20'])
             elif best_codec == 'libx264':
-                ffmpeg_params.extend(['-crf', '16', '-b:v', '25M', '-maxrate', '35M', '-bufsize', '50M'])
+                ffmpeg_params.extend(['-crf', '20', '-preset', 'veryfast'])
 
         print(f"\n🎬 Processing {len(clip_specs)} viral clips (Saving to: {target_dir})...")
 
