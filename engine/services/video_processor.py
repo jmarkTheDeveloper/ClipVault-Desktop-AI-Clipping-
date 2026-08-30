@@ -178,18 +178,22 @@ class VideoProcessor:
         if not needs_transcription:
             print("⏩ Custom clip range specified with AI Captions disabled. Skipping transcription (Instant 0.0s)!")
         elif not os.path.isfile(url):
-            if progress_callback: progress_callback("Fetching instant AI subtitles from YouTube...", 12)
+            if progress_callback:
+                if add_captions:
+                    progress_callback("Analyzing speech & dialogue for AI captions...", 12)
+                else:
+                    progress_callback("Analyzing video dialogue with AI to find viral moments...", 12)
             subs = self.downloader.get_native_subtitles(url, language=lang_hint or "en")
             if subs:
                 words, transcript, segments = subs
-                print(f"🚀 Loaded instant YouTube native captions in 0.5s ({len(words)} words)!")
+                print(f"🚀 Loaded instant dialogue transcript in 0.5s ({len(words)} words)!")
             else:
                 if use_smart_slicing:
-                    if progress_callback: progress_callback("Downloading audio track for Whisper...", 15)
+                    if progress_callback: progress_callback("Reading audio track for AI moment analysis...", 15)
                     audio_path, title, duration = self.downloader.download_audio_only(url)
                 transcribe_path = audio_path if audio_path else video_path
                 if transcribe_path:
-                    if progress_callback: progress_callback("Transcribing audio with Whisper...", 20)
+                    if progress_callback: progress_callback("Transcribing dialogue for viral hook detection...", 20)
                     words, transcript, segments = self.transcriber.transcribe(
                         str(transcribe_path), language=lang_hint, progress_callback=progress_callback,
                         api_key=self.api_key, ai_engine=self.ai_engine
@@ -205,7 +209,7 @@ class VideoProcessor:
                 except Exception:
                     pass
             if not words:
-                if progress_callback: progress_callback("Starting transcription with Whisper...", 20)
+                if progress_callback: progress_callback("Transcribing dialogue for viral hook detection...", 20)
                 transcribe_path = audio_path if audio_path else video_path
                 words, transcript, segments = self.transcriber.transcribe(
                     str(transcribe_path), language=lang_hint, progress_callback=progress_callback,
