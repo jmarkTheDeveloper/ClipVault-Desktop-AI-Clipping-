@@ -293,40 +293,90 @@ export const AiClipperScreen: React.FC<Props> = ({
   }, [anthropicKey, higgsfieldKey, seeDanceKey, openAiKey, geminiKey, groqKey, deepseekKey, moonlightKey, qwenKey, customBaseUrl]);
 
   // Input & Media
-  const [inputType, setInputType] = useState<"youtube" | "local">("youtube");
-  const [ytUrl, setYtUrl] = useState("");
-  const [localFilePath, setLocalFilePath] = useState("");
+  const [inputType, setInputType] = useState<"youtube" | "local">(() => (localStorage.getItem("clipvault_input_type") as any) || "youtube");
+  const [ytUrl, setYtUrl] = useState(() => localStorage.getItem("clipvault_yt_url") || "");
+  const [localFilePath, setLocalFilePath] = useState(() => localStorage.getItem("clipvault_local_path") || "");
   const [activeVideoUrl, setActiveVideoUrl] = useState("");
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [mediaDuration, setMediaDuration] = useState<number>(0);
 
   // Processing Parameters
-  const [quality, setQuality] = useState("1080p");
-  const [layout, setLayout] = useState("vertical_crop");
-  const [cameraStyle, setCameraStyle] = useState<"instant" | "snappy" | "smooth">("instant");
-  const [durationMode, setDurationMode] = useState("auto");
-  const [numClips, setNumClips] = useState<number | string>(3);
-  const [targetDuration, setTargetDuration] = useState<number | string>(30);
-  const [topicPrompt, setTopicPrompt] = useState("");
+  const [quality, setQuality] = useState(() => localStorage.getItem("clipvault_quality") || "1080p");
+  const [layout, setLayout] = useState(() => localStorage.getItem("clipvault_layout") || "vertical_crop");
+  const [cameraStyle, setCameraStyle] = useState<"instant" | "snappy" | "smooth">(() => (localStorage.getItem("clipvault_camera_style") as any) || "instant");
+  const [durationMode, setDurationMode] = useState(() => localStorage.getItem("clipvault_duration_mode") || "auto");
+  const [numClips, setNumClips] = useState<number | string>(() => localStorage.getItem("clipvault_num_clips") || 3);
+  const [targetDuration, setTargetDuration] = useState<number | string>(() => localStorage.getItem("clipvault_target_duration") || 30);
+  const [topicPrompt, setTopicPrompt] = useState(() => localStorage.getItem("clipvault_topic_prompt") || "");
   const [customOutputDir, setCustomOutputDir] = useState(() => localStorage.getItem("clipvault_custom_output_dir") || "");
-  const [customFolderName, setCustomFolderName] = useState("");
-  const [exportFileName, setExportFileName] = useState("");
-  const [transcriptionLanguage, setTranscriptionLanguage] = useState("auto");
-  const [autoBroll, setAutoBroll] = useState(false);
-  const [addBgMusic, setAddBgMusic] = useState(false);
-  const [bgMusicVol, setBgMusicVol] = useState(0.1);
-  const [autoSfx, setAutoSfx] = useState(true);
-  const [addCaptions, setAddCaptions] = useState(true);
-  const [captionYPct, setCaptionYPct] = useState(70);
-  const [selectedEffectId, setSelectedEffectId] = useState("capcut_yellow");
-  const [avoidCopyright, setAvoidCopyright] = useState(false);
-  const [startTs, setStartTs] = useState("");
-  const [endTs, setEndTs] = useState("");
+  const [customFolderName, setCustomFolderName] = useState(() => localStorage.getItem("clipvault_custom_folder_name") || "");
+  const [exportFileName, setExportFileName] = useState(() => localStorage.getItem("clipvault_export_file_name") || "");
+  const [transcriptionLanguage, setTranscriptionLanguage] = useState(() => localStorage.getItem("clipvault_transcription_language") || "auto");
+  const [autoBroll, setAutoBroll] = useState(() => localStorage.getItem("clipvault_auto_broll") === "true");
+  const [addBgMusic, setAddBgMusic] = useState(() => localStorage.getItem("clipvault_add_bg_music") === "true");
+  const [bgMusicVol, setBgMusicVol] = useState(() => parseFloat(localStorage.getItem("clipvault_bg_music_vol") || "0.1"));
+  const [autoSfx, setAutoSfx] = useState(() => localStorage.getItem("clipvault_auto_sfx") !== "false");
+  const [addCaptions, setAddCaptions] = useState(() => localStorage.getItem("clipvault_add_captions") !== "false");
+  const [captionYPct, setCaptionYPct] = useState(() => parseInt(localStorage.getItem("clipvault_caption_y_pct") || "70", 10));
+  const [selectedEffectId, setSelectedEffectId] = useState(() => localStorage.getItem("clipvault_selected_effect_id") || "capcut_yellow");
+  const [avoidCopyright, setAvoidCopyright] = useState(() => localStorage.getItem("clipvault_avoid_copyright") === "true");
+  const [startTs, setStartTs] = useState(() => localStorage.getItem("clipvault_start_ts") || "");
+  const [endTs, setEndTs] = useState(() => localStorage.getItem("clipvault_end_ts") || "");
 
   // Crop Editor State
   const [cropModalOpen, setCropModalOpen] = useState<"none" | "top" | "bottom">("none");
-  const [cropTop, setCropTop] = useState<CropBox>({ x: 20, y: 130, width: 140, height: 110 });
-  const [cropBottom, setCropBottom] = useState<CropBox>({ x: 0, y: 0, width: 456, height: 256 });
+  const [cropTop, setCropTop] = useState<CropBox>(() => {
+    try {
+      const saved = localStorage.getItem("clipvault_crop_top");
+      return saved ? JSON.parse(saved) : { x: 20, y: 130, width: 140, height: 110 };
+    } catch {
+      return { x: 20, y: 130, width: 140, height: 110 };
+    }
+  });
+  const [cropBottom, setCropBottom] = useState<CropBox>(() => {
+    try {
+      const saved = localStorage.getItem("clipvault_crop_bottom");
+      return saved ? JSON.parse(saved) : { x: 0, y: 0, width: 456, height: 256 };
+    } catch {
+      return { x: 0, y: 0, width: 456, height: 256 };
+    }
+  });
+
+  // Persistent settings auto-saver
+  useEffect(() => {
+    try {
+      localStorage.setItem("clipvault_input_type", inputType);
+      localStorage.setItem("clipvault_yt_url", ytUrl);
+      localStorage.setItem("clipvault_local_path", localFilePath);
+      localStorage.setItem("clipvault_quality", quality);
+      localStorage.setItem("clipvault_layout", layout);
+      localStorage.setItem("clipvault_camera_style", cameraStyle);
+      localStorage.setItem("clipvault_duration_mode", durationMode);
+      localStorage.setItem("clipvault_num_clips", String(numClips));
+      localStorage.setItem("clipvault_target_duration", String(targetDuration));
+      localStorage.setItem("clipvault_topic_prompt", topicPrompt);
+      localStorage.setItem("clipvault_custom_folder_name", customFolderName);
+      localStorage.setItem("clipvault_export_file_name", exportFileName);
+      localStorage.setItem("clipvault_transcription_language", transcriptionLanguage);
+      localStorage.setItem("clipvault_auto_broll", String(autoBroll));
+      localStorage.setItem("clipvault_add_bg_music", String(addBgMusic));
+      localStorage.setItem("clipvault_bg_music_vol", String(bgMusicVol));
+      localStorage.setItem("clipvault_auto_sfx", String(autoSfx));
+      localStorage.setItem("clipvault_add_captions", String(addCaptions));
+      localStorage.setItem("clipvault_caption_y_pct", String(captionYPct));
+      localStorage.setItem("clipvault_selected_effect_id", selectedEffectId);
+      localStorage.setItem("clipvault_avoid_copyright", String(avoidCopyright));
+      localStorage.setItem("clipvault_start_ts", startTs);
+      localStorage.setItem("clipvault_end_ts", endTs);
+      localStorage.setItem("clipvault_crop_top", JSON.stringify(cropTop));
+      localStorage.setItem("clipvault_crop_bottom", JSON.stringify(cropBottom));
+    } catch {}
+  }, [
+    inputType, ytUrl, localFilePath, quality, layout, cameraStyle, durationMode,
+    numClips, targetDuration, topicPrompt, customFolderName, exportFileName,
+    transcriptionLanguage, autoBroll, addBgMusic, bgMusicVol, autoSfx, addCaptions,
+    captionYPct, selectedEffectId, avoidCopyright, startTs, endTs, cropTop, cropBottom
+  ]);
 
   // Progress & Execution
   const [running, setRunning] = useState(false);
