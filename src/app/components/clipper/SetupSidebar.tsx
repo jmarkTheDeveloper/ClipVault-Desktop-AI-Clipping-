@@ -943,28 +943,6 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                       ))}
                     </div>
                   </div>
-
-                  {/* Caption Vertical Position Slider */}
-                  <div className="pt-2 border-t border-white/5 space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Vertical Height</span>
-                      <span className="text-[10px] text-amber-400 font-mono font-bold">{captionYPct}% from top</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="20"
-                      max="90"
-                      step="5"
-                      value={captionYPct}
-                      onChange={(e) => setCaptionYPct(parseInt(e.target.value, 10))}
-                      className="w-full accent-amber-400 cursor-pointer"
-                    />
-                    <div className="flex justify-between text-[9px] text-gray-500 font-medium">
-                      <span>Top (20%)</span>
-                      <span>Center (50%)</span>
-                      <span>Bottom (90%)</span>
-                    </div>
-                  </div>
                 </div>
               )}
             </div>
