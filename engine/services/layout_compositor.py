@@ -2,6 +2,14 @@
 LayoutCompositor Service - High-Performance Vertical & Split-Screen Video Composition.
 Handles all layout transformations (9:16 vertical crop, blurred backgrounds, gameplay overlays, facecam splits).
 """
+import sys
+if hasattr(sys.stdout, 'reconfigure'):
+    try: sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    except Exception: pass
+if hasattr(sys.stderr, 'reconfigure'):
+    try: sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    except Exception: pass
+
 import random
 from pathlib import Path
 from typing import List, Dict, Any, Optional
