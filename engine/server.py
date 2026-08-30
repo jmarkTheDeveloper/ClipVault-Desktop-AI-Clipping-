@@ -558,7 +558,7 @@ def open_system_folder(data: dict = Body(...)):
         return {"success": False, "error": str(e)}
 
 @app.get("/api/video_info")
-def get_video_info(url: str, current_user: dict = Depends(get_current_user)):
+def get_video_info(url: str):
     """
     Extracts video metadata (title, duration, uploader, stream_url) without downloading.
     Uses mobile client spoofing to bypass YouTube bot blocks and provide instant preview stream.
