@@ -771,8 +771,8 @@ export const AiClipperScreen: React.FC<Props> = ({
               setDone(true);
               setGeneratedClips(data.clips || []);
               if (data.output_dir) setLastOutputFolder(data.output_dir);
-              loadVaultClips();
-              setViewMode("gallery");
+              loadVaultClips(false);
+              setViewMode("vault");
               const clipCount = (data.clips || []).length || 1;
               triggerDesktopNotification(
                 "🎉 Video Processing Complete!",
@@ -1609,7 +1609,7 @@ export const AiClipperScreen: React.FC<Props> = ({
                     folder: customFolderName || "Main Library",
                   }
             }
-            onClose={() => setViewMode("gallery")}
+            onClose={() => setViewMode("vault")}
           />
         )}
       </div>
