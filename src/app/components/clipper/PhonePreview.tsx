@@ -59,21 +59,26 @@ const CroppedVideo: React.FC<{
   youtubeId: string | null;
   crop: CropBox;
   isMuted: boolean;
+  videoRef?: React.RefObject<HTMLVideoElement | null>;
   onTimeUpdate?: (e: React.SyntheticEvent<HTMLVideoElement>) => void;
   onLoadedMetadata?: (e: React.SyntheticEvent<HTMLVideoElement>) => void;
   label?: string;
-}> = ({ src, youtubeId, crop, isMuted, onTimeUpdate, onLoadedMetadata, label }) => {
-  const cropW = Math.max(20, crop.width);
-  const cropH = Math.max(20, crop.height);
-  const scaleW = 456 / cropW;
-  const scaleH = 256 / cropH;
-  const leftP = -(crop.x / cropW) * 100;
-  const topP = -(crop.y / cropH) * 100;
+}> = ({ src, youtubeId, crop, isMuted, videoRef, onTimeUpdate, onLoadedMetadata, label }) => {
+  const cropW = Math.max(20, crop.width || 140);
+  const cropH = Math.max(20, crop.height || 110);
+  const cropX = Math.max(0, crop.x || 0);
+  const cropY = Math.max(0, crop.y || 0);
+
+  const scaleW = (456 / cropW) * 100;
+  const scaleH = (256 / cropH) * 100;
+  const leftP = -(cropX / cropW) * 100;
+  const topP = -(cropY / cropH) * 100;
 
   if (src) {
     return (
       <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center select-none">
         <video
+          ref={videoRef}
           src={src}
           autoPlay
           loop
@@ -81,16 +86,19 @@ const CroppedVideo: React.FC<{
           playsInline
           onTimeUpdate={onTimeUpdate}
           onLoadedMetadata={onLoadedMetadata}
+          onCanPlay={(e) => {
+            e.currentTarget.play().catch(() => {});
+          }}
           className="pointer-events-none"
           style={{
             position: "absolute",
-            width: `${scaleW * 100}%`,
-            height: `${scaleH * 100}%`,
+            width: `${scaleW}%`,
+            height: `${scaleH}%`,
             maxWidth: "none",
             maxHeight: "none",
             left: `${leftP}%`,
             top: `${topP}%`,
-            objectFit: "cover",
+            objectFit: "fill",
             transform: "translateZ(0)",
             willChange: "transform",
           }}
@@ -105,7 +113,17 @@ const CroppedVideo: React.FC<{
         <iframe
           src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=${isMuted ? 1 : 0}&loop=1&playlist=${youtubeId}&controls=0&modestbranding=1&rel=0&playsinline=1`}
           title="YouTube Crop Preview"
-          className="w-full h-full object-cover pointer-events-none scale-125"
+          className="pointer-events-none"
+          style={{
+            position: "absolute",
+            width: `${scaleW}%`,
+            height: `${scaleH}%`,
+            maxWidth: "none",
+            maxHeight: "none",
+            left: `${leftP}%`,
+            top: `${topP}%`,
+            transform: "translateZ(0)",
+          }}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
         />
       </div>
@@ -227,6 +245,34 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
     });
   }, [isPlaying]);
 
+  // Re-synchronize newly mounted video elements whenever layout, video source, or background video changes
+  useEffect(() => {
+    const syncAll = () => {
+      const vids = containerRef.current?.querySelectorAll("video") || [];
+      vids.forEach((v) => {
+        v.muted = isMuted;
+        if (currentTime > 0 && Math.abs((v.currentTime || 0) - currentTime) > 0.5) {
+          try {
+            v.currentTime = currentTime;
+          } catch {}
+        }
+        if (isPlaying) {
+          v.play().catch(() => {});
+        } else {
+          v.pause();
+        }
+      });
+    };
+
+    syncAll();
+    const timer1 = setTimeout(syncAll, 60);
+    const timer2 = setTimeout(syncAll, 250);
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+    };
+  }, [layout, activeVideoUrl, gameplayBgVideo]);
+
   // Synchronized seek on active video elements within the phone container
   const seekAllVideos = (timeInSeconds: number) => {
     const vids = containerRef.current?.querySelectorAll("video") || [];
@@ -239,7 +285,16 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
   };
 
   const togglePlayAll = () => {
-    setIsPlaying((prev) => !prev);
+    const nextState = !isPlaying;
+    setIsPlaying(nextState);
+    const vids = containerRef.current?.querySelectorAll("video") || [];
+    vids.forEach((vid) => {
+      if (nextState) {
+        vid.play().catch(() => {});
+      } else {
+        vid.pause();
+      }
+    });
   };
 
   const seekRelative = (deltaSeconds: number) => {
@@ -315,6 +370,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
               {/* Top Viewport */}
               <div className="w-full h-1/2 relative overflow-hidden border-b-2 border-amber-400/50">
                 <CroppedVideo
+                  videoRef={videoRef}
                   src={activeVideoUrl}
                   youtubeId={youtubeId}
                   crop={cropTop}
@@ -343,7 +399,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setIsPlaying(!isPlaying);
+                      togglePlayAll();
                     }}
                     className="p-1.5 rounded-full bg-black/70 backdrop-blur-md text-white border border-white/20 hover:bg-black transition-colors cursor-pointer shadow-lg"
                   >
@@ -384,6 +440,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
               <div className="w-full h-1/2 relative overflow-hidden border-b-2 border-amber-400/30">
                 {activeVideoUrl ? (
                   <video
+                    ref={videoRef}
                     src={activeVideoUrl}
                     autoPlay
                     loop
@@ -391,6 +448,9 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                     playsInline
                     onTimeUpdate={handleTimeUpdate}
                     onLoadedMetadata={handleLoadedMetadata}
+                    onCanPlay={(e) => {
+                      if (isPlaying) e.currentTarget.play().catch(() => {});
+                    }}
                     className="w-full h-full object-cover pointer-events-none"
                   />
                 ) : youtubeId ? (
@@ -417,6 +477,9 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                     loop
                     muted
                     playsInline
+                    onCanPlay={(e) => {
+                      if (isPlaying) e.currentTarget.play().catch(() => {});
+                    }}
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-[#0a0a0a] text-amber-400/40 text-xs font-bold font-mono">
@@ -432,7 +495,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setIsPlaying(!isPlaying);
+                      togglePlayAll();
                     }}
                     className="p-1.5 rounded-full bg-black/70 backdrop-blur-md text-white border border-white/20 hover:bg-black transition-colors cursor-pointer shadow-lg"
                   >
@@ -486,6 +549,9 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                       playsInline
                       onTimeUpdate={handleTimeUpdate}
                       onLoadedMetadata={handleLoadedMetadata}
+                      onCanPlay={(e) => {
+                        if (isPlaying) e.currentTarget.play().catch(() => {});
+                      }}
                     />
                     <div className="absolute top-10 left-3 z-20 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-white/20 text-[9px] font-bold text-white/80 flex items-center gap-1 shadow-lg">
                       Blurred Canvas (9:16)
@@ -505,6 +571,9 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                       playsInline
                       onTimeUpdate={handleTimeUpdate}
                       onLoadedMetadata={handleLoadedMetadata}
+                      onCanPlay={(e) => {
+                        if (isPlaying) e.currentTarget.play().catch(() => {});
+                      }}
                     />
                     <div className="absolute top-10 left-3 z-20 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-white/20 text-[9px] font-bold text-white/80 flex items-center gap-1 shadow-lg">
                       Letterbox (9:16)
@@ -524,6 +593,9 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                       playsInline
                       onTimeUpdate={handleTimeUpdate}
                       onLoadedMetadata={handleLoadedMetadata}
+                      onCanPlay={(e) => {
+                        if (isPlaying) e.currentTarget.play().catch(() => {});
+                      }}
                     />
                     <div className="absolute top-10 left-3 z-20 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-amber-400/40 text-[9px] font-bold text-amber-400 flex items-center gap-1 shadow-lg">
                       <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
@@ -578,7 +650,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                   </div>
                 )
               ) : (
-                <div className="text-center p-6 text-gray-500">
+                <div className="flex flex-col items-center justify-center space-y-3 p-6 text-center text-gray-500">
                   <div className="w-12 h-12 rounded-full border border-dashed border-gray-600 flex items-center justify-center mx-auto mb-2 text-gray-400">
                     9:16
                   </div>
@@ -594,7 +666,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setIsPlaying(!isPlaying);
+                      togglePlayAll();
                     }}
                     className="p-1.5 rounded-full bg-black/70 backdrop-blur-md text-white border border-white/20 hover:bg-black transition-colors cursor-pointer shadow-lg"
                   >
