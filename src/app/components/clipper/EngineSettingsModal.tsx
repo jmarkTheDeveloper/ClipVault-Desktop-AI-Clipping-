@@ -547,7 +547,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-[10002] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
-      <div id="engine-settings-dialog" className="relative w-full max-w-[640px] rounded-3xl bg-[#0d0d0f] border border-white/15 shadow-[0_0_50px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col max-h-[90vh]">
+      <div id="engine-settings-dialog" className="relative w-full max-w-[820px] rounded-3xl bg-[#0e0e11] border border-white/15 shadow-[0_20px_80px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col max-h-[92vh]">
         {/* 5-Second Popup Toast Notification */}
         {apiWarning && (
           <div className="absolute top-3 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-lg pointer-events-auto animate-fadeIn">
@@ -558,7 +558,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                   <p className="text-xs font-black text-amber-300 truncate">
                     Oops you have not yet put any API
                   </p>
-                  <p className="text-[10.5px] text-amber-200/80 truncate">
+                  <p className="text-[11px] text-amber-200/80 truncate">
                     Please paste your API key below to enable Cloud AI features.
                   </p>
                 </div>
@@ -584,7 +584,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                 </div>
                 <div>
                   <h4 className="text-white font-semibold text-sm tracking-tight">Security Confirmation Required</h4>
-                  <p className="text-[11px] text-zinc-400">Reveal Private API Key on Screen</p>
+                  <p className="text-xs text-zinc-400">Reveal Private API Key on Screen</p>
                 </div>
               </div>
 
@@ -592,7 +592,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                 <p className="font-semibold text-amber-300 flex items-center gap-1.5 text-xs">
                   <ShieldAlert className="w-3.5 h-3.5 text-amber-400" /> Screen Exposure Warning
                 </p>
-                <p className="text-[11px] text-zinc-300 leading-relaxed">
+                <p className="text-xs text-zinc-300 leading-relaxed">
                   Revealing this API key will display it in plain text. Make sure you are not streaming, recording your screen, or in the presence of unauthorized viewers.
                 </p>
               </div>
@@ -618,35 +618,23 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                       : "border-white/10 focus:border-amber-400/60"
                   }`}
                 />
-                {revealInputText.trim() === REVEAL_CONFIRMATION_PHRASE ? (
-                  <p className="text-[11px] text-emerald-400 font-medium flex items-center gap-1">
-                    <Check className="w-3.5 h-3.5" /> Phrase matched exactly. Click Confirm or press Enter.
-                  </p>
-                ) : (
-                  <p className="text-[11px] text-zinc-500">
-                    Exact case match required (capital "I" and uppercase "API").
-                  </p>
-                )}
               </div>
 
-              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-white/[0.08]">
+              <div className="flex items-center justify-end gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowRevealModal(false);
-                    setRevealInputText("");
-                  }}
-                  className="px-4 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 font-medium text-xs border border-white/[0.08] transition-colors cursor-pointer"
+                  onClick={handleCancelReveal}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-zinc-400 hover:text-white transition-colors cursor-pointer"
                 >
-                  Cancel / Keep Hidden
+                  Cancel
                 </button>
                 <button
                   type="button"
                   disabled={revealInputText.trim() !== REVEAL_CONFIRMATION_PHRASE}
                   onClick={handleConfirmReveal}
-                  className={`px-4 py-2 rounded-xl font-semibold text-xs transition-all shadow-sm ${
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                     revealInputText.trim() === REVEAL_CONFIRMATION_PHRASE
-                      ? "bg-amber-400 text-zinc-950 hover:bg-amber-300 cursor-pointer shadow-amber-400/10 active:scale-[0.98]"
+                      ? "bg-amber-400 text-zinc-950 hover:bg-amber-300 shadow-md cursor-pointer"
                       : "bg-white/[0.05] text-zinc-600 border border-white/[0.05] cursor-not-allowed opacity-50"
                   }`}
                 >
@@ -670,7 +658,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                     <h4 className="text-white font-semibold text-sm tracking-tight">
                       API Security &amp; Zero-Liability Policy
                     </h4>
-                    <p className="text-[11px] text-zinc-400">
+                    <p className="text-xs text-zinc-400">
                       Confidentiality and Usage Responsibility Notice
                     </p>
                   </div>
@@ -685,16 +673,16 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                   <div className="font-semibold text-amber-300 flex items-center gap-1.5 text-xs">
                     <Lock className="w-3.5 h-3.5 text-amber-400" /> Never share your API key with anyone
                   </div>
-                  <p className="text-[11.5px] text-zinc-300 leading-relaxed">
+                  <p className="text-xs text-zinc-300 leading-relaxed">
                     Never share, stream, reveal, or paste your API key in public view, recordings, or third-party websites. Your API key provides direct access to your private AI provider account and usage quotas.
                   </p>
                 </div>
 
                 <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-2 text-xs">
-                  <p className="text-[11px] font-semibold text-zinc-300 uppercase tracking-wider">
+                  <p className="text-xs font-semibold text-zinc-300 uppercase tracking-wider">
                     Disclaimer of Responsibility &amp; Zero Liability:
                   </p>
-                  <ul className="space-y-1.5 text-[11.5px] text-zinc-400 leading-relaxed">
+                  <ul className="space-y-1.5 text-xs text-zinc-400 leading-relaxed">
                     <li className="flex items-start gap-2">
                       <span className="text-amber-400 mt-0.5 font-bold">•</span>
                       <span><strong className="text-zinc-200">We do NOT bear any responsibility</strong> for exposed, leaked, shared, or compromised API keys.</span>
@@ -712,7 +700,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
               </div>
 
               <div className="flex items-center justify-between pt-2 border-t border-white/[0.08]">
-                <span className="text-[11px] text-zinc-500 flex items-center gap-1.5">
+                <span className="text-xs text-zinc-500 flex items-center gap-1.5">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> Stored exclusively on local device
                 </span>
                 <button
@@ -728,40 +716,40 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
         )}
 
         {/* Modal Header */}
-        <div className="p-5 border-b border-white/10 flex items-center justify-between bg-gradient-to-r from-amber-500/10 via-transparent to-purple-500/10">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-amber-400/10 border border-amber-400/25 text-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.2)]">
-              <Cpu className="w-5 h-5" />
+        <div className="p-6 border-b border-white/10 flex items-center justify-between bg-gradient-to-r from-amber-500/10 via-transparent to-purple-500/10">
+          <div className="flex items-center gap-3.5">
+            <div className="p-3 rounded-2xl bg-amber-400/10 border border-amber-400/25 text-amber-400 shadow-[0_0_20px_rgba(251,191,36,0.25)]">
+              <Cpu className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-white font-bold text-sm flex items-center gap-2">
-                AI Engine and Execution Hub
-                <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-white/10 text-gray-300 border border-white/15 uppercase">
+              <h3 className="text-white font-extrabold text-base flex items-center gap-2.5">
+                AI Engine &amp; Execution Hub
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-white/10 text-gray-300 border border-white/15 uppercase">
                   Production
                 </span>
               </h3>
-              <p className="text-[11px] text-gray-400">
-                Choose between On-Device Hardware acceleration and Custom Cloud AI providers.
+              <p className="text-xs text-gray-400 mt-0.5">
+                Configure on-device GPU hardware acceleration or choose your preferred cloud AI intelligence provider.
               </p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white flex items-center justify-center transition-all cursor-pointer text-xs"
+            className="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white flex items-center justify-center transition-all cursor-pointer text-sm"
           >
             ✕
           </button>
         </div>
 
         {/* Modal Body */}
-        <div className="p-5 overflow-y-auto space-y-5 scrollbar-thin scrollbar-thumb-white/10">
+        <div className="p-6 overflow-y-auto space-y-6 scrollbar-thin scrollbar-thumb-white/10">
           {/* Architecture Switcher */}
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block">
               Execution Architecture
             </label>
-            <div className="grid grid-cols-2 gap-2 p-1.5 rounded-2xl bg-black/70 border border-white/10 text-xs font-bold">
+            <div className="grid grid-cols-2 gap-3 p-1.5 rounded-2xl bg-black/70 border border-white/10 text-sm font-bold">
               <button
                 type="button"
                 onClick={() => {
@@ -770,15 +758,15 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                     onSelectEngine("gemini_flash");
                   }
                 }}
-                className={`py-2.5 px-3 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer text-center ${
+                className={`py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2.5 cursor-pointer text-center ${
                   byokMode === "custom"
-                    ? "bg-amber-400 text-black shadow-lg font-extrabold ring-1 ring-amber-400/50"
-                    : "text-gray-400 hover:text-white"
+                    ? "bg-amber-400 text-black shadow-lg font-extrabold ring-2 ring-amber-400/50"
+                    : "text-gray-400 hover:text-white hover:bg-white/5"
                 }`}
               >
                 <Globe className="w-4 h-4" />
                 <span>Cloud AI Models</span>
-                <span className={`text-[9px] px-1.5 py-0.5 rounded font-extrabold uppercase ${
+                <span className={`text-[10px] px-2 py-0.5 rounded-md font-extrabold uppercase ${
                   byokMode === "custom" ? "bg-black/20 text-black" : "bg-amber-400/20 text-amber-300 border border-amber-400/30"
                 }`}>
                   Recommended
@@ -795,15 +783,15 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                     onSelectEngine("intel_ai");
                   }
                 }}
-                className={`py-2.5 px-3 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer text-center ${
+                className={`py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2.5 cursor-pointer text-center ${
                   byokMode === "local"
-                    ? "bg-amber-400 text-black shadow-lg font-extrabold ring-1 ring-amber-400/50"
-                    : "text-gray-400 hover:text-white"
+                    ? "bg-amber-400 text-black shadow-lg font-extrabold ring-2 ring-amber-400/50"
+                    : "text-gray-400 hover:text-white hover:bg-white/5"
                 }`}
               >
                 <HardDrive className="w-4 h-4" />
                 <span>Local GPU / QSV</span>
-                <span className="text-[9px] px-1.5 py-0.5 rounded font-semibold bg-white/10 text-gray-400">
+                <span className="text-[10px] px-2 py-0.5 rounded-md font-bold bg-white/10 text-gray-300">
                   Free Offline
                 </span>
               </button>
@@ -811,19 +799,19 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
           </div>
 
           {/* Quick Setup Tutorial & Warning Advisory Banner */}
-          <div className="p-3.5 rounded-2xl bg-amber-500/[0.07] border border-amber-400/25 space-y-2 text-xs">
-            <div className="flex items-center gap-1.5">
-              <span className="font-bold text-amber-300 flex items-center gap-1.5 text-xs">
-                <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+          <div className="p-4 rounded-2xl bg-amber-500/[0.08] border border-amber-400/30 space-y-2 text-xs">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+              <span className="font-bold text-amber-300 text-xs uppercase tracking-wide">
                 API Requirement &amp; Quality Notice
               </span>
             </div>
-            <p className="text-[11px] text-zinc-300 leading-relaxed" style={{ textAlign: "justify" }}>
-              <b>Important:</b> Cloud AI features require a valid API key and will not process without one. Slicing quality and viral hook accuracy depend directly on the model you select. For <b>Local GPU mode</b>, a dedicated GPU (NVIDIA RTX / AMD Radeon / Intel Arc) or Intel Core Ultra NPU is strongly recommended.
+            <p className="text-xs text-zinc-300 leading-relaxed">
+              Cloud AI models require your private API key to analyze transcripts and generate viral hooks. For <b>Local GPU mode</b>, an on-device graphics processor (NVIDIA RTX / AMD Radeon / Intel Arc) is recommended for fast video rendering.
             </p>
-            <div className="flex items-center gap-3 pt-1 border-t border-amber-500/15 text-[10.5px] text-amber-200/80 flex-wrap">
-              <span>• <b>Free Keys:</b> Available instantly via Google AI Studio &amp; Groq Console</span>
-              <span>• <b>Always Editable:</b> Reopen anytime via top-right Engine badge</span>
+            <div className="flex items-center gap-4 pt-1.5 border-t border-amber-500/20 text-xs text-amber-200/90 flex-wrap font-medium">
+              <span>• <b>Free API Keys:</b> Available instantly via Google AI Studio &amp; Groq Console</span>
+              <span>• <b>Always Reconfigurable:</b> Switch models anytime via the top Engine badge</span>
             </div>
           </div>
 
@@ -834,8 +822,8 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
             <div className="space-y-4 animate-fadeIn">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="text-white font-bold text-xs">On-Device Hardware Scan</h4>
-                  <p className="text-[11px] text-gray-400">
+                  <h4 className="text-white font-bold text-sm">On-Device Hardware Scan</h4>
+                  <p className="text-xs text-gray-400">
                     Runs 100% locally with zero cloud API keys, $0 cost, and full offline support.
                   </p>
                 </div>
@@ -843,24 +831,24 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                   type="button"
                   onClick={runHardwareScan}
                   disabled={isScanning}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-xs text-white font-bold transition-all cursor-pointer border border-white/10 disabled:opacity-50"
+                  className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-xs text-white font-bold transition-all cursor-pointer border border-white/10 disabled:opacity-50"
                 >
-                  <RefreshCw className={`w-3.5 h-3.5 ${isScanning ? "animate-spin text-amber-400" : "text-gray-300"}`} />
+                  <RefreshCw className={`w-4 h-4 ${isScanning ? "animate-spin text-amber-400" : "text-gray-300"}`} />
                   <span>{isScanning ? "Scanning System..." : "Run Hardware Scan"}</span>
                 </button>
               </div>
 
               {/* Scanned Hardware Results */}
               {hardwareInfo ? (
-                <div className="p-4 rounded-2xl bg-amber-400/10 border border-amber-400/30 space-y-3">
+                <div className="p-5 rounded-2xl bg-amber-400/10 border border-amber-400/30 space-y-3.5">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                      <span className="font-bold text-sm text-amber-300">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-3 h-3 rounded-full bg-emerald-400 animate-pulse" />
+                      <span className="font-bold text-base text-amber-300">
                         {hardwareInfo.engine_name}
                       </span>
                     </div>
-                    <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-amber-400 text-black uppercase">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-amber-400 text-black uppercase">
                       Active Engine
                     </span>
                   </div>
@@ -870,56 +858,43 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                   </p>
 
                   {/* Hardware Specs Grid */}
-                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-amber-400/20 text-xs">
+                  <div className="grid grid-cols-2 gap-2.5 pt-2 border-t border-amber-400/20 text-xs">
                     {hardwareInfo.specs.map((s, idx) => (
-                      <div key={idx} className="p-2 rounded-xl bg-black/40 border border-white/5 flex flex-col">
+                      <div key={idx} className="p-2.5 rounded-xl bg-black/40 border border-white/5 flex flex-col">
                         <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
                           {s.label}
                         </span>
-                        <span className="text-xs font-semibold text-white truncate" title={s.value}>
+                        <span className="text-xs font-semibold text-white truncate mt-0.5" title={s.value}>
                           {s.value}
                         </span>
                       </div>
                     ))}
                   </div>
 
-                  <div className="pt-1 flex items-center justify-between text-[11px] text-amber-300/80 font-medium">
-                    <span className="flex items-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <div className="pt-1 flex items-center justify-between text-xs text-amber-300/90 font-medium">
+                    <span className="flex items-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                       Hardware Acceleration: <b>{hardwareInfo.encoder}</b>
                     </span>
                     <span>$0.00 API Cost (Free Forever)</span>
                   </div>
-
-                  {/* Real Hardware Pipeline Note */}
-                  <div className="p-2.5 rounded-xl bg-black/50 border border-white/5 text-[10px] text-gray-400 space-y-1">
-                    <p className="text-gray-300 font-semibold flex items-center gap-1">
-                      <Cpu className="w-3 h-3 text-amber-400" /> Real Hardware Pipeline:
-                    </p>
-                    <p>
-                      • <b className="text-white">GPU ({hardwareInfo.gpu}):</b> Active at 40-50%+ in Task Manager. Powers Intel QuickSync Video for instant 150+ FPS hardware encoding.
-                    </p>
-                    <p>
-                      • <b className="text-white">NPU ({hardwareInfo.npu || "AI Coprocessor"}):</b> Dedicated on-device neural tensor coprocessor. Video compression is handled by the GPU media block.
-                    </p>
-                  </div>
                 </div>
               ) : (
                 /* Unscanned Prompt */
-                <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/10 text-center space-y-3">
-                  <Activity className="w-8 h-8 text-amber-400 mx-auto" />
+                <div className="p-8 rounded-2xl bg-white/[0.02] border border-white/10 text-center space-y-3">
+                  <Activity className="w-10 h-10 text-amber-400 mx-auto" />
                   <div>
-                    <p className="text-white font-bold text-xs">No Hardware Profile Loaded</p>
-                    <p className="text-[11px] text-gray-400 mt-1 max-w-sm mx-auto">
+                    <p className="text-white font-bold text-sm">No Hardware Profile Loaded</p>
+                    <p className="text-xs text-gray-400 mt-1 max-w-sm mx-auto">
                       Click the button below to probe your local CPU, Intel/NVIDIA/AMD GPU, and AI Neural Processing Unit.
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={runHardwareScan}
-                    className="px-5 py-2 rounded-xl bg-amber-400 text-black font-bold text-xs hover:bg-amber-300 transition-all cursor-pointer shadow-md inline-flex items-center gap-1.5"
+                    className="px-6 py-2.5 rounded-xl bg-amber-400 text-black font-bold text-xs hover:bg-amber-300 transition-all cursor-pointer shadow-md inline-flex items-center gap-2"
                   >
-                    <RefreshCw className="w-3.5 h-3.5" />
+                    <RefreshCw className="w-4 h-4" />
                     <span>Run Hardware Scan Now</span>
                   </button>
                 </div>
@@ -935,14 +910,14 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
           {byokMode === "custom" && (
             <div className="space-y-4 animate-fadeIn">
               {/* Cloud Category Filters */}
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <h4 className="text-white font-bold text-xs">Cloud AI Models (BYOK)</h4>
-                  <p className="text-[11px] text-gray-400">
-                    Select your preferred AI provider below and enter your private API key.
+                  <h4 className="text-white font-bold text-sm">Select AI Model Provider</h4>
+                  <p className="text-xs text-gray-400">
+                    Choose your AI model below and configure your API key.
                   </p>
                 </div>
-                <div className="flex items-center gap-1 bg-black/60 p-0.5 rounded-xl border border-white/10 text-[10px] font-bold">
+                <div className="flex items-center gap-1.5 bg-black/60 p-1 rounded-xl border border-white/10 text-xs font-bold self-start sm:self-auto">
                   {[
                     { id: "all", label: "All Cloud" },
                     { id: "frontier", label: "Frontier LLM" },
@@ -953,10 +928,10 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                       key={tab.id}
                       type="button"
                       onClick={() => setActiveCloudTab(tab.id as any)}
-                      className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                      className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
                         activeCloudTab === tab.id
-                          ? "bg-amber-400 text-black font-extrabold"
-                          : "text-gray-400 hover:text-white"
+                          ? "bg-amber-400 text-black font-extrabold shadow"
+                          : "text-gray-400 hover:text-white hover:bg-white/5"
                       }`}
                     >
                       {tab.label}
@@ -966,7 +941,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
               </div>
 
               {/* Cloud Engine Grid */}
-              <div className="grid grid-cols-2 gap-2 max-h-[170px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-white/10">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[260px] overflow-y-auto pr-1.5 scrollbar-thin scrollbar-thumb-white/10">
                 {filteredCloudEngines.map((e) => {
                   const isSelected = selectedEngine === e.id;
                   const engineKey = (
@@ -992,42 +967,42 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         onSelectEngine(e.id);
                         setByokMode("custom");
                       }}
-                      className={`p-3 rounded-2xl text-left border transition-all cursor-pointer relative flex flex-col justify-between ${
+                      className={`p-4 rounded-2xl text-left border transition-all cursor-pointer relative flex flex-col justify-between gap-3 ${
                         isSelected
-                          ? "bg-amber-400/10 border-amber-400 text-amber-300 shadow-md ring-1 ring-amber-400/50"
-                          : "bg-white/[0.03] border-white/5 text-gray-300 hover:bg-white/[0.07]"
+                          ? "bg-amber-400/10 border-amber-400 text-amber-300 shadow-lg ring-2 ring-amber-400/40"
+                          : "bg-white/[0.03] border-white/10 text-gray-300 hover:bg-white/[0.06] hover:border-white/20"
                       }`}
                     >
                       <div>
-                        <div className="flex items-center justify-between gap-1 mb-1">
-                          <span className="font-bold text-xs truncate">{e.name}</span>
-                          <span className="px-1.5 py-0.2 rounded-full text-[8px] font-extrabold uppercase bg-white/10 text-gray-300">
+                        <div className="flex items-center justify-between gap-2 mb-1.5">
+                          <span className="font-bold text-sm text-white truncate">{e.name}</span>
+                          <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase bg-white/10 text-gray-300 shrink-0">
                             {e.badge}
                           </span>
                         </div>
-                        <p className="text-[10px] text-gray-400 line-clamp-2 leading-relaxed">
+                        <p className="text-xs text-gray-400 leading-relaxed line-clamp-2">
                           {e.desc}
                         </p>
                       </div>
-                      <div className="mt-2 flex items-center justify-between text-[9px] font-bold">
+                      <div className="flex items-center justify-between text-xs font-bold pt-2 border-t border-white/5">
                         {isSelected ? (
-                          <span className="text-amber-400 flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3" /> Selected Model
+                          <span className="text-amber-400 flex items-center gap-1.5 text-xs font-bold">
+                            <CheckCircle2 className="w-3.5 h-3.5" /> Selected Model
                           </span>
                         ) : (
-                          <span className="text-gray-500">Click to Select</span>
+                          <span className="text-gray-500 text-xs">Click to Select</span>
                         )}
                         {hasKey ? (
                           <div className="text-right">
-                            <span className="font-mono text-blue-400 text-[10px] font-extrabold block leading-tight">
+                            <span className="font-mono text-blue-400 text-xs font-bold block leading-tight">
                               ...{keySnippet}
                             </span>
-                            <span className="text-[8.5px] text-gray-400 font-normal block leading-tight">
-                              {providerLabel} API Key
+                            <span className="text-[9px] text-gray-400 font-normal block leading-tight">
+                              {providerLabel} Key Configured
                             </span>
                           </div>
                         ) : (
-                          <span className="text-gray-600 text-[8.5px]">No Key</span>
+                          <span className="text-gray-500 text-xs font-medium">No Key Set</span>
                         )}
                       </div>
                     </button>
@@ -1057,16 +1032,16 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
 
                 {/* Google Gemini Key */}
                 {selectedEngine === "gemini_flash" && (
-                  <div className="space-y-1.5">
+                  <div className="space-y-2">
                     <div className="flex justify-between items-center text-xs">
-                      <span className="text-zinc-200 font-medium">Google Gemini 2.5 Flash Key (Recommended)</span>
+                      <span className="text-zinc-200 font-bold text-sm">Google Gemini 2.5 Flash Key (Recommended)</span>
                       <a
                         href="https://aistudio.google.com/app/apikey"
                         target="_blank"
                         rel="noreferrer"
-                        className="text-amber-400/90 hover:text-amber-300 hover:underline flex items-center gap-1 text-[11px] font-medium"
+                        className="text-amber-400 hover:text-amber-300 hover:underline flex items-center gap-1.5 text-xs font-semibold"
                       >
-                        Get Free Gemini Key <ExternalLink className="w-3 h-3" />
+                        Get Free Gemini Key <ExternalLink className="w-3.5 h-3.5" />
                       </a>
                     </div>
                     <div className="relative">
@@ -1078,19 +1053,19 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         onFocus={() => handleEntryFieldInteraction(geminiKey)}
                         onPaste={() => handleEntryFieldInteraction(geminiKey)}
                         placeholder="AIzaSy..."
-                        className="w-full rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white bg-zinc-900/80 border border-white/10 outline-none focus:border-amber-400/60 font-mono shadow-inner transition-colors"
+                        className="w-full rounded-xl pl-4 pr-11 py-3 text-sm text-white bg-zinc-900/90 border border-white/15 outline-none focus:border-amber-400 font-mono shadow-inner transition-colors"
                       />
                       <button
                         type="button"
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={handleToggleReveal}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer p-0.5 rounded"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer p-1 rounded"
                         title={showSecretKey ? "Hide key" : "Reveal key (Security confirmation required)"}
                       >
                         {showSecretKey ? <EyeOff className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
-                    <p className="text-[11px] text-zinc-400">
+                    <p className="text-xs text-zinc-400">
                       Google AI Studio provides free API quota daily. Paste your key above to enable Gemini 2.5 video understanding.
                     </p>
                   </div>
@@ -1098,16 +1073,16 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
 
                 {/* Groq LPU Key */}
                 {selectedEngine === "groq_lpu" && (
-                  <div className="space-y-1.5">
+                  <div className="space-y-2">
                     <div className="flex justify-between items-center text-xs">
-                      <span className="text-zinc-200 font-medium">Groq LPU API Key</span>
+                      <span className="text-zinc-200 font-bold text-sm">Groq LPU API Key</span>
                       <a
                         href="https://console.groq.com/keys"
                         target="_blank"
                         rel="noreferrer"
-                        className="text-amber-400/90 hover:text-amber-300 hover:underline flex items-center gap-1 text-[11px] font-medium"
+                        className="text-amber-400 hover:text-amber-300 hover:underline flex items-center gap-1.5 text-xs font-semibold"
                       >
-                        Get Groq Key <ExternalLink className="w-3 h-3" />
+                        Get Groq Key <ExternalLink className="w-3.5 h-3.5" />
                       </a>
                     </div>
                     <div className="relative">
@@ -1119,13 +1094,13 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         onFocus={() => handleEntryFieldInteraction(groqKey)}
                         onPaste={() => handleEntryFieldInteraction(groqKey)}
                         placeholder="gsk_..."
-                        className="w-full rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white bg-zinc-900/80 border border-white/10 outline-none focus:border-amber-400/60 font-mono shadow-inner transition-colors"
+                        className="w-full rounded-xl pl-4 pr-11 py-3 text-sm text-white bg-zinc-900/90 border border-white/15 outline-none focus:border-amber-400 font-mono shadow-inner transition-colors"
                       />
                       <button
                         type="button"
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={handleToggleReveal}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer p-0.5 rounded"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer p-1 rounded"
                         title={showSecretKey ? "Hide key" : "Reveal key (Security confirmation required)"}
                       >
                         {showSecretKey ? <EyeOff className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4" />}
@@ -1136,16 +1111,16 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
 
                 {/* DeepSeek Key */}
                 {selectedEngine === "deepseek" && (
-                  <div className="space-y-1.5">
+                  <div className="space-y-2">
                     <div className="flex justify-between items-center text-xs">
-                      <span className="text-zinc-200 font-medium">DeepSeek V3 / R1 API Key</span>
+                      <span className="text-zinc-200 font-bold text-sm">DeepSeek V3 / R1 API Key</span>
                       <a
                         href="https://platform.deepseek.com/api_keys"
                         target="_blank"
                         rel="noreferrer"
-                        className="text-amber-400/90 hover:text-amber-300 hover:underline flex items-center gap-1 text-[11px] font-medium"
+                        className="text-amber-400 hover:text-amber-300 hover:underline flex items-center gap-1.5 text-xs font-semibold"
                       >
-                        Get DeepSeek Key <ExternalLink className="w-3 h-3" />
+                        Get DeepSeek Key <ExternalLink className="w-3.5 h-3.5" />
                       </a>
                     </div>
                     <div className="relative">
@@ -1157,13 +1132,13 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         onFocus={() => handleEntryFieldInteraction(deepseekKey)}
                         onPaste={() => handleEntryFieldInteraction(deepseekKey)}
                         placeholder="sk-..."
-                        className="w-full rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white bg-zinc-900/80 border border-white/10 outline-none focus:border-amber-400/60 font-mono shadow-inner transition-colors"
+                        className="w-full rounded-xl pl-4 pr-11 py-3 text-sm text-white bg-zinc-900/90 border border-white/15 outline-none focus:border-amber-400 font-mono shadow-inner transition-colors"
                       />
                       <button
                         type="button"
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={handleToggleReveal}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer p-0.5 rounded"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer p-1 rounded"
                         title={showSecretKey ? "Hide key" : "Reveal key (Security confirmation required)"}
                       >
                         {showSecretKey ? <EyeOff className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4" />}
@@ -1174,16 +1149,16 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
 
                 {/* OpenAI Key */}
                 {selectedEngine === "openai_chatgpt" && (
-                  <div className="space-y-1.5">
+                  <div className="space-y-2">
                     <div className="flex justify-between items-center text-xs">
-                      <span className="text-zinc-200 font-medium">OpenAI API Key (GPT-4o / Sora)</span>
+                      <span className="text-zinc-200 font-bold text-sm">OpenAI API Key (GPT-4o / Sora)</span>
                       <a
                         href="https://platform.openai.com/api-keys"
                         target="_blank"
                         rel="noreferrer"
-                        className="text-amber-400/90 hover:text-amber-300 hover:underline flex items-center gap-1 text-[11px] font-medium"
+                        className="text-amber-400 hover:text-amber-300 hover:underline flex items-center gap-1.5 text-xs font-semibold"
                       >
-                        Get OpenAI Key <ExternalLink className="w-3 h-3" />
+                        Get OpenAI Key <ExternalLink className="w-3.5 h-3.5" />
                       </a>
                     </div>
                     <div className="relative">
@@ -1195,13 +1170,13 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         onFocus={() => handleEntryFieldInteraction(openAiKey)}
                         onPaste={() => handleEntryFieldInteraction(openAiKey)}
                         placeholder="sk-proj-..."
-                        className="w-full rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white bg-zinc-900/80 border border-white/10 outline-none focus:border-amber-400/60 font-mono shadow-inner transition-colors"
+                        className="w-full rounded-xl pl-4 pr-11 py-3 text-sm text-white bg-zinc-900/90 border border-white/15 outline-none focus:border-amber-400 font-mono shadow-inner transition-colors"
                       />
                       <button
                         type="button"
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={handleToggleReveal}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer p-0.5 rounded"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer p-1 rounded"
                         title={showSecretKey ? "Hide key" : "Reveal key (Security confirmation required)"}
                       >
                         {showSecretKey ? <EyeOff className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4" />}
@@ -1212,16 +1187,16 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
 
                 {/* Anthropic Claude Key */}
                 {selectedEngine === "claude_fable" && (
-                  <div className="space-y-1.5">
+                  <div className="space-y-2">
                     <div className="flex justify-between items-center text-xs">
-                      <span className="text-zinc-200 font-medium">Anthropic Claude API Key (3.7 / 3.5)</span>
+                      <span className="text-zinc-200 font-bold text-sm">Anthropic Claude API Key (3.7 / 3.5)</span>
                       <a
                         href="https://console.anthropic.com/settings/keys"
                         target="_blank"
                         rel="noreferrer"
-                        className="text-amber-400/90 hover:text-amber-300 hover:underline flex items-center gap-1 text-[11px] font-medium"
+                        className="text-amber-400 hover:text-amber-300 hover:underline flex items-center gap-1.5 text-xs font-semibold"
                       >
-                        Get Claude Key <ExternalLink className="w-3 h-3" />
+                        Get Claude Key <ExternalLink className="w-3.5 h-3.5" />
                       </a>
                     </div>
                     <div className="relative">
@@ -1233,13 +1208,13 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         onFocus={() => handleEntryFieldInteraction(anthropicKey)}
                         onPaste={() => handleEntryFieldInteraction(anthropicKey)}
                         placeholder="sk-ant-api03-..."
-                        className="w-full rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white bg-zinc-900/80 border border-white/10 outline-none focus:border-amber-400/60 font-mono shadow-inner transition-colors"
+                        className="w-full rounded-xl pl-4 pr-11 py-3 text-sm text-white bg-zinc-900/90 border border-white/15 outline-none focus:border-amber-400 font-mono shadow-inner transition-colors"
                       />
                       <button
                         type="button"
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={handleToggleReveal}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer p-0.5 rounded"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer p-1 rounded"
                         title={showSecretKey ? "Hide key" : "Reveal key (Security confirmation required)"}
                       >
                         {showSecretKey ? <EyeOff className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4" />}
@@ -1250,16 +1225,16 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
 
                 {/* Moonlight Key */}
                 {selectedEngine === "moonlight" && (
-                  <div className="space-y-1.5">
+                  <div className="space-y-2">
                     <div className="flex justify-between items-center text-xs">
-                      <span className="text-zinc-200 font-medium">Moonshot / Moonlight API Key</span>
+                      <span className="text-zinc-200 font-bold text-sm">Moonshot / Moonlight API Key</span>
                       <a
                         href="https://platform.moonshot.cn/console/api-keys"
                         target="_blank"
                         rel="noreferrer"
-                        className="text-amber-400/90 hover:text-amber-300 hover:underline flex items-center gap-1 text-[11px] font-medium"
+                        className="text-amber-400 hover:text-amber-300 hover:underline flex items-center gap-1.5 text-xs font-semibold"
                       >
-                        Get Moonshot Key <ExternalLink className="w-3 h-3" />
+                        Get Moonshot Key <ExternalLink className="w-3.5 h-3.5" />
                       </a>
                     </div>
                     <div className="relative">
@@ -1271,13 +1246,13 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         onFocus={() => handleEntryFieldInteraction(moonlightKey)}
                         onPaste={() => handleEntryFieldInteraction(moonlightKey)}
                         placeholder="sk-moon-..."
-                        className="w-full rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white bg-zinc-900/80 border border-white/10 outline-none focus:border-amber-400/60 font-mono shadow-inner transition-colors"
+                        className="w-full rounded-xl pl-4 pr-11 py-3 text-sm text-white bg-zinc-900/90 border border-white/15 outline-none focus:border-amber-400 font-mono shadow-inner transition-colors"
                       />
                       <button
                         type="button"
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={handleToggleReveal}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer p-0.5 rounded"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer p-1 rounded"
                         title={showSecretKey ? "Hide key" : "Reveal key (Security confirmation required)"}
                       >
                         {showSecretKey ? <EyeOff className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4" />}
@@ -1288,16 +1263,16 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
 
                 {/* Qwen Key */}
                 {selectedEngine === "qwen_ai" && (
-                  <div className="space-y-1.5">
+                  <div className="space-y-2">
                     <div className="flex justify-between items-center text-xs">
-                      <span className="text-zinc-200 font-medium">Alibaba Qwen DashScope Key</span>
+                      <span className="text-zinc-200 font-bold text-sm">Alibaba Qwen DashScope Key</span>
                       <a
                         href="https://dashscope.console.aliyun.com"
                         target="_blank"
                         rel="noreferrer"
-                        className="text-amber-400/90 hover:text-amber-300 hover:underline flex items-center gap-1 text-[11px] font-medium"
+                        className="text-amber-400 hover:text-amber-300 hover:underline flex items-center gap-1.5 text-xs font-semibold"
                       >
-                        Get DashScope Key <ExternalLink className="w-3 h-3" />
+                        Get DashScope Key <ExternalLink className="w-3.5 h-3.5" />
                       </a>
                     </div>
                     <div className="relative">
@@ -1309,13 +1284,13 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         onFocus={() => handleEntryFieldInteraction(qwenKey)}
                         onPaste={() => handleEntryFieldInteraction(qwenKey)}
                         placeholder="sk-qwen-..."
-                        className="w-full rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white bg-zinc-900/80 border border-white/10 outline-none focus:border-amber-400/60 font-mono shadow-inner transition-colors"
+                        className="w-full rounded-xl pl-4 pr-11 py-3 text-sm text-white bg-zinc-900/90 border border-white/15 outline-none focus:border-amber-400 font-mono shadow-inner transition-colors"
                       />
                       <button
                         type="button"
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={handleToggleReveal}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer p-0.5 rounded"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer p-1 rounded"
                         title={showSecretKey ? "Hide key" : "Reveal key (Security confirmation required)"}
                       >
                         {showSecretKey ? <EyeOff className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4" />}
@@ -1326,16 +1301,16 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
 
                 {/* Higgsfield Key */}
                 {selectedEngine === "higgsfield" && (
-                  <div className="space-y-1.5">
+                  <div className="space-y-2">
                     <div className="flex justify-between items-center text-xs">
-                      <span className="text-zinc-200 font-medium">Higgsfield AI Key</span>
+                      <span className="text-zinc-200 font-bold text-sm">Higgsfield AI Key</span>
                       <a
                         href="https://higgsfield.ai"
                         target="_blank"
                         rel="noreferrer"
-                        className="text-amber-400/90 hover:text-amber-300 hover:underline flex items-center gap-1 text-[11px] font-medium"
+                        className="text-amber-400 hover:text-amber-300 hover:underline flex items-center gap-1.5 text-xs font-semibold"
                       >
-                        Get Higgsfield Key <ExternalLink className="w-3 h-3" />
+                        Get Higgsfield Key <ExternalLink className="w-3.5 h-3.5" />
                       </a>
                     </div>
                     <div className="relative">
@@ -1347,13 +1322,13 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         onFocus={() => handleEntryFieldInteraction(higgsfieldKey)}
                         onPaste={() => handleEntryFieldInteraction(higgsfieldKey)}
                         placeholder="hg-live-..."
-                        className="w-full rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white bg-zinc-900/80 border border-white/10 outline-none focus:border-amber-400/60 font-mono shadow-inner transition-colors"
+                        className="w-full rounded-xl pl-4 pr-11 py-3 text-sm text-white bg-zinc-900/90 border border-white/15 outline-none focus:border-amber-400 font-mono shadow-inner transition-colors"
                       />
                       <button
                         type="button"
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={handleToggleReveal}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer p-0.5 rounded"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer p-1 rounded"
                         title={showSecretKey ? "Hide key" : "Reveal key (Security confirmation required)"}
                       >
                         {showSecretKey ? <EyeOff className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4" />}
@@ -1364,16 +1339,16 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
 
                 {/* SeeDance Key */}
                 {selectedEngine === "seedance" && (
-                  <div className="space-y-1.5">
+                  <div className="space-y-2">
                     <div className="flex justify-between items-center text-xs">
-                      <span className="text-zinc-200 font-medium">SeeDance AI Key</span>
+                      <span className="text-zinc-200 font-bold text-sm">SeeDance AI Key</span>
                       <a
                         href="https://seedance.ai"
                         target="_blank"
                         rel="noreferrer"
-                        className="text-amber-400/90 hover:text-amber-300 hover:underline flex items-center gap-1 text-[11px] font-medium"
+                        className="text-amber-400 hover:text-amber-300 hover:underline flex items-center gap-1.5 text-xs font-semibold"
                       >
-                        Get SeeDance Key <ExternalLink className="w-3 h-3" />
+                        Get SeeDance Key <ExternalLink className="w-3.5 h-3.5" />
                       </a>
                     </div>
                     <div className="relative">
@@ -1385,7 +1360,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         onFocus={() => handleEntryFieldInteraction(seeDanceKey)}
                         onPaste={() => handleEntryFieldInteraction(seeDanceKey)}
                         placeholder="sd-live-..."
-                        className="w-full rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white bg-zinc-900/80 border border-white/10 outline-none focus:border-amber-400/60 font-mono shadow-inner transition-colors"
+                        className="w-full rounded-xl pl-4 pr-11 py-3 text-sm text-white bg-zinc-900/90 border border-white/15 outline-none focus:border-amber-400 font-mono shadow-inner transition-colors"
                       />
                       <button
                         type="button"
@@ -1404,70 +1379,70 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                 {(() => {
                   const currentProfile = ENGINE_IMPACT_PROFILES[selectedEngine] || ENGINE_IMPACT_PROFILES["gemini_flash"];
                   return (
-                    <div className="p-3.5 rounded-2xl bg-zinc-900/90 border border-white/10 space-y-2.5 shadow-lg">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-lg bg-amber-400/10 border border-amber-400/30 flex items-center justify-center text-amber-400 flex-shrink-0">
-                            <Sparkles className="w-3.5 h-3.5" />
+                    <div className="p-4 rounded-2xl bg-zinc-900/90 border border-white/10 space-y-3 shadow-lg">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-xl bg-amber-400/10 border border-amber-400/30 flex items-center justify-center text-amber-400 shrink-0">
+                            <Sparkles className="w-4 h-4" />
                           </div>
                           <div>
-                            <h4 className="text-xs font-bold text-white flex items-center gap-1.5 flex-wrap">
-                              <span>AI Clipping Output Depends on Your API Key</span>
-                              <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                            <h4 className="text-sm font-bold text-white flex items-center gap-2 flex-wrap">
+                              <span>AI Clipping Intelligence &amp; Model Output</span>
+                              <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-amber-400/20 text-amber-300 border border-amber-400/30">
                                 Model Impact
                               </span>
                             </h4>
-                            <p className="text-[10px] text-zinc-400 mt-0.5">
-                              Viral moments, hook titles, and clip selection styles directly reflect your chosen engine's architecture.
+                            <p className="text-xs text-zinc-400 mt-0.5">
+                              Viral moments, hook titles, and clip selection styles directly reflect your chosen engine.
                             </p>
                           </div>
                         </div>
                         <button
                           type="button"
                           onClick={() => setShowModelComparison(!showModelComparison)}
-                          className="text-[10px] text-amber-400 hover:text-amber-300 font-medium underline flex items-center gap-0.5 whitespace-nowrap cursor-pointer flex-shrink-0"
+                          className="text-xs text-amber-400 hover:text-amber-300 font-bold underline flex items-center gap-1 whitespace-nowrap cursor-pointer shrink-0"
                         >
                           {showModelComparison ? "Hide Guide" : "Compare All Engines ↗"}
                         </button>
                       </div>
 
                       {/* Active Engine Impact Spotlight Card */}
-                      <div className="rounded-xl bg-black/40 border border-white/5 p-3 space-y-2">
-                        <div className="flex items-center justify-between flex-wrap gap-1">
+                      <div className="rounded-xl bg-black/40 border border-white/5 p-3.5 space-y-2.5">
+                        <div className="flex items-center justify-between flex-wrap gap-1.5">
                           <div className="flex items-center gap-2">
-                            <span className="text-[11px] font-bold text-zinc-200">
-                              Active: <span className="text-amber-400">{currentProfile.title}</span>
+                            <span className="text-xs font-bold text-zinc-200">
+                              Active Engine: <span className="text-amber-400">{currentProfile.title}</span>
                             </span>
-                            <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-white/10 text-zinc-300">
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-white/10 text-zinc-300">
                               {currentProfile.badge}
                             </span>
                           </div>
-                          <span className="text-[10px] text-zinc-400">
-                            Inference: <strong className="text-zinc-200">{currentProfile.speed}</strong>
+                          <span className="text-xs text-zinc-400">
+                            Inference Speed: <strong className="text-zinc-200">{currentProfile.speed}</strong>
                           </span>
                         </div>
 
-                        <p className="text-[11px] text-zinc-300 leading-relaxed">
+                        <p className="text-xs text-zinc-300 leading-relaxed">
                           {currentProfile.summary}
                         </p>
 
                         {/* Grid of Key Impact Stats */}
-                        <div className="grid grid-cols-2 gap-2 text-[10px]">
-                          <div className="p-2 rounded-lg bg-white/[0.03] border border-white/5 space-y-0.5">
-                            <span className="text-zinc-500 font-semibold uppercase tracking-wider block text-[9px]">Virality Focus</span>
-                            <span className="text-zinc-200 font-medium">{currentProfile.viralityFocus}</span>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 space-y-0.5">
+                            <span className="text-zinc-500 font-bold uppercase tracking-wider block text-[10px]">Virality Focus</span>
+                            <span className="text-zinc-200 font-medium text-xs">{currentProfile.viralityFocus}</span>
                           </div>
-                          <div className="p-2 rounded-lg bg-white/[0.03] border border-white/5 space-y-0.5">
-                            <span className="text-zinc-500 font-semibold uppercase tracking-wider block text-[9px]">Best Suited For</span>
-                            <span className="text-zinc-200 font-medium">{currentProfile.bestFor}</span>
+                          <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 space-y-0.5">
+                            <span className="text-zinc-500 font-bold uppercase tracking-wider block text-[10px]">Best Suited For</span>
+                            <span className="text-zinc-200 font-medium text-xs">{currentProfile.bestFor}</span>
                           </div>
                         </div>
 
                         {/* Bullet Perks */}
-                        <div className="space-y-1 pt-1.5 border-t border-white/5">
+                        <div className="space-y-1.5 pt-2 border-t border-white/5">
                           {currentProfile.perks.map((perk, idx) => (
-                            <div key={idx} className="flex items-center gap-1.5 text-[10px] text-zinc-400">
-                              <Check className="w-3 h-3 text-amber-400 flex-shrink-0" />
+                            <div key={idx} className="flex items-center gap-2 text-xs text-zinc-300">
+                              <Check className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                               <span>{perk}</span>
                             </div>
                           ))}
@@ -1476,29 +1451,29 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
 
                       {/* Collapsible All-Engine Comparison Matrix */}
                       {showModelComparison && (
-                        <div className="pt-2 border-t border-white/10 space-y-2">
-                          <div className="text-[10px] font-bold text-zinc-300 uppercase tracking-wider">
-                            How Engines Compare Across Different Content:
+                        <div className="pt-3 border-t border-white/10 space-y-2">
+                          <div className="text-xs font-bold text-zinc-300 uppercase tracking-wider">
+                            Engine Comparison Matrix:
                           </div>
-                          <div className="grid grid-cols-1 gap-1.5 max-h-48 overflow-y-auto pr-1">
+                          <div className="grid grid-cols-1 gap-2 max-h-52 overflow-y-auto pr-1">
                             {Object.entries(ENGINE_IMPACT_PROFILES).map(([key, profile]) => (
                               <div
                                 key={key}
                                 onClick={() => onSelectEngine(key)}
-                                className={`p-2 rounded-lg border text-left cursor-pointer transition-all flex items-center justify-between ${
+                                className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all flex items-center justify-between ${
                                   selectedEngine === key
                                     ? "bg-amber-400/10 border-amber-400/40 text-white"
                                     : "bg-white/[0.02] border-white/5 hover:border-white/10 text-zinc-400"
                                 }`}
                               >
                                 <div>
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="text-[11px] font-bold text-zinc-200">{profile.title}</span>
-                                    <span className="text-[8px] px-1 py-0.2 rounded bg-white/10 text-zinc-300">{profile.badge}</span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs font-bold text-zinc-200">{profile.title}</span>
+                                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/10 text-zinc-300">{profile.badge}</span>
                                   </div>
-                                  <p className="text-[9px] text-zinc-400 line-clamp-1">{profile.bestFor}</p>
+                                  <p className="text-[11px] text-zinc-400 line-clamp-1 mt-0.5">{profile.bestFor}</p>
                                 </div>
-                                <span className="text-[9px] font-medium text-amber-400/90 whitespace-nowrap pl-2">
+                                <span className="text-xs font-semibold text-amber-400/90 whitespace-nowrap pl-2">
                                   {profile.viralityFocus}
                                 </span>
                               </div>
@@ -1511,28 +1486,28 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                 })()}
 
                 {/* Security & Confidentiality Warning Banner */}
-                <div className="p-3.5 rounded-2xl bg-amber-500/[0.06] border border-amber-500/15 space-y-1.5 text-xs text-zinc-300">
+                <div className="p-4 rounded-2xl bg-amber-500/[0.06] border border-amber-500/15 space-y-1.5 text-xs text-zinc-300">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 font-semibold text-amber-300 text-xs">
+                    <div className="flex items-center gap-2 font-bold text-amber-300 text-xs">
                       <ShieldAlert className="w-4 h-4 text-amber-400" />
                       <span>Security &amp; Confidentiality Policy</span>
                     </div>
                     <button
                       type="button"
                       onClick={() => setShowLiabilityWarningModal(true)}
-                      className="text-[11px] text-amber-400 hover:text-amber-300 font-medium underline cursor-pointer"
+                      className="text-xs text-amber-400 hover:text-amber-300 font-bold underline cursor-pointer"
                     >
                       Zero-Liability Policy ↗
                     </button>
                   </div>
-                  <p className="text-[11px] text-zinc-400 leading-relaxed">
+                  <p className="text-xs text-zinc-400 leading-relaxed">
                     <strong className="text-zinc-200">Local-only on-device storage:</strong> Never share your private key or stream your screen while revealing it. Your key is stored exclusively in your local device vault. ClipVault does not bear responsibility for compromised keys or third-party account costs.
                   </p>
                 </div>
 
                 {/* Custom Base URL (Proxy / Ollama) */}
-                <div className="pt-2 border-t border-white/5 space-y-1">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                <div className="pt-2 border-t border-white/5 space-y-1.5">
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block">
                     Custom OpenAI-Compatible API Proxy / Ollama URL (Optional)
                   </label>
                   <input
@@ -1540,7 +1515,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                     value={customBaseUrl}
                     onChange={(e) => setCustomBaseUrl(e.target.value)}
                     placeholder="e.g. http://localhost:11434/v1 or https://api.chatanywhere.tech/v1"
-                    className="w-full rounded-xl px-3.5 py-1.5 text-xs text-white bg-white/5 border border-white/10 outline-none focus:border-amber-400 font-mono"
+                    className="w-full rounded-xl px-4 py-2.5 text-xs text-white bg-white/5 border border-white/10 outline-none focus:border-amber-400 font-mono"
                   />
                 </div>
               </div>
@@ -1548,14 +1523,14 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
           )}
 
           {/* Storage & Disk Space Cache Cleaner */}
-          <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center">
+          <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center shrink-0">
                 <Trash2 className="w-4 h-4 text-amber-400" />
               </div>
               <div>
-                <h4 className="text-xs font-bold text-white">Temporary Cache &amp; Download Space</h4>
-                <p className="text-[10.5px] text-gray-400">
+                <h4 className="text-sm font-bold text-white">Temporary Cache &amp; Download Storage</h4>
+                <p className="text-xs text-gray-400">
                   {cacheCleanNotice ? (
                     <span className="text-emerald-400 font-bold">{cacheCleanNotice}</span>
                   ) : cacheSizeMb !== null ? (
@@ -1570,7 +1545,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
               type="button"
               onClick={handleClearCache}
               disabled={isCleaningCache}
-              className="px-3 py-1.5 rounded-xl bg-amber-400 text-black font-extrabold text-xs hover:bg-amber-300 transition-all flex items-center gap-1.5 cursor-pointer shadow-md disabled:opacity-50"
+              className="px-4 py-2 rounded-xl bg-amber-400 text-black font-black text-xs hover:bg-amber-300 transition-all flex items-center gap-2 cursor-pointer shadow-md disabled:opacity-50"
             >
               <Trash2 className="w-3.5 h-3.5 text-black" />
               <span>{isCleaningCache ? "Cleaning..." : "Clear Cache"}</span>
@@ -1578,24 +1553,24 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
           </div>
 
           {/* Compliance and Trademark Attribution Notice */}
-          <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/5 space-y-1 text-[10px] text-gray-400">
-            <div className="flex items-center gap-1.5 font-bold text-gray-300">
-              <ShieldCheck className="w-3.5 h-3.5 text-amber-400/80" />
+          <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-1.5 text-xs text-gray-400">
+            <div className="flex items-center gap-2 font-bold text-gray-300 text-xs">
+              <ShieldCheck className="w-4 h-4 text-amber-400/80" />
               <span>Compliance &amp; Trademark Attribution Notice</span>
             </div>
-            <p className="leading-relaxed opacity-75 text-[9.5px]">
+            <p className="leading-relaxed opacity-75 text-[10.5px]">
               Courtesy to all rightful trademark and copyright owners. ClipVault is an independent open ecosystem desktop software. All product names, logos, brands, and registered trademarks—including Intel®, Intel Core™, Intel Arc™, OpenVINO™, AMD®, Ryzen™, NVIDIA®, TensorRT™, CUDA®, Google®, Gemini™, OpenAI®, ChatGPT®, Anthropic®, Claude®, Groq®, DeepSeek®, Moonshot AI, Alibaba®, Qwen®, Higgsfield™, and ByteDance®—are the property of their respective owners. Their reference does not imply any affiliation, sponsorship, or endorsement.
             </p>
           </div>
         </div>
 
         {/* Modal Footer */}
-        <div className="p-4 border-t border-white/10 bg-black/60 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-[11px] text-gray-400">
-            <span className={`w-2 h-2 rounded-full ${isKeyMissing ? "bg-amber-400" : "bg-emerald-400 animate-pulse"}`} />
+        <div className="p-5 border-t border-white/10 bg-black/70 flex items-center justify-between">
+          <div className="flex items-center gap-2.5 text-xs text-gray-300 font-medium">
+            <span className={`w-2.5 h-2.5 rounded-full ${isKeyMissing ? "bg-amber-400" : "bg-emerald-400 animate-pulse"}`} />
             <span>
               Active Engine:{" "}
-              <b className="text-white">
+              <b className="text-white font-bold">
                 {byokMode === "local"
                   ? hardwareInfo?.engine_name || "Intel AI Engine"
                   : (CLOUD_ENGINES.find((e) => e.id === selectedEngine) || CLOUD_ENGINES[0])?.name || "AI Engine"}
@@ -1616,10 +1591,10 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                 ? "Please enter an API key for the selected cloud model to continue"
                 : "Save settings and continue"
             }
-            className={`px-5 py-2 rounded-xl font-bold text-xs transition-all shadow-md ${
+            className={`px-6 py-2.5 rounded-xl font-black text-xs transition-all shadow-md ${
               isKeyMissing
                 ? "bg-white/10 text-gray-500 border border-white/10 cursor-not-allowed opacity-40 shadow-none"
-                : "bg-amber-400 text-black hover:bg-amber-300 cursor-pointer shadow-amber-400/20"
+                : "bg-amber-400 text-black hover:bg-amber-300 cursor-pointer shadow-amber-400/20 active:scale-95"
             }`}
           >
             Done and Save Settings
