@@ -24,6 +24,16 @@ if hasattr(sys.stderr, 'reconfigure'):
     try: sys.stderr.reconfigure(encoding='utf-8', errors='replace')
     except Exception: pass
 
+import re
+
+def sanitize_windows_filename(name: str, fallback: str = "video") -> str:
+    if not name:
+        return fallback
+    cleaned = re.sub(r'[\x00-\x1f\\/:*?"<>|]', '', str(name))
+    cleaned = cleaned.strip('. ')
+    cleaned = "".join(c for c in cleaned if c.isprintable()).strip()
+    return cleaned if cleaned else fallback
+
 _original_builtin_print = builtins.print
 def _safe_system_print(*args, **kwargs):
     try:
@@ -214,8 +224,9 @@ class VideoProcessor:
                         api_key=self.api_key, ai_engine=self.ai_engine
                     )
         else:
-            video_stem = Path(video_path).name if video_path else "video"
-            cache_path = TEMP_DIR / f"{video_stem}_whisper.json"
+            raw_vstem = Path(video_path).stem if video_path else "video"
+            clean_vstem = sanitize_windows_filename(raw_vstem, fallback="video")
+            cache_path = (TEMP_DIR / f"{clean_vstem}_whisper.json").resolve()
             if cache_path.exists():
                 try:
                     with open(cache_path, 'r', encoding='utf-8') as f_cache:
@@ -267,12 +278,12 @@ class VideoProcessor:
 
         # Determine target export directory
         if output_dir:
-            target_dir = Path(output_dir)
+            target_dir = Path(output_dir).resolve()
         elif custom_folder_name:
-            clean_f = "".join(c for c in custom_folder_name if c.isalnum() or c in (' ', '_', '-', '.')).strip()
-            target_dir = OUTPUT_DIR / clean_f if clean_f else OUTPUT_DIR
+            clean_f = sanitize_windows_filename(custom_folder_name, fallback="output")
+            target_dir = (OUTPUT_DIR / clean_f).resolve()
         else:
-            target_dir = OUTPUT_DIR
+            target_dir = OUTPUT_DIR.resolve()
         target_dir.mkdir(parents=True, exist_ok=True)
 
         if caption_style in self.caption_maker.styles:
@@ -457,13 +468,15 @@ class VideoProcessor:
                         clips_to_close.append(clip)
 
                 # Export file
-                clean_stem = Path(video_path).stem if video_path else "".join(c for c in title if c.isalnum() or c in (' ', '_', '-'))[:35].strip()
+                raw_stem = Path(video_path).stem if video_path else title
+                clean_stem = sanitize_windows_filename(raw_stem, fallback="video")[:35].rstrip('. ')
                 if custom_file_name:
-                    name_prefix = custom_file_name if num_clips == 1 else f"{custom_file_name}_{i}"
+                    clean_custom = sanitize_windows_filename(custom_file_name, fallback="clip")
+                    name_prefix = clean_custom if num_clips == 1 else f"{clean_custom}_{i}"
                     filename = f"{name_prefix}.mp4"
                 else:
                     filename = f"clip_{i}_{virality_score}pts_{clean_stem}.mp4"
-                output_path = target_dir / filename
+                output_path = (target_dir / filename).resolve()
 
                 from proglog import ProgressBarLogger
                 class MyBarLogger(ProgressBarLogger):
@@ -493,6 +506,8 @@ class VideoProcessor:
                     print("🛑 Processing cancelled by user.")
                     break
 
+                safe_temp_audio = str((TEMP_DIR / f'temp_audio_{i}_{os.getpid()}_{int(time.time())}.m4a').resolve())
+
                 clip.write_videofile(
                     str(output_path),
                     codec=best_codec,
@@ -502,7 +517,7 @@ class VideoProcessor:
                     ffmpeg_params=ffmpeg_params,
                     verbose=False,
                     logger=my_logger,
-                    temp_audiofile=str(TEMP_DIR / f'temp_audio_{i}_{os.getpid()}.m4a'),
+                    temp_audiofile=safe_temp_audio,
                     remove_temp=True,
                     threads=thread_count
                 )
@@ -513,9 +528,9 @@ class VideoProcessor:
                     progress_callback(f"Finalized Clip {i}/{len(clip_specs)}", final_pct)
 
                 # Save metadata text file
-                metadata_dir = target_dir / "metadata"
+                metadata_dir = (target_dir / "metadata").resolve()
                 metadata_dir.mkdir(exist_ok=True)
-                metadata_path = metadata_dir / f"clip_{i}_{virality_score}pts_{clean_stem}_metadata.txt"
+                metadata_path = (metadata_dir / f"clip_{i}_{virality_score}pts_{clean_stem}_metadata.txt").resolve()
                 try:
                     with open(metadata_path, 'w', encoding='utf-8') as f_meta:
                         f_meta.write(f"🎬 Catchy Title:\n{clip_info.get('content_title', title_text)}\n\n")
