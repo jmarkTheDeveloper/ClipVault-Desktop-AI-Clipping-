@@ -152,10 +152,12 @@ let pythonProcess;
   });
 
 function createWindow() {
-  const iconPng = path.resolve(__dirname, '../public/icon.png');
   const iconIco = path.resolve(__dirname, '../public/icon.ico');
-  const iconTarget = fs.existsSync(iconPng) ? iconPng : (fs.existsSync(iconIco) ? iconIco : null);
-  const appIcon = iconTarget ? nativeImage.createFromPath(iconTarget) : undefined;
+  const iconPng = path.resolve(__dirname, '../public/icon.png');
+  const iconTarget = process.platform === 'win32'
+    ? (fs.existsSync(iconIco) ? iconIco : iconPng)
+    : (fs.existsSync(iconPng) ? iconPng : iconIco);
+  const appIcon = fs.existsSync(iconTarget) ? nativeImage.createFromPath(iconTarget) : undefined;
 
   const isDev = process.env.NODE_ENV === 'development' && !app.isPackaged;
 
@@ -164,7 +166,7 @@ function createWindow() {
     height: 720,
     title: 'ClipVault AI Video Studio',
     show: false,
-    icon: appIcon || iconTarget,
+    icon: (appIcon && !appIcon.isEmpty()) ? appIcon : iconTarget,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       nodeIntegration: false,
