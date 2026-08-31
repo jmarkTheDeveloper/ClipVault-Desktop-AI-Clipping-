@@ -168,10 +168,10 @@ let pythonProcess;
   });
 
 function createWindow() {
-  const iconIco = path.resolve(__dirname, '../public/icon.ico');
   const iconPng = path.resolve(__dirname, '../public/icon.png');
-  const iconFilePath = fs.existsSync(iconIco) ? iconIco : (fs.existsSync(iconPng) ? iconPng : null);
-  const appIcon = iconFilePath ? nativeImage.createFromPath(iconFilePath) : undefined;
+  const iconIco = path.resolve(__dirname, '../public/icon.ico');
+  const iconTarget = fs.existsSync(iconPng) ? iconPng : (fs.existsSync(iconIco) ? iconIco : null);
+  const appIcon = iconTarget ? nativeImage.createFromPath(iconTarget) : undefined;
 
   const isDev = process.env.NODE_ENV === 'development' && !app.isPackaged;
 
@@ -180,7 +180,7 @@ function createWindow() {
     height: 720,
     title: 'ClipVault AI Video Studio',
     show: false,
-    icon: iconFilePath || appIcon,
+    icon: appIcon || iconTarget,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       nodeIntegration: false,
@@ -196,12 +196,10 @@ function createWindow() {
     }
   });
 
-  if (iconFilePath) {
+  if (appIcon && !appIcon.isEmpty()) {
     try {
-      mainWindow.setIcon(iconFilePath);
-    } catch (e) {
-      if (appIcon) mainWindow.setIcon(appIcon);
-    }
+      mainWindow.setIcon(appIcon);
+    } catch (e) {}
   }
 
   // Security Guard: Safely delegate external web links to default browser
