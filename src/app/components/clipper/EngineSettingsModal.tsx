@@ -440,6 +440,11 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
     }
   };
 
+  const handleCancelReveal = () => {
+    setShowRevealModal(false);
+    setRevealInputText("");
+  };
+
   // Auto-re-mask revealed key after 30 seconds for screen safety
   useEffect(() => {
     if (showSecretKey) {
