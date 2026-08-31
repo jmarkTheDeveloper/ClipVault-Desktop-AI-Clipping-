@@ -621,6 +621,7 @@ export const AiClipperScreen: React.FC<Props> = ({
       return;
     }
 
+    setErrorMsg(null);
     setRunning(true);
     setProgress(5);
     setStatusText("Initializing AI Clipper Engine...");
