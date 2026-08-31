@@ -20,7 +20,6 @@ export function Logo({ size = 36 }: { size?: number }) {
       <path d="M8.5 10 L20 31 L31.5 10" stroke="#ffffff" strokeWidth="5.5" strokeLinecap="round" strokeLinejoin="round" />
       <rect x="5.5" y="7" width="5.5" height="5" rx="1.5" fill={`url(#cv-inner-${uid})`} />
       <rect x="29" y="7" width="5.5" height="5" rx="1.5" fill={`url(#cv-inner-${uid})`} />
-      <rect x="15" y="17.5" width="10" height="7" rx="1.5" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.2" />
     </svg>
   );
 }
