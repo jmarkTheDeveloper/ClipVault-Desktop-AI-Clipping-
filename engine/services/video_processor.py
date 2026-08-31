@@ -542,6 +542,8 @@ class VideoProcessor:
 
             except Exception as e:
                 print(f"    ❌ Error processing clip {i}: {e}")
+                import traceback
+                traceback.print_exc()
                 last_clip_error = str(e)
                 continue
             finally:
