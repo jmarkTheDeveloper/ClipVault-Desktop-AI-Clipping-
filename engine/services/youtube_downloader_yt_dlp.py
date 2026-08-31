@@ -145,7 +145,7 @@ class YouTubeDownloader:
             'socket_timeout': 8,
             'retries': 2,
             'extractor_retries': 2,
-            'outtmpl': str(self.temp_dir / f'subs_{video_id}.%(ext)s'),
+            'outtmpl': (self.temp_dir / f'subs_{video_id}.%(ext)s').as_posix(),
         })
 
         try:
@@ -250,7 +250,7 @@ class YouTubeDownloader:
         opts = self._get_base_opts()
         opts.update({
             'format': 'bestaudio[ext=m4a]/bestaudio/best',
-            'outtmpl': os.path.join(self.temp_dir, f'audio_{video_id}.%(ext)s'),
+            'outtmpl': (self.temp_dir / f'audio_{video_id}.%(ext)s').as_posix(),
         })
 
         print(f"⚡ Downloading lightweight audio stream for fast AI transcription...")
@@ -383,7 +383,7 @@ class YouTubeDownloader:
         fallback_opts = self._get_base_opts()
         fallback_opts.update({
             'format': format_str,
-            'outtmpl': str(output_path.with_suffix('')) + '.%(ext)s',
+            'outtmpl': output_path.with_suffix('').as_posix() + '.%(ext)s',
             'merge_output_format': 'mp4',
             'download_ranges': yt_dlp.utils.download_range_func(None, [(start_sec, end_sec)]),
             'force_keyframes_at_cuts': False,
@@ -432,7 +432,7 @@ class YouTubeDownloader:
         opts = self._get_base_opts()
         opts.update({
             'format': format_str,
-            'outtmpl': os.path.join(self.temp_dir, f'{video_id}.%(ext)s'),
+            'outtmpl': (self.temp_dir / f'{video_id}.%(ext)s').as_posix(),
             'merge_output_format': 'mp4',
         })
 
