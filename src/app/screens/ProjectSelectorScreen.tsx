@@ -259,38 +259,13 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
         >
           {/* Left Column: Hero Typography & Key Stats */}
           <div className="wf-left-col" style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
-            {/* Hero Brand Identity Badge */}
-            <div style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 12,
-              padding: "7px 14px 7px 8px",
-              borderRadius: 14,
-              background: "linear-gradient(135deg, rgba(0,230,118,0.1) 0%, rgba(255,255,255,0.02) 100%)",
-              border: "1px solid rgba(0,230,118,0.22)",
-              boxShadow: "0 0 25px rgba(0,230,118,0.12)",
-              marginBottom: 16,
-            }}>
-              <div style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                background: "rgba(0,230,118,0.12)",
-                border: "1px solid rgba(0,230,118,0.3)",
-              }}>
-                <Logo size={26} />
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: "0.18em", textTransform: "uppercase", color: G, fontFamily: "'Geist Mono', monospace" }}>
-                  AI VIDEO SUITE
-                </span>
-                <span style={{ fontSize: 11.5, fontWeight: 600, color: "rgba(255,255,255,0.75)" }}>
-                  Autonomous Short-Form Studio
-                </span>
-              </div>
+            {/* Pill */}
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+              <div style={{ height: 1, width: 20, background: "rgba(0,230,118,0.35)" }} />
+              <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(0,230,118,0.6)" }}>
+                AI VIDEO SUITE
+              </span>
+              <div style={{ height: 1, width: 20, background: "rgba(0,230,118,0.35)" }} />
             </div>
 
             {/* Main Headline */}

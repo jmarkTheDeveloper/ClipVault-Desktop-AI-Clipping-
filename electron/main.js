@@ -18,23 +18,7 @@ process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true';
 
 // Windows Taskbar & Toast Notification Identity Registration
 if (process.platform === 'win32') {
-  const appId = 'com.clipvault.studio';
-  app.setAppUserModelId(appId);
-  try {
-    const shortcutDir = path.join(app.getPath('appData'), 'Microsoft', 'Windows', 'Start Menu', 'Programs');
-    const shortcutPath = path.join(shortcutDir, 'ClipVault Studio.lnk');
-    const iconFile = path.resolve(__dirname, '../public/icon.ico');
-    if (fs.existsSync(iconFile)) {
-      shell.writeShortcutLink(shortcutPath, 'create', {
-        target: process.execPath,
-        args: app.isPackaged ? '' : `"${path.resolve(__dirname, '..')}"`,
-        appUserModelId: appId,
-        description: 'ClipVault AI Video Studio',
-        icon: iconFile,
-        iconIndex: 0
-      });
-    }
-  } catch (e) {}
+  app.setAppUserModelId('com.clipvault.studio');
 }
 
 // Register privileged scheme BEFORE app is ready to bypass all security blocks
@@ -388,6 +372,31 @@ function killPythonBackend() {
 }
 
 app.whenReady().then(() => {
+  if (process.platform === 'win32') {
+    try {
+      const shortcutDir = path.join(app.getPath('appData'), 'Microsoft', 'Windows', 'Start Menu', 'Programs');
+      const shortcutPath = path.join(shortcutDir, 'ClipVault Studio.lnk');
+      const iconIco = path.resolve(__dirname, '../public/icon.ico');
+      const shortcutOptions = {
+        target: process.execPath,
+        args: app.isPackaged ? '' : `"${path.resolve(__dirname, '..')}"`,
+        appUserModelId: 'com.clipvault.studio',
+        description: 'ClipVault AI Video Studio',
+        icon: iconIco,
+        iconIndex: 0,
+      };
+      if (fs.existsSync(iconIco)) {
+        try {
+          shell.writeShortcutLink(shortcutPath, 'replace', shortcutOptions);
+        } catch (e) {
+          shell.writeShortcutLink(shortcutPath, 'create', shortcutOptions);
+        }
+      }
+    } catch (err) {
+      console.error('[Electron]: Shortcut creation error:', err);
+    }
+  }
+
   protocol.handle('local', async (request) => {
     try {
       const rawUrl = request.url.replace(/^local:\/\//i, '').replace(/^local:\//i, '');
