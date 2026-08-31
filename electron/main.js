@@ -18,19 +18,22 @@ process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true';
 
 // Windows Taskbar & Toast Notification Identity Registration
 if (process.platform === 'win32') {
-  app.setAppUserModelId('com.clipvault.studio');
+  const appId = 'com.clipvault.studio';
+  app.setAppUserModelId(appId);
   try {
     const shortcutDir = path.join(app.getPath('appData'), 'Microsoft', 'Windows', 'Start Menu', 'Programs');
     const shortcutPath = path.join(shortcutDir, 'ClipVault Studio.lnk');
-    const iconFile = path.join(__dirname, '../public/icon.ico');
-    shell.writeShortcutLink(shortcutPath, 'create', {
-      target: process.execPath,
-      args: app.isPackaged ? '' : `"${path.join(__dirname, '..')}"`,
-      appUserModelId: 'com.clipvault.studio',
-      description: 'ClipVault AI Video Studio',
-      icon: iconFile,
-      iconIndex: 0
-    });
+    const iconFile = path.resolve(__dirname, '../public/icon.ico');
+    if (fs.existsSync(iconFile)) {
+      shell.writeShortcutLink(shortcutPath, 'create', {
+        target: process.execPath,
+        args: app.isPackaged ? '' : `"${path.resolve(__dirname, '..')}"`,
+        appUserModelId: appId,
+        description: 'ClipVault AI Video Studio',
+        icon: iconFile,
+        iconIndex: 0
+      });
+    }
   } catch (e) {}
 }
 
@@ -165,8 +168,10 @@ let pythonProcess;
   });
 
 function createWindow() {
-  const iconPath = path.join(__dirname, '../public/icon.ico');
-  const appIcon = nativeImage.createFromPath(iconPath);
+  const iconIco = path.resolve(__dirname, '../public/icon.ico');
+  const iconPng = path.resolve(__dirname, '../public/icon.png');
+  const iconFilePath = fs.existsSync(iconIco) ? iconIco : (fs.existsSync(iconPng) ? iconPng : null);
+  const appIcon = iconFilePath ? nativeImage.createFromPath(iconFilePath) : undefined;
 
   const isDev = process.env.NODE_ENV === 'development' && !app.isPackaged;
 
@@ -175,7 +180,7 @@ function createWindow() {
     height: 720,
     title: 'ClipVault AI Video Studio',
     show: false,
-    icon: appIcon,
+    icon: iconFilePath || appIcon,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       nodeIntegration: false,
@@ -191,7 +196,13 @@ function createWindow() {
     }
   });
 
-  mainWindow.setIcon(appIcon);
+  if (iconFilePath) {
+    try {
+      mainWindow.setIcon(iconFilePath);
+    } catch (e) {
+      if (appIcon) mainWindow.setIcon(appIcon);
+    }
+  }
 
   // Security Guard: Safely delegate external web links to default browser
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
