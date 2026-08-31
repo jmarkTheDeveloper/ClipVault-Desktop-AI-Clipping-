@@ -6,8 +6,8 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite",
-    "start": "electron .",
-    "dev:electron": "concurrently --kill-others \"vite\" \"wait-on http-get://localhost:54321 && cross-env NODE_ENV=development electron .\"",
+    "start": "\"./node_modules/electron/dist/ClipVault AI Studio.exe\" .",
+    "dev:electron": "concurrently --kill-others \"vite\" \"wait-on http-get://localhost:54321 && cross-env NODE_ENV=development \"./node_modules/electron/dist/ClipVault AI Studio.exe\" .\"",
     "sync": "node sync.cjs",
     "sync:watch": "node auto_git_watch.cjs",
     "build:python": "pyinstaller engine_server.spec --distpath dist_python --workpath build_python --clean --noconfirm",
