@@ -51,6 +51,8 @@ import uuid
 import json
 import mimetypes
 import threading
+import gc
+import traceback
 from pathlib import Path
 
 from services.video_processor import VideoProcessor
