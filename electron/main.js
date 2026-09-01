@@ -459,6 +459,11 @@ ipcMain.handle('get-youtube-info', async (event, url) => {
   }
 });
 
+ipcMain.handle('quit-app', async () => {
+  killPythonBackend();
+  app.quit();
+});
+
 app.on('window-all-closed', function () {
   killPythonBackend();
   if (process.platform !== 'darwin') {

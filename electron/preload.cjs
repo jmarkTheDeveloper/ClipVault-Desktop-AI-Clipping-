@@ -9,4 +9,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   showItemInFolder: (filePath) => ipcRenderer.invoke('show-item-in-folder', filePath),
   startDrag: (filePath) => ipcRenderer.send('start-drag', filePath),
   showNotification: (options) => ipcRenderer.invoke('show-notification', options),
+  quitApp: () => ipcRenderer.invoke('quit-app'),
 });

@@ -54,10 +54,23 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
   const [complianceTab, setComplianceTab] = useState<string>("all");
   const [complianceSearch, setComplianceSearch] = useState<string>("");
   const [copiedEula, setCopiedEula] = useState<boolean>(false);
+  const [agreedTerms, setAgreedTerms] = useState<boolean>(false);
   const [hasScrolledToBottom, setHasScrolledToBottom] = useState<boolean>(false);
   const [showScrollPrompt, setShowScrollPrompt] = useState<boolean>(false);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const documentPaneRef = useRef<HTMLDivElement>(null);
+
+  const handleDecline = () => {
+    try {
+      if ((window as any).electronAPI?.quitApp) {
+        (window as any).electronAPI.quitApp();
+      } else {
+        window.close();
+      }
+    } catch {
+      window.close();
+    }
+  };
 
   useEffect(() => {
     fetch("http://127.0.0.1:8000/api/health")
@@ -1227,147 +1240,196 @@ Effective Date: August 2026 • Published by @jmarkTheDeveloper • Applicable t
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                padding: "14px 24px",
-                borderTop: "1px solid rgba(255,255,255,0.07)",
-                background: "rgba(255,255,255,0.015)",
+                padding: "16px 24px",
+                borderTop: "1px solid rgba(255,255,255,0.08)",
+                background: "rgba(0,0,0,0.25)",
                 flexShrink: 0,
+                gap: 16,
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-                <a
-                  href="mailto:jmarkthedeveloper@gmail.com"
-                  style={{
-                    fontSize: 11.5,
-                    color: G,
-                    textDecoration: "none",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 5,
-                    transition: "opacity 0.2s",
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.8"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
-                >
-                  <Mail style={{ width: 12, height: 12 }} />
-                  <span>jmarkthedeveloper@gmail.com</span>
-                </a>
-
-                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.2)" }}>•</span>
-
-                <a
-                  href="https://patreon.com/jmarkTheDeveloper?utm_medium=unknown&utm_source=join_link&utm_campaign=creatorshare_creator&utm_content=copyLink"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    fontSize: 11.5,
-                    color: "#ff667a",
-                    textDecoration: "none",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                    transition: "color 0.2s",
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.color = "#ff8595"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.color = "#ff667a"; }}
-                >
-                  <span>Support on Patreon</span>
-                  <ExternalLink style={{ width: 10, height: 10, opacity: 0.6 }} />
-                </a>
-
-                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.2)" }}>•</span>
-
-                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", fontFamily: "'JetBrains Mono', monospace" }}>
-                  Exclusive Commercial License © 2026 @jmarkTheDeveloper
-                </span>
-              </div>
-
               {!complianceAccepted ? (
-                <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                  {!hasScrolledToBottom ? (
-                    <div style={{ display: "flex", alignItems: "center", gap: 7, color: "rgba(255,255,255,0.48)", fontSize: 11.5, fontFamily: "'Geist Mono', monospace" }}>
-                      <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#f59e0b", boxShadow: "0 0 6px #f59e0b" }} />
-                      <span>Scroll to bottom to unlock accept</span>
-                    </div>
-                  ) : (
-                    <div style={{ display: "flex", alignItems: "center", gap: 7, color: G, fontSize: 11.5, fontWeight: 600 }}>
-                      <CheckCircle2 style={{ width: 14, height: 14, color: G }} />
-                      <span>Review Completed &amp; Verified</span>
-                    </div>
-                  )}
+                /* ── FIRST-LAUNCH CLICKWRAP GATE ── */
+                <>
+                  <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", userSelect: "none" }}>
+                    <input
+                      type="checkbox"
+                      checked={agreedTerms}
+                      onChange={(e) => setAgreedTerms(e.target.checked)}
+                      style={{
+                        width: 17,
+                        height: 17,
+                        accentColor: G,
+                        cursor: "pointer",
+                        borderRadius: 4,
+                      }}
+                    />
+                    <span style={{ fontSize: 12, color: agreedTerms ? "#fff" : "rgba(255,255,255,0.75)", fontWeight: 600 }}>
+                      I have read, understood, and agree to the Master License Agreement and Privacy Terms.
+                    </span>
+                  </label>
 
-                  <button
-                    type="button"
-                    disabled={!hasScrolledToBottom}
-                    onClick={() => {
-                      try {
-                        localStorage.setItem("clipvault_compliance_accepted", "true");
-                      } catch {}
-                      setComplianceAccepted(true);
-                      setShowPrivacyModal(false);
-                    }}
-                    style={{
-                      padding: "8px 24px",
-                      borderRadius: 8,
-                      fontWeight: 700,
-                      fontSize: 12,
-                      color: hasScrolledToBottom ? "#000" : "rgba(0,0,0,0.35)",
-                      background: hasScrolledToBottom ? G : "rgba(0,230,118,0.22)",
-                      border: "none",
-                      cursor: hasScrolledToBottom ? "pointer" : "not-allowed",
-                      boxShadow: hasScrolledToBottom ? "0 0 20px rgba(0,230,118,0.35)" : "none",
-                      transition: "all 0.15s",
-                    }}
-                  >
-                    Accept &amp; Continue
-                  </button>
-                </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    {!hasScrolledToBottom && (
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#f59e0b", fontSize: 11, fontFamily: "'Geist Mono', monospace" }}>
+                        <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#f59e0b", boxShadow: "0 0 6px #f59e0b" }} />
+                        <span>Scroll document to unlock</span>
+                      </div>
+                    )}
+
+                    {/* Decline & Exit Button */}
+                    <button
+                      type="button"
+                      onClick={handleDecline}
+                      style={{
+                        padding: "8px 18px",
+                        borderRadius: 8,
+                        fontWeight: 600,
+                        fontSize: 12,
+                        color: "rgba(255,102,122,0.9)",
+                        background: "rgba(255,102,122,0.08)",
+                        border: "1px solid rgba(255,102,122,0.25)",
+                        cursor: "pointer",
+                        transition: "all 0.15s",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "rgba(255,102,122,0.18)";
+                        e.currentTarget.style.color = "#fff";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "rgba(255,102,122,0.08)";
+                        e.currentTarget.style.color = "rgba(255,102,122,0.9)";
+                      }}
+                    >
+                      Decline &amp; Exit
+                    </button>
+
+                    {/* I Agree & Launch Studio (Primary Clickwrap) */}
+                    <button
+                      type="button"
+                      disabled={!agreedTerms || !hasScrolledToBottom}
+                      onClick={() => {
+                        try {
+                          localStorage.setItem("clipvault_compliance_accepted", "true");
+                        } catch {}
+                        setComplianceAccepted(true);
+                        setShowPrivacyModal(false);
+                      }}
+                      style={{
+                        padding: "8px 24px",
+                        borderRadius: 8,
+                        fontWeight: 700,
+                        fontSize: 12,
+                        color: (agreedTerms && hasScrolledToBottom) ? "#000" : "rgba(0,0,0,0.35)",
+                        background: (agreedTerms && hasScrolledToBottom) ? G : "rgba(0,230,118,0.2)",
+                        border: "none",
+                        cursor: (agreedTerms && hasScrolledToBottom) ? "pointer" : "not-allowed",
+                        boxShadow: (agreedTerms && hasScrolledToBottom) ? "0 0 24px rgba(0,230,118,0.4)" : "none",
+                        transition: "all 0.15s",
+                      }}
+                    >
+                      I Agree &amp; Launch Studio
+                    </button>
+                  </div>
+                </>
               ) : (
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <span style={{ fontSize: 11.5, color: G, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
-                    <CheckCircle2 style={{ width: 13, height: 13, color: G }} /> Compliance Accepted
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      try {
-                        localStorage.removeItem("clipvault_compliance_accepted");
-                      } catch {}
-                      setComplianceAccepted(false);
-                      setHasScrolledToBottom(false);
-                    }}
-                    style={{
-                      padding: "6px 12px",
-                      borderRadius: 6,
-                      background: "rgba(255,255,255,0.04)",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                      color: "rgba(255,255,255,0.5)",
-                      fontSize: 11,
-                      cursor: "pointer",
-                      transition: "all 0.15s",
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.color = "#fff"; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.5)"; }}
-                  >
-                    Reset Acceptance
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowPrivacyModal(false)}
-                    style={{
-                      border: "1px solid rgba(255,255,255,0.12)",
-                      cursor: "pointer",
-                      transition: "all 0.15s",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "rgba(255,255,255,0.14)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "rgba(255,255,255,0.08)";
-                    }}
-                  >
-                    Close
-                  </button>
-                </div>
+                /* ── POST-ACCEPTANCE IN-APP VIEWER ── */
+                <>
+                  <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+                    <a
+                      href="mailto:jmarkthedeveloper@gmail.com"
+                      style={{
+                        fontSize: 11.5,
+                        color: G,
+                        textDecoration: "none",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 5,
+                        transition: "opacity 0.2s",
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.8"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
+                    >
+                      <Mail style={{ width: 12, height: 12 }} />
+                      <span>jmarkthedeveloper@gmail.com</span>
+                    </a>
+
+                    <span style={{ fontSize: 11, color: "rgba(255,255,255,0.2)" }}>•</span>
+
+                    <a
+                      href="https://patreon.com/jmarkTheDeveloper?utm_medium=unknown&utm_source=join_link&utm_campaign=creatorshare_creator&utm_content=copyLink"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        fontSize: 11.5,
+                        color: "#ff667a",
+                        textDecoration: "none",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        transition: "color 0.2s",
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.color = "#ff8595"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.color = "#ff667a"; }}
+                    >
+                      <span>Support on Patreon</span>
+                      <ExternalLink style={{ width: 10, height: 10, opacity: 0.6 }} />
+                    </a>
+
+                    <span style={{ fontSize: 11, color: "rgba(255,255,255,0.2)" }}>•</span>
+
+                    <span style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", fontFamily: "'JetBrains Mono', monospace" }}>
+                      Exclusive Commercial License © 2026 @jmarkTheDeveloper
+                    </span>
+                  </div>
+
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <span style={{ fontSize: 11.5, color: G, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
+                      <CheckCircle2 style={{ width: 13, height: 13, color: G }} /> EULA Accepted &amp; Verified
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        try {
+                          localStorage.removeItem("clipvault_compliance_accepted");
+                        } catch {}
+                        setComplianceAccepted(false);
+                        setAgreedTerms(false);
+                        setHasScrolledToBottom(false);
+                      }}
+                      style={{
+                        padding: "6px 12px",
+                        borderRadius: 6,
+                        background: "rgba(255,255,255,0.04)",
+                        border: "1px solid rgba(255,255,255,0.08)",
+                        color: "rgba(255,255,255,0.5)",
+                        fontSize: 11,
+                        cursor: "pointer",
+                        transition: "all 0.15s",
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.color = "#fff"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.5)"; }}
+                    >
+                      Reset Acceptance
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowPrivacyModal(false)}
+                      style={{
+                        padding: "6px 16px",
+                        borderRadius: 6,
+                        background: "rgba(255,255,255,0.1)",
+                        border: "1px solid rgba(255,255,255,0.15)",
+                        color: "#fff",
+                        fontSize: 11.5,
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        transition: "all 0.15s",
+                      }}
+                    >
+                      Close
+                    </button>
+                  </div>
+                </>
               )}
             </div>
           </div>
