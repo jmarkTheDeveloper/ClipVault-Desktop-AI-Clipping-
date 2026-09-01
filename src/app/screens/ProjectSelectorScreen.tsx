@@ -23,6 +23,10 @@ import {
   Coffee,
   User,
   Mail,
+  Copy,
+  CheckCheck,
+  Search,
+  FileText,
 } from "lucide-react";
 import { Logo } from "../components/Logo";
 
@@ -48,6 +52,8 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
   const [showPrivacyModal, setShowPrivacyModal] = useState<boolean>(false);
   const [showAboutModal, setShowAboutModal] = useState<boolean>(false);
   const [complianceTab, setComplianceTab] = useState<string>("all");
+  const [complianceSearch, setComplianceSearch] = useState<string>("");
+  const [copiedEula, setCopiedEula] = useState<boolean>(false);
   const [hasScrolledToBottom, setHasScrolledToBottom] = useState<boolean>(false);
   const [showScrollPrompt, setShowScrollPrompt] = useState<boolean>(false);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -652,123 +658,238 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                padding: "18px 24px",
-                borderBottom: "1px solid rgba(255,255,255,0.07)",
-                background: "rgba(255,255,255,0.015)",
+                padding: "16px 24px",
+                borderBottom: "1px solid rgba(255,255,255,0.08)",
+                background: "rgba(255,255,255,0.02)",
                 flexShrink: 0,
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <div
                   style={{
-                    width: 34,
-                    height: 34,
-                    borderRadius: 9,
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
                     background: "rgba(0,230,118,0.08)",
-                    border: "1px solid rgba(0,230,118,0.22)",
+                    border: "1px solid rgba(0,230,118,0.25)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                   }}
                 >
-                  <ShieldCheck style={{ width: 18, height: 18, color: G }} />
+                  <ShieldCheck style={{ width: 20, height: 20, color: G }} />
                 </div>
                 <div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
                     <h3 style={{ fontFamily: "'Space Grotesk', 'Geist', sans-serif", fontSize: 17, fontWeight: 800, color: "#fff", margin: 0 }}>
-                      Security, BYOK Privacy & Compliance Center
+                      Trust, Privacy &amp; Compliance Center
                     </h3>
                     <span style={{
-                      padding: "2px 6px",
+                      padding: "2px 7px",
                       borderRadius: 4,
-                      fontSize: 8.5,
+                      fontSize: 9,
                       fontFamily: "'Geist Mono', monospace",
                       fontWeight: 700,
-                      background: "rgba(0,230,118,0.1)",
+                      background: "rgba(0,230,118,0.12)",
                       color: G,
-                      border: "1px solid rgba(0,230,118,0.2)",
+                      border: "1px solid rgba(0,230,118,0.25)",
                     }}>
-                      VERIFIED V1.0
+                      EULA v2.4 • VERIFIED
                     </span>
                   </div>
-                  <p style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", margin: 0 }}>
-                    Local-First Architecture • Zero Telemetry • Fair-Use & DMCA Guidelines • Proprietary License
+                  <p style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", margin: 0 }}>
+                    Local-First Engine • Zero Telemetry • Fair Use &amp; DMCA Guidelines • Master Commercial License
                   </p>
                 </div>
               </div>
 
-              {/* Close (X) button ONLY visible if the user has already accepted the compliance terms */}
-              {complianceAccepted && (
+              {/* Header Right Actions */}
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                {/* Copy Agreement Button */}
                 <button
                   type="button"
-                  onClick={() => setShowPrivacyModal(false)}
+                  onClick={() => {
+                    const text = `CLIPVAULT AI VIDEO STUDIO - END-USER LICENSE AGREEMENT & LEGAL COMPLIANCE MASTER AGREEMENT
+Effective Date: August 2026 • Published by @jmarkTheDeveloper • Applicable to all Desktop Builds & Commercial Releases
+
+1. GRANT OF COMMERCIAL LICENSE & CREATOR RIGHTS
+- License Scope: You are granted a worldwide, non-exclusive, perpetual license to install and execute ClipVault AI Video Studio.
+- Creator Asset Ownership: You retain 100% full intellectual property, monetization, and commercial distribution rights over all final video master outputs, vertical clips, and subtitle assets with 0% developer royalties.
+- Local-First Privacy: Your videos, source media, transcripts, and private API keys are never uploaded to any centralized ClipVault server.
+
+2. ACCEPTABLE USE & SOFTWARE INTEGRITY
+- Permitted Uses: Commercial video editing, social media short-form content (YouTube Shorts, TikTok, Reels), podcast clipping, gaming highlights, and personal archival.
+- Distribution Restrictions: You may not repackage or resell ClipVault binaries as a third-party commercial SaaS or cloud web service.
+
+3. DATA PRIVACY & ZERO TELEMETRY
+- Zero Telemetry: ClipVault contains 0% user tracking, telemetry beacons, or analytics collectors.
+- Local File Storage: Video frames, facial landmark arrays, and subtitle caches are saved exclusively to your local device directories (%LOCALAPPDATA%).
+- Direct API Connections: BYOK API requests connect directly from your IP address to official provider endpoints (Google/OpenAI) with zero intermediate proxy servers.
+
+4. FAIR USE, DMCA & INGESTION GUIDELINES
+- Lawful & Transformative Purpose: Designed for transformative commentary, education, podcast highlights, and user-owned footage under Section 107 of the U.S. Copyright Act (Fair Use Doctrine).
+- Creator Responsibility: Users assume responsibility for ensuring they possess valid licenses or fair-use justifications for third-party media they publish.
+
+5. THIRD-PARTY AI MODELS & DIRECT BILLING
+- Direct Billing: You manage and fund your own API keys directly with providers (Google Gemini, Groq, OpenAI). ClipVault charges 0% markups or token fees.
+- 100% Free Local Fallback: Offline mode available with faster-whisper and rule-based heuristic highlight selectors.
+
+6. HARDWARE ACCELERATION & SYSTEM PERFORMANCE
+- GPU Optimization: Automatic detection of Intel QuickSync, NVIDIA NVENC, and AMD AMF hardware encoders for high-speed exports.
+- Automatic Storage Cleanup: Built-in temporary file manager keeps your local disk space optimal.
+
+7. TRADEMARKS & NON-AFFILIATION
+- YouTube, Google, TikTok, Instagram, Meta, OpenAI, Groq, NVIDIA, Intel, and AMD are trademarks of their respective owners. Mention does not imply affiliation or endorsement.
+
+8. STANDARD DISCLAIMERS & INQUIRIES
+- The software is provided "AS IS", without warranty of any kind.
+- Contact: jmarkthedeveloper@gmail.com`;
+                    try {
+                      navigator.clipboard.writeText(text);
+                      setCopiedEula(true);
+                      setTimeout(() => setCopiedEula(false), 2500);
+                    } catch {}
+                  }}
                   style={{
-                    width: 30,
-                    height: 30,
-                    borderRadius: 7,
-                    background: "rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                    color: "rgba(255,255,255,0.5)",
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "center",
+                    gap: 6,
+                    padding: "6px 12px",
+                    borderRadius: 7,
+                    background: copiedEula ? "rgba(0,230,118,0.15)" : "rgba(255,255,255,0.05)",
+                    border: copiedEula ? "1px solid rgba(0,230,118,0.3)" : "1px solid rgba(255,255,255,0.1)",
+                    color: copiedEula ? G : "rgba(255,255,255,0.75)",
+                    fontSize: 11,
+                    fontWeight: 600,
                     cursor: "pointer",
                     transition: "all 0.15s",
                   }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.color = "#fff";
-                    e.currentTarget.style.background = "rgba(255,255,255,0.1)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.color = "rgba(255,255,255,0.5)";
-                    e.currentTarget.style.background = "rgba(255,255,255,0.04)";
-                  }}
                 >
-                  <X style={{ width: 15, height: 15 }} />
+                  {copiedEula ? (
+                    <>
+                      <CheckCheck style={{ width: 13, height: 13, color: G }} />
+                      <span>Copied Agreement</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy style={{ width: 13, height: 13 }} />
+                      <span>Copy Legal Text</span>
+                    </>
+                  )}
                 </button>
-              )}
+
+                {/* Close (X) button ONLY visible if the user has already accepted the compliance terms */}
+                {complianceAccepted && (
+                  <button
+                    type="button"
+                    onClick={() => setShowPrivacyModal(false)}
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: 8,
+                      background: "rgba(255,255,255,0.04)",
+                      border: "1px solid rgba(255,255,255,0.08)",
+                      color: "rgba(255,255,255,0.5)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      cursor: "pointer",
+                      transition: "all 0.15s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = "#fff";
+                      e.currentTarget.style.background = "rgba(255,255,255,0.1)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = "rgba(255,255,255,0.5)";
+                      e.currentTarget.style.background = "rgba(255,255,255,0.04)";
+                    }}
+                  >
+                    <X style={{ width: 16, height: 16 }} />
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* First-Time Notice Banner */}
             {!complianceAccepted && (
-              <div style={{ padding: "8px 24px", background: "rgba(0,230,118,0.06)", borderBottom: "1px solid rgba(0,230,118,0.15)", display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 11, color: "rgba(255,255,255,0.7)", flexShrink: 0 }}>
-                <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <ShieldCheck style={{ width: 13, height: 13, color: G }} />
-                  <span><strong>First-Time Security Review:</strong> Please review and confirm the local BYOK security & compliance terms before launching ClipVault.</span>
+              <div style={{ padding: "9px 24px", background: "rgba(0,230,118,0.06)", borderBottom: "1px solid rgba(0,230,118,0.15)", display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 11.5, color: "rgba(255,255,255,0.75)", flexShrink: 0 }}>
+                <span style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                  <ShieldCheck style={{ width: 14, height: 14, color: G }} />
+                  <span><strong>First-Time Security Review:</strong> Please review and confirm the local BYOK security &amp; compliance terms to unlock the studio.</span>
                 </span>
               </div>
             )}
 
             {/* Modal Body: 2-Column Widescreen Split */}
-            <div style={{ flex: 1, display: "grid", gridTemplateColumns: "240px 1fr", overflow: "hidden" }}>
-              {/* Left Sidebar Navigation & Security Badges */}
+            <div style={{ flex: 1, display: "grid", gridTemplateColumns: "250px 1fr", overflow: "hidden" }}>
+              {/* Left Sidebar Navigation & Search */}
               <div
                 style={{
-                  background: "rgba(0,0,0,0.3)",
+                  background: "rgba(0,0,0,0.35)",
                   borderRight: "1px solid rgba(255,255,255,0.06)",
                   padding: "16px 14px",
                   display: "flex",
                   flexDirection: "column",
                   justifyContent: "space-between",
                   overflowY: "auto",
-                  gap: 12,
+                  gap: 14,
                 }}
               >
-                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                  <span style={{ fontSize: 9.5, fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, color: "rgba(255,255,255,0.3)", padding: "0 8px 6px", textTransform: "uppercase", letterSpacing: "0.1em" }}>
-                    Compliance & EULA Index
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {/* Search within EULA */}
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "7px 10px",
+                      borderRadius: 8,
+                      background: "rgba(255,255,255,0.03)",
+                      border: "1px solid rgba(255,255,255,0.08)",
+                      fontSize: 11.5,
+                    }}
+                  >
+                    <Search style={{ width: 13, height: 13, color: "rgba(255,255,255,0.4)" }} />
+                    <input
+                      type="text"
+                      value={complianceSearch}
+                      onChange={(e) => setComplianceSearch(e.target.value)}
+                      placeholder="Search agreement terms..."
+                      style={{
+                        background: "transparent",
+                        border: "none",
+                        outline: "none",
+                        color: "#fff",
+                        fontSize: 11.5,
+                        width: "100%",
+                      }}
+                    />
+                    {complianceSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setComplianceSearch("")}
+                        style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.4)", cursor: "pointer", padding: 0 }}
+                      >
+                        <X style={{ width: 12, height: 12 }} />
+                      </button>
+                    )}
+                  </div>
+
+                  <span style={{ fontSize: 9.5, fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, color: "rgba(255,255,255,0.3)", padding: "4px 6px 2px", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+                    Agreement Sections
                   </span>
 
                   {[
-                    { id: "all", label: "Complete Agreement (All)", icon: FileCheck },
-                    { id: "eula", label: "01. EULA & Commercial License", icon: Scale },
-                    { id: "restrictions", label: "02. Anti-Reverse Engineering", icon: Lock },
-                    { id: "privacy", label: "03. Zero-Telemetry & Privacy", icon: Key },
-                    { id: "platform", label: "04. Ingestion & Betamax Doctrine", icon: Globe },
-                    { id: "ai", label: "05. AI Models & API Billing", icon: Zap },
-                    { id: "hardware", label: "06. Hardware Acceleration & Load", icon: Cpu },
-                    { id: "trademark", label: "07. Trademarks & Fair Use", icon: FileCheck },
-                    { id: "liability", label: "08. Warranty & Binding Terms", icon: AlertTriangle },
+                    { id: "all", label: "Master Agreement (All)", icon: FileCheck },
+                    { id: "eula", label: "01. License & Ownership", icon: Scale },
+                    { id: "restrictions", label: "02. Acceptable Use", icon: Lock },
+                    { id: "privacy", label: "03. Zero-Telemetry & Data", icon: Key },
+                    { id: "platform", label: "04. Fair Use & DMCA", icon: Globe },
+                    { id: "ai", label: "05. AI Models & Billing", icon: Zap },
+                    { id: "hardware", label: "06. Hardware Acceleration", icon: Cpu },
+                    { id: "trademark", label: "07. Brand Disclaimers", icon: FileText },
+                    { id: "liability", label: "08. Warranty & Disclaimers", icon: AlertTriangle },
                   ].map((tab) => {
                     const IconComponent = tab.icon;
                     const isActive = complianceTab === tab.id;
@@ -776,7 +897,10 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
                       <button
                         key={tab.id}
                         type="button"
-                        onClick={() => setComplianceTab(tab.id)}
+                        onClick={() => {
+                          setComplianceTab(tab.id);
+                          setComplianceSearch("");
+                        }}
                         style={{
                           display: "flex",
                           alignItems: "center",
@@ -786,7 +910,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
                           fontSize: 11.5,
                           fontWeight: isActive ? 700 : 500,
                           textAlign: "left",
-                          color: isActive ? "#fff" : "rgba(255,255,255,0.55)",
+                          color: isActive ? "#fff" : "rgba(255,255,255,0.6)",
                           background: isActive ? "rgba(0,230,118,0.1)" : "transparent",
                           border: isActive ? "1px solid rgba(0,230,118,0.25)" : "1px solid transparent",
                           cursor: "pointer",
@@ -801,7 +925,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
                         onMouseLeave={(e) => {
                           if (!isActive) {
                             e.currentTarget.style.background = "transparent";
-                            e.currentTarget.style.color = "rgba(255,255,255,0.55)";
+                            e.currentTarget.style.color = "rgba(255,255,255,0.6)";
                           }
                         }}
                       >
@@ -822,18 +946,18 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
                     display: "flex",
                     flexDirection: "column",
                     gap: 6,
-                    fontSize: 10,
+                    fontSize: 10.5,
                     fontFamily: "'JetBrains Mono', monospace",
                   }}
                 >
                   <span style={{ fontWeight: 700, color: G, display: "flex", alignItems: "center", gap: 5 }}>
-                    <Lock style={{ width: 11, height: 11 }} /> LOCAL AUDIT ACTIVE
+                    <Lock style={{ width: 12, height: 12 }} /> LOCAL VERIFICATION
                   </span>
-                  <div style={{ color: "rgba(255,255,255,0.45)", lineHeight: 1.4 }}>
-                    • Binding EULA v1.0<br />
-                    • Telemetry: 0% Collected<br />
-                    • Remote Proxies: 0<br />
-                    • Hardware: Native Desktop
+                  <div style={{ color: "rgba(255,255,255,0.45)", lineHeight: 1.45 }}>
+                    • License Seat: Commercial<br />
+                    • Telemetry Collected: 0%<br />
+                    • Cloud Proxies: None<br />
+                    • Storage: Local Machine
                   </div>
                 </div>
               </div>
@@ -856,21 +980,21 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
                   }
                 }}
                 style={{
-                  padding: "26px 32px",
+                  padding: "28px 36px",
                   overflowY: "auto",
                   display: "flex",
                   flexDirection: "column",
-                  gap: 28,
+                  gap: 30,
                   fontSize: 12.5,
-                  lineHeight: 1.7,
-                  color: "rgba(255,255,255,0.75)",
+                  lineHeight: 1.75,
+                  color: "rgba(255,255,255,0.8)",
                 }}
               >
                 {/* Header & At-a-Glance Executive Summary */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 16, paddingBottom: 20, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 16, paddingBottom: 22, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
                   <div>
-                    <div style={{ fontSize: 18, fontWeight: 800, color: "#fff", marginBottom: 4, fontFamily: "'Space Grotesk', 'Geist', sans-serif" }}>
-                      ClipVault Software License &amp; Legal Compliance Agreement
+                    <div style={{ fontSize: 19, fontWeight: 800, color: "#fff", marginBottom: 4, fontFamily: "'Space Grotesk', 'Geist', sans-serif" }}>
+                      ClipVault Software License &amp; Master Terms of Service
                     </div>
                     <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}>
                       Effective Date: August 2026 • Published by @jmarkTheDeveloper • Applicable to all Desktop Builds &amp; Commercial Releases
@@ -1167,7 +1291,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
                   ) : (
                     <div style={{ display: "flex", alignItems: "center", gap: 7, color: G, fontSize: 11.5, fontWeight: 600 }}>
                       <CheckCircle2 style={{ width: 14, height: 14, color: G }} />
-                      <span>Review Completed & Verified</span>
+                      <span>Review Completed &amp; Verified</span>
                     </div>
                   )}
 
@@ -1194,13 +1318,13 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
                       transition: "all 0.15s",
                     }}
                   >
-                    Accept & Continue
+                    Accept &amp; Continue
                   </button>
                 </div>
               ) : (
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <span style={{ fontSize: 11, color: G, display: "flex", alignItems: "center", gap: 5, fontFamily: "'Geist Mono', monospace" }}>
-                    <CheckCircle2 style={{ width: 13, height: 13 }} /> Compliance Accepted
+                  <span style={{ fontSize: 11.5, color: G, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
+                    <CheckCircle2 style={{ width: 13, height: 13, color: G }} /> Compliance Accepted
                   </span>
                   <button
                     type="button"
@@ -1210,28 +1334,19 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
                       } catch {}
                       setComplianceAccepted(false);
                       setHasScrolledToBottom(false);
-                      setShowScrollPrompt(false);
                     }}
                     style={{
-                      padding: "5px 10px",
+                      padding: "6px 12px",
                       borderRadius: 6,
-                      fontSize: 10.5,
-                      color: "rgba(255,255,255,0.4)",
-                      background: "transparent",
-                      border: "1px solid rgba(255,255,255,0.1)",
+                      background: "rgba(255,255,255,0.04)",
+                      border: "1px solid rgba(255,255,255,0.08)",
+                      color: "rgba(255,255,255,0.5)",
+                      fontSize: 11,
                       cursor: "pointer",
-                      fontFamily: "'Geist Mono', monospace",
                       transition: "all 0.15s",
                     }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.color = "#ff667a";
-                      e.currentTarget.style.borderColor = "rgba(255,102,122,0.3)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.color = "rgba(255,255,255,0.4)";
-                      e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)";
-                    }}
-                    title="Reset compliance state for testing"
+                    onMouseEnter={(e) => { e.currentTarget.style.color = "#fff"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.5)"; }}
                   >
                     Reset Acceptance
                   </button>
@@ -1239,12 +1354,6 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
                     type="button"
                     onClick={() => setShowPrivacyModal(false)}
                     style={{
-                      padding: "7px 20px",
-                      borderRadius: 8,
-                      fontWeight: 600,
-                      fontSize: 12,
-                      color: "#fff",
-                      background: "rgba(255,255,255,0.08)",
                       border: "1px solid rgba(255,255,255,0.12)",
                       cursor: "pointer",
                       transition: "all 0.15s",
