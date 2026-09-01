@@ -151,6 +151,15 @@ def get_current_user(authorization: Optional[str] = Header(None)):
         raise HTTPException(status_code=401, detail="Unauthorized: Invalid OAuth token credentials")
     return user
 
+@app.post("/api/shutdown")
+def shutdown_app():
+    """Cleanly terminates backend on user exit/decline."""
+    def kill_soon():
+        time.sleep(0.3)
+        os._exit(0)
+    threading.Thread(target=kill_soon, daemon=True).start()
+    return {"status": "shutting_down"}
+
 cancellation_events: Dict[str, threading.Event] = {}
 
 def execute_rendering_task(task_id: str, request: ProcessRequest, cancel_event: Optional[threading.Event] = None):
