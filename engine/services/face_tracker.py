@@ -329,43 +329,107 @@ class FaceTracker:
         # ── 1. SPATIAL SPEAKER CLUSTERING (Who are the people?) ──
         speaker_clusters = []
         if all_face_data:
-            xs = np.array([x for x, c, a in all_face_data])
-            weights = np.array([c * (a ** 0.5) for x, c, a in all_face_data])
-            nbins = max(4, int(width // 140))
+            xs = np.array([x for x, c, a in all_face_data], dtype=np.float64)
+            weights = np.array([c * (a ** 0.5) for x, c, a in all_face_data], dtype=np.float64)
+
+            # High-resolution histogram for initial peak location
+            nbins = max(8, int(width // 80))
             hist, bin_edges = np.histogram(xs, bins=nbins, weights=weights, range=(0, width))
             peak_indices = np.argsort(hist)[::-1]
 
-            max_val = hist[peak_indices[0]] if len(peak_indices) > 0 else 1
+            max_val = hist[peak_indices[0]] if len(peak_indices) > 0 else 1.0
+
             for idx in peak_indices:
-                if hist[idx] > 0 and hist[idx] >= max_val * 0.20:
-                    c_pos = (bin_edges[idx] + bin_edges[idx + 1]) / 2.0
+                if hist[idx] > 0 and hist[idx] >= max_val * 0.15:
+                    approx_peak = (bin_edges[idx] + bin_edges[idx + 1]) / 2.0
+                    
+                    # Refine centroid: Calculate TRUE weighted average of actual face coordinates around this peak
+                    in_cluster_mask = np.abs(xs - approx_peak) < (target_width * 0.40)
+                    if np.any(in_cluster_mask):
+                        c_xs = xs[in_cluster_mask]
+                        c_ws = weights[in_cluster_mask]
+                        true_center = float(np.average(c_xs, weights=c_ws))
+                    else:
+                        true_center = approx_peak
+
                     # Avoid duplicate clusters that are too close
-                    if not any(abs(c_pos - c) < target_width * 0.35 for c in speaker_clusters):
-                        speaker_clusters.append(c_pos)
+                    if not any(abs(true_center - c) < target_width * 0.35 for c in speaker_clusters):
+                        speaker_clusters.append(true_center)
                         if len(speaker_clusters) >= 3:
                             break
 
         speaker_clusters.sort()
 
-        # ── 2. SINGLE SPEAKER OR NO FACE DETECTED ──
+        # ── 2. PER-FRAME CONTINUOUS FACE TRACKING & TRAJECTORY ──
+        # Calculate the primary face position at each sample time
+        raw_centers = []
+        for i, det_list in enumerate(all_frame_detections):
+            if det_list:
+                # Weighted center of all detected faces in this frame
+                f_xs = [f['center_x'] for f in det_list]
+                f_ws = [f['confidence'] * (f['area'] ** 0.5) for f in det_list]
+                frame_cx = float(np.average(f_xs, weights=f_ws))
+                raw_centers.append(frame_cx)
+            else:
+                # Carry forward previous center or fallback to main speaker cluster / screen center
+                if raw_centers:
+                    raw_centers.append(raw_centers[-1])
+                elif speaker_clusters:
+                    raw_centers.append(speaker_clusters[0])
+                else:
+                    raw_centers.append(width / 2.0)
+
+        # ── 3. SINGLE SPEAKER OR NO FACE (Dynamic Steadicam Centering) ──
         if len(speaker_clusters) <= 1:
-            center_x = speaker_clusters[0] if len(speaker_clusters) == 1 else (width // 2)
-            center_x = max(target_width / 2.0, min(width - target_width / 2.0, center_x))
-            x1 = int(round(center_x - target_width / 2.0))
-            x1 = max(0, min(width - target_width, x1))
+            main_speaker_x = speaker_clusters[0] if len(speaker_clusters) == 1 else (width / 2.0)
+            
+            # Apply Deadzone Steadicam Filter:
+            # - Minor movements (< 40px) keep camera rock-solid (zero jitter)
+            # - Real motion / pacing / shifting smoothly glides camera so face stays centered!
+            smoothed_centers = []
+            curr_cam_x = main_speaker_x
+            deadzone = max(35.0, target_width * 0.08)
+
+            for target_x in raw_centers:
+                dist = target_x - curr_cam_x
+                if abs(dist) > deadzone:
+                    # Move camera towards face smoothly
+                    step = (dist - np.sign(dist) * deadzone) * 0.35
+                    curr_cam_x += step
+                smoothed_centers.append(curr_cam_x)
+
+            # Extra light temporal smoothing for cinematic fluidity
+            smooth_kernel = np.array([0.15, 0.70, 0.15])
+            smoothed_arr = np.convolve(smoothed_centers, smooth_kernel, mode='same')
+            smoothed_arr[0] = smoothed_centers[0]
+            smoothed_arr[-1] = smoothed_centers[-1]
+
+            sample_times_arr = np.array(sample_times, dtype=np.float64)
+
+            def dynamic_single_steadicam(get_frame, t):
+                frame = get_frame(t)
+                cx = float(np.interp(t, sample_times_arr, smoothed_arr))
+                # Clamp to ensure target_width stays within video bounds without cutting
+                cx = max(target_width / 2.0, min(width - target_width / 2.0, cx))
+                x1 = int(round(cx - target_width / 2.0))
+                x1 = max(0, min(width - target_width, x1))
+                return frame[:, x1:x1 + target_width]
+
+            cropped_clip = clip.fl(dynamic_single_steadicam, apply_to=["mask"])
+            cropped_clip.size = (target_width, height)
             try:
-                print(f"    [OK] Single Speaker Tripod Locked at X={center_x:.0f} (Zero Drift, {target_width}x{height})")
+                print(f"    [OK] Single Speaker Precision Steadicam Active at X={main_speaker_x:.0f} (Dynamic Head-Centering)")
             except Exception:
                 pass
-            return clip.crop(x1=x1, width=target_width)
+            return cropped_clip
 
-        # ── 3. TWO SPEAKERS OR GROUP (Podcasts, Interviews, Conversations) ──
+        # ── 4. TWO SPEAKERS OR GROUP (Podcasts, Interviews, Conversations) ──
         speaker_A = speaker_clusters[0]
         speaker_B = speaker_clusters[1]
         cluster_dist = abs(speaker_B - speaker_A)
 
         # Check if both speakers fit comfortably in a single 9:16 vertical crop
-        two_shot_fits_in_vertical = (cluster_dist <= target_width * 0.82)
+        two_shot_fits_in_vertical = (cluster_dist <= target_width * 0.78)
         two_shot_center = (speaker_A + speaker_B) / 2.0
         two_shot_center = max(target_width / 2.0, min(width - target_width / 2.0, two_shot_center))
 
@@ -375,7 +439,7 @@ class FaceTracker:
         except Exception:
             pass
 
-        # ── 4. ACTIVE SPEAKER DETECTION PER TIME STEP ──
+        # ── 5. ACTIVE SPEAKER DETECTION PER TIME STEP ──
         raw_shot_candidates = []
         for det_list in all_frame_detections:
             if not det_list:
@@ -390,17 +454,17 @@ class FaceTracker:
             act_B = max([f.get('mouth_motion', 0.0) for f in faces_B], default=0.0)
 
             # Strong active speaker distinction
-            if act_A >= 4.0 and act_A > act_B * 1.35:
+            if act_A >= 3.5 and act_A > act_B * 1.30:
                 raw_shot_candidates.append('SPEAKER_A')
-            elif act_B >= 4.0 and act_B > act_A * 1.35:
+            elif act_B >= 3.5 and act_B > act_A * 1.30:
                 raw_shot_candidates.append('SPEAKER_B')
             else:
                 # Both talking, crosstalk, laughing, or both quiet -> Zoom-Out Two-Shot
                 raw_shot_candidates.append('TWO_SHOT')
 
-        # ── 5. BROADCAST TV DIRECTOR HYSTERESIS (Min Hold = 2.2s, No Ping-Pong) ──
-        min_hold_samples = int(fps_sample * 2.2)  # ~13 samples = 2.2 seconds minimum hold
-        initial_establish_samples = int(fps_sample * 1.8) # First 1.8s establishes the scene with two-shot
+        # ── 6. BROADCAST TV DIRECTOR HYSTERESIS (Min Hold = 2.0s, No Ping-Pong) ──
+        min_hold_samples = int(fps_sample * 2.0)  # ~12 samples = 2.0 seconds minimum hold
+        initial_establish_samples = int(fps_sample * 1.5) # First 1.5s establishes the scene with two-shot
 
         director_shots = []
         current_shot = 'TWO_SHOT'
@@ -419,7 +483,6 @@ class FaceTracker:
                 director_shots.append(current_shot)
             else:
                 # Candidate wants to switch
-                # Check if candidate has been persistent for at least 3 samples (~0.5s)
                 forward_window = raw_shot_candidates[i:i + 4]
                 candidate_persistent = (forward_window.count(candidate) >= 3)
 
@@ -433,7 +496,7 @@ class FaceTracker:
 
                 director_shots.append(current_shot)
 
-        # ── 6. CAMERA STYLE EXECUTION (Instant Cut vs Smooth/Snappy) ──
+        # ── 7. CAMERA STYLE EXECUTION (Instant Cut vs Smooth/Snappy) ──
         sample_times_arr = np.array(sample_times, dtype=np.float64)
 
         if camera_style == "instant":
