@@ -62,10 +62,10 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
   const documentPaneRef = useRef<HTMLDivElement>(null);
 
   const handleDecline = () => {
+    setHasDeclined(true);
     try {
       if ((window as any).electronAPI?.quitApp) {
         (window as any).electronAPI.quitApp();
-        return;
       }
     } catch {}
     try {
@@ -74,7 +74,6 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
     try {
       window.close();
     } catch {}
-    setHasDeclined(true);
   };
 
   useEffect(() => {
