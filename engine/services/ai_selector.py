@@ -172,6 +172,80 @@ class AISelector:
                     continue
             raise RuntimeError("Gemini API call failed across all available models.")
 
+    def _expand_to_complete_context(self, segments, start_time, end_time, video_duration):
+        """
+        Expands clip boundaries backwards to capture the premise/question setup 
+        and forwards to capture the complete resolution, preventing truncated context.
+        """
+        if not segments:
+            return max(0.0, float(start_time)), min(float(video_duration), float(end_time) + 0.35)
+
+        # Normalize segment list
+        clean_segs = []
+        for s in segments:
+            if isinstance(s, dict):
+                st = float(s.get('start', 0.0))
+                et = float(s.get('end', st + 1.0))
+                txt = str(s.get('text', '')).strip()
+            elif isinstance(s, (list, tuple)) and len(s) >= 2:
+                st = float(s[0])
+                et = float(s[1])
+                txt = str(s[2]).strip() if len(s) > 2 else ''
+            else:
+                continue
+            if et > st:
+                clean_segs.append({'start': st, 'end': et, 'text': txt})
+
+        if not clean_segs:
+            return max(0.0, float(start_time)), min(float(video_duration), float(end_time) + 0.35)
+
+        # 1. Find segment index matching start_time
+        start_idx = 0
+        for i, s in enumerate(clean_segs):
+            if s['start'] <= start_time <= s['end'] or s['start'] >= start_time:
+                start_idx = i
+                break
+
+        # 2. Backward Expansion: Step backwards if current segment starts mid-thought or previous is setup question
+        CONNECTIVE_STARTS = ['and', 'so', 'but', 'because', 'which', 'that', 'then', 'like', 'therefore', 'meaning']
+        back_steps = 0
+        while start_idx > 0 and back_steps < 6:
+            cur_txt = clean_segs[start_idx]['text'].strip().lower()
+            first_word = cur_txt.split()[0] if cur_txt else ''
+            prev_txt = clean_segs[start_idx - 1]['text'].strip()
+            
+            needs_back = False
+            if first_word in CONNECTIVE_STARTS or cur_txt.startswith(("that's why", "this is why", "and that", "so that", "and then")):
+                needs_back = True
+            elif prev_txt.endswith('?') or any(q in prev_txt.lower() for q in ['why', 'how', 'what about', 'tell me', 'did you know', 'have you']):
+                needs_back = True
+
+            if needs_back:
+                start_idx -= 1
+                back_steps += 1
+            else:
+                break
+
+        new_start = clean_segs[start_idx]['start']
+
+        # 3. Forward Expansion: Step forwards until the speaker reaches a true sentence conclusion
+        end_idx = len(clean_segs) - 1
+        for i in range(len(clean_segs) - 1, -1, -1):
+            if clean_segs[i]['start'] <= end_time <= clean_segs[i]['end'] or clean_segs[i]['end'] <= end_time:
+                end_idx = i
+                break
+
+        fwd_steps = 0
+        while end_idx < len(clean_segs) - 1 and fwd_steps < 6:
+            end_txt = clean_segs[end_idx]['text'].strip()
+            if end_txt.endswith(('.', '!', '?')):
+                break
+            end_idx += 1
+            fwd_steps += 1
+
+        new_end = min(video_duration, clean_segs[end_idx]['end'] + 0.35)
+        return max(0.0, new_start), new_end
+
     def _heuristic_viral_selector(self, segments, video_duration, n, target_duration, topic=None):
         """
         Intelligent Local NLP & Acoustic Energy Virality Scorer.
@@ -181,7 +255,6 @@ class AISelector:
         import re
 
         if not segments:
-            # Absolute fallback if no transcript exists at all
             clips = []
             step = max(5.0, (video_duration - target_duration) / max(1, n))
             for i in range(n):
@@ -209,14 +282,12 @@ class AISelector:
             r"\b(the worst|the best|number one|top 3|never do this|always do this|stop doing)\b"
         ]
 
-        # Reaction & emotional triggers
         REACTION_PATTERNS = [
             r"\b(oh my god|omg|no way|what the|holy|bro|wait wait|look at this|check this out|are you kidding)\b",
             r"\[laughter\]|\b(haha|hahaha|lmao|lol|giggle|giggling)\b",
             r"(\!|\?){1,}"
         ]
 
-        # Banned filler & sponsor disqualifiers
         BAN_PATTERNS = [
             r"\b(sponsored by|sponsor|nordvpn|betterhelp|expressvpn|audible|link in the description|use code|discount code|promo code)\b",
             r"\b(subscribe to my channel|subscribe to the channel|hit the bell|leave a like|comment down below|patreon\.com)\b",
@@ -242,10 +313,10 @@ class AISelector:
         if not clean_segs:
             return self._heuristic_viral_selector([], video_duration, n, target_duration, topic)
 
-        min_dur = max(8.0, float(target_duration) - 10.0)
-        max_dur = min(float(video_duration), float(target_duration) + 12.0)
+        # Flexible target window (soft threshold rather than rigid hard clamp)
+        min_dur = max(6.0, float(target_duration) * 0.35)
+        max_dur = min(float(video_duration), float(target_duration) * 1.35 + 20.0)
 
-        # Generate candidate windows across transcript
         candidates = []
         total_segs = len(clean_segs)
 
@@ -253,7 +324,6 @@ class AISelector:
             start_seg = clean_segs[i]
             st = start_seg['start']
             
-            # Find matching end segment within target duration window
             accumulated_text = []
             for j in range(i, total_segs):
                 end_seg = clean_segs[j]
@@ -266,14 +336,12 @@ class AISelector:
                         full_txt = " ".join(accumulated_text)
                         hook_txt = " ".join(accumulated_text[:min(3, len(accumulated_text))])
                         
-                        # 1. Base Score
                         score = 50.0
 
-                        # 2. Topic Match Bonus
                         if topic and topic.lower() in full_txt.lower():
                             score += 40.0
 
-                        # 3. Direct Hook Start (First segment must be compelling)
+                        # Direct Hook Start
                         first_seg_txt = clean_segs[i]['text']
                         for hp in HOOK_PATTERNS:
                             if re.search(hp, first_seg_txt, re.IGNORECASE):
@@ -283,78 +351,68 @@ class AISelector:
                                 score += 20.0
                                 break
 
-                        # Penalize weak/boring starts
                         WEAK_STARTS = [r"^(so yeah|um|uh|and then|like i said|anyways|so basically|ok so)\b"]
                         for ws in WEAK_STARTS:
                             if re.search(ws, first_seg_txt, re.IGNORECASE):
                                 score -= 25.0
 
-                        # 4. Emotional / Reaction Density
                         for rp in REACTION_PATTERNS:
                             matches = len(re.findall(rp, full_txt, re.IGNORECASE))
                             score += min(20.0, matches * 6.0)
 
-                        # 5. Speech Density (WPM)
                         words = full_txt.split()
                         wpm = (len(words) / max(1.0, cur_dur)) * 60.0
                         if 120 <= wpm <= 220:
                             score += 15.0
                         elif wpm < 70:
-                            score -= 30.0  # Dead air / silence penalty
+                            score -= 30.0
 
-                        # 6. Punctuation & Sentence Completion Bonus
                         if full_txt.rstrip().endswith(('.', '!', '?')):
                             score += 10.0
 
-                        # 7. Disqualifier / Sponsor Penalty
                         for bp in BAN_PATTERNS:
                             if re.search(bp, full_txt, re.IGNORECASE):
                                 score -= 80.0
 
-                        # 8. Natural End Padding (+0.25s to avoid syllable truncation)
-                        clean_end = min(video_duration, et + 0.25)
+                        # Expand candidate to full context (premise setup + full conclusion)
+                        exp_st, exp_et = self._expand_to_complete_context(clean_segs, st, et, video_duration)
 
-                        # Extract clean title from hook
                         title_candidate = hook_txt.strip()[:45]
                         if len(hook_txt) > 45:
                             title_candidate += "..."
 
                         candidates.append({
-                            'start': st,
-                            'end': clean_end,
-                            'duration': clean_end - st,
+                            'start': exp_st,
+                            'end': exp_et,
+                            'duration': exp_et - exp_st,
                             'virality_score': int(min(99, max(60, score))),
                             'title': title_candidate,
                             'hook_type': 'high_engagement_story',
-                            'reason': f'High speech density ({int(wpm)} WPM) with strong narrative hook',
+                            'reason': f'High speech density ({int(wpm)} WPM) with complete story context',
                             'content_title': f"{title_candidate} 🔥",
                             'content_description': "Must-watch viral highlight! #shorts #viral #reels #trending"
                         })
                     else:
                         break
 
-        # Sort candidate windows by virality score
         candidates.sort(key=lambda x: x['virality_score'], reverse=True)
 
-        # Non-Maximum Suppression (NMS) to avoid overlapping clips
         selected = []
         for cand in candidates:
             if len(selected) >= n:
                 break
             
-            # Check overlap with already selected clips (allow max 5s overlap)
             overlaps = False
             for s in selected:
                 overlap_start = max(cand['start'], s['start'])
                 overlap_end = min(cand['end'], s['end'])
-                if (overlap_end - overlap_start) > 5.0:
+                if (overlap_end - overlap_start) > 6.0:
                     overlaps = True
                     break
             
             if not overlaps:
                 selected.append(cand)
 
-        # If still need clips, pad with non-overlapping distinct intervals
         if len(selected) < n:
             step = max(5.0, (video_duration - target_duration) / max(1, n))
             for i in range(n):
@@ -362,10 +420,11 @@ class AISelector:
                     break
                 st = max(0.0, min(video_duration - target_duration, i * step))
                 et = min(video_duration, st + target_duration)
+                exp_st, exp_et = self._expand_to_complete_context(clean_segs, st, et, video_duration)
                 selected.append({
-                    'start': st,
-                    'end': et,
-                    'duration': et - st,
+                    'start': exp_st,
+                    'end': exp_et,
+                    'duration': exp_et - exp_st,
                     'virality_score': max(65, 88 - (len(selected) * 4)),
                     'title': f'Chapter Highlight #{len(selected)+1}',
                     'hook_type': 'story_reveal',
@@ -374,7 +433,6 @@ class AISelector:
                     'content_description': "Check out this highlight! #shorts #viral"
                 })
 
-        # Sort chronologically or by virality score
         selected.sort(key=lambda x: x['virality_score'], reverse=True)
         return selected[:n]
 
@@ -383,12 +441,8 @@ class AISelector:
         Selects the most viral clips from a transcript using frontier AI models 
         (Gemini, Groq, OpenAI, Claude, DeepSeek) with intelligent NLP fallback.
         """
-        min_dur = max(6, target_duration - 12)
-        max_dur = target_duration + 12
-
         # Format clean, continuous transcript (up to 300 contiguous segments without skipping)
         if len(segments) > 300:
-            # Chunk into continuous blocks rather than skipping sentences
             eval_segments = segments[:300]
         else:
             eval_segments = segments
@@ -410,12 +464,12 @@ Analyze this continuous video transcript with timestamps and select the {n} BEST
 
 {topic_clause}
 
-VIRAL QUALITY CRITERIA:
-1. THE 0-3 SECOND HOOK: Every clip MUST begin with an immediate hook (a provocative question, surprising statement, bold claim, or high-energy reaction).
-2. COMPLETE NARRATIVE ARC: The thought, explanation, or story MUST reach a satisfying climax or conclusion before the clip ends.
-3. ABSOLUTE BAN ON FILLER: Do NOT select sponsor reads, channel intros ("welcome back guys"), audio checks, or dead air silence.
-4. EXACT SENTENCE BOUNDARIES: The clip must start on the first word of a sentence and end at the exact completion of a sentence (never cut mid-word).
-5. TARGET DURATION: Each clip must be between {min_dur}s and {max_dur}s (target ~{target_duration}s).
+CRITICAL RULES FOR FULL CONTEXT & NARRATIVE COMPLETENESS:
+1. FULL CONTEXT SETUP (NEVER START IN THE MIDDLE): Every clip MUST include the opening question, premise, or backstory that introduces the topic. Never start mid-explanation (e.g. starting at "So that's why they did it..." WITHOUT the setup is STRICTLY FORBIDDEN).
+2. FULL NARRATIVE RESOLUTION: Every clip MUST conclude the thought, story, or lesson completely. Never cut off mid-explanation before the conclusion is spoken.
+3. TARGET DURATION GUIDELINE (~{target_duration}s): Use ~{target_duration} seconds as a flexible guide, NOT a rigid guillotine. If completing the full premise-to-conclusion story takes less or more time, capture the complete unbroken story arc.
+4. ZERO FILLER: Do NOT select sponsor reads, channel plugs, or audio checks.
+5. EXACT SENTENCE BOUNDARIES: Start at word 1 of the opening sentence and end cleanly on the final punctuation mark.
 6. EXACT NUMBER: Return EXACTLY {n} non-overlapping clips in the JSON array.
 
 VIDEO DURATION: {video_duration} seconds
@@ -433,7 +487,7 @@ Return ONLY valid JSON format:
       "hook_title": "3-5 word clickbait title for on-screen text",
       "virality_score": 94,
       "hook_type": "shock_reveal",
-      "reason": "Immediate bold hook with zero dead air and a clean punchline",
+      "reason": "Complete narrative arc starting with the opening setup question and ending with full resolution",
       "content_title": "Catchy viral title for TikTok/Shorts (e.g. 'He revealed the truth! 🤯')",
       "content_description": "Engaging description with viral hashtags #shorts #viral #reels"
     }}
@@ -441,7 +495,7 @@ Return ONLY valid JSON format:
 }}"""
         
         try:
-            print(f"🤖 {self.provider.upper()} analyzing transcript for narrative viral peaks...")
+            print(f"🤖 {self.provider.upper()} analyzing transcript for complete narrative story arcs...")
             response = self._generate_with_fallback(prompt, generation_config={"response_mime_type": "application/json"})
             raw_text = getattr(response, "text", str(response)).strip()
             clean_text = raw_text
@@ -473,18 +527,13 @@ Return ONLY valid JSON format:
                 if start >= end or start < 0 or start >= video_duration:
                     continue
 
-                end = min(video_duration, end)
-                dur = end - start
-                if dur < 6.0:
-                    end = min(video_duration, start + float(target_duration))
-                    dur = end - start
-                elif dur > target_duration * 1.6:
-                    end = start + float(target_duration)
-                    dur = end - start
+                # Pass through Context Expander to guarantee setup + conclusion are not truncated
+                exp_st, exp_et = self._expand_to_complete_context(segments, start, end, video_duration)
+                dur = exp_et - exp_st
 
                 validated_clips.append({
-                    'start': start,
-                    'end': end,
+                    'start': exp_st,
+                    'end': exp_et,
                     'title': title,
                     'virality_score': max(60, min(99, int(score))),
                     'hook_type': hook_type,
@@ -498,15 +547,14 @@ Return ONLY valid JSON format:
 
             validated_clips.sort(key=lambda x: x['virality_score'], reverse=True)
 
-            # If AI returned fewer clips than requested, pad with smart heuristic highlights
             if len(validated_clips) < n:
                 needed = n - len(validated_clips)
-                print(f"⚠️ Padding {needed} additional viral moments using NLP energy detector...")
+                print(f"⚠️ Padding {needed} additional viral moments using NLP context detector...")
                 extra = self._heuristic_viral_selector(segments, video_duration, needed, target_duration, topic=topic)
                 for ex in extra:
                     validated_clips.append(ex)
 
-            print(f"✅ Selected top {n} high-virality narrative clips:")
+            print(f"✅ Selected top {n} complete narrative clips:")
             for i, clip in enumerate(validated_clips[:n], 1):
                 print(f"  {i}. {clip['title']} (Score: {clip['virality_score']}pts, Duration: {clip['duration']:.1f}s)")
             
