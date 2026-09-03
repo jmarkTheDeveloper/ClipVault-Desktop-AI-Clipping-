@@ -9,16 +9,16 @@ const execAsync = util.promisify(exec);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Set Application Name & Identity so Windows Task Manager, Settings, and Notifications show ClipVault AI Studio
-app.name = 'ClipVault AI Studio';
-app.setName('ClipVault AI Studio');
+// Set Application Name & Identity so Windows Task Manager, Settings, and Notifications show ClipVault
+app.name = 'ClipVault';
+app.setName('ClipVault');
 
 // Disable Electron console security warnings in dev mode (packaged app already excludes these)
 process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true';
 
 // Windows Taskbar & Toast Notification Identity Registration
 if (process.platform === 'win32') {
-  app.setAppUserModelId('com.clipvault.studio');
+  app.setAppUserModelId('ClipVault');
 }
 
 // Register privileged scheme BEFORE app is ready to bypass all security blocks
@@ -377,12 +377,12 @@ app.whenReady().then(() => {
   if (process.platform === 'win32') {
     try {
       const shortcutDir = path.join(app.getPath('appData'), 'Microsoft', 'Windows', 'Start Menu', 'Programs');
-      const shortcutPath = path.join(shortcutDir, 'ClipVault AI Studio.lnk');
+      const shortcutPath = path.join(shortcutDir, 'ClipVault.lnk');
       const iconIco = path.resolve(__dirname, '../public/icon.ico');
       const shortcutOptions = {
         target: process.execPath,
         args: app.isPackaged ? '' : `"${path.resolve(__dirname, '..')}"`,
-        appUserModelId: 'com.clipvault.studio',
+        appUserModelId: 'ClipVault',
         description: 'ClipVault AI Video Studio',
         icon: iconIco,
         iconIndex: 0,
