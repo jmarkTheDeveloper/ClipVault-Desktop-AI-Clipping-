@@ -290,31 +290,44 @@ class VideoProcessor:
             self.caption_maker.selected_style = caption_style
 
         # Determine standard vertical dimensions
-        if quality == "720p":
-            target_h, target_w = 1280, 720
-        elif quality == "1080p":
-            target_h, target_w = 1920, 1080
-        elif quality in ["4k", "8k"]:
+        if quality.lower() == "8k":
+            target_h, target_w = 7680, 4320
+        elif quality.lower() == "4k":
             target_h, target_w = 3840, 2160
+        elif quality.lower() == "1080p":
+            target_h, target_w = 1920, 1080
         else:
             target_h, target_w = 1280, 720
 
         output_files = []
         best_codec, best_preset, ffmpeg_params, thread_count = self.detect_hardware_encoder()
-        if quality.lower() in ['4k', '8k']:
+        if quality.lower() == '8k':
             if best_codec == 'h264_qsv':
-                ffmpeg_params.extend(['-b:v', '35M', '-maxrate', '50M', '-global_quality', '18'])
+                ffmpeg_params = ['-pix_fmt', 'nv12', '-b:v', '85M', '-maxrate', '120M', '-global_quality', '12', '-movflags', '+faststart']
             elif best_codec == 'h264_nvenc':
-                ffmpeg_params.extend(['-b:v', '35M', '-maxrate', '50M', '-cq', '18'])
-            elif best_codec == 'libx264':
-                ffmpeg_params.extend(['-crf', '19', '-preset', 'veryfast'])
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '85M', '-maxrate', '120M', '-cq', '12', '-rc', 'vbr', '-preset', 'p6', '-tune', 'hq', '-spatial-aq', '1', '-temporal-aq', '1', '-movflags', '+faststart']
+            elif best_codec == 'h264_amf':
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '85M', '-maxrate', '120M', '-rc', 'cqp', '-qp_i', '12', '-qp_p', '12', '-movflags', '+faststart']
+            else:
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-threads', str(thread_count), '-crf', '13', '-preset', 'medium', '-movflags', '+faststart']
+        elif quality.lower() == '4k':
+            if best_codec == 'h264_qsv':
+                ffmpeg_params = ['-pix_fmt', 'nv12', '-b:v', '55M', '-maxrate', '75M', '-global_quality', '14', '-movflags', '+faststart']
+            elif best_codec == 'h264_nvenc':
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '55M', '-maxrate', '75M', '-cq', '14', '-rc', 'vbr', '-preset', 'p6', '-tune', 'hq', '-spatial-aq', '1', '-temporal-aq', '1', '-movflags', '+faststart']
+            elif best_codec == 'h264_amf':
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '55M', '-maxrate', '75M', '-rc', 'cqp', '-qp_i', '14', '-qp_p', '14', '-movflags', '+faststart']
+            else:
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-threads', str(thread_count), '-crf', '15', '-preset', 'fast', '-movflags', '+faststart']
         elif quality.lower() == '1080p':
             if best_codec == 'h264_qsv':
-                ffmpeg_params.extend(['-b:v', '18M', '-maxrate', '25M', '-global_quality', '20'])
+                ffmpeg_params = ['-pix_fmt', 'nv12', '-b:v', '20M', '-maxrate', '30M', '-global_quality', '18', '-movflags', '+faststart']
             elif best_codec == 'h264_nvenc':
-                ffmpeg_params.extend(['-b:v', '18M', '-maxrate', '25M', '-cq', '20'])
-            elif best_codec == 'libx264':
-                ffmpeg_params.extend(['-crf', '20', '-preset', 'veryfast'])
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '20M', '-maxrate', '30M', '-cq', '18', '-rc', 'vbr', '-preset', 'p6', '-movflags', '+faststart']
+            elif best_codec == 'h264_amf':
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '20M', '-maxrate', '30M', '-rc', 'cqp', '-qp_i', '18', '-qp_p', '18', '-movflags', '+faststart']
+            else:
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-threads', str(thread_count), '-crf', '18', '-preset', 'veryfast', '-movflags', '+faststart']
 
         print(f"\n🎬 Processing {len(clip_specs)} viral clips (Saving to: {target_dir})...")
 

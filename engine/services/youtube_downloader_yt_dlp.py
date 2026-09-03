@@ -292,7 +292,14 @@ class YouTubeDownloader:
             audio_url = None
 
             # Find matching quality video stream
-            target_h = 2160 if quality.lower() in ["4k", "8k"] else (1080 if quality.lower() == "1080p" else 720)
+            if quality.lower() == "8k":
+                target_h = 4320
+            elif quality.lower() == "4k":
+                target_h = 2160
+            elif quality.lower() == "1080p":
+                target_h = 1080
+            else:
+                target_h = 720
             
             # 1. Look for separated video and audio formats
             video_candidates = [
@@ -348,17 +355,18 @@ class YouTubeDownloader:
                         "-t", str(duration_sec),
                     ])
 
+                # Visually lossless master slice encoding (CRF 10) to preserve razor-sharp 4K/8K detail
                 cmd.extend([
                     "-c:v", "libx264",
-                    "-preset", "ultrafast",
-                    "-crf", "18",
+                    "-preset", "veryfast",
+                    "-crf", "10",
                     "-c:a", "aac",
-                    "-b:a", "192k",
+                    "-b:a", "320k",
                     "-avoid_negative_ts", "make_zero",
                     str(temp_slice)
                 ])
 
-                print(f"🚀 Running direct HTTP range slice with ffmpeg...")
+                print(f"🚀 Running direct HTTP range slice with ffmpeg (Pristine Master Quality)...")
                 proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=45)
                 if proc.returncode == 0 and temp_slice.exists() and temp_slice.stat().st_size > 10240:
                     if output_path.exists():
@@ -373,7 +381,9 @@ class YouTubeDownloader:
             print(f"⚠️ Direct fast slicing note: {fast_err}. Falling back to standard slice downloader...")
 
         # Fallback to standard yt-dlp downloader if direct range stream extraction was blocked
-        if quality.lower() in ["4k", "8k"]:
+        if quality.lower() == "8k":
+            format_str = 'bestvideo[height<=4320]+bestaudio/bestvideo+bestaudio/best'
+        elif quality.lower() == "4k":
             format_str = 'bestvideo[height<=2160]+bestaudio/bestvideo+bestaudio/best'
         elif quality.lower() == "1080p":
             format_str = 'bestvideo[height<=1080]+bestaudio/best[height<=1080]/best'
@@ -391,7 +401,7 @@ class YouTubeDownloader:
             'socket_timeout': 30,
         })
 
-        print(f"✂️ Downloading targeted stream slice via yt-dlp ({start_sec:.1f}s - {end_sec:.1f}s)...")
+        print(f"✂️ Downloading targeted stream slice via yt-dlp ({start_sec:.1f}s - {end_sec:.1f}s, Quality: {quality})...")
         with yt_dlp.YoutubeDL(fallback_opts) as ydl:
             ydl.extract_info(url, download=True)
 
@@ -420,10 +430,10 @@ class YouTubeDownloader:
             info = self.get_video_info(url)
             return slice_path, None, info.get('title', 'YouTube Video'), max(1.0, end_sec - start_sec)
 
-        if quality.lower() == "4k":
-            format_str = 'bestvideo[height<=2160]+bestaudio/best[height<=2160]/best'
-        elif quality.lower() == "8k":
+        if quality.lower() == "8k":
             format_str = 'bestvideo[height<=4320]+bestaudio/best[height<=4320]/best'
+        elif quality.lower() == "4k":
+            format_str = 'bestvideo[height<=2160]+bestaudio/best[height<=2160]/best'
         elif quality.lower() == "1080p":
             format_str = 'bestvideo[height<=1080]+bestaudio/best[height<=1080]/best'
         else:
