@@ -23,6 +23,10 @@ class CaptionMaker:
         self.styles = CAPTION_STYLES
         self.highlight_keywords = HIGHLIGHT_KEYWORDS
         self.font_cache = {}
+        win_dir = os.environ.get('SystemRoot', 'C:\\Windows')
+        emoji_font = os.path.join(win_dir, 'Fonts', 'seguiemj.ttf')
+        self.emoji_font_path = emoji_font if os.path.exists(emoji_font) else None
+        self.emoji_map = EMOJI_MAP
 
     def find_available_fonts(self):
         """
@@ -70,16 +74,13 @@ class CaptionMaker:
                 str(Path("./assets/fonts/PermanentMarker-Regular.ttf").resolve()),
             ],
             'bold': [
-                str(base_fonts / "Montserrat-Bold.ttf"),
                 str(base_fonts / "Anton-Regular.ttf"),
+                str(base_fonts / "Montserrat-Bold.ttf"),
                 os.path.join(win_dir, 'Fonts', 'arialbd.ttf'),
-                os.path.join(win_dir, 'Fonts', 'calibrib.ttf'),
-                'C:\\Windows\\Fonts\\arialbd.ttf',
             ],
             'regular': [
+                str(base_fonts / "Anton-Regular.ttf"),
                 str(base_fonts / "Montserrat-Bold.ttf"),
-                str(base_fonts / "Outfit-Bold.ttf"),
-                str(base_fonts / "PlusJakartaSans-Bold.ttf"),
             ]
         }
 
@@ -89,13 +90,9 @@ class CaptionMaker:
             for path in paths:
                 if Path(path).exists():
                     found_fonts[font_type] = path
-                    try:
-                        print(f"    >> Found {font_type} font: {Path(path).name}")
-                    except Exception:
-                        pass
                     break
 
-        default_font = found_fonts.get('montserrat') or found_fonts.get('bold') or found_fonts.get('rubik') or found_fonts.get('anton')
+        default_font = found_fonts.get('anton') or found_fonts.get('montserrat') or found_fonts.get('rubik')
         for k in found_fonts:
             if not found_fonts[k]:
                 found_fonts[k] = default_font
@@ -110,7 +107,7 @@ class CaptionMaker:
         font = None
         font_path = self.font_paths.get(font_type)
         if not font_path or not Path(font_path).exists():
-            font_path = self.font_paths.get('montserrat') or self.font_paths.get('bold')
+            font_path = self.font_paths.get('anton') or self.font_paths.get('montserrat')
 
         if font_path and Path(font_path).exists():
             try:
@@ -312,17 +309,17 @@ class CaptionMaker:
 
     def create_phrase_image(self, words_in_phrase, font_size, active_idx=None, style_config=None):
         """
-        Renders a full multi-word phrase with commercial-grade outer drop shadow & glowing active word pop.
-        Inner glyphs (O, A, R, E) remain 100% thick, bold, and un-squished without PIL stroke artifacts.
+        Renders a full multi-word phrase with commercial-grade outer drop shadow,
+        vibrant glowing active word pill-badge highlighting, and contextual color emojis.
         """
         if style_config is None:
             style_config = self.styles.get(self.selected_style, self.styles.get('capcut_yellow', {}))
 
-        font_type = style_config.get('font_type', 'montserrat')
+        font_type = style_config.get('font_type', 'anton')
         font = self.get_font(font_type, font_size)
 
         space_bbox = font.getbbox(' ')
-        space_w = max(10, space_bbox[2] - space_bbox[0])
+        space_w = max(14, space_bbox[2] - space_bbox[0])
 
         word_bboxes = [font.getbbox(w['word']) for w in words_in_phrase]
         word_widths = [max(1, b[2] - b[0]) for b in word_bboxes]
@@ -331,9 +328,31 @@ class CaptionMaker:
         line_w = sum(word_widths) + space_w * max(0, len(words_in_phrase) - 1)
         line_h = max(word_heights) if word_heights else font_size
 
-        pad_x = 24
-        pad_y = 24
-        img_w = line_w + pad_x * 2
+        # Check for contextual emoji matching in any word of the phrase
+        active_emoji = None
+        for w_obj in words_in_phrase:
+            clean_key = w_obj['word'].upper().strip(".,!?:;\"'()[]{}")
+            if clean_key in self.emoji_map:
+                active_emoji = self.emoji_map[clean_key]
+                break
+
+        emoji_font = None
+        emoji_w = 0
+        if active_emoji and self.emoji_font_path:
+            try:
+                emoji_font = ImageFont.truetype(self.emoji_font_path, int(font_size * 0.90))
+                e_bbox = emoji_font.getbbox(active_emoji)
+                emoji_w = (e_bbox[2] - e_bbox[0]) if e_bbox else int(font_size * 0.90)
+                emoji_w += 18
+            except Exception:
+                emoji_font = None
+                emoji_w = 0
+
+        total_content_w = line_w + emoji_w
+
+        pad_x = 35
+        pad_y = 35
+        img_w = total_content_w + pad_x * 2
         img_h = line_h + pad_y * 2
 
         img = Image.new('RGBA', (img_w, img_h), (0, 0, 0, 0))
@@ -350,41 +369,55 @@ class CaptionMaker:
 
         base_color = style_config.get('text_color', (255, 255, 255, 255))
         highlight_color = style_config.get('highlight_color', (255, 230, 0, 255))
-        
-        # 1. Outer Deep Shadow & Contour Halo (Multi-angle 3D depth, 0 inner eating)
-        if not style_config.get('no_stroke', False):
-            d = max(2, int(font_size * 0.045))
-            shadow_offsets = [
-                (-d, -d), (d, -d), (-d, d), (d, d),
-                (0, -d), (0, d), (-d, 0), (d, 0),
-                (-d-1, -d-1), (d+1, -d-1), (-d-1, d+1), (d+1, d+1),
-                (0, d+2), (0, d+3)
-            ]
-            shadow_color = (0, 0, 0, 255)
 
-            for dx, dy in shadow_offsets:
-                temp_x = pad_x
-                for i, w_obj in enumerate(words_in_phrase):
-                    w_text = w_obj['word']
-                    y_pos = pad_y - word_bboxes[i][1]
-                    draw.text((temp_x + dx, y_pos + dy), w_text, font=font, fill=shadow_color)
-                    temp_x += word_widths[i] + space_w
+        # 1. Outer Deep Shadow & 3D Contour Halo on all inactive words
+        d = max(2, int(font_size * 0.05))
+        shadow_offsets = [
+            (-d, -d), (d, -d), (-d, d), (d, d),
+            (0, -d), (0, d), (-d, 0), (d, 0),
+            (-d-1, -d-1), (d+1, -d-1), (-d-1, d+1), (d+1, d+1),
+            (0, d+2), (0, d+4)
+        ]
+        shadow_color = (0, 0, 0, 255)
 
-        # 2. Crisp, Radiant Foreground Text
+        # 2. Draw Active Spoken Word Highlight (Vibrant Glowing Pill Badge or Golden Pop)
         cur_x = pad_x
         for i, w_obj in enumerate(words_in_phrase):
             w_text = w_obj['word']
             is_active = (i == active_idx)
-            is_keyword = any(k.upper() in w_text.upper() for k in self.highlight_keywords)
-
-            if is_active or (active_idx is None and is_keyword):
-                fill_color = highlight_color
-            else:
-                fill_color = base_color
-
             y_pos = pad_y - word_bboxes[i][1]
-            draw.text((cur_x, y_pos), w_text, font=font, fill=fill_color)
+
+            if is_active:
+                # Draw rounded highlight pill badge behind active word
+                pill_x1 = cur_x - 10
+                pill_y1 = pad_y - 6
+                pill_x2 = cur_x + word_widths[i] + 10
+                pill_y2 = pad_y + line_h + 6
+                radius = max(8, int(font_size * 0.16))
+                draw.rounded_rectangle(
+                    [(pill_x1, pill_y1), (pill_x2, pill_y2)],
+                    radius=radius,
+                    fill=highlight_color
+                )
+                
+                # Draw active word in solid, bold black inside the radiant pill badge
+                draw.text((cur_x, y_pos), w_text, font=font, fill=(0, 0, 0, 255))
+            else:
+                # Inactive word: draw outer 3D shadow + crisp white text
+                for dx, dy in shadow_offsets:
+                    draw.text((cur_x + dx, y_pos + dy), w_text, font=font, fill=shadow_color)
+                draw.text((cur_x, y_pos), w_text, font=font, fill=base_color)
+
             cur_x += word_widths[i] + space_w
+
+        # 3. Draw Full-Color Contextual Emoji
+        if active_emoji and emoji_font:
+            try:
+                emoji_x = cur_x + 8
+                emoji_y = pad_y - 10
+                draw.text((emoji_x, emoji_y), active_emoji, font=emoji_font, embedded_color=True)
+            except Exception:
+                pass
 
         return np.array(img)
 

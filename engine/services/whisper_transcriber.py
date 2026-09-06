@@ -176,14 +176,14 @@ class WhisperSingleton:
                 word_timestamps=True,
                 vad_filter=True,
                 vad_parameters=dict(
-                    min_silence_duration_ms=200,  # Fast dialogue pause detection
-                    speech_pad_ms=100,            # Exact onset syllable alignment (prevents early/late offset)
-                    threshold=0.35                # Sensitive enough for mumbling or soft speech
+                    min_silence_duration_ms=160,  # Rapid speech pause detection
+                    speech_pad_ms=120,            # Exact onset syllable alignment
+                    threshold=0.28                # Sensitive enough for mumbling, low volume, or fast speech
                 ),
                 beam_size=5,                      # 5 beams for robust accuracy
                 best_of=5,
-                temperature=[0.0, 0.2, 0.4],      # Fallback exploration for acoustic noise
-                condition_on_previous_text=True,  # Maintain sentence context for fast creators
+                temperature=0.0,                  # Deterministic best path (zero hallucinations)
+                condition_on_previous_text=False, # Prevents repetitive loops and missed context
                 hallucination_silence_threshold=1.5,
                 repetition_penalty=1.1,
                 no_repeat_ngram_size=3,

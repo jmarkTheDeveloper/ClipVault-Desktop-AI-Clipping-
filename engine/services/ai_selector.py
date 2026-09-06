@@ -755,7 +755,7 @@ Return ONLY valid JSON:
 {{
   "filter_profile": "manga_ink",
   "transition_flash": true,
-  "caption_style": "cinematic_sub",
+  "caption_style": "capcut_yellow",
   "inspiration_summary": "Short explanation of the trending TikTok style you found"
 }}"""
         try:
@@ -775,7 +775,7 @@ Return ONLY valid JSON:
             return {
                 "filter_profile": "manga_ink",
                 "transition_flash": True,
-                "caption_style": "cinematic_sub",
+                "caption_style": "capcut_yellow",
                 "inspiration_summary": "Failsafe: Detected anime topic, defaulting to high-contrast manga_ink edit style."
             }
         elif any(kw in topic_lower for kw in ['game', 'gaming', 'cyberpunk', 'halo', 'gta', 'cod']):
@@ -788,6 +788,6 @@ Return ONLY valid JSON:
         return {
             "filter_profile": "cool_teal",
             "transition_flash": True,
-            "caption_style": "cinematic_sub",
-            "inspiration_summary": "Failsafe: Defaulting to standard cinematic cool_teal edit style."
+            "caption_style": "capcut_yellow",
+            "inspiration_summary": "Failsafe: Defaulting to standard viral yellow edit style."
         }
