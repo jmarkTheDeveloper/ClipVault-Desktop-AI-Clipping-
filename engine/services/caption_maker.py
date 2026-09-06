@@ -312,10 +312,8 @@ class CaptionMaker:
 
     def create_phrase_image(self, words_in_phrase, font_size, active_idx=None, style_config=None):
         """
-        Renders a full multi-word phrase (2-3 words) with CapCut / Opus Clip active word highlight.
-        Inactive words: Crisp white.
-        Active word (at active_idx): Glowing radiant highlight (CapCut Yellow, Opus Neon Green, Cyan, etc.)
-        All words have a clean, heavy black stroke for maximum legibility on any background.
+        Renders a full multi-word phrase with commercial-grade outer drop shadow & glowing active word pop.
+        Inner glyphs (O, A, R, E) remain 100% thick, bold, and un-squished without PIL stroke artifacts.
         """
         if style_config is None:
             style_config = self.styles.get(self.selected_style, self.styles.get('capcut_yellow', {}))
@@ -324,7 +322,7 @@ class CaptionMaker:
         font = self.get_font(font_type, font_size)
 
         space_bbox = font.getbbox(' ')
-        space_w = max(8, space_bbox[2] - space_bbox[0])
+        space_w = max(10, space_bbox[2] - space_bbox[0])
 
         word_bboxes = [font.getbbox(w['word']) for w in words_in_phrase]
         word_widths = [max(1, b[2] - b[0]) for b in word_bboxes]
@@ -333,11 +331,8 @@ class CaptionMaker:
         line_w = sum(word_widths) + space_w * max(0, len(words_in_phrase) - 1)
         line_h = max(word_heights) if word_heights else font_size
 
-        stroke_factor = style_config.get('stroke_factor', 0.14)
-        stroke_w = 0 if style_config.get('no_stroke', False) else max(4, int(font_size * stroke_factor))
-
-        pad_x = stroke_w + 14
-        pad_y = stroke_w + 14
+        pad_x = 24
+        pad_y = 24
         img_w = line_w + pad_x * 2
         img_h = line_h + pad_y * 2
 
@@ -346,18 +341,37 @@ class CaptionMaker:
 
         # Draw rounded translucent background banner if configured
         if 'bg_box_color' in style_config:
-            radius = max(8, int(font_size * 0.18))
+            radius = max(10, int(font_size * 0.20))
             draw.rounded_rectangle(
-                [(0, 0), (img_w - 1, img_h - 1)],
+                [(4, 4), (img_w - 5, img_h - 5)],
                 radius=radius,
                 fill=style_config['bg_box_color']
             )
 
-        cur_x = pad_x
         base_color = style_config.get('text_color', (255, 255, 255, 255))
         highlight_color = style_config.get('highlight_color', (255, 230, 0, 255))
-        stroke_fill = style_config.get('stroke_fill', (0, 0, 0, 255))
+        
+        # 1. Outer Deep Shadow & Contour Halo (Multi-angle 3D depth, 0 inner eating)
+        if not style_config.get('no_stroke', False):
+            d = max(2, int(font_size * 0.045))
+            shadow_offsets = [
+                (-d, -d), (d, -d), (-d, d), (d, d),
+                (0, -d), (0, d), (-d, 0), (d, 0),
+                (-d-1, -d-1), (d+1, -d-1), (-d-1, d+1), (d+1, d+1),
+                (0, d+2), (0, d+3)
+            ]
+            shadow_color = (0, 0, 0, 255)
 
+            for dx, dy in shadow_offsets:
+                temp_x = pad_x
+                for i, w_obj in enumerate(words_in_phrase):
+                    w_text = w_obj['word']
+                    y_pos = pad_y - word_bboxes[i][1]
+                    draw.text((temp_x + dx, y_pos + dy), w_text, font=font, fill=shadow_color)
+                    temp_x += word_widths[i] + space_w
+
+        # 2. Crisp, Radiant Foreground Text
+        cur_x = pad_x
         for i, w_obj in enumerate(words_in_phrase):
             w_text = w_obj['word']
             is_active = (i == active_idx)
@@ -369,20 +383,15 @@ class CaptionMaker:
                 fill_color = base_color
 
             y_pos = pad_y - word_bboxes[i][1]
-            if stroke_w > 0:
-                draw.text((cur_x, y_pos), w_text, font=font, fill=fill_color,
-                          stroke_width=stroke_w, stroke_fill=stroke_fill)
-            else:
-                draw.text((cur_x, y_pos), w_text, font=font, fill=fill_color)
-
+            draw.text((cur_x, y_pos), w_text, font=font, fill=fill_color)
             cur_x += word_widths[i] + space_w
 
         return np.array(img)
 
-    def group_words_into_phrases(self, words, max_words=3, max_silence=0.4):
+    def group_words_into_phrases(self, words, max_words=2, max_silence=0.35):
         """
-        Groups individual words into punchy, coherent multi-word phrases (2-3 words per burst)
-        matching modern TikTok, CapCut, and Opus Clip standards.
+        Groups individual words into punchy, high-energy 1-2 word bursts (max 3 short words)
+        matching modern TikTok, Alex Hormozi, and Opus Clip viral standards.
         """
         phrases = []
         if not words:
@@ -403,7 +412,7 @@ class CaptionMaker:
             total_chars = sum(len(w['word']) for w in current_words)
 
             if (len(current_words) >= max_words or 
-                total_chars >= 20 or
+                total_chars >= 14 or
                 ends_terminal or 
                 silence_gap > max_silence or 
                 not has_next):
@@ -422,7 +431,7 @@ class CaptionMaker:
                 
         return phrases
 
-    def add_captions(self, clip, words, clip_start_time, layout="vertical_crop", movie_recap=False, hook_text=None, auto_sfx=False, caption_y_pct=0.70):
+    def add_captions(self, clip, words, clip_start_time, layout="vertical_crop", movie_recap=False, hook_text=None, auto_sfx=False, caption_y_pct=0.63):
         """
         Adds word-by-word captions and an optional static video hook banner to a video clip.
         Uses CapCut / Opus Clip multi-word bursts with active karaoke highlighting.
@@ -441,41 +450,23 @@ class CaptionMaker:
             if force_uppercase:
                 word_text = word_text.upper()
 
-            # Broadcast audio-visual perceptual calibration:
-            # Human visual processing takes ~150ms. Leading text highlight onset by 50ms (1-2 frames)
-            # ensures the visual color pop perfectly synchronizes with the acoustic syllable hitting the ear!
             calibrated_start = max(0.0, word_start - 0.05)
             calibrated_end = max(calibrated_start + 0.08, word_end - 0.02)
 
             relative_start = calibrated_start - clip_start_time
             relative_end = calibrated_end - clip_start_time
 
-            if relative_end <= 0 or relative_start >= clip.duration:
-                continue
-
-            relative_start = max(0.0, relative_start)
-            relative_end = min(clip.duration, relative_end)
-            duration = relative_end - relative_start
-
-            if duration <= 0.05:
-                continue
-
-            clip_words.append({
-                'word': word_text,
-                'start': relative_start,
-                'end': relative_end,
-                'duration': duration
-            })
+            if relative_end > 0 and relative_start < clip.duration:
+                clip_words.append({
+                    'word': word_text,
+                    'start': max(0.0, relative_start),
+                    'end': min(clip.duration, relative_end)
+                })
 
         if not clip_words:
             return clip
 
-        # Group words into punchy 2-3 word phrases (CapCut & Opus Clip standard)
-        max_words = style_config.get('max_words', 3)
-        phrases = self.group_words_into_phrases(clip_words, max_words=max_words)
-
-        if not phrases:
-            return clip
+        phrases = self.group_words_into_phrases(clip_words, max_words=style_config.get('max_words', 2))
 
         video_width, video_height = clip.size
         
@@ -548,22 +539,21 @@ class CaptionMaker:
             except Exception:
                 pass
         
-        # Base font size: 66-74px on 1080p, scales with resolution
-        target_font_size = max(38, int(min(video_width, video_height) * 0.065))
+        # High-impact, large viral typography (scales from 85px on 1080p to 175px on 4K)
+        target_font_size = max(52, int(min(video_width, video_height) * 0.082))
         font_type = style_config.get('font_type', 'montserrat')
 
         pre_rendered_segments = []
 
         for p_idx, phrase in enumerate(phrases):
             words_in_p = phrase['words']
-            # Scale font size if phrase is too wide
             curr_font_size = target_font_size
-            while curr_font_size > 30:
+            while curr_font_size > 42:
                 f_check = self.get_font(font_type, curr_font_size)
                 sp_bbox = f_check.getbbox(' ')
                 sp_w = sp_bbox[2] - sp_bbox[0]
                 tot_w = sum(f_check.getbbox(w['word'])[2] - f_check.getbbox(w['word'])[0] for w in words_in_p) + sp_w * max(0, len(words_in_p) - 1)
-                if tot_w <= video_width * 0.86:
+                if tot_w <= video_width * 0.84:
                     break
                 curr_font_size -= 4
 
@@ -578,7 +568,7 @@ class CaptionMaker:
                     img_np = self.create_phrase_image(words_in_p, curr_font_size, active_idx=w_idx, style_config=style_config)
                     fg_h, fg_w, _ = img_np.shape
                     x_pos = (video_width - fg_w) // 2
-                    y_target = int(video_height * (caption_y_pct if caption_y_pct is not None else 0.70))
+                    y_target = int(video_height * (caption_y_pct if caption_y_pct is not None else 0.63))
                     y_pos = max(10, min(video_height - fg_h - 10, y_target - (fg_h // 2)))
 
                     w_start = w_obj['start']
@@ -617,7 +607,7 @@ class CaptionMaker:
                     neutral_img = self.create_phrase_image(words_in_p, curr_font_size, active_idx=None, style_config=style_config)
                     fg_h, fg_w, _ = neutral_img.shape
                     x_pos = (video_width - fg_w) // 2
-                    y_target = int(video_height * (caption_y_pct if caption_y_pct is not None else 0.70))
+                    y_target = int(video_height * (caption_y_pct if caption_y_pct is not None else 0.63))
                     y_pos = max(10, min(video_height - fg_h - 10, y_target - (fg_h // 2)))
 
                     pre_rendered_segments.append({
@@ -634,7 +624,7 @@ class CaptionMaker:
                 img_np = self.create_phrase_image(words_in_p, curr_font_size, active_idx=None, style_config=style_config)
                 fg_h, fg_w, _ = img_np.shape
                 x_pos = (video_width - fg_w) // 2
-                y_target = int(video_height * (caption_y_pct if caption_y_pct is not None else 0.70))
+                y_target = int(video_height * (caption_y_pct if caption_y_pct is not None else 0.63))
                 y_pos = max(10, min(video_height - fg_h - 10, y_target - (fg_h // 2)))
 
                 pre_rendered_segments.append({
