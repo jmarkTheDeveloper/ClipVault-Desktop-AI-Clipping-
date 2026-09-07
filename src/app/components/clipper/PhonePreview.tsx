@@ -409,16 +409,18 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
       <div className="absolute w-[500px] h-[500px] bg-amber-400/5 rounded-full blur-3xl pointer-events-none" />
 
       {/* 9:16 Smartphone Mockup */}
-      <div className="relative w-[385px] h-[680px] bg-black rounded-[52px] p-3.5 shadow-[0_0_80px_rgba(0,0,0,0.85)] border-[7px] border-[#222] ring-1 ring-white/15 flex flex-col z-10">
+      <div className="relative w-[400px] h-[780px] max-h-[88vh] bg-black rounded-[54px] p-3.5 shadow-[0_0_90px_rgba(0,0,0,0.9)] border-[8px] border-[#222] ring-1 ring-white/15 flex flex-col z-10">
         {/* Dynamic Island / Speaker Pill */}
-        <div className="absolute top-6 left-1/2 -translate-x-1/2 w-24 h-4 bg-[#111] rounded-full z-40 flex items-center justify-center shadow-inner border border-white/5">
+        <div className="absolute top-6 left-1/2 -translate-x-1/2 w-24 h-4 bg-[#111] rounded-full z-40 flex items-center justify-center shadow-inner border border-white/5 pointer-events-none">
           <div className="w-2.5 h-2.5 rounded-full bg-[#1c1c1e] mr-2" />
           <div className="w-10 h-1.5 rounded-full bg-[#1c1c1e]" />
         </div>
 
         {/* Screen Viewport */}
-        <div className="relative flex-1 bg-[#111] rounded-[38px] overflow-hidden flex items-center justify-center border border-white/5">
-          {isProcessing ? (
+        <div className="relative flex-1 bg-[#111] rounded-[42px] overflow-hidden flex flex-col border border-white/5">
+          {/* Upper Video / Canvas Viewport */}
+          <div className="flex-1 relative overflow-hidden flex items-center justify-center bg-black select-none">
+            {isProcessing ? (
             <div className="flex flex-col items-center justify-center space-y-4 p-6 text-center z-30">
               <Loader2 className="w-10 h-10 text-amber-400 animate-spin" />
               <span className="text-amber-400 font-bold text-sm">{Math.floor(progress)}%</span>
@@ -771,214 +773,218 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
               />
             </div>
           )}
-        </div>
-      </div>
-
-      {/* Interactive Mobile Playback & Timestamp Dock */}
-      {hasMedia && (
-        <div className="w-[385px] mt-4 p-3.5 bg-[#121212] border border-white/10 rounded-2xl shadow-2xl space-y-2.5 z-20 animate-fadeIn">
-          {/* Timeline Scrubber & Timestamp Readout */}
-          <div className="flex items-center justify-between text-[11px] font-mono text-gray-300 font-bold">
-            <span className="text-amber-400 flex items-center gap-1">
-              <Clock className="w-3 h-3 text-amber-400" /> {formatTime(currentTime)}
-            </span>
-            <span className="text-gray-400 font-mono">
-              {duration > 0 ? formatTime(duration) : (mediaDuration && mediaDuration > 0 ? formatTime(mediaDuration) : "--:--")}
-            </span>
           </div>
 
-          <input
-            type="range"
-            min="0"
-            max={duration || mediaDuration || 100}
-            step="0.5"
-            value={currentTime}
-            onPointerDown={() => { isDraggingRef.current = true; }}
-            onMouseDown={() => { isDraggingRef.current = true; }}
-            onTouchStart={() => { isDraggingRef.current = true; }}
-            onChange={(e) => {
-              const val = parseFloat(e.target.value);
-              setCurrentTime(val);
-            }}
-            onPointerUp={(e) => {
-              isDraggingRef.current = false;
-              commitSeek(parseFloat(e.currentTarget.value));
-            }}
-            onMouseUp={(e) => {
-              isDraggingRef.current = false;
-              commitSeek(parseFloat(e.currentTarget.value));
-            }}
-            onTouchEnd={(e) => {
-              isDraggingRef.current = false;
-              commitSeek(parseFloat(e.currentTarget.value));
-            }}
-            onKeyUp={(e) => {
-              commitSeek(parseFloat(e.currentTarget.value));
-            }}
-            className="w-full accent-amber-400 h-1.5 bg-black/60 rounded-lg cursor-pointer"
-          />
-
-          {/* Transport Buttons & Quick Scene Jumps */}
-          <div className="flex items-center justify-center gap-2 pt-1">
-            <button
-              type="button"
-              onClick={() => seekRelative(-10)}
-              className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/15 text-gray-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
-              title="Rewind 10 seconds"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-            </button>
-
-            <button
-              type="button"
-              onClick={togglePlayAll}
-              className="w-[84px] h-7 rounded-xl bg-amber-400 text-black font-extrabold text-xs flex items-center justify-center gap-1.5 hover:bg-amber-300 transition-all shadow-md cursor-pointer shrink-0"
-            >
-              {isPlaying ? <Pause className="w-3.5 h-3.5 fill-black" /> : <Play className="w-3.5 h-3.5 fill-black ml-0.5" />}
-              <span>{isPlaying ? "Pause" : "Play"}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => seekRelative(10)}
-              className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/15 text-gray-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
-              title="Forward 10 seconds"
-            >
-              <RotateCw className="w-3.5 h-3.5" />
-            </button>
-
-            <div className="w-px h-4 bg-white/15 mx-0.5 shrink-0" />
-
-            {/* Fast Scene Hoppers */}
-            <button
-              type="button"
-              onClick={() => seekRelative(15)}
-              className="h-7 px-2.5 rounded-lg bg-white/5 hover:bg-white/10 text-[10px] font-bold text-gray-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
-              title="Jump forward 15 seconds"
-            >
-              +15s
-            </button>
-            <button
-              type="button"
-              onClick={() => seekRelative(60)}
-              className="h-7 px-2.5 rounded-lg bg-white/5 hover:bg-white/10 text-[10px] font-bold text-gray-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
-              title="Jump forward 1 minute"
-            >
-              +1m
-            </button>
-          </div>
-
-          {/* Quick Mark Start / End Timestamps with Active Segment Pinning & Multi-Segment Tabs */}
-          {(setStartTs || setEndTs || setCustomSegments) && (
-            <div className="space-y-2 pt-2 border-t border-white/5">
-              <div className="flex items-center justify-between px-0.5">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Clip Time Bounds</span>
-                  {customSegments.length > 1 && (
-                    <span className="text-[9px] font-bold text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/20">
-                      {customSegments.length} Clips
-                    </span>
-                  )}
-                </div>
-                {(startTs || endTs || customSegments.some((s) => s.start || s.end)) && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (setStartTs) setStartTs("");
-                      if (setEndTs) setEndTs("");
-                      if (setCustomSegments) {
-                        setCustomSegments([{ id: "1", start: "0:00", end: "" }]);
-                      }
-                      if (setActiveSegmentId) setActiveSegmentId("1");
-                    }}
-                    className="text-[9px] text-red-400 hover:text-red-300 font-bold transition-colors cursor-pointer"
-                  >
-                    Clear Bounds
-                  </button>
-                )}
+          {/* Integrated Mobile Playback & Timestamp Dock Inside Phone Screen */}
+          {hasMedia && !isProcessing && (
+            <div className="w-full bg-[#0d0d0f]/95 backdrop-blur-xl border-t border-white/10 p-3 space-y-2 z-30 shrink-0 select-none">
+              {/* Timeline Scrubber & Timestamp Readout */}
+              <div className="flex items-center justify-between text-[11px] font-mono text-gray-300 font-bold">
+                <span className="text-amber-400 flex items-center gap-1">
+                  <Clock className="w-3 h-3 text-amber-400" /> {formatTime(currentTime)}
+                </span>
+                <span className="text-gray-400 font-mono">
+                  {duration > 0 ? formatTime(duration) : (mediaDuration && mediaDuration > 0 ? formatTime(mediaDuration) : "--:--")}
+                </span>
               </div>
 
-              {/* Multi-Segment Chips Switcher if > 1 segment exists */}
-              {customSegments.length > 1 && (
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
-                  {customSegments.map((seg, idx) => {
-                    const isSel = activeSegmentId === seg.id;
-                    return (
+              <input
+                type="range"
+                min="0"
+                max={duration || mediaDuration || 100}
+                step="0.5"
+                value={currentTime}
+                onPointerDown={() => { isDraggingRef.current = true; }}
+                onMouseDown={() => { isDraggingRef.current = true; }}
+                onTouchStart={() => { isDraggingRef.current = true; }}
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value);
+                  setCurrentTime(val);
+                }}
+                onPointerUp={(e) => {
+                  isDraggingRef.current = false;
+                  commitSeek(parseFloat(e.currentTarget.value));
+                }}
+                onMouseUp={(e) => {
+                  isDraggingRef.current = false;
+                  commitSeek(parseFloat(e.currentTarget.value));
+                }}
+                onTouchEnd={(e) => {
+                  isDraggingRef.current = false;
+                  commitSeek(parseFloat(e.currentTarget.value));
+                }}
+                onKeyUp={(e) => {
+                  commitSeek(parseFloat(e.currentTarget.value));
+                }}
+                className="w-full accent-amber-400 h-1.5 bg-black/60 rounded-lg cursor-pointer"
+              />
+
+              {/* Transport Buttons & Quick Scene Jumps */}
+              <div className="flex items-center justify-center gap-2 pt-0.5">
+                <button
+                  type="button"
+                  onClick={() => seekRelative(-10)}
+                  className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/15 text-gray-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                  title="Rewind 10 seconds"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={togglePlayAll}
+                  className="w-[84px] h-7 rounded-xl bg-amber-400 text-black font-extrabold text-xs flex items-center justify-center gap-1.5 hover:bg-amber-300 transition-all shadow-md cursor-pointer shrink-0"
+                >
+                  {isPlaying ? <Pause className="w-3.5 h-3.5 fill-black" /> : <Play className="w-3.5 h-3.5 fill-black ml-0.5" />}
+                  <span>{isPlaying ? "Pause" : "Play"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => seekRelative(10)}
+                  className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/15 text-gray-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                  title="Forward 10 seconds"
+                >
+                  <RotateCw className="w-3.5 h-3.5" />
+                </button>
+
+                <div className="w-px h-4 bg-white/15 mx-0.5 shrink-0" />
+
+                {/* Fast Scene Hoppers */}
+                <button
+                  type="button"
+                  onClick={() => seekRelative(15)}
+                  className="h-7 px-2.5 rounded-lg bg-white/5 hover:bg-white/10 text-[10px] font-bold text-gray-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                  title="Jump forward 15 seconds"
+                >
+                  +15s
+                </button>
+                <button
+                  type="button"
+                  onClick={() => seekRelative(60)}
+                  className="h-7 px-2.5 rounded-lg bg-white/5 hover:bg-white/10 text-[10px] font-bold text-gray-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                  title="Jump forward 1 minute"
+                >
+                  +1m
+                </button>
+              </div>
+
+              {/* Quick Mark Start / End Timestamps with Active Segment Pinning & Multi-Segment Tabs */}
+              {(setStartTs || setEndTs || setCustomSegments) && (
+                <div className="space-y-1.5 pt-1.5 border-t border-white/5">
+                  <div className="flex items-center justify-between px-0.5">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Clip Time Bounds</span>
+                      {customSegments.length > 1 && (
+                        <span className="text-[9px] font-bold text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/20">
+                          {customSegments.length} Clips
+                        </span>
+                      )}
+                    </div>
+                    {(startTs || endTs || customSegments.some((s) => s.start || s.end)) && (
                       <button
-                        key={seg.id}
                         type="button"
                         onClick={() => {
-                          if (setActiveSegmentId) setActiveSegmentId(seg.id);
+                          if (setStartTs) setStartTs("");
+                          if (setEndTs) setEndTs("");
+                          if (setCustomSegments) {
+                            setCustomSegments([{ id: "1", start: "0:00", end: "" }]);
+                          }
+                          if (setActiveSegmentId) setActiveSegmentId("1");
                         }}
-                        className={`px-2.5 py-0.5 rounded-lg text-[10px] font-black border transition-all cursor-pointer shrink-0 ${
-                          isSel
-                            ? "bg-amber-400 text-black border-amber-400 shadow-sm"
-                            : "bg-white/5 text-gray-400 border-white/10 hover:text-white"
-                        }`}
+                        className="text-[9px] text-red-400 hover:text-red-300 font-bold transition-colors cursor-pointer"
                       >
-                        Clip #{idx + 1} {seg.start ? `(${seg.start}${seg.end ? `-${seg.end}` : ""})` : ""}
+                        Clear Bounds
                       </button>
+                    )}
+                  </div>
+
+                  {/* Multi-Segment Chips Switcher if > 1 segment exists */}
+                  {customSegments.length > 1 && (
+                    <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+                      {customSegments.map((seg, idx) => {
+                        const isSel = activeSegmentId === seg.id;
+                        return (
+                          <button
+                            key={seg.id}
+                            type="button"
+                            onClick={() => {
+                              if (setActiveSegmentId) setActiveSegmentId(seg.id);
+                            }}
+                            className={`px-2 py-0.5 rounded-lg text-[9.5px] font-black border transition-all cursor-pointer shrink-0 ${
+                              isSel
+                                ? "bg-amber-400 text-black border-amber-400 shadow-sm"
+                                : "bg-white/5 text-gray-400 border-white/10 hover:text-white"
+                            }`}
+                          >
+                            Clip #{idx + 1} {seg.start ? `(${seg.start}${seg.end ? `-${seg.end}` : ""})` : ""}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Pin Start & Pin End Buttons */}
+                  {(() => {
+                    const currentActiveSeg = customSegments.find((s) => s.id === activeSegmentId) || customSegments[0] || { start: startTs, end: endTs };
+                    const currentStartDisplay = currentActiveSeg.start || startTs || "0:00";
+                    const currentEndDisplay = currentActiveSeg.end || endTs || (duration > 0 ? formatTime(duration) : (mediaDuration && mediaDuration > 0 ? formatTime(mediaDuration) : "0:00"));
+
+                    return (
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const formatted = formatTime(currentTime);
+                            if (setCustomSegments) {
+                              setCustomSegments((prev) => prev.map((s) => (s.id === activeSegmentId ? { ...s, start: formatted } : s)));
+                            }
+                            if (setStartTs) setStartTs(formatted);
+                            if (setDurationMode) setDurationMode("custom");
+                          }}
+                          title={`Pin Start timestamp (${formatTime(currentTime)}) to active clip`}
+                          className={`flex-1 py-1.5 px-2 rounded-xl border text-[10px] font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm ${
+                            currentActiveSeg.start || startTs
+                              ? "bg-amber-400/20 border-amber-400 text-amber-300 ring-1 ring-amber-400/30"
+                              : "bg-white/5 hover:bg-white/10 border-white/10 text-gray-300 hover:text-white"
+                          }`}
+                        >
+                          <Pin className={`w-3 h-3 ${currentActiveSeg.start || startTs ? "text-amber-400" : "text-gray-400"}`} />
+                          <span>Start: {currentStartDisplay}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const formatted = formatTime(currentTime);
+                            if (setCustomSegments) {
+                              setCustomSegments((prev) => prev.map((s) => (s.id === activeSegmentId ? { ...s, end: formatted } : s)));
+                            }
+                            if (setEndTs) setEndTs(formatted);
+                            if (setDurationMode) setDurationMode("custom");
+                          }}
+                          title={`Pin End timestamp (${formatTime(currentTime)}) to active clip`}
+                          className={`flex-1 py-1.5 px-2 rounded-xl border text-[10px] font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm ${
+                            currentActiveSeg.end || endTs
+                              ? "bg-cyan-400/20 border-cyan-400 text-cyan-300 ring-1 ring-cyan-400/30"
+                              : "bg-white/5 hover:bg-white/10 border-white/10 text-gray-300 hover:text-white"
+                          }`}
+                        >
+                          <Flag className={`w-3 h-3 ${currentActiveSeg.end || endTs ? "text-cyan-400" : "text-gray-400"}`} />
+                          <span>End: {currentEndDisplay}</span>
+                        </button>
+                      </div>
                     );
-                  })}
+                  })()}
                 </div>
               )}
-
-              {/* Pin Start & Pin End Buttons */}
-              {(() => {
-                const currentActiveSeg = customSegments.find((s) => s.id === activeSegmentId) || customSegments[0] || { start: startTs, end: endTs };
-                const currentStartDisplay = currentActiveSeg.start || startTs || "00:00";
-                const currentEndDisplay = currentActiveSeg.end || endTs || (duration > 0 ? formatTime(duration) : (mediaDuration && mediaDuration > 0 ? formatTime(mediaDuration) : "00:00"));
-
-                return (
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const formatted = formatTime(currentTime);
-                        if (setCustomSegments) {
-                          setCustomSegments((prev) => prev.map((s) => (s.id === activeSegmentId ? { ...s, start: formatted } : s)));
-                        }
-                        if (setStartTs) setStartTs(formatted);
-                        if (setDurationMode) setDurationMode("custom");
-                      }}
-                      title={`Pin Start timestamp (${formatTime(currentTime)}) to active clip`}
-                      className={`flex-1 py-1.5 px-2 rounded-xl border text-[10px] font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm ${
-                        currentActiveSeg.start || startTs
-                          ? "bg-amber-400/20 border-amber-400 text-amber-300 ring-1 ring-amber-400/30"
-                          : "bg-white/5 hover:bg-white/10 border-white/10 text-gray-300 hover:text-white"
-                      }`}
-                    >
-                      <Pin className={`w-3 h-3 ${currentActiveSeg.start || startTs ? "text-amber-400" : "text-gray-400"}`} />
-                      <span>Start: {currentStartDisplay}</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const formatted = formatTime(currentTime);
-                        if (setCustomSegments) {
-                          setCustomSegments((prev) => prev.map((s) => (s.id === activeSegmentId ? { ...s, end: formatted } : s)));
-                        }
-                        if (setEndTs) setEndTs(formatted);
-                        if (setDurationMode) setDurationMode("custom");
-                      }}
-                      title={`Pin End timestamp (${formatTime(currentTime)}) to active clip`}
-                      className={`flex-1 py-1.5 px-2 rounded-xl border text-[10px] font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm ${
-                        currentActiveSeg.end || endTs
-                          ? "bg-cyan-400/20 border-cyan-400 text-cyan-300 ring-1 ring-cyan-400/30"
-                          : "bg-white/5 hover:bg-white/10 border-white/10 text-gray-300 hover:text-white"
-                      }`}
-                    >
-                      <Flag className={`w-3 h-3 ${currentActiveSeg.end || endTs ? "text-cyan-400" : "text-gray-400"}`} />
-                      <span>End: {currentEndDisplay}</span>
-                    </button>
-                  </div>
-                );
-              })()}
             </div>
           )}
         </div>
-      )}
+
+        {/* Home Indicator Bar (Swipe Bar) */}
+        <div className="w-32 h-1 bg-white/20 rounded-full mx-auto mt-2 mb-0.5 pointer-events-none shrink-0" />
+      </div>
     </div>
   );
 };
