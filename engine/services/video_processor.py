@@ -29,12 +29,15 @@ import re
 def sanitize_windows_filename(name: str, fallback: str = "video") -> str:
     if not name:
         return fallback
-    cleaned = re.sub(r'[\x00-\x1f\\/:*?"<>|\r\n\t]', '', str(name))
+    raw_str = str(name).strip(' \t\r\n"\'')
+    cleaned = re.sub(r'[\x00-\x1f\\/:*?"<>|\r\n\t]', '', raw_str)
     cleaned = cleaned.strip('. ')
     cleaned = "".join(c for c in cleaned if c.isprintable()).strip()
     reserved = {"CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"}
     if cleaned.upper() in reserved:
         cleaned = f"{cleaned}_clip"
+    if len(cleaned) > 50:
+        cleaned = cleaned[:50].rstrip('. ')
     return cleaned if cleaned else fallback
 
 _original_builtin_print = builtins.print
@@ -301,19 +304,23 @@ class VideoProcessor:
         if not clip_specs:
             raise ValueError("Could not select any viral clips from this video.")
 
-        # Determine target export directory
+        # Determine target export directory safely
+        target_dir = OUTPUT_DIR.resolve()
         if output_dir:
-            base_dir = Path(output_dir).resolve()
-            if custom_folder_name and custom_folder_name.strip():
-                clean_f = sanitize_windows_filename(custom_folder_name.strip(), fallback="")
-                target_dir = (base_dir / clean_f).resolve() if clean_f else base_dir
-            else:
-                target_dir = base_dir
-        elif custom_folder_name and custom_folder_name.strip():
-            clean_f = sanitize_windows_filename(custom_folder_name.strip(), fallback="")
+            try:
+                raw_out = str(output_dir).strip(' \t\r\n"\'')
+                if raw_out:
+                    base_dir = Path(raw_out).resolve()
+                    if custom_folder_name and str(custom_folder_name).strip():
+                        clean_f = sanitize_windows_filename(str(custom_folder_name).strip(), fallback="")
+                        target_dir = (base_dir / clean_f).resolve() if clean_f else base_dir
+                    else:
+                        target_dir = base_dir
+            except Exception:
+                target_dir = OUTPUT_DIR.resolve()
+        elif custom_folder_name and str(custom_folder_name).strip():
+            clean_f = sanitize_windows_filename(str(custom_folder_name).strip(), fallback="")
             target_dir = (OUTPUT_DIR / clean_f).resolve() if clean_f else OUTPUT_DIR.resolve()
-        else:
-            target_dir = OUTPUT_DIR.resolve()
 
         try:
             target_dir.mkdir(parents=True, exist_ok=True)
