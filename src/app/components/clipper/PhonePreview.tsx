@@ -409,7 +409,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
       <div className="absolute w-[500px] h-[500px] bg-amber-400/5 rounded-full blur-3xl pointer-events-none" />
 
       {/* 9:16 Smartphone Mockup */}
-      <div className="relative w-[340px] h-[600px] bg-black rounded-[48px] p-3 shadow-[0_0_60px_rgba(0,0,0,0.8)] border-[6px] border-[#222] ring-1 ring-white/10 flex flex-col z-10">
+      <div className="relative w-[385px] h-[680px] bg-black rounded-[52px] p-3.5 shadow-[0_0_80px_rgba(0,0,0,0.85)] border-[7px] border-[#222] ring-1 ring-white/15 flex flex-col z-10">
         {/* Dynamic Island / Speaker Pill */}
         <div className="absolute top-6 left-1/2 -translate-x-1/2 w-24 h-4 bg-[#111] rounded-full z-40 flex items-center justify-center shadow-inner border border-white/5">
           <div className="w-2.5 h-2.5 rounded-full bg-[#1c1c1e] mr-2" />
@@ -776,7 +776,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
 
       {/* Interactive Mobile Playback & Timestamp Dock */}
       {hasMedia && (
-        <div className="w-[340px] mt-4 p-3.5 bg-[#121212] border border-white/10 rounded-2xl shadow-2xl space-y-2.5 z-20 animate-fadeIn">
+        <div className="w-[385px] mt-4 p-3.5 bg-[#121212] border border-white/10 rounded-2xl shadow-2xl space-y-2.5 z-20 animate-fadeIn">
           {/* Timeline Scrubber & Timestamp Readout */}
           <div className="flex items-center justify-between text-[11px] font-mono text-gray-300 font-bold">
             <span className="text-amber-400 flex items-center gap-1">
