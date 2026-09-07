@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Download, ExternalLink, Copy, Check, Trash2, Folder, AlertTriangle, X, Film, Sparkles, Share2, Upload, Youtube } from "lucide-react";
+import { Download, ExternalLink, Copy, Check, Trash2, Folder, AlertTriangle, X, Film, Sparkles, Share2, Upload, Youtube, Globe } from "lucide-react";
 import type { ClipMetadata } from "./types";
 import { ClipCustomizerModal } from "./ClipCustomizerModal";
 
@@ -137,43 +137,94 @@ export const ClipDetailsModal: React.FC<ClipDetailsModalProps> = ({
               </div>
             )}
 
-            {/* 🚀 Multi-Platform 1-Click Upload Launcher */}
-            <div className="p-3.5 rounded-2xl bg-gradient-to-r from-white/5 to-white/10 border border-white/10 space-y-2 mb-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-gray-200 flex items-center gap-1.5">
-                  <Upload className="w-3.5 h-3.5 text-amber-400" /> 1-Click Upload & Publish:
-                </span>
+            {/* 🚀 Professional Distribution & Web Publishing Helper */}
+            <div className="p-4 rounded-2xl bg-zinc-900/90 border border-white/10 space-y-3 mb-4 shadow-lg">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-amber-400/10 border border-amber-400/30 flex items-center justify-center text-amber-400">
+                    <Share2 className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-gray-200 block">
+                      Quick Publish &amp; Web Studio
+                    </span>
+                    <span className="text-[10px] text-gray-400">
+                      Copies title, description &amp; hashtags to clipboard, then opens web uploader
+                    </span>
+                  </div>
+                </div>
                 {platformCopied && (
-                  <span className="text-[11px] text-amber-400 font-bold animate-pulse">
-                    ✅ Copied Tags & Opened {platformCopied.toUpperCase()}!
+                  <span className="text-[11px] text-amber-400 font-bold bg-amber-400/10 border border-amber-400/30 px-2 py-0.5 rounded-full flex items-center gap-1 animate-pulse">
+                    <Check className="w-3 h-3" /> Metadata Copied &amp; Web Opened!
                   </span>
                 )}
               </div>
+
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <button
+                  type="button"
                   onClick={() => handlePlatformUpload("tiktok")}
-                  className="px-2.5 py-2 rounded-xl bg-[#000000] hover:bg-[#1a1a1a] border border-cyan-500/30 hover:border-cyan-400 text-white text-[11px] font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md"
+                  className="p-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 hover:border-cyan-400/50 text-left transition-all cursor-pointer group flex flex-col justify-between space-y-1.5"
                 >
-                  <span className="text-cyan-400">🎵</span> TikTok
+                  <div className="flex items-center justify-between">
+                    <span className="w-2 h-2 rounded-full bg-cyan-400 group-hover:shadow-[0_0_8px_#22d3ee] transition-all" />
+                    <ExternalLink className="w-3 h-3 text-gray-500 group-hover:text-cyan-400 transition-colors" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-white block group-hover:text-cyan-300 transition-colors">TikTok</span>
+                    <span className="text-[9.5px] text-gray-400 font-mono">Creator Center</span>
+                  </div>
                 </button>
+
                 <button
+                  type="button"
                   onClick={() => handlePlatformUpload("youtube")}
-                  className="px-2.5 py-2 rounded-xl bg-[#cc0000]/20 hover:bg-[#cc0000]/30 border border-red-500/30 hover:border-red-400 text-red-200 text-[11px] font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md"
+                  className="p-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 hover:border-red-400/50 text-left transition-all cursor-pointer group flex flex-col justify-between space-y-1.5"
                 >
-                  <span className="text-red-400">▶️</span> Shorts
+                  <div className="flex items-center justify-between">
+                    <span className="w-2 h-2 rounded-full bg-red-400 group-hover:shadow-[0_0_8px_#f87171] transition-all" />
+                    <ExternalLink className="w-3 h-3 text-gray-500 group-hover:text-red-400 transition-colors" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-white block group-hover:text-red-300 transition-colors">YouTube</span>
+                    <span className="text-[9.5px] text-gray-400 font-mono">Studio Shorts</span>
+                  </div>
                 </button>
+
                 <button
+                  type="button"
                   onClick={() => handlePlatformUpload("instagram")}
-                  className="px-2.5 py-2 rounded-xl bg-gradient-to-r from-purple-500/20 to-pink-500/20 hover:from-purple-500/30 hover:to-pink-500/30 border border-pink-500/30 hover:border-pink-400 text-pink-200 text-[11px] font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md"
+                  className="p-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 hover:border-pink-400/50 text-left transition-all cursor-pointer group flex flex-col justify-between space-y-1.5"
                 >
-                  <span className="text-pink-400">📸</span> Reels
+                  <div className="flex items-center justify-between">
+                    <span className="w-2 h-2 rounded-full bg-pink-400 group-hover:shadow-[0_0_8px_#f472b6] transition-all" />
+                    <ExternalLink className="w-3 h-3 text-gray-500 group-hover:text-pink-400 transition-colors" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-white block group-hover:text-pink-300 transition-colors">Instagram</span>
+                    <span className="text-[9.5px] text-gray-400 font-mono">Reels Studio</span>
+                  </div>
                 </button>
+
                 <button
+                  type="button"
                   onClick={() => handlePlatformUpload("facebook")}
-                  className="px-2.5 py-2 rounded-xl bg-[#1877F2]/20 hover:bg-[#1877F2]/30 border border-blue-500/30 hover:border-blue-400 text-blue-200 text-[11px] font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md"
+                  className="p-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 hover:border-blue-400/50 text-left transition-all cursor-pointer group flex flex-col justify-between space-y-1.5"
                 >
-                  <span className="text-blue-400">👥</span> Facebook
+                  <div className="flex items-center justify-between">
+                    <span className="w-2 h-2 rounded-full bg-blue-400 group-hover:shadow-[0_0_8px_#60a5fa] transition-all" />
+                    <ExternalLink className="w-3 h-3 text-gray-500 group-hover:text-blue-400 transition-colors" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-white block group-hover:text-blue-300 transition-colors">Meta Suite</span>
+                    <span className="text-[9.5px] text-gray-400 font-mono">Business Studio</span>
+                  </div>
                 </button>
+              </div>
+
+              <div className="flex items-center gap-1.5 text-[10px] text-gray-500 pt-1 border-t border-white/5">
+                <Globe className="w-3 h-3 text-gray-500 shrink-0" />
+                <span>Local-first desktop helper • Launches external web uploader with clipboard preloaded</span>
               </div>
             </div>
           </div>

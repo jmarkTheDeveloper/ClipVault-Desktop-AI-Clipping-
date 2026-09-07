@@ -9,16 +9,16 @@ const execAsync = util.promisify(exec);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Set Application Name & Identity so Windows Task Manager, Settings, and Notifications show ClipVault
-app.name = 'ClipVault';
-app.setName('ClipVault');
+// Set Application Name & Identity so Windows Task Manager, Settings, and Notifications show ClipVault Studio
+app.name = 'ClipVault Studio';
+app.setName('ClipVault Studio');
 
 // Disable Electron console security warnings in dev mode (packaged app already excludes these)
 process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true';
 
 // Windows Taskbar & Toast Notification Identity Registration
 if (process.platform === 'win32') {
-  app.setAppUserModelId('ClipVault');
+  app.setAppUserModelId('ClipVault Studio');
 }
 
 // Register privileged scheme BEFORE app is ready to bypass all security blocks
