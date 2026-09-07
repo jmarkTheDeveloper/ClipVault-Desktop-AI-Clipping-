@@ -840,7 +840,7 @@ Effective Date: August 2026 • Published by ClipVault Studio LLC • Applicable
 
 8. STANDARD DISCLAIMERS & INQUIRIES
 - The software is provided "AS IS", without warranty of any kind.
-- Contact: support@clipvault.studio`;
+- Contact: clipvault-support@gmail.com`;
                     try {
                       navigator.clipboard.writeText(text);
                       setCopiedEula(true);
@@ -1331,8 +1331,8 @@ Effective Date: August 2026 • Published by ClipVault Studio LLC • Applicable
                           </div>
                           <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "rgba(255,255,255,0.7)" }}>
                             <span>For software support, feature requests, or legal inquiries, contact:</span>
-                            <a href="mailto:support@clipvault.studio" style={{ color: G, textDecoration: "none", fontWeight: 700 }}>
-                              support@clipvault.studio
+                            <a href="mailto:clipvault-support@gmail.com" style={{ color: G, textDecoration: "none", fontWeight: 700 }}>
+                              clipvault-support@gmail.com
                             </a>
                           </div>
                         </div>
@@ -1473,7 +1473,7 @@ Effective Date: August 2026 • Published by ClipVault Studio LLC • Applicable
                 <>
                   <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
                     <a
-                      href="mailto:support@clipvault.studio"
+                      href="mailto:clipvault-support@gmail.com"
                       style={{
                         fontSize: 11.5,
                         color: G,
@@ -1487,7 +1487,7 @@ Effective Date: August 2026 • Published by ClipVault Studio LLC • Applicable
                       onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
                     >
                       <Mail style={{ width: 12, height: 12 }} />
-                      <span>support@clipvault.studio</span>
+                      <span>clipvault-support@gmail.com</span>
                     </a>
 
                     <span style={{ fontSize: 11, color: "rgba(255,255,255,0.2)" }}>•</span>
@@ -1708,7 +1708,7 @@ Effective Date: August 2026 • Published by ClipVault Studio LLC • Applicable
 
                 <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                   <a
-                    href="mailto:support@clipvault.studio"
+                    href="mailto:clipvault-support@gmail.com"
                     style={{
                       display: "inline-flex",
                       alignItems: "center",
@@ -1734,7 +1734,7 @@ Effective Date: August 2026 • Published by ClipVault Studio LLC • Applicable
                     }}
                   >
                     <Mail style={{ width: 13, height: 13, color: G }} />
-                    <span>support@clipvault.studio</span>
+                    <span>clipvault-support@gmail.com</span>
                   </a>
                 </div>
               </div>
@@ -1884,7 +1884,7 @@ Effective Date: August 2026 • Published by ClipVault Studio LLC • Applicable
                     ClipVault was architected and built through hundreds of late-night hours by a solo Computer Science college student with zero corporate funding or venture backing. Cracking or illicitly sharing this software does not harm a faceless multi-billion-dollar corporation — it directly deprives an independent student of tuition funds, living expenses, hardware upgrades, and the ability to make an honest living.
                   </p>
                   <div style={{ color: "rgba(255,255,255,0.75)", textAlign: "justify" }}>
-                    If you are a student, educator, or facing severe financial hardship and cannot afford ClipVault, please reach out directly to <strong style={{ color: "#fff" }}>ClipVault Studio LLC</strong> at <a href="mailto:support@clipvault.studio" style={{ color: "#fff", textDecoration: "underline", fontWeight: 700 }}>support@clipvault.studio</a> instead of turning to unauthorized or cracked copies. Let's foster a creative software culture built on mutual respect and integrity.
+                    If you are a student, educator, or facing severe financial hardship and cannot afford ClipVault, please reach out directly to <strong style={{ color: "#fff" }}>ClipVault Studio LLC</strong> at <a href="mailto:clipvault-support@gmail.com" style={{ color: "#fff", textDecoration: "underline", fontWeight: 700 }}>clipvault-support@gmail.com</a> instead of turning to unauthorized or cracked copies. Let's foster a creative software culture built on mutual respect and integrity.
                   </div>
                 </div>
 
