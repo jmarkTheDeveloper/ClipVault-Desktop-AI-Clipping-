@@ -103,6 +103,7 @@ class ProcessRequest(BaseModel):
     tts_pitch: str = "-20Hz"
     tts_rate: str = "+0%"
     custom_range: Optional[List[float]] = None
+    custom_ranges: Optional[List[List[float]]] = None
     add_bg_music: Optional[bool] = True
     add_captions: Optional[bool] = True
     hook_text: Optional[str] = None
@@ -228,6 +229,7 @@ def execute_rendering_task(task_id: str, request: ProcessRequest, cancel_event: 
             tts_pitch=request.tts_pitch,
             tts_rate=request.tts_rate,
             custom_range=request.custom_range,
+            custom_ranges=request.custom_ranges,
             add_bg_music=request.add_bg_music,
             add_captions=request.add_captions,
             hook_text=request.hook_text,

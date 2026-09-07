@@ -37,6 +37,12 @@ export interface CropBox {
   height: number;
 }
 
+export interface CustomSegment {
+  id: string;
+  start: string;
+  end: string;
+}
+
 export function extractYouTubeId(url: string): string | null {
   if (!url) return null;
   const clean = url.trim();
@@ -44,3 +50,4 @@ export function extractYouTubeId(url: string): string | null {
   const match = clean.match(regExp);
   return match && match[1] ? match[1] : null;
 }
+

@@ -8,7 +8,7 @@ import { SavedClipsVault } from "../components/clipper/SavedClipsVault";
 import { GalleryView } from "../components/clipper/GalleryView";
 import { ClipDetailsModal } from "../components/clipper/ClipDetailsModal";
 import { extractYouTubeId } from "../components/clipper/types";
-import type { ViewMode, ClipMetadata, CropBox, EngineOption } from "../components/clipper/types";
+import type { ViewMode, ClipMetadata, CropBox, EngineOption, CustomSegment } from "../components/clipper/types";
 
 interface Props {
   onBack: () => void;
@@ -394,6 +394,10 @@ export const AiClipperScreen: React.FC<Props> = ({
   const [avoidCopyright, setAvoidCopyright] = useState(false);
   const [startTs, setStartTs] = useState("");
   const [endTs, setEndTs] = useState("");
+  const [customSegments, setCustomSegments] = useState<CustomSegment[]>([
+    { id: "1", start: "0:00", end: "" }
+  ]);
+  const [activeSegmentId, setActiveSegmentId] = useState<string>("1");
 
   // Crop Editor State
   const [cropModalOpen, setCropModalOpen] = useState<"none" | "top" | "bottom">("none");
@@ -660,6 +664,7 @@ export const AiClipperScreen: React.FC<Props> = ({
 
       // Parse custom timestamps ONLY if duration mode is custom
       let customRange: number[] | null = null;
+      let customRanges: number[][] | null = null;
       let calculatedTargetDuration = durationMode === "auto" ? (parseInt(targetDuration.toString()) || 30) : -1;
 
       if (durationMode === "custom") {
@@ -678,22 +683,34 @@ export const AiClipperScreen: React.FC<Props> = ({
           return null;
         };
 
-        const s = parseSecs(startTs);
-        const e = parseSecs(endTs);
+        const validRanges: number[][] = [];
+        for (let i = 0; i < customSegments.length; i++) {
+          const seg = customSegments[i];
+          const s = parseSecs(seg.start || (i === 0 ? startTs : ""));
+          const e = parseSecs(seg.end || (i === 0 ? endTs : ""));
 
-        if (s === null || e === null) {
-          setErrorMsg("Please enter both Start and End timestamps (e.g. 0:15 and 1:45).");
+          if (s === null || e === null) {
+            setErrorMsg(`Please enter both Start and End timestamps for Clip #${i + 1} (e.g. 0:15 and 1:45).`);
+            setRunning(false);
+            return;
+          }
+          if (e <= s) {
+            setErrorMsg(`Clip #${i + 1}: End timestamp (${seg.end || endTs}) must be greater than Start timestamp (${seg.start || startTs}).`);
+            setRunning(false);
+            return;
+          }
+          validRanges.push([s, e]);
+        }
+
+        if (validRanges.length === 0) {
+          setErrorMsg("Please define at least one valid timestamp segment.");
           setRunning(false);
           return;
         }
-        if (e <= s) {
-          setErrorMsg(`End timestamp (${endTs}) must be greater than Start timestamp (${startTs}).`);
-          setRunning(false);
-          return;
-        }
 
-        customRange = [s, e];
-        calculatedTargetDuration = Math.max(1, Math.round(e - s));
+        customRanges = validRanges;
+        customRange = validRanges[0];
+        calculatedTargetDuration = Math.max(1, Math.round(validRanges[0][1] - validRanges[0][0]));
       }
 
       // 1. Trigger process
@@ -702,9 +719,10 @@ export const AiClipperScreen: React.FC<Props> = ({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           url: activeUrl,
-          num_clips: durationMode === "custom" ? 1 : (parseInt(numClips.toString()) || 1),
+          num_clips: durationMode === "custom" ? (customRanges ? customRanges.length : 1) : (parseInt(numClips.toString()) || 1),
           target_duration: calculatedTargetDuration,
           custom_range: customRange,
+          custom_ranges: customRanges,
           topic: topicPrompt || null,
           quality,
           layout,
@@ -1444,6 +1462,10 @@ export const AiClipperScreen: React.FC<Props> = ({
                 setSelectedEffectId={setSelectedEffectId}
                 avoidCopyright={avoidCopyright}
                 setAvoidCopyright={setAvoidCopyright}
+                customSegments={customSegments}
+                setCustomSegments={setCustomSegments}
+                activeSegmentId={activeSegmentId}
+                setActiveSegmentId={setActiveSegmentId}
                 startTs={startTs}
                 setStartTs={setStartTs}
                 endTs={endTs}
@@ -1492,6 +1514,10 @@ export const AiClipperScreen: React.FC<Props> = ({
               mediaDuration={mediaDuration}
               durationMode={durationMode}
               setDurationMode={setDurationMode}
+              customSegments={customSegments}
+              setCustomSegments={setCustomSegments}
+              activeSegmentId={activeSegmentId}
+              setActiveSegmentId={setActiveSegmentId}
               startTs={startTs}
               setStartTs={setStartTs}
               endTs={endTs}

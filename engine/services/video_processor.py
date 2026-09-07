@@ -134,6 +134,7 @@ class VideoProcessor:
         tts_pitch: str = "-20Hz",
         tts_rate: str = "+0%",
         custom_range: Optional[List[float]] = None,
+        custom_ranges: Optional[List[List[float]]] = None,
         add_bg_music: Optional[bool] = True,
         add_captions: Optional[bool] = True,
         hook_text: Optional[str] = None,
@@ -162,7 +163,7 @@ class VideoProcessor:
         """
         Main entry point for processing and generating viral video clips.
         """
-        active_range = custom_range if custom_range else custom_range_filter
+        active_range = None if (custom_ranges and len(custom_ranges) > 1) else (custom_range if custom_range else custom_range_filter)
         use_smart_slicing = False
         video_path = None
         audio_path = None
@@ -250,7 +251,28 @@ class VideoProcessor:
         print(f"✅ Transcription complete: {len(segments)} segments, {len(words)} words")
 
         # Select viral clips
-        if custom_range is not None:
+        if custom_ranges and len(custom_ranges) > 0:
+            clip_specs = []
+            for idx, cr in enumerate(custom_ranges):
+                if not cr or len(cr) < 2:
+                    continue
+                start_t = max(0.0, float(cr[0]))
+                end_t = min(duration, float(cr[1])) if float(cr[1]) > 0 else duration
+                if end_t > start_t:
+                    start_min = int(start_t // 60)
+                    start_sec_rem = int(start_t % 60)
+                    end_min = int(end_t // 60)
+                    end_sec_rem = int(end_t % 60)
+                    time_label = f"{start_min}:{start_sec_rem:02d} - {end_min}:{end_sec_rem:02d}"
+                    clip_specs.append({
+                        'start': start_t,
+                        'end': end_t,
+                        'title': f'{title} - Clip {idx + 1} ({time_label})',
+                        'virality_score': 100,
+                        'content_title': f"{title} - Part {idx + 1} 🔥",
+                        'content_description': f"Part {idx + 1} ({time_label}) from '{title}'! #viral #shorts #clips"
+                    })
+        elif custom_range is not None:
             start_t, end_t = max(0.0, custom_range[0]), min(duration, custom_range[1])
             clip_specs = [{
                 'start': start_t,

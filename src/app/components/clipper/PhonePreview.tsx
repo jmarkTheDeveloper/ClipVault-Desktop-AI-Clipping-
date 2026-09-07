@@ -15,7 +15,7 @@ import {
   Flag,
   XCircle,
 } from "lucide-react";
-import type { CropBox } from "./types";
+import type { CropBox, CustomSegment } from "./types";
 import { extractYouTubeId } from "./types";
 
 interface PhonePreviewProps {
@@ -38,6 +38,10 @@ interface PhonePreviewProps {
   mediaDuration?: number;
   durationMode?: string;
   setDurationMode?: (mode: string) => void;
+  customSegments?: CustomSegment[];
+  setCustomSegments?: React.Dispatch<React.SetStateAction<CustomSegment[]>>;
+  activeSegmentId?: string;
+  setActiveSegmentId?: (id: string) => void;
   startTs?: string;
   setStartTs?: (ts: string) => void;
   endTs?: string;
@@ -228,6 +232,10 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
   mediaDuration,
   durationMode,
   setDurationMode,
+  customSegments = [{ id: "1", start: "0:00", end: "" }],
+  setCustomSegments,
+  activeSegmentId = "1",
+  setActiveSegmentId,
   startTs = "",
   setStartTs,
   endTs = "",
@@ -845,17 +853,28 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
             </button>
           </div>
 
-          {/* Quick Mark Start / End Timestamps with Active Highlighting & Reset */}
-          {(setStartTs || setEndTs) && (
-            <div className="space-y-1.5 pt-2 border-t border-white/5">
+          {/* Quick Mark Start / End Timestamps with Active Segment Pinning & Multi-Segment Tabs */}
+          {(setStartTs || setEndTs || setCustomSegments) && (
+            <div className="space-y-2 pt-2 border-t border-white/5">
               <div className="flex items-center justify-between px-0.5">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Clip Time Bounds</span>
-                {(startTs || endTs) && (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Clip Time Bounds</span>
+                  {customSegments.length > 1 && (
+                    <span className="text-[9px] font-bold text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/20">
+                      {customSegments.length} Clips
+                    </span>
+                  )}
+                </div>
+                {(startTs || endTs || customSegments.some((s) => s.start || s.end)) && (
                   <button
                     type="button"
                     onClick={() => {
                       if (setStartTs) setStartTs("");
                       if (setEndTs) setEndTs("");
+                      if (setCustomSegments) {
+                        setCustomSegments([{ id: "1", start: "0:00", end: "" }]);
+                      }
+                      if (setActiveSegmentId) setActiveSegmentId("1");
                     }}
                     className="text-[9px] text-red-400 hover:text-red-300 font-bold transition-colors cursor-pointer"
                   >
@@ -863,46 +882,84 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                   </button>
                 )}
               </div>
-              <div className="flex gap-2">
-                {setStartTs && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const formatted = formatTime(currentTime);
-                      setStartTs(formatted);
-                      if (setDurationMode) setDurationMode("custom");
-                    }}
-                    title={`Click to set Start timestamp to current playback time (${formatTime(currentTime)})`}
-                    className={`flex-1 py-1.5 px-2 rounded-xl border text-[10px] font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm ${
-                      startTs
-                        ? "bg-amber-400/20 border-amber-400 text-amber-300 ring-1 ring-amber-400/30"
-                        : "bg-white/5 hover:bg-white/10 border-white/10 text-gray-300 hover:text-white"
-                    }`}
-                  >
-                    <Pin className={`w-3 h-3 ${startTs ? "text-amber-400" : "text-gray-400"}`} />
-                    <span>Start: {startTs || "00:00"}</span>
-                  </button>
-                )}
-                {setEndTs && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const formatted = formatTime(currentTime);
-                      setEndTs(formatted);
-                      if (setDurationMode) setDurationMode("custom");
-                    }}
-                    title={`Click to set End timestamp to current playback time (${formatTime(currentTime)})`}
-                    className={`flex-1 py-1.5 px-2 rounded-xl border text-[10px] font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm ${
-                      endTs
-                        ? "bg-cyan-400/20 border-cyan-400 text-cyan-300 ring-1 ring-cyan-400/30"
-                        : "bg-white/5 hover:bg-white/10 border-white/10 text-gray-300 hover:text-white"
-                    }`}
-                  >
-                    <Flag className={`w-3 h-3 ${endTs ? "text-cyan-400" : "text-gray-400"}`} />
-                    <span>End: {endTs || (duration > 0 ? formatTime(duration) : (mediaDuration && mediaDuration > 0 ? formatTime(mediaDuration) : "00:00"))}</span>
-                  </button>
-                )}
-              </div>
+
+              {/* Multi-Segment Chips Switcher if > 1 segment exists */}
+              {customSegments.length > 1 && (
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+                  {customSegments.map((seg, idx) => {
+                    const isSel = activeSegmentId === seg.id;
+                    return (
+                      <button
+                        key={seg.id}
+                        type="button"
+                        onClick={() => {
+                          if (setActiveSegmentId) setActiveSegmentId(seg.id);
+                        }}
+                        className={`px-2.5 py-0.5 rounded-lg text-[10px] font-black border transition-all cursor-pointer shrink-0 ${
+                          isSel
+                            ? "bg-amber-400 text-black border-amber-400 shadow-sm"
+                            : "bg-white/5 text-gray-400 border-white/10 hover:text-white"
+                        }`}
+                      >
+                        Clip #{idx + 1} {seg.start ? `(${seg.start}${seg.end ? `-${seg.end}` : ""})` : ""}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Pin Start & Pin End Buttons */}
+              {(() => {
+                const currentActiveSeg = customSegments.find((s) => s.id === activeSegmentId) || customSegments[0] || { start: startTs, end: endTs };
+                const currentStartDisplay = currentActiveSeg.start || startTs || "00:00";
+                const currentEndDisplay = currentActiveSeg.end || endTs || (duration > 0 ? formatTime(duration) : (mediaDuration && mediaDuration > 0 ? formatTime(mediaDuration) : "00:00"));
+
+                return (
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const formatted = formatTime(currentTime);
+                        if (setCustomSegments) {
+                          setCustomSegments((prev) => prev.map((s) => (s.id === activeSegmentId ? { ...s, start: formatted } : s)));
+                        }
+                        if (setStartTs) setStartTs(formatted);
+                        if (setDurationMode) setDurationMode("custom");
+                      }}
+                      title={`Pin Start timestamp (${formatTime(currentTime)}) to active clip`}
+                      className={`flex-1 py-1.5 px-2 rounded-xl border text-[10px] font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm ${
+                        currentActiveSeg.start || startTs
+                          ? "bg-amber-400/20 border-amber-400 text-amber-300 ring-1 ring-amber-400/30"
+                          : "bg-white/5 hover:bg-white/10 border-white/10 text-gray-300 hover:text-white"
+                      }`}
+                    >
+                      <Pin className={`w-3 h-3 ${currentActiveSeg.start || startTs ? "text-amber-400" : "text-gray-400"}`} />
+                      <span>Start: {currentStartDisplay}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const formatted = formatTime(currentTime);
+                        if (setCustomSegments) {
+                          setCustomSegments((prev) => prev.map((s) => (s.id === activeSegmentId ? { ...s, end: formatted } : s)));
+                        }
+                        if (setEndTs) setEndTs(formatted);
+                        if (setDurationMode) setDurationMode("custom");
+                      }}
+                      title={`Pin End timestamp (${formatTime(currentTime)}) to active clip`}
+                      className={`flex-1 py-1.5 px-2 rounded-xl border text-[10px] font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm ${
+                        currentActiveSeg.end || endTs
+                          ? "bg-cyan-400/20 border-cyan-400 text-cyan-300 ring-1 ring-cyan-400/30"
+                          : "bg-white/5 hover:bg-white/10 border-white/10 text-gray-300 hover:text-white"
+                      }`}
+                    >
+                      <Flag className={`w-3 h-3 ${currentActiveSeg.end || endTs ? "text-cyan-400" : "text-gray-400"}`} />
+                      <span>End: {currentEndDisplay}</span>
+                    </button>
+                  </div>
+                );
+              })()}
             </div>
           )}
         </div>

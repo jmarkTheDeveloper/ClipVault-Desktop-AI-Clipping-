@@ -21,7 +21,35 @@ import {
   AlertCircle,
   X,
   Key,
+  Plus,
+  Trash2,
+  Clock,
+  Pin,
+  Layers,
 } from "lucide-react";
+import type { CustomSegment } from "./types";
+
+function parseTimestampToSec(ts: string): number {
+  if (!ts) return 0;
+  const parts = ts.trim().split(":").map(Number);
+  if (parts.some(isNaN)) return 0;
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
+  if (parts.length === 1) return parts[0];
+  return 0;
+}
+
+function getSegmentDurationLabel(start: string, end: string): string {
+  const s = parseTimestampToSec(start);
+  const e = parseTimestampToSec(end);
+  if (e > s) {
+    const diff = Math.round(e - s);
+    const m = Math.floor(diff / 60);
+    const sec = diff % 60;
+    return m > 0 ? `${m}m ${sec}s` : `${sec}s`;
+  }
+  return "";
+}
 
 const Section = ({ title, children, accent = "text-amber-400" }: { title: string; children: React.ReactNode; accent?: string }) => (
   <div className="space-y-3">
@@ -100,6 +128,10 @@ interface SetupSidebarProps {
   avoidCopyright: boolean;
   setAvoidCopyright: (a: boolean) => void;
   mediaDuration?: number;
+  customSegments?: CustomSegment[];
+  setCustomSegments?: React.Dispatch<React.SetStateAction<CustomSegment[]>>;
+  activeSegmentId?: string;
+  setActiveSegmentId?: (id: string) => void;
   startTs: string;
   setStartTs: (ts: string) => void;
   endTs: string;
@@ -182,6 +214,10 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
   setSelectedEffectId,
   avoidCopyright,
   setAvoidCopyright,
+  customSegments = [{ id: "1", start: "0:00", end: "" }],
+  setCustomSegments,
+  activeSegmentId = "1",
+  setActiveSegmentId,
   startTs,
   setStartTs,
   endTs,
@@ -499,54 +535,159 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                   </div>
                 </button>
 
-                {/* Custom Timestamp Range Inputs - Appears directly under this option when chosen */}
+                {/* Multi-Segment Custom Timestamp Range Inputs */}
                 {d.id === "custom" && (
                   durationMode === "custom" ? (
-                    <div className="space-y-2 p-3.5 rounded-xl bg-amber-400/5 border border-amber-400/30 animate-fadeIn">
+                    <div className="space-y-3 p-3.5 rounded-xl bg-amber-400/5 border border-amber-400/30 animate-fadeIn">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">Custom Clip Time Bounds</span>
-                        {(startTs || endTs) && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setStartTs("");
-                              setEndTs("");
-                            }}
-                            className="text-[9px] text-red-400 hover:text-red-300 font-bold transition-colors cursor-pointer"
-                          >
-                            Reset Bounds
-                          </button>
+                        <span className="text-[10px] font-extrabold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                          <Clock className="w-3.5 h-3.5" />
+                          Custom Timestamp Segments ({customSegments.length})
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newSeg: CustomSegment = { id: String(Date.now()), start: "", end: "" };
+                            if (setCustomSegments) {
+                              setCustomSegments((prev) => [...prev, newSeg]);
+                            }
+                            if (setActiveSegmentId) {
+                              setActiveSegmentId(newSeg.id);
+                            }
+                          }}
+                          className="text-[10px] bg-amber-400 hover:bg-amber-300 text-black font-extrabold px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-sm transition-all cursor-pointer"
+                        >
+                          <Plus className="w-3 h-3 text-black" />
+                          Add Segment
+                        </button>
+                      </div>
+
+                      {/* Segments List */}
+                      <div className="space-y-2.5 max-h-[280px] overflow-y-auto pr-1">
+                        {customSegments.map((seg, idx) => {
+                          const isActive = activeSegmentId === seg.id;
+                          const durLabel = getSegmentDurationLabel(seg.start, seg.end);
+                          return (
+                            <div
+                              key={seg.id}
+                              onClick={() => {
+                                if (setActiveSegmentId) setActiveSegmentId(seg.id);
+                              }}
+                              className={`p-3 rounded-xl border transition-all cursor-pointer ${
+                                isActive
+                                  ? "bg-black/80 border-amber-400 ring-1 ring-amber-400/30 shadow-md"
+                                  : "bg-black/40 border-white/10 hover:border-white/20"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-black text-white flex items-center gap-1.5">
+                                    <span className="w-4 h-4 rounded-md bg-amber-400/20 text-amber-400 text-[10px] font-black flex items-center justify-center border border-amber-400/30">
+                                      {idx + 1}
+                                    </span>
+                                    Clip #{idx + 1}
+                                  </span>
+                                  {durLabel && (
+                                    <span className="text-[10px] font-mono text-emerald-400 bg-emerald-400/10 px-1.5 py-0.5 rounded border border-emerald-400/20 font-bold">
+                                      {durLabel}
+                                    </span>
+                                  )}
+                                  {isActive && (
+                                    <span className="text-[9px] font-bold text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/20 flex items-center gap-1">
+                                      <Pin className="w-2.5 h-2.5" /> Player Active
+                                    </span>
+                                  )}
+                                </div>
+
+                                {customSegments.length > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (setCustomSegments) {
+                                        setCustomSegments((prev) => {
+                                          const filtered = prev.filter((s) => s.id !== seg.id);
+                                          if (activeSegmentId === seg.id && filtered.length > 0 && setActiveSegmentId) {
+                                            setActiveSegmentId(filtered[0].id);
+                                          }
+                                          return filtered;
+                                        });
+                                      }
+                                    }}
+                                    className="text-gray-500 hover:text-red-400 p-1 rounded transition-colors cursor-pointer"
+                                    title="Remove this segment"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-2.5">
+                                <div className="space-y-1">
+                                  <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block">
+                                    Start Timestamp
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={seg.start}
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      if (setCustomSegments) {
+                                        setCustomSegments((prev) =>
+                                          prev.map((s) => (s.id === seg.id ? { ...s, start: val } : s))
+                                        );
+                                      }
+                                      if (idx === 0) setStartTs(val);
+                                    }}
+                                    placeholder="0:00"
+                                    className="w-full rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold text-white bg-black/60 border border-white/10 outline-none focus:border-amber-400 transition-colors"
+                                  />
+                                </div>
+
+                                <div className="space-y-1">
+                                  <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block">
+                                    End Timestamp
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={seg.end}
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      if (setCustomSegments) {
+                                        setCustomSegments((prev) =>
+                                          prev.map((s) => (s.id === seg.id ? { ...s, end: val } : s))
+                                        );
+                                      }
+                                      if (idx === 0) setEndTs(val);
+                                    }}
+                                    placeholder={
+                                      mediaDuration && mediaDuration > 0
+                                        ? `${Math.floor(mediaDuration / 60)}:${Math.floor(mediaDuration % 60).toString().padStart(2, "0")}`
+                                        : "e.g. 1:45"
+                                    }
+                                    className="w-full rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold text-white bg-black/60 border border-white/10 outline-none focus:border-amber-400 transition-colors"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[10px] text-gray-400">
+                        <span>
+                          💡 Click <span className="text-amber-300 font-bold">Start</span> / <span className="text-cyan-300 font-bold">End</span> on player dock to pin times.
+                        </span>
+                        {customSegments.length > 1 && (
+                          <span className="text-amber-400 font-bold">
+                            {customSegments.length} Clips in Batch
+                          </span>
                         )}
                       </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-gray-300 block">Start Timestamp</label>
-                          <input
-                            type="text"
-                            value={startTs}
-                            onChange={(e) => setStartTs(e.target.value)}
-                            placeholder="0:00"
-                            className="w-full rounded-lg px-3 py-2 text-xs font-bold text-white bg-black/40 border border-white/10 outline-none focus:border-amber-400 transition-colors"
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-gray-300 block">End Timestamp</label>
-                          <input
-                            type="text"
-                            value={endTs}
-                            onChange={(e) => setEndTs(e.target.value)}
-                            placeholder={mediaDuration && mediaDuration > 0 ? `${Math.floor(mediaDuration / 60)}:${Math.floor(mediaDuration % 60).toString().padStart(2, "0")}` : "e.g. 1:45"}
-                            className="w-full rounded-lg px-3 py-2 text-xs font-bold text-white bg-black/40 border border-white/10 outline-none focus:border-amber-400 transition-colors"
-                          />
-                        </div>
-                      </div>
-                      <p className="text-[10px] text-gray-400">
-                        Tip: You can also click the <span className="text-amber-300 font-bold">Start</span> and <span className="text-cyan-300 font-bold">End</span> buttons on the phone player dock to pin timestamps instantly while watching.
-                      </p>
                     </div>
-                  ) : (startTs || endTs) ? (
+                  ) : (
                     <div className="px-3 py-1.5 rounded-lg bg-amber-400/10 border border-amber-400/20 text-[10px] font-bold text-amber-300 flex items-center justify-between">
-                      <span>Bounds Set: {startTs || "00:00"} - {endTs || "End"}</span>
+                      <span>{customSegments.length} Custom Segment{customSegments.length > 1 ? "s" : ""} Configured</span>
                       <button
                         type="button"
                         onClick={() => setDurationMode("custom")}
@@ -555,7 +696,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                         Activate
                       </button>
                     </div>
-                  ) : null
+                  )
                 )}
               </div>
             ))}
