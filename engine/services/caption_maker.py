@@ -388,19 +388,27 @@ class CaptionMaker:
             y_pos = pad_y - word_bboxes[i][1]
 
             if is_active:
-                # Draw rounded highlight pill badge behind active word
-                pill_x1 = cur_x - 10
+                # Draw black contour shadow/border around pill badge for ultra-crisp 3D contrast
+                pill_x1 = cur_x - 12
                 pill_y1 = pad_y - 6
-                pill_x2 = cur_x + word_widths[i] + 10
+                pill_x2 = cur_x + word_widths[i] + 12
                 pill_y2 = pad_y + line_h + 6
-                radius = max(8, int(font_size * 0.16))
+                radius = max(8, int(font_size * 0.18))
+                
+                # Outer black border
+                draw.rounded_rectangle(
+                    [(pill_x1 - 3, pill_y1 - 3), (pill_x2 + 3, pill_y2 + 3)],
+                    radius=radius + 2,
+                    fill=(0, 0, 0, 255)
+                )
+                # Inner radiant highlight box
                 draw.rounded_rectangle(
                     [(pill_x1, pill_y1), (pill_x2, pill_y2)],
                     radius=radius,
                     fill=highlight_color
                 )
                 
-                # Draw active word in solid, bold black inside the radiant pill badge
+                # Draw active word in solid, ultra-bold black inside the radiant pill badge
                 draw.text((cur_x, y_pos), w_text, font=font, fill=(0, 0, 0, 255))
             else:
                 # Inactive word: draw outer 3D shadow + crisp white text
