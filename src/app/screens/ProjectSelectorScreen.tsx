@@ -102,7 +102,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
   const features = [
     "Active Speaker Face Tracking (9:16)",
     "Dynamic Word-by-Word Subtitles & SFX",
-    "Satisfying Gameplay & ASMR Split",
+    "Dual-Layer B-Roll & Visuals Split-Screen",
     "Smart Stream Slicing Technology",
     "AI Multi-Language Audio-Sync Engine",
   ];

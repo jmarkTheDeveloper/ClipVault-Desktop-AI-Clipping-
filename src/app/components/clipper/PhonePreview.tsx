@@ -486,12 +486,12 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
               />
             </div>
           ) : layout === "gameplay_bg" ? (
-            /* Satisfying Gameplay Split (Speaker Top, Gameplay Bottom) */
+            /* Dual-Layer Split (Speaker Top, B-Roll / Visuals Bottom) */
             <div className="w-full h-full flex flex-col relative select-none bg-black">
               {/* HUD Badge */}
               <div className="absolute top-10 left-3 z-30 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-amber-400/40 text-[9px] font-bold text-amber-400 flex items-center gap-1 shadow-lg">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                Gameplay Split (9:16)
+                Dual Split (9:16)
               </div>
 
               {/* Speaker Top Viewport */}
@@ -524,7 +524,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                 )}
               </div>
 
-              {/* Gameplay Bottom Viewport */}
+              {/* Secondary Media / B-Roll Bottom Viewport */}
               <div className="w-full h-1/2 relative overflow-hidden bg-black">
                 {gameplayBgVideo ? (
                   <video
@@ -540,7 +540,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-[#0a0a0a] text-amber-400/40 text-xs font-bold font-mono">
-                    [ Satisfying Gameplay ]
+                    [ Secondary B-Roll / Visuals ]
                   </div>
                 )}
               </div>

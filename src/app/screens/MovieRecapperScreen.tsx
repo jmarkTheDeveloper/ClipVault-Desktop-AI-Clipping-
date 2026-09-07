@@ -45,7 +45,7 @@ const LAYOUTS = [
 
 const SUB_LAYOUTS = [
   { id: "standard",    label: "Standard",                   desc: "No extra overlay" },
-  { id: "gameplay",    label: "Satisfying / Gameplay Split", desc: "Adds a satisfying background to the bottom half" },
+  { id: "gameplay",    label: "Dual-Layer Split (Scene + B-Roll)", desc: "Adds dynamic B-roll visual canvas to the bottom half" },
 ];
 
 const CAPTION_STYLES = [

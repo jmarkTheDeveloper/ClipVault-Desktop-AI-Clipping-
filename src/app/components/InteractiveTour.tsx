@@ -96,8 +96,8 @@ export const TOUR_STEPS: TourStepInfo[] = [
         badgeColor: "#00e676",
       },
       {
-        label: "Satisfying Gameplay Split",
-        desc: "Stacks speaker on top with satisfying gameplay or ASMR footage on the bottom.",
+        label: "Dual-Layer Split (Speaker + B-Roll)",
+        desc: "Stacks speaker on top with secondary B-roll footage, product visuals, or contextual media on the bottom.",
         badge: "Split-Screen",
         badgeColor: "#38bdf8",
       },

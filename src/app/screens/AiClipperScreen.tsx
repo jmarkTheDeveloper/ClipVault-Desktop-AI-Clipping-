@@ -531,14 +531,14 @@ export const AiClipperScreen: React.FC<Props> = ({
       const data = await res.json().catch(() => ({}));
       if (data.success) {
         setGameplayBgVideo(data.url || data.path);
-        setExportNotice(`✓ Imported gameplay video: "${data.name}"`);
+        setExportNotice(`✓ Imported secondary B-roll video: "${data.name}"`);
         setTimeout(() => setExportNotice(""), 5000);
         loadBackgroundAssets();
       } else {
-        alert(data.error || "Failed to upload gameplay video");
+        alert(data.error || "Failed to upload secondary video");
       }
     } catch (err) {
-      console.error("Error uploading gameplay video:", err);
+      console.error("Error uploading secondary video:", err);
     }
   };
 
@@ -645,10 +645,10 @@ export const AiClipperScreen: React.FC<Props> = ({
     setDone(false);
 
     try {
-      // STRICT VALIDATION & REJECTION: For Satisfying Gameplay Split, a background video MUST be imported/selected
+      // STRICT VALIDATION & REJECTION: For Dual-Layer Split, a secondary/B-roll video MUST be imported/selected
       if (layout === "gameplay_bg") {
         if (!gameplayBgVideo || gameplayBgVideo.trim() === "") {
-          const rejectMsg = "❌ Rejection: No background video found! For 'Satisfying Gameplay Split', you must import or select a background gameplay video before compiling.";
+          const rejectMsg = "❌ Rejection: No secondary video found! For 'Dual-Layer Split', you must import or select a secondary B-roll/background video before compiling.";
           setErrorMsg(rejectMsg);
           setExportNotice(rejectMsg);
           setTimeout(() => setExportNotice(""), 8000);
