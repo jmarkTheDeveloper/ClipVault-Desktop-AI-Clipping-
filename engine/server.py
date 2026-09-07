@@ -2,13 +2,24 @@ import asyncio
 import sys
 import os
 import builtins
+import socket
 
 # Force UTF-8 encoding environment for all child processes and threads
 os.environ["PYTHONIOENCODING"] = "utf-8"
 
 # Silence harmless Windows asyncio ConnectionResetError spam
 if sys.platform == 'win32':
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    try:
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    except Exception:
+        pass
+    _orig_shutdown = socket.socket.shutdown
+    def _safe_shutdown(self, how):
+        try:
+            _orig_shutdown(self, how)
+        except (OSError, ConnectionResetError):
+            pass
+    socket.socket.shutdown = _safe_shutdown
     try:
         import ctypes
         process_handle = ctypes.windll.kernel32.GetCurrentProcess()
@@ -1432,3 +1443,12 @@ def save_vault_keys(data: dict = Body(...)):
     except Exception as e:
         print(f"⚠️ Error saving key vault: {e}")
         return {"success": False, "error": str(e)}
+
+if __name__ == "__main__":
+    import uvicorn
+    if sys.platform == "win32":
+        try:
+            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+        except Exception:
+            pass
+    uvicorn.run("server:app", host="127.0.0.1", port=8000, log_level="info")
