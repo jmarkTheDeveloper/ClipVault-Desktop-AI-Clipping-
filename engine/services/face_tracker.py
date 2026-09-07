@@ -435,52 +435,80 @@ class FaceTracker:
             else:
                 raw_shot_candidates.append('TWO_SHOT')
 
-        # Broadcast Hysteresis: Require 2.5s minimum hold before cutting shots
-        min_hold = int(fps_sample * 2.5)
+        # Adjust reaction hysteresis & switching speed based on selected camera_style
+        if camera_style == "instant":
+            min_hold = max(1, int(fps_sample * 0.6)) # Ultra-fast 0.6s instant teleport cut
+        else:
+            min_hold = max(2, int(fps_sample * 1.5))
+
         director_shots = []
         current_shot = 'TWO_SHOT'
         hold_count = 0
 
         for i, cand in enumerate(raw_shot_candidates):
-            if i < int(fps_sample * 1.5): # Establish scene
+            if i < int(fps_sample * 0.6): # Establish scene fast
                 director_shots.append('TWO_SHOT')
                 continue
 
             if cand == current_shot:
                 hold_count += 1
             else:
-                fwd = raw_shot_candidates[i:i + 4]
-                if hold_count >= min_hold and fwd.count(cand) >= 3:
+                fwd = raw_shot_candidates[i:i + 3]
+                if hold_count >= min_hold and fwd.count(cand) >= 2:
                     current_shot = cand
                     hold_count = 1
 
             director_shots.append(current_shot)
 
+        # Precompute target X centers per sample time
+        target_xs = []
+        for shot in director_shots:
+            if shot == 'SPEAKER_A':
+                c = max(target_width / 2.0, min(width - target_width / 2.0, speaker_A))
+            elif shot == 'SPEAKER_B':
+                c = max(target_width / 2.0, min(width - target_width / 2.0, speaker_B))
+            else:
+                if two_shot_fits:
+                    c = two_shot_center
+                else:
+                    c = max(target_width / 2.0, min(width - target_width / 2.0, speaker_A))
+            target_xs.append(c)
+
         sample_times_arr = np.array(sample_times, dtype=np.float64)
+        target_xs_arr = np.array(target_xs, dtype=np.float64)
+
+        print(f"    🎬 Camera Director Mode: '{camera_style}' ({len(director_shots)} direction keyframes)")
 
         def multi_speaker_filter(get_frame, t):
             frame = get_frame(t)
-            idx = int(np.searchsorted(sample_times_arr, t))
-            idx = max(0, min(len(director_shots) - 1, idx))
-            shot = director_shots[idx]
-
-            if shot == 'SPEAKER_A':
-                cx = max(target_width / 2.0, min(width - target_width / 2.0, speaker_A))
-                x1 = int(round(cx - target_width / 2.0))
-                return frame[:, x1:x1 + target_width]
-            elif shot == 'SPEAKER_B':
-                cx = max(target_width / 2.0, min(width - target_width / 2.0, speaker_B))
-                x1 = int(round(cx - target_width / 2.0))
-                return frame[:, x1:x1 + target_width]
+            
+            if camera_style == "instant":
+                # Instant Teleport Cut: Hard 0ms jump-cut directly to speaker (zero sliding)
+                idx = int(np.searchsorted(sample_times_arr, t))
+                idx = max(0, min(len(target_xs_arr) - 1, idx))
+                cx = target_xs_arr[idx]
+            elif camera_style == "snappy":
+                # Snappy Glide: Fast 0.25s linear camera pan between speakers
+                cx = float(np.interp(t, sample_times_arr, target_xs_arr))
             else:
-                if two_shot_fits:
-                    x1 = int(round(two_shot_center - target_width / 2.0))
-                    return frame[:, x1:x1 + target_width]
+                # Smooth Cinema: Cosine ease-in-out camera glide
+                idx = int(np.searchsorted(sample_times_arr, t))
+                idx = max(0, min(len(target_xs_arr) - 1, idx))
+                prev_idx = max(0, idx - 1)
+                t_start = sample_times_arr[prev_idx]
+                t_end = sample_times_arr[idx]
+                x_start = target_xs_arr[prev_idx]
+                x_end = target_xs_arr[idx]
+                if t_end > t_start and x_start != x_end:
+                    factor = min(1.0, max(0.0, (t - t_start) / (t_end - t_start)))
+                    ease_factor = (1.0 - np.cos(factor * np.pi)) / 2.0
+                    cx = x_start + (x_end - x_start) * ease_factor
                 else:
-                    cx = max(target_width / 2.0, min(width - target_width / 2.0, speaker_A))
-                    x1 = int(round(cx - target_width / 2.0))
-                    x1 = max(0, min(width - target_width, x1))
-                    return frame[:, x1:x1 + target_width]
+                    cx = target_xs_arr[idx]
+
+            x1 = int(round(cx - target_width / 2.0))
+            x1 = max(0, min(width - target_width, x1))
+            return frame[:, x1:x1 + target_width]
 
         cropped_clip = clip.fl(multi_speaker_filter, apply_to=["mask"])
         cropped_clip.size = (target_width, height)
