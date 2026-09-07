@@ -29,9 +29,12 @@ import re
 def sanitize_windows_filename(name: str, fallback: str = "video") -> str:
     if not name:
         return fallback
-    cleaned = re.sub(r'[\x00-\x1f\\/:*?"<>|]', '', str(name))
+    cleaned = re.sub(r'[\x00-\x1f\\/:*?"<>|\r\n\t]', '', str(name))
     cleaned = cleaned.strip('. ')
     cleaned = "".join(c for c in cleaned if c.isprintable()).strip()
+    reserved = {"CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"}
+    if cleaned.upper() in reserved:
+        cleaned = f"{cleaned}_clip"
     return cleaned if cleaned else fallback
 
 _original_builtin_print = builtins.print
@@ -300,13 +303,23 @@ class VideoProcessor:
 
         # Determine target export directory
         if output_dir:
-            target_dir = Path(output_dir).resolve()
-        elif custom_folder_name:
-            clean_f = sanitize_windows_filename(custom_folder_name, fallback="output")
-            target_dir = (OUTPUT_DIR / clean_f).resolve()
+            base_dir = Path(output_dir).resolve()
+            if custom_folder_name and custom_folder_name.strip():
+                clean_f = sanitize_windows_filename(custom_folder_name.strip(), fallback="")
+                target_dir = (base_dir / clean_f).resolve() if clean_f else base_dir
+            else:
+                target_dir = base_dir
+        elif custom_folder_name and custom_folder_name.strip():
+            clean_f = sanitize_windows_filename(custom_folder_name.strip(), fallback="")
+            target_dir = (OUTPUT_DIR / clean_f).resolve() if clean_f else OUTPUT_DIR.resolve()
         else:
             target_dir = OUTPUT_DIR.resolve()
-        target_dir.mkdir(parents=True, exist_ok=True)
+
+        try:
+            target_dir.mkdir(parents=True, exist_ok=True)
+        except Exception:
+            target_dir = OUTPUT_DIR.resolve()
+            target_dir.mkdir(parents=True, exist_ok=True)
 
         if caption_style in self.caption_maker.styles:
             self.caption_maker.selected_style = caption_style
@@ -563,10 +576,10 @@ class VideoProcessor:
                     progress_callback(f"Finalized Clip {i}/{len(clip_specs)}", final_pct)
 
                 # Save metadata text file
-                metadata_dir = (target_dir / "metadata").resolve()
-                metadata_dir.mkdir(exist_ok=True)
-                metadata_path = (metadata_dir / f"clip_{i}_{virality_score}pts_{clean_stem}_metadata.txt").resolve()
                 try:
+                    metadata_dir = (target_dir / "metadata").resolve()
+                    metadata_dir.mkdir(parents=True, exist_ok=True)
+                    metadata_path = (metadata_dir / f"clip_{i}_{virality_score}pts_{clean_stem}_metadata.txt").resolve()
                     with open(metadata_path, 'w', encoding='utf-8') as f_meta:
                         f_meta.write(f"🎬 Catchy Title:\n{clip_info.get('content_title', title_text)}\n\n")
                         f_meta.write(f"📝 Description & Hashtags:\n{clip_info.get('content_description', '')}\n\n")

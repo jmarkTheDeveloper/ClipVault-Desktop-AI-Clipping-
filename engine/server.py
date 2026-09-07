@@ -305,10 +305,8 @@ def execute_rendering_task(task_id: str, request: ProcessRequest, cancel_event: 
             clean_msg = err_str
         elif "unavailable" in lower_err or "not found" in lower_err or "does not exist" in lower_err or "private video" in lower_err:
             clean_msg = "Video unavailable on YouTube. Please check the URL for typos (YouTube video IDs are case-sensitive, e.g. uppercase 'I' vs digit '1')."
-        elif "api_key" in lower_err or "api key" in lower_err or "unauthorized" in lower_err or "authentication" in lower_err or "invalid key" in lower_err:
-            clean_msg = f"API Key Authentication failed for {request.ai_engine}. Please verify or update your API key in Settings."
-        elif "errno 22" in lower_err or "invalid argument" in lower_err:
-            clean_msg = "Invalid folder or clip filename character detected. Please verify your custom output folder or filename settings in Settings."
+        elif "errno 22" in lower_err:
+            clean_msg = "Invalid path or file character detected on Windows. Please verify your folder and file name settings."
 
         print(f"⚠️ Task {task_id} error: {clean_msg}")
         tasks_db[task_id]["status"] = "failed"
