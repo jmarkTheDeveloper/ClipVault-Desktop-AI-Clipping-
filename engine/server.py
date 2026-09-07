@@ -131,6 +131,31 @@ class ProcessRequest(BaseModel):
 
 ProcessRequest.model_rebuild()
 
+class ReRenderRequest(BaseModel):
+    clip_path: str
+    words: List[Dict[str, Any]]
+    caption_style: Optional[str] = "capcut_yellow"
+    caption_y_pct: Optional[float] = 0.63
+    dynamic_punch_in: Optional[bool] = True
+
+@app.post("/api/re_render_clip")
+def re_render_clip_endpoint(req: ReRenderRequest):
+    """Re-renders an existing clip with custom words, captions, and punch-ins in seconds."""
+    try:
+        processor = VideoProcessor(caption_style=req.caption_style)
+        result = processor.re_render_clip(
+            clip_path=req.clip_path,
+            words=req.words,
+            caption_style=req.caption_style or "capcut_yellow",
+            caption_y_pct=req.caption_y_pct if req.caption_y_pct else 0.63,
+            dynamic_punch_in=req.dynamic_punch_in if req.dynamic_punch_in is not None else True
+        )
+        return result
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
 def get_current_user(authorization: Optional[str] = Header(None)):
     """
     Security dependency that validates the JWT OAuth token passed in the Authorization header.

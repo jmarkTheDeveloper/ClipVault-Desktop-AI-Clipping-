@@ -417,6 +417,23 @@ export const AiClipperScreen: React.FC<Props> = ({
   const [isDraggingCaption, setIsDraggingCaption] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
+  // Broadcast background clipping progress across entire application
+  useEffect(() => {
+    try {
+      window.dispatchEvent(
+        new CustomEvent("clipvault-task-update", {
+          detail: {
+            running,
+            statusText,
+            progress,
+            done,
+            clipCount: generatedClips.length,
+          },
+        })
+      );
+    } catch {}
+  }, [running, statusText, progress, done, generatedClips.length]);
+
   // Saved Clips Vault State
   const [vaultClips, setVaultClips] = useState<ClipMetadata[]>([]);
   const [vaultFolders, setVaultFolders] = useState<string[]>(["Main Library"]);
@@ -1590,6 +1607,12 @@ export const AiClipperScreen: React.FC<Props> = ({
                   }
             }
             onClose={() => setViewMode("vault")}
+            onClipUpdated={(updated) => {
+              const updatedGenerated = [...generatedClips];
+              updatedGenerated[activeClipIndex] = updated;
+              setGeneratedClips(updatedGenerated);
+              loadVaultClips(false);
+            }}
           />
         )}
       </div>
@@ -1601,6 +1624,10 @@ export const AiClipperScreen: React.FC<Props> = ({
           onClose={() => setPreviewVaultClip(null)}
           onDelete={deleteVaultClip}
           onMove={(path) => setMoveModalClips([path])}
+          onClipUpdated={(updated) => {
+            setPreviewVaultClip(updated);
+            loadVaultClips(false);
+          }}
         />
       )}
 

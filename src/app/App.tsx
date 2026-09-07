@@ -57,12 +57,37 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>("project-select");
   const [clipperViewMode, setClipperViewMode] = useState<"setup" | "vault">("setup");
 
-  // Interactive Guided Tour State
-  const [tourActive, setTourActive] = useState<boolean>(false);
-  const [tourType, setTourType] = useState<"clipper" | "vault">("clipper");
-  const [tourStep, setTourStep] = useState<number>(1);
-  const [showWelcomePrompt, setShowWelcomePrompt] = useState<boolean>(false);
-  const [showVaultWelcomePrompt, setShowVaultWelcomePrompt] = useState<boolean>(false);
+  // Background Task State Tracking
+  const [taskState, setTaskState] = useState<{
+    running: boolean;
+    statusText: string;
+    progress: number;
+    done: boolean;
+    clipCount: number;
+  }>({
+    running: false,
+    statusText: "",
+    progress: 0,
+    done: false,
+    clipCount: 0,
+  });
+
+  const [showDoneToast, setShowDoneToast] = useState(false);
+
+  useEffect(() => {
+    const handleTaskUpdate = (e: any) => {
+      if (e.detail) {
+        const prevRunning = taskState.running;
+        setTaskState(e.detail);
+        if (e.detail.done && !e.detail.running && prevRunning) {
+          setShowDoneToast(true);
+          setTimeout(() => setShowDoneToast(false), 8000);
+        }
+      }
+    };
+    window.addEventListener("clipvault-task-update", handleTaskUpdate);
+    return () => window.removeEventListener("clipvault-task-update", handleTaskUpdate);
+  }, [taskState.running]);
 
   useEffect(() => {
     // Expose quick dev tools in window console for instant testing
@@ -244,6 +269,84 @@ export default function App() {
           onPrev={handlePrevTourStep}
           onExit={handleExitTour}
         />
+
+        {/* Global Floating Background Task HUD when navigating other screens */}
+        {taskState.running && screen !== "ai-clipper" && (
+          <div
+            onClick={() => {
+              setClipperViewMode("setup");
+              setScreen("ai-clipper");
+            }}
+            className="fixed bottom-6 right-6 z-[9999] bg-[#0d0f12]/95 border border-[#00e676]/40 shadow-[0_12px_36px_rgba(0,0,0,0.8),0_0_24px_rgba(0,230,118,0.25)] rounded-2xl p-4 flex items-center gap-4 cursor-pointer hover:border-[#00e676] hover:scale-[1.02] transition-all backdrop-blur-xl animate-in fade-in slide-in-from-bottom-4 duration-300 max-w-md group"
+          >
+            <div className="relative flex-shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-[#00e676]/15 border border-[#00e676]/30 flex items-center justify-center text-[#00e676]">
+                <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+              </div>
+              <span className="absolute -top-1 -right-1 w-3 h-3 bg-[#00e676] rounded-full animate-ping" />
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-[#00e676] animate-pulse" />
+                  AI Clipping in Background
+                </span>
+                <span className="text-xs font-extrabold text-[#00e676]">{taskState.progress}%</span>
+              </div>
+              <p className="text-[11px] text-gray-400 truncate max-w-[220px]">
+                {taskState.statusText || "Rendering high-resolution vertical clips..."}
+              </p>
+              <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden mt-2">
+                <div
+                  className="bg-gradient-to-r from-[#00e676] to-[#00b0ff] h-full rounded-full transition-all duration-300"
+                  style={{ width: `${Math.max(5, taskState.progress)}%` }}
+                />
+              </div>
+            </div>
+
+            <div className="px-2.5 py-1.5 rounded-lg bg-white/10 group-hover:bg-[#00e676] group-hover:text-black text-gray-300 text-[11px] font-bold transition-all flex items-center gap-1 flex-shrink-0">
+              View
+              <span>→</span>
+            </div>
+          </div>
+        )}
+
+        {/* Global Floating Completion Banner */}
+        {showDoneToast && screen !== "ai-clipper" && screen !== "saved-vault" && (
+          <div
+            onClick={() => {
+              setClipperViewMode("vault");
+              setScreen("saved-vault");
+              setShowDoneToast(false);
+            }}
+            className="fixed top-6 right-6 z-[9999] bg-[#0d1f14]/95 border border-[#00e676] shadow-[0_12px_36px_rgba(0,0,0,0.9),0_0_30px_rgba(0,230,118,0.4)] rounded-2xl p-4 flex items-center gap-3 cursor-pointer hover:scale-[1.02] transition-all backdrop-blur-xl animate-in fade-in slide-in-from-top-4 duration-300"
+          >
+            <div className="w-10 h-10 rounded-xl bg-[#00e676] text-black font-extrabold flex items-center justify-center text-lg shadow-lg">
+              ✓
+            </div>
+            <div>
+              <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                Clipping Complete! 🎉
+              </div>
+              <p className="text-[11px] text-gray-300">
+                {taskState.clipCount > 0 ? `${taskState.clipCount} viral clips generated & saved` : "Your clips are ready in Saved Vault"}
+              </p>
+            </div>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowDoneToast(false);
+              }}
+              className="ml-2 text-gray-400 hover:text-white text-xs px-1.5 py-1"
+            >
+              ✕
+            </button>
+          </div>
+        )}
       </div>
     </ErrorBoundary>
   );

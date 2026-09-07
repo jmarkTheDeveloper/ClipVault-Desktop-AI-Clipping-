@@ -585,3 +585,123 @@ class VideoProcessor:
             raise RuntimeError(f"No clips could be successfully rendered{err_detail}. Please verify your video source and rendering settings.")
 
         return output_files, title, str(target_dir.resolve())
+
+    @staticmethod
+    def apply_dynamic_punch_ins(clip, words, clip_start_time=0.0, punch_scale=1.12):
+        """
+        Applies subtle 1.10x - 1.12x camera punch-ins on punchlines / high-energy sentences
+        to maximize viewer retention and create professional visual rhythm.
+        """
+        if not words or clip.duration < 3.0:
+            return clip
+
+        import numpy as np
+        w, h = clip.size
+
+        from styles.caption_styles import HIGHLIGHT_KEYWORDS
+
+        punch_windows = []
+        for word in words:
+            w_text = word.get('word', '').upper().strip(".,!?:;\"'()[]{}")
+            if any(k.upper() in w_text for k in HIGHLIGHT_KEYWORDS):
+                rel_start = max(0.0, word.get('start', 0.0) - clip_start_time)
+                rel_end = min(clip.duration, max(rel_start + 1.2, word.get('end', 0.0) - clip_start_time + 0.8))
+                if rel_end > rel_start and rel_start < clip.duration:
+                    punch_windows.append((rel_start, rel_end))
+
+        if not punch_windows:
+            return clip
+
+        merged = []
+        for start, end in sorted(punch_windows, key=lambda x: x[0]):
+            if merged and start <= merged[-1][1] + 0.3:
+                merged[-1] = (merged[-1][0], max(merged[-1][1], end))
+            else:
+                merged.append((start, end))
+
+        crop_w = int(w / punch_scale)
+        crop_h = int(h / punch_scale)
+        if crop_w % 2 != 0: crop_w -= 1
+        if crop_h % 2 != 0: crop_h -= 1
+        x1 = (w - crop_w) // 2
+        y1 = (h - crop_h) // 2
+
+        def zoom_frame(gf, t):
+            frame = gf(t)
+            is_punch = any(start <= t <= end for start, end in merged)
+            if is_punch:
+                try:
+                    import cv2
+                    cropped = frame[y1:y1 + crop_h, x1:x1 + crop_w]
+                    return cv2.resize(cropped, (w, h), interpolation=cv2.INTER_LINEAR)
+                except Exception:
+                    return frame
+            return frame
+
+        return clip.fl(zoom_frame)
+
+    def re_render_clip(self, clip_path: str, words: list, caption_style: str = "capcut_yellow", caption_y_pct: float = 0.63, dynamic_punch_in: bool = True):
+        """
+        Re-renders an existing clip with updated words/captions and dynamic framing
+        in seconds without needing to re-download the source video!
+        """
+        from moviepy.editor import VideoFileClip
+        from pathlib import Path
+        import time
+        import os
+
+        src_path = Path(clip_path).resolve()
+        if not src_path.exists():
+            raise FileNotFoundError(f"Clip not found: {clip_path}")
+
+        video = VideoFileClip(str(src_path))
+        w, h = video.size
+
+        if caption_style in self.caption_maker.styles:
+            self.caption_maker.selected_style = caption_style
+
+        processed = video
+        if dynamic_punch_in and words:
+            processed = self.apply_dynamic_punch_ins(processed, words, clip_start_time=0.0)
+
+        if words:
+            processed = self.caption_maker.add_captions(
+                processed,
+                words=words,
+                clip_start_time=0.0,
+                layout="vertical_crop",
+                caption_y_pct=caption_y_pct
+            )
+
+        out_stem = src_path.stem
+        if not out_stem.endswith("_custom"):
+            out_name = f"{out_stem}_custom.mp4"
+        else:
+            out_name = f"{out_stem}_{int(time.time())}.mp4"
+        out_path = (src_path.parent / out_name).resolve()
+
+        best_codec, best_preset, ffmpeg_params, thread_count = self.detect_hardware_encoder()
+        safe_temp_audio = str((TEMP_DIR / f're_render_audio_{os.getpid()}_{int(time.time())}.m4a').resolve())
+
+        processed.write_videofile(
+            str(out_path),
+            codec=best_codec,
+            preset=best_preset,
+            ffmpeg_params=ffmpeg_params,
+            threads=thread_count,
+            audio_codec='aac',
+            temp_audiofile=safe_temp_audio,
+            remove_temp=True,
+            logger=None
+        )
+
+        video.close()
+        processed.close()
+
+        size_mb = round(out_path.stat().st_size / (1024 * 1024), 2)
+        return {
+            "status": "success",
+            "path": str(out_path),
+            "filename": out_path.name,
+            "size_mb": size_mb
+        }
