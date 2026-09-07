@@ -84,6 +84,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+AUTH_TOKEN = os.getenv("CLIPVAULT_AUTH_TOKEN", "")
+
+@app.middleware("http")
+async def verify_app_auth(request: Request, call_next):
+    # Allow OPTIONS preflight, static file mounts, video streaming, and health checks
+    path = request.url.path
+    if request.method == "OPTIONS" or not path.startswith("/api/") or path == "/api/health":
+        return await call_next(request)
+    
+    if AUTH_TOKEN:
+        client_token = request.headers.get("X-App-Auth-Token")
+        if not client_token or client_token != AUTH_TOKEN:
+            from fastapi.responses import JSONResponse
+            return JSONResponse(
+                status_code=403,
+                content={"detail": "Forbidden: Invalid or missing ClipVault App Auth Token"}
+            )
+    return await call_next(request)
+
 auth_verifier = AuthVerifier()
 
 from config import OUTPUT_DIR, TEMP_DIR, BACKGROUNDS_DIR, MUSIC_DIR

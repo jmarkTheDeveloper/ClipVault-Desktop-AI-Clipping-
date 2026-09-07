@@ -1,7 +1,32 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
+let authToken = '';
+ipcRenderer.invoke('get-auth-token').then((token) => {
+  if (token) authToken = token;
+}).catch(() => {});
+
+// Intercept window.fetch to automatically attach X-App-Auth-Token for backend requests
+if (typeof window !== 'undefined') {
+  const originalFetch = window.fetch;
+  window.fetch = async function (resource, config = {}) {
+    let url = typeof resource === 'string' ? resource : (resource && resource.url) ? resource.url : '';
+    if (!authToken) {
+      try { authToken = await ipcRenderer.invoke('get-auth-token'); } catch (e) {}
+    }
+    if (url.includes('127.0.0.1:8000') && authToken) {
+      const headers = new Headers(config.headers || {});
+      if (!headers.has('X-App-Auth-Token')) {
+        headers.set('X-App-Auth-Token', authToken);
+      }
+      config.headers = headers;
+    }
+    return originalFetch.call(this, resource, config);
+  };
+}
+
 // We expose a secure API to the window object for React to use
 contextBridge.exposeInMainWorld('electronAPI', {
+  getAuthToken: () => ipcRenderer.invoke('get-auth-token'),
   getYoutubeInfo: (url) => ipcRenderer.invoke('get-youtube-info', url),
   showOpenDialog: (options) => ipcRenderer.invoke('show-open-dialog', options),
   selectDirectory: (defaultPath) => ipcRenderer.invoke('select-directory', defaultPath),

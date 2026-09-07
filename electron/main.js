@@ -1,6 +1,7 @@
 import { app, BrowserWindow, shell, globalShortcut, nativeImage, protocol, net, dialog, ipcMain, Notification } from 'electron';
 import path from 'path';
 import fs from 'fs';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { spawn, exec } from 'child_process';
 import util from 'util';
@@ -8,6 +9,20 @@ import util from 'util';
 const execAsync = util.promisify(exec);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Security Guard 1: Anti-Malicious Debugger & CLI Flag Injection Lockdown
+const suspiciousFlags = ['--remote-debugging-port', '--inspect', '--inspect-brk', '--remote-debugging-targets'];
+if (
+  process.env.ELECTRON_RUN_AS_NODE ||
+  process.argv.some(arg => suspiciousFlags.some(flag => arg.includes(flag)))
+) {
+  console.error('[SECURITY ALERT]: Suspicious debugging flag or NODE override detected. Terminating process immediately.');
+  app.quit();
+  process.exit(1);
+}
+
+// Generate single-session 256-bit cryptographically secure token for Python API authorization
+const BACKEND_AUTH_TOKEN = crypto.randomBytes(32).toString('hex');
 
 // Set Application Name & Identity so Windows Task Manager, Settings, and Notifications show ClipVault Studio
 app.name = 'ClipVault Studio';
@@ -34,6 +49,20 @@ app.commandLine.appendSwitch('ignore-gpu-blocklist');
 
 let mainWindow;
 let pythonProcess;
+
+// Security Guard 2: Secure IPC Auth Token Handler with Frame Validation
+ipcMain.handle('get-auth-token', (event) => {
+  const senderUrl = event.senderFrame?.url || event.sender?.getURL() || '';
+  if (
+    senderUrl.startsWith('http://localhost') ||
+    senderUrl.startsWith('http://127.0.0.1') ||
+    senderUrl.startsWith('file://') ||
+    senderUrl.startsWith('local://')
+  ) {
+    return BACKEND_AUTH_TOKEN;
+  }
+  return null;
+});
 
 
   ipcMain.handle('show-open-dialog', async (event, options) => {
@@ -329,6 +358,7 @@ function startPythonBackend() {
           ...process.env,
           PYTHONUTF8: '1',
           CLIPVAULT_ENGINE_DATA: engineDataDir,
+          CLIPVAULT_AUTH_TOKEN: BACKEND_AUTH_TOKEN,
         }
       });
 
