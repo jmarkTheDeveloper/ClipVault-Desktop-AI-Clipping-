@@ -206,13 +206,38 @@ function createWindow() {
 
   const distPath = path.join(__dirname, '../dist/index.html');
 
-  if (isDev) {
-    mainWindow.loadURL('http://localhost:54321').catch(() => {
+  let loadAttempts = 0;
+  const loadApp = () => {
+    if (isDev) {
+      mainWindow.loadURL('http://localhost:54321').catch(() => {
+        if (fs.existsSync(distPath)) {
+          mainWindow.loadFile(distPath);
+        }
+      });
+    } else {
       mainWindow.loadFile(distPath);
-    });
-  } else {
-    mainWindow.loadFile(distPath);
-  }
+    }
+  };
+
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+    console.warn(`[Electron]: Page failed to load (${errorCode}: ${errorDescription}) at ${validatedURL}`);
+    if (isDev && loadAttempts < 5) {
+      loadAttempts++;
+      setTimeout(() => {
+        console.log(`[Electron]: Retrying connection to dev server (attempt ${loadAttempts})...`);
+        mainWindow.loadURL('http://localhost:54321').catch(() => {
+          if (fs.existsSync(distPath)) {
+            mainWindow.loadFile(distPath);
+          }
+        });
+      }, 1000);
+    } else if (fs.existsSync(distPath)) {
+      console.log('[Electron]: Falling back to built bundle dist/index.html');
+      mainWindow.loadFile(distPath);
+    }
+  });
+
+  loadApp();
 
   mainWindow.once('ready-to-show', () => {
     mainWindow.maximize();
