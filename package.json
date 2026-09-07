@@ -17,7 +17,7 @@
   "build": {
     "appId": "com.clipvault.studio",
     "productName": "ClipVault Studio",
-    "copyright": "Copyright (c) 2025 ClipVault Studio",
+    "copyright": "Copyright (c) 2026 ClipVault Studio LLC",
     "icon": "public/icon.ico",
     "asar": true,
     "npmRebuild": false,

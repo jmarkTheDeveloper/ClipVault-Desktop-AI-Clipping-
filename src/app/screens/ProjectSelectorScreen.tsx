@@ -345,7 +345,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
                 <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
                   <span style={{ fontSize: 13 }}>🇵🇭</span>
                   <span style={{ fontSize: 11.5, fontWeight: 700, color: "#fff" }}>
-                    Built by <span style={{ color: G }}>jmarkTheDeveloper</span>
+                    Published by <span style={{ color: G }}>ClipVault Studio LLC</span>
                   </span>
                   <span
                     style={{
@@ -358,7 +358,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
                       fontFamily: "'Geist Mono', monospace",
                     }}
                   >
-                    CS Student
+                    Official Release
                   </span>
                 </div>
 
@@ -807,7 +807,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
                   type="button"
                   onClick={() => {
                     const text = `CLIPVAULT AI VIDEO STUDIO - END-USER LICENSE AGREEMENT & LEGAL COMPLIANCE MASTER AGREEMENT
-Effective Date: August 2026 • Published by @jmarkTheDeveloper • Applicable to all Desktop Builds & Commercial Releases
+Effective Date: August 2026 • Published by ClipVault Studio LLC • Applicable to all Desktop Builds & Commercial Releases
 
 1. GRANT OF COMMERCIAL LICENSE & CREATOR RIGHTS
 - License Scope: You are granted a worldwide, non-exclusive, perpetual license to install and execute ClipVault AI Video Studio.
@@ -840,7 +840,7 @@ Effective Date: August 2026 • Published by @jmarkTheDeveloper • Applicable t
 
 8. STANDARD DISCLAIMERS & INQUIRIES
 - The software is provided "AS IS", without warranty of any kind.
-- Contact: jmarkthedeveloper@gmail.com`;
+- Contact: support@clipvault.studio`;
                     try {
                       navigator.clipboard.writeText(text);
                       setCopiedEula(true);
@@ -1094,7 +1094,7 @@ Effective Date: August 2026 • Published by @jmarkTheDeveloper • Applicable t
                       ClipVault Software License &amp; Master Terms of Service
                     </div>
                     <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}>
-                      Effective Date: August 2026 • Published by @jmarkTheDeveloper • Applicable to all Desktop Builds &amp; Commercial Releases
+                      Effective Date: August 2026 • Published by ClipVault Studio LLC • Applicable to all Desktop Builds &amp; Commercial Releases
                     </div>
                   </div>
 
@@ -1331,8 +1331,8 @@ Effective Date: August 2026 • Published by @jmarkTheDeveloper • Applicable t
                           </div>
                           <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "rgba(255,255,255,0.7)" }}>
                             <span>For software support, feature requests, or legal inquiries, contact:</span>
-                            <a href="mailto:jmarkthedeveloper@gmail.com" style={{ color: G, textDecoration: "none", fontWeight: 700 }}>
-                              jmarkthedeveloper@gmail.com
+                            <a href="mailto:support@clipvault.studio" style={{ color: G, textDecoration: "none", fontWeight: 700 }}>
+                              support@clipvault.studio
                             </a>
                           </div>
                         </div>
@@ -1473,7 +1473,7 @@ Effective Date: August 2026 • Published by @jmarkTheDeveloper • Applicable t
                 <>
                   <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
                     <a
-                      href="mailto:jmarkthedeveloper@gmail.com"
+                      href="mailto:support@clipvault.studio"
                       style={{
                         fontSize: 11.5,
                         color: G,
@@ -1487,35 +1487,13 @@ Effective Date: August 2026 • Published by @jmarkTheDeveloper • Applicable t
                       onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
                     >
                       <Mail style={{ width: 12, height: 12 }} />
-                      <span>jmarkthedeveloper@gmail.com</span>
-                    </a>
-
-                    <span style={{ fontSize: 11, color: "rgba(255,255,255,0.2)" }}>•</span>
-
-                    <a
-                      href="https://patreon.com/jmarkTheDeveloper?utm_medium=unknown&utm_source=join_link&utm_campaign=creatorshare_creator&utm_content=copyLink"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        fontSize: 11.5,
-                        color: "#ff667a",
-                        textDecoration: "none",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 6,
-                        transition: "color 0.2s",
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.color = "#ff8595"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.color = "#ff667a"; }}
-                    >
-                      <span>Support on Patreon</span>
-                      <ExternalLink style={{ width: 10, height: 10, opacity: 0.6 }} />
+                      <span>support@clipvault.studio</span>
                     </a>
 
                     <span style={{ fontSize: 11, color: "rgba(255,255,255,0.2)" }}>•</span>
 
                     <span style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", fontFamily: "'JetBrains Mono', monospace" }}>
-                      Exclusive Commercial License © 2026 @jmarkTheDeveloper
+                      Exclusive Commercial License © 2026 ClipVault Studio LLC
                     </span>
                   </div>
 
@@ -1720,17 +1698,17 @@ Effective Date: August 2026 • Published by @jmarkTheDeveloper • Applicable t
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <Code2 style={{ width: 18, height: 18, color: G }} />
                   <span style={{ fontSize: 14, fontFamily: "'Geist Mono', monospace", fontWeight: 700, color: "#fff" }}>
-                    @jmarkTheDeveloper
+                    ClipVault Studio LLC
                   </span>
                   <span style={{ color: "rgba(255,255,255,0.2)" }}>•</span>
                   <span style={{ fontSize: 13, color: "rgba(255,255,255,0.5)" }}>
-                    Computer Science Student & Solo Founder
+                    Official Software Publisher
                   </span>
                 </div>
 
                 <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                   <a
-                    href="mailto:jmarkthedeveloper@gmail.com"
+                    href="mailto:support@clipvault.studio"
                     style={{
                       display: "inline-flex",
                       alignItems: "center",
@@ -1756,40 +1734,7 @@ Effective Date: August 2026 • Published by @jmarkTheDeveloper • Applicable t
                     }}
                   >
                     <Mail style={{ width: 13, height: 13, color: G }} />
-                    <span>jmarkthedeveloper@gmail.com</span>
-                  </a>
-
-                  <a
-                    href="https://github.com/jmarkTheDeveloper"
-                    target="_blank"
-                    rel="noreferrer"
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 8,
-                      padding: "7px 14px",
-                      borderRadius: 8,
-                      background: "rgba(255,255,255,0.05)",
-                      border: "1px solid rgba(255,255,255,0.12)",
-                      color: "#fff",
-                      textDecoration: "none",
-                      fontSize: 12,
-                      fontWeight: 600,
-                      fontFamily: "'Geist Mono', monospace",
-                      transition: "all 0.15s",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "rgba(255,255,255,0.12)";
-                      e.currentTarget.style.borderColor = "rgba(255,255,255,0.3)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "rgba(255,255,255,0.05)";
-                      e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)";
-                    }}
-                  >
-                    <Github style={{ width: 14, height: 14 }} />
-                    <span>github.com/jmarkTheDeveloper</span>
-                    <ExternalLink style={{ width: 12, height: 12, opacity: 0.6 }} />
+                    <span>support@clipvault.studio</span>
                   </a>
                 </div>
               </div>
@@ -1939,7 +1884,7 @@ Effective Date: August 2026 • Published by @jmarkTheDeveloper • Applicable t
                     ClipVault was architected and built through hundreds of late-night hours by a solo Computer Science college student with zero corporate funding or venture backing. Cracking or illicitly sharing this software does not harm a faceless multi-billion-dollar corporation — it directly deprives an independent student of tuition funds, living expenses, hardware upgrades, and the ability to make an honest living.
                   </p>
                   <div style={{ color: "rgba(255,255,255,0.75)", textAlign: "justify" }}>
-                    If you are a student, educator, or facing severe financial hardship and cannot afford ClipVault, please reach out directly to <strong style={{ color: "#fff" }}>@jmarkTheDeveloper</strong> on GitHub or email <a href="mailto:jmarkthedeveloper@gmail.com" style={{ color: "#fff", textDecoration: "underline", fontWeight: 700 }}>jmarkthedeveloper@gmail.com</a> instead of turning to unauthorized or cracked copies. Let's foster a creative software culture built on mutual respect and integrity.
+                    If you are a student, educator, or facing severe financial hardship and cannot afford ClipVault, please reach out directly to <strong style={{ color: "#fff" }}>ClipVault Studio LLC</strong> at <a href="mailto:support@clipvault.studio" style={{ color: "#fff", textDecoration: "underline", fontWeight: 700 }}>support@clipvault.studio</a> instead of turning to unauthorized or cracked copies. Let's foster a creative software culture built on mutual respect and integrity.
                   </div>
                 </div>
 
@@ -1984,7 +1929,7 @@ Effective Date: August 2026 • Published by @jmarkTheDeveloper • Applicable t
                   color: "rgba(255,255,255,0.4)",
                 }}
               >
-                ClipVault AI Video Studio • @jmarkTheDeveloper
+                ClipVault AI Video Studio • ClipVault Studio LLC
               </span>
               <button
                 type="button"
