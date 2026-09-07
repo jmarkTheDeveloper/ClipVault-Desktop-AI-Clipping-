@@ -379,8 +379,8 @@ class VideoProcessor:
             try:
                 if use_smart_slicing:
                     if progress_callback:
-                        progress_callback(f"Downloading clip {i}/{len(clip_specs)} slice ({start:.0f}s-{end:.0f}s)...", 35 + int((i - 1) / len(clip_specs) * 25))
-                    slice_to_cleanup = self.downloader.download_slice(url, start, end, quality=quality)
+                        progress_callback(f"Downloading clip {i}/{len(clip_specs)} slice ({start:.0f}s-{end:.0f}s)...", 18 + int((i - 1) / len(clip_specs) * 20))
+                    slice_to_cleanup = self.downloader.download_slice(url, start, end, quality=quality, progress_callback=progress_callback)
                     video = VideoFileClip(str(slice_to_cleanup))
                     clips_to_close.append(video)
                     clip = video

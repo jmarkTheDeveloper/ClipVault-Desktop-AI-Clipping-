@@ -267,7 +267,7 @@ class YouTubeDownloader:
         print(f"✅ Audio stream downloaded: {audio_path.name} ({duration:.1f}s)")
         return audio_path, title, duration
 
-    def download_slice(self, url: str, start_sec: float, end_sec: float, quality: str = "1080p", output_path: Optional[Path] = None) -> Path:
+    def download_slice(self, url: str, start_sec: float, end_sec: float, quality: str = "1080p", output_path: Optional[Path] = None, progress_callback: Optional[Any] = None) -> Path:
         """
         Downloads ONLY the targeted [start_sec, end_sec] interval from YouTube in true HD / 4K.
         Uses direct HTTP range seeking and ultra-fast ffmpeg stream slicing (completes in 2-4 seconds).
@@ -278,6 +278,8 @@ class YouTubeDownloader:
             output_path = self.temp_dir / slice_name
 
         print(f"⚡ Fast-slicing YouTube stream ({start_sec:.1f}s - {end_sec:.1f}s, Quality: {quality})...")
+        if progress_callback:
+            progress_callback(f"Connecting to YouTube HD/4K stream...", 18)
 
         # Step 1: Extract direct CDN URLs without downloading the video
         opts = self._get_base_opts()
@@ -390,6 +392,19 @@ class YouTubeDownloader:
         else:
             format_str = 'bestvideo[height<=720]+bestaudio/best[height<=720]/best'
 
+        def ytdl_progress(d):
+            if d.get('status') == 'downloading' and progress_callback:
+                downloaded = d.get('downloaded_bytes', 0)
+                total = d.get('total_bytes') or d.get('total_bytes_estimate', 0)
+                if total > 0:
+                    pct = int((downloaded / total) * 100)
+                    mapped_pct = min(34, 18 + int(pct * 0.16))
+                    speed = d.get('speed')
+                    speed_str = f"({speed / 1048576:.1f} MB/s)" if speed else ""
+                    progress_callback(f"Downloading targeted video slice {pct}% {speed_str}...", mapped_pct)
+                else:
+                    progress_callback("Downloading targeted video slice from YouTube...", 22)
+
         fallback_opts = self._get_base_opts()
         fallback_opts.update({
             'format': format_str,
@@ -399,9 +414,12 @@ class YouTubeDownloader:
             'force_keyframes_at_cuts': False,
             'concurrent_fragment_downloads': 4,
             'socket_timeout': 30,
+            'progress_hooks': [ytdl_progress] if progress_callback else [],
         })
 
         print(f"✂️ Downloading targeted stream slice via yt-dlp ({start_sec:.1f}s - {end_sec:.1f}s, Quality: {quality})...")
+        if progress_callback:
+            progress_callback(f"Downloading targeted stream slice ({start_sec:.0f}s-{end_sec:.0f}s, {quality})...", 20)
         with yt_dlp.YoutubeDL(fallback_opts) as ydl:
             ydl.extract_info(url, download=True)
 
