@@ -3,11 +3,35 @@ FaceTracker Service - High-Precision Neural Face Tracking & Rock-Solid 9:16 Fram
 Combines MediaPipe TFLite Neural Detector, OpenCV Frontal/Profile Cascades, and HOG Body Detectors
 with a Zero-Jitter Tripod Deadzone Steadicam Algorithm.
 """
+import sys
+import os
+import builtins
 from pathlib import Path
 from typing import List, Dict, Any, Optional, Tuple
 
 import cv2
 import numpy as np
+
+os.environ["PYTHONIOENCODING"] = "utf-8"
+
+if hasattr(sys.stdout, 'reconfigure'):
+    try: sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    except Exception: pass
+if hasattr(sys.stderr, 'reconfigure'):
+    try: sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    except Exception: pass
+
+_original_builtin_print = builtins.print
+def _safe_system_print(*args, **kwargs):
+    try:
+        _original_builtin_print(*args, **kwargs)
+    except Exception:
+        try:
+            cleaned = [str(a).encode('ascii', errors='backslashreplace').decode('ascii') for a in args]
+            _original_builtin_print(*cleaned, **kwargs)
+        except Exception:
+            pass
+builtins.print = _safe_system_print
 
 # MediaPipe Tasks (TFLite) Neural Detector
 mp_face_detector = None
@@ -19,10 +43,10 @@ try:
     model_path = Path(__file__).parent.parent / "models" / "blaze_face_short_range.tflite"
     if model_path.exists():
         base_options = mp_python.BaseOptions(model_asset_path=str(model_path))
-        options = mp_vision.FaceDetectorOptions(base_options=base_options, min_detection_confidence=0.45)
+        options = mp_vision.FaceDetectorOptions(base_options=base_options, min_detection_confidence=0.25)
         mp_face_detector = mp_vision.FaceDetector.create_from_options(options)
         try:
-            print(">> Initialized MediaPipe Neural Face Detector (TFLite)")
+            print(">> Initialized MediaPipe Neural Face Detector (TFLite, Low-Threshold Sensitive)")
         except Exception:
             pass
 except Exception:
@@ -121,13 +145,13 @@ class FaceTracker:
             except Exception:
                 pass
 
-        # ── TIER 2: Fallback Cascades (ONLY if MediaPipe is unavailable or detected 0 faces) ──
+        # ── TIER 2: Frontal Haar Cascade ──
         if not faces and self.frontal_cascade is not None:
             try:
                 gray = cv2.cvtColor(small_frame, cv2.COLOR_RGB2GRAY)
                 gray_eq = cv2.equalizeHist(gray)
                 detected = self.frontal_cascade.detectMultiScale(
-                    gray_eq, scaleFactor=1.12, minNeighbors=5, minSize=(40, 40)
+                    gray_eq, scaleFactor=1.12, minNeighbors=4, minSize=(30, 30)
                 )
                 for (sx, sy, sw, sh) in detected:
                     orig_x = int(sx / scale)
@@ -139,17 +163,64 @@ class FaceTracker:
                         'center_y': orig_y + orig_h // 2,
                         'width': orig_w,
                         'height': orig_h,
-                        'confidence': 0.85,
+                        'confidence': 0.75,
                         'area': orig_w * orig_h,
                         'type': 'frontal_haar'
                     })
             except Exception:
                 pass
 
-        # Filter out tiny transient noise if a real foreground person is present
+        # ── TIER 3: Profile Haar Cascade (Side views / looking at code) ──
+        if not faces and self.profile_cascade is not None:
+            try:
+                gray = cv2.cvtColor(small_frame, cv2.COLOR_RGB2GRAY)
+                gray_eq = cv2.equalizeHist(gray)
+                detected = self.profile_cascade.detectMultiScale(
+                    gray_eq, scaleFactor=1.12, minNeighbors=4, minSize=(30, 30)
+                )
+                for (sx, sy, sw, sh) in detected:
+                    orig_x = int(sx / scale)
+                    orig_y = int(sy / scale)
+                    orig_w = int(sw / scale)
+                    orig_h = int(sh / scale)
+                    faces.append({
+                        'center_x': orig_x + orig_w // 2,
+                        'center_y': orig_y + orig_h // 2,
+                        'width': orig_w,
+                        'height': orig_h,
+                        'confidence': 0.70,
+                        'area': orig_w * orig_h,
+                        'type': 'profile_haar'
+                    })
+            except Exception:
+                pass
+
+        # ── TIER 4: HOG Person / Upper Body Detector ──
+        if not faces and self.hog_detector is not None:
+            try:
+                rects, weights = self.hog_detector.detectMultiScale(small_frame, winStride=(8, 8), padding=(4, 4), scale=1.05)
+                for (sx, sy, sw, sh), wgt in zip(rects, weights):
+                    if wgt >= 0.3:
+                        orig_x = int(sx / scale)
+                        orig_y = int(sy / scale)
+                        orig_w = int(sw / scale)
+                        orig_h = int(sh / scale)
+                        faces.append({
+                            'center_x': orig_x + orig_w // 2,
+                            'center_y': orig_y + orig_h // 3, # Upper third of person is head/face
+                            'width': orig_w,
+                            'height': orig_h,
+                            'confidence': float(wgt),
+                            'area': orig_w * orig_h,
+                            'type': 'hog_person'
+                        })
+            except Exception:
+                pass
+
+        # Filter out tiny transient noise, keeping valid facecam or speaker boxes
         if faces:
             max_area = max(f['area'] for f in faces)
-            faces = [f for f in faces if f['area'] >= max_area * 0.18 and f['confidence'] >= 0.45]
+            faces = [f for f in faces if f['area'] >= max_area * 0.05 and f['confidence'] >= 0.25]
 
         result = sorted(faces, key=lambda f: (f['confidence'] ** 2) * (f['area'] ** 0.5), reverse=True)
 
@@ -296,6 +367,31 @@ class FaceTracker:
             top_ratio = cluster_weights[0] / total_cluster_mass
             if len(speaker_clusters) == 1 or top_ratio >= 0.55:
                 primary_is_dominant = True
+        else:
+            # Fallback: Smart sector skin-tone & saliency analysis when neural face detection finds 0 faces
+            try:
+                sector_scores = [0.0, 0.0, 0.0]
+                for t in sample_times[:min(6, len(sample_times))]:
+                    frm = clip.get_frame(t)
+                    h_f, w_f = frm.shape[:2]
+                    hsv = cv2.cvtColor(frm, cv2.COLOR_RGB2HSV)
+                    skin_mask = cv2.inRange(hsv, np.array([0, 15, 40]), np.array([25, 175, 255]))
+                    w3 = w_f // 3
+                    sector_scores[0] += float(np.sum(skin_mask[:, :w3]))
+                    sector_scores[1] += float(np.sum(skin_mask[:, w3:2*w3]))
+                    sector_scores[2] += float(np.sum(skin_mask[:, 2*w3:]))
+                tot_score = sum(sector_scores)
+                if tot_score > 0:
+                    left_r = sector_scores[0] / tot_score
+                    right_r = sector_scores[2] / tot_score
+                    if left_r >= 0.38 and left_r > right_r * 1.25:
+                        primary_speaker_x = width * 0.25
+                        print(f"    🎬 Smart Sector Lock: Primary speaker/facecam detected on LEFT sector (X={primary_speaker_x:.0f})")
+                    elif right_r >= 0.38 and right_r > left_r * 1.25:
+                        primary_speaker_x = width * 0.75
+                        print(f"    🎬 Smart Sector Lock: Primary speaker/facecam detected on RIGHT sector (X={primary_speaker_x:.0f})")
+            except Exception:
+                pass
 
         # ── 2. ROCK-SOLID TRIPOD LOCK FOR DOMINANT SINGLE SPEAKER / REACTION VIDEOS ──
         if primary_is_dominant or len(speaker_clusters) <= 1:
@@ -381,7 +477,10 @@ class FaceTracker:
                     x1 = int(round(two_shot_center - target_width / 2.0))
                     return frame[:, x1:x1 + target_width]
                 else:
-                    return self.render_wide_zoom_frame(frame, target_width, height)
+                    cx = max(target_width / 2.0, min(width - target_width / 2.0, speaker_A))
+                    x1 = int(round(cx - target_width / 2.0))
+                    x1 = max(0, min(width - target_width, x1))
+                    return frame[:, x1:x1 + target_width]
 
         cropped_clip = clip.fl(multi_speaker_filter, apply_to=["mask"])
         cropped_clip.size = (target_width, height)

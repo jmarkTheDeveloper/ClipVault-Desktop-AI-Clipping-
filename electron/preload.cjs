@@ -34,6 +34,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
   showItemInFolder: (filePath) => ipcRenderer.invoke('show-item-in-folder', filePath),
   startDrag: (filePath) => ipcRenderer.send('start-drag', filePath),
   showNotification: (options) => ipcRenderer.invoke('show-notification', options),
+  onCloseRequested: (callback) => {
+    ipcRenderer.on('app-close-requested', () => callback());
+  },
+  confirmExit: () => {
+    try {
+      ipcRenderer.send('confirm-exit-app');
+      ipcRenderer.invoke('confirm-exit-app');
+    } catch {}
+  },
   quitApp: () => {
     try {
       ipcRenderer.send('quit-app');

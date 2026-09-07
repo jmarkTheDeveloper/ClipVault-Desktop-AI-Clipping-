@@ -274,6 +274,16 @@ function createWindow() {
     mainWindow.focus();
   });
 
+  // Guard Window Exit: Intercept titlebar close button (X) and forward to React to check active task state
+  mainWindow.on('close', (event) => {
+    if (!isQuittingConfirmed) {
+      event.preventDefault();
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('app-close-requested');
+      }
+    }
+  });
+
   // Strict Production Security: Prevent opening DevTools in packaged .exe builds
   if (!isDev) {
     mainWindow.webContents.on('devtools-opened', () => {
@@ -514,12 +524,28 @@ ipcMain.handle('get-youtube-info', async (event, url) => {
   }
 });
 
+let isQuittingConfirmed = false;
+
+ipcMain.handle('confirm-exit-app', async () => {
+  isQuittingConfirmed = true;
+  killPythonBackend();
+  app.exit(0);
+});
+
+ipcMain.on('confirm-exit-app', () => {
+  isQuittingConfirmed = true;
+  killPythonBackend();
+  app.exit(0);
+});
+
 ipcMain.handle('quit-app', async () => {
+  isQuittingConfirmed = true;
   killPythonBackend();
   app.exit(0);
 });
 
 ipcMain.on('quit-app', () => {
+  isQuittingConfirmed = true;
   killPythonBackend();
   app.exit(0);
 });

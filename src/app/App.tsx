@@ -86,6 +86,7 @@ export default function App() {
   });
 
   const [showDoneToast, setShowDoneToast] = useState(false);
+  const [showExitConfirmModal, setShowExitConfirmModal] = useState(false);
 
   useEffect(() => {
     const handleTaskUpdate = (e: any) => {
@@ -100,6 +101,34 @@ export default function App() {
     };
     window.addEventListener("clipvault-task-update", handleTaskUpdate);
     return () => window.removeEventListener("clipvault-task-update", handleTaskUpdate);
+  }, [taskState.running]);
+
+  // Intercept Electron Window Close (X) & Web Unload when clipping task is active
+  useEffect(() => {
+    const electronAPI = (window as any).electronAPI;
+    if (electronAPI?.onCloseRequested) {
+      electronAPI.onCloseRequested(() => {
+        if (taskState.running) {
+          setShowExitConfirmModal(true);
+        } else {
+          if (electronAPI.confirmExit) {
+            electronAPI.confirmExit();
+          } else {
+            electronAPI.quitApp();
+          }
+        }
+      });
+    }
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (taskState.running) {
+        e.preventDefault();
+        e.returnValue = "";
+        return "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [taskState.running]);
 
   useEffect(() => {
@@ -358,6 +387,72 @@ export default function App() {
             >
               ✕
             </button>
+          </div>
+        )}
+
+        {/* Active Clipping Task Exit Confirmation Guard Overlay */}
+        {showExitConfirmModal && (
+          <div className="fixed inset-0 z-[99999] bg-black/85 backdrop-blur-xl flex items-center justify-center p-6 animate-in fade-in duration-200">
+            <div className="bg-[#0d0f12] border border-amber-500/40 shadow-[0_20px_60px_rgba(0,0,0,0.95),0_0_40px_rgba(245,158,11,0.25)] rounded-3xl p-6 sm:p-8 max-w-md w-full text-center space-y-6 relative overflow-hidden">
+              {/* Top Warning Badge */}
+              <div className="w-16 h-16 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400 text-2xl flex items-center justify-center mx-auto shadow-lg relative">
+                <span className="animate-ping absolute inset-0 rounded-2xl bg-amber-500/10" />
+                ⚠️
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="text-xl font-black text-white tracking-tight">
+                  Active Clipping Task in Progress
+                </h3>
+                <p className="text-xs text-gray-300 leading-relaxed">
+                  ClipVault is currently processing video clips in the background ({taskState.progress}% complete). Closing the app now will cancel your active task and discard unsaved progress.
+                </p>
+              </div>
+
+              {/* Progress Pill Bar */}
+              <div className="bg-white/5 border border-white/10 p-3.5 rounded-2xl text-left space-y-2">
+                <div className="flex items-center justify-between text-xs font-bold">
+                  <span className="text-gray-300 flex items-center gap-2 truncate max-w-[220px]">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#00e676] animate-pulse flex-shrink-0" />
+                    <span className="truncate">{taskState.statusText || "Processing video clips..."}</span>
+                  </span>
+                  <span className="text-[#00e676] font-extrabold ml-2">{taskState.progress}%</span>
+                </div>
+                <div className="w-full bg-white/10 h-2 rounded-full overflow-hidden">
+                  <div
+                    className="bg-gradient-to-r from-[#00e676] to-[#00b0ff] h-full rounded-full transition-all duration-300"
+                    style={{ width: `${Math.max(5, taskState.progress)}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
+                <button
+                  onClick={() => {
+                    setShowExitConfirmModal(false);
+                  }}
+                  className="w-full sm:flex-1 py-3 px-4 rounded-xl bg-[#00e676] text-black font-extrabold text-xs hover:brightness-110 shadow-[0_0_20px_rgba(0,230,118,0.3)] transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <span>⚡</span> Keep Clipping in Background
+                </button>
+
+                <button
+                  onClick={() => {
+                    if ((window as any).electronAPI?.confirmExit) {
+                      (window as any).electronAPI.confirmExit();
+                    } else if ((window as any).electronAPI?.quitApp) {
+                      (window as any).electronAPI.quitApp();
+                    } else {
+                      window.location.reload();
+                    }
+                  }}
+                  className="w-full sm:w-auto py-3 px-4 rounded-xl bg-red-500/15 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/30 text-xs font-bold transition-all cursor-pointer"
+                >
+                  Exit & Cancel Task
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>

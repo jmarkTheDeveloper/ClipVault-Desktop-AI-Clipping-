@@ -303,17 +303,32 @@ class YouTubeDownloader:
             else:
                 target_h = 720
             
-            # 1. Look for separated video and audio formats
+            # 1. Look for separated video and audio formats matching target resolution
+            def is_within_target(f):
+                h, w = f.get("height") or 0, f.get("width") or 0
+                if not h and not w:
+                    return True
+                # Use smaller side (shorter dimension) to compare with target height (e.g. 2160 for 4K)
+                shorter_dim = min(h, w) if (h > 0 and w > 0) else (h or w)
+                return shorter_dim <= (target_h + 120)
+
             video_candidates = [
                 f for f in formats 
-                if f.get("vcodec") != "none" and f.get("url") and f.get("height") and f.get("height") <= target_h
+                if f.get("vcodec") != "none" and f.get("url") and is_within_target(f)
             ]
             if not video_candidates:
                 video_candidates = [f for f in formats if f.get("vcodec") != "none" and f.get("url")]
 
             if video_candidates:
-                # Pick the highest resolution video candidate within target
-                video_candidates.sort(key=lambda f: (f.get("height") or 0, f.get("tbr") or 0), reverse=True)
+                # Pick the highest resolution video candidate (by area, height/width, and bitrate)
+                video_candidates.sort(
+                    key=lambda f: (
+                        (f.get("height") or 0) * (f.get("width") or 0),
+                        f.get("height") or 0,
+                        f.get("tbr") or 0
+                    ),
+                    reverse=True
+                )
                 video_url = video_candidates[0].get("url")
 
             # 2. Look for best audio format
@@ -357,11 +372,12 @@ class YouTubeDownloader:
                         "-t", str(duration_sec),
                     ])
 
-                # Visually lossless master slice encoding (CRF 10) to preserve razor-sharp 4K/8K detail
+                # Visually lossless master slice encoding (CRF 10) with Lanczos scaling flags to preserve razor-sharp detail
                 cmd.extend([
                     "-c:v", "libx264",
                     "-preset", "veryfast",
                     "-crf", "10",
+                    "-sws_flags", "lanczos+accurate_rnd",
                     "-c:a", "aac",
                     "-b:a", "320k",
                     "-avoid_negative_ts", "make_zero",
@@ -384,13 +400,13 @@ class YouTubeDownloader:
 
         # Fallback to standard yt-dlp downloader if direct range stream extraction was blocked
         if quality.lower() == "8k":
-            format_str = 'bestvideo[height<=4320]+bestaudio/bestvideo+bestaudio/best'
+            format_str = 'bestvideo[height<=4320]/bestvideo[height<=7680]/bestvideo+bestaudio/best'
         elif quality.lower() == "4k":
-            format_str = 'bestvideo[height<=2160]+bestaudio/bestvideo+bestaudio/best'
+            format_str = 'bestvideo[height<=2160]/bestvideo[height<=3840]/bestvideo+bestaudio/best'
         elif quality.lower() == "1080p":
-            format_str = 'bestvideo[height<=1080]+bestaudio/best[height<=1080]/best'
+            format_str = 'bestvideo[height<=1080]/bestvideo[height<=1920]/bestvideo+bestaudio/best'
         else:
-            format_str = 'bestvideo[height<=720]+bestaudio/best[height<=720]/best'
+            format_str = 'bestvideo[height<=720]/bestvideo[height<=1280]/bestvideo+bestaudio/best'
 
         def ytdl_progress(d):
             if d.get('status') == 'downloading' and progress_callback:
