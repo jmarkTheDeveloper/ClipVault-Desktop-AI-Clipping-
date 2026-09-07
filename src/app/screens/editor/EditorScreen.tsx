@@ -47,7 +47,7 @@ export function EditorScreen({ onBack, initialVideoUrl }: { onBack: () => void, 
 }
 
 function EditorLayout({ onBack, initialVideoUrl }: { onBack: () => void, initialVideoUrl?: string }) {
-  const { activeLeftTab, setActiveLeftTab, currentState, totalDuration, setIsPlaying, addVideoClip } = useEditor();
+  const { activeLeftTab, setActiveLeftTab, currentState, totalDuration, isPlaying, setIsPlaying, addVideoClip, selectedId, deleteSelected } = useEditor();
   const hasLoadedInitial = useRef(false);
 
   useEffect(() => {
@@ -84,8 +84,6 @@ function EditorLayout({ onBack, initialVideoUrl }: { onBack: () => void, initial
   const [projectName, setProjectName] = useState("Untitled Project");
   const [isEditingName, setIsEditingName] = useState(false);
 
-  const { deleteSelected, selectedId } = useEditor();
-
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
@@ -96,7 +94,7 @@ function EditorLayout({ onBack, initialVideoUrl }: { onBack: () => void, initial
         e.preventDefault();
         const hasMedia = currentState.clips.length > 0 || currentState.audioClips.length > 0 || currentState.textClips.length > 0;
         if (hasMedia) {
-          setIsPlaying(p => !p);
+          setIsPlaying(!isPlaying);
         }
       }
       if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId != null) {
@@ -106,7 +104,7 @@ function EditorLayout({ onBack, initialVideoUrl }: { onBack: () => void, initial
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedId, deleteSelected, setIsPlaying, currentState]);
+  }, [selectedId, deleteSelected, isPlaying, setIsPlaying, currentState]);
 
   usePlayback();
   useTimelineDrag();

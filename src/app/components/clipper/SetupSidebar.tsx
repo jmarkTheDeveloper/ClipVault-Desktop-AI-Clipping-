@@ -33,9 +33,12 @@ function parseTimestampToSec(ts: string): number {
   if (!ts) return 0;
   const parts = ts.trim().split(":").map(Number);
   if (parts.some(isNaN)) return 0;
-  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
-  if (parts.length === 2) return parts[0] * 60 + parts[1];
-  if (parts.length === 1) return parts[0];
+  const p0 = parts[0] ?? 0;
+  const p1 = parts[1] ?? 0;
+  const p2 = parts[2] ?? 0;
+  if (parts.length === 3) return p0 * 3600 + p1 * 60 + p2;
+  if (parts.length === 2) return p0 * 60 + p1;
+  if (parts.length === 1) return p0;
   return 0;
 }
 
@@ -607,9 +610,9 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                                       if (setCustomSegments) {
                                         setCustomSegments((prev) => {
                                           const filtered = prev.filter((s) => s.id !== seg.id);
-                                          if (activeSegmentId === seg.id && filtered.length > 0 && setActiveSegmentId) {
-                                            setActiveSegmentId(filtered[0].id);
-                                          }
+                                           if (activeSegmentId === seg.id && filtered.length > 0 && setActiveSegmentId) {
+                                             setActiveSegmentId(filtered[0]?.id || "");
+                                           }
                                           return filtered;
                                         });
                                       }

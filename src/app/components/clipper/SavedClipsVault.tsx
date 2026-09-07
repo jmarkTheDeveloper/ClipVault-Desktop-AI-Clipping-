@@ -481,7 +481,7 @@ const VaultClipCard: React.FC<{
 
         <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between text-[10px] text-gray-500">
           <span className="truncate max-w-[110px]">📁 {clip.folder || "Main Library"}</span>
-          <span>{clip.file_size || ""}</span>
+          <span>{(clip as any).file_size || (clip.size_mb ? `${clip.size_mb} MB` : "")}</span>
         </div>
       </div>
     </div>

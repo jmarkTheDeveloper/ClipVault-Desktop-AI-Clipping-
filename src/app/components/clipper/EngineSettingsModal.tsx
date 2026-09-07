@@ -1382,7 +1382,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
 
                 {/* AI Clipping Results & Model Impact Notice */}
                 {(() => {
-                  const currentProfile = ENGINE_IMPACT_PROFILES[selectedEngine] || ENGINE_IMPACT_PROFILES["gemini_flash"];
+                  const currentProfile = (ENGINE_IMPACT_PROFILES[selectedEngine] || ENGINE_IMPACT_PROFILES["gemini_flash"])!;
                   return (
                     <div className="p-4 rounded-2xl bg-zinc-900/90 border border-white/10 space-y-3 shadow-lg">
                       <div className="flex items-start justify-between gap-3">

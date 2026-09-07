@@ -57,8 +57,9 @@ export function useAudioSync() {
             gainNodesRef.current[audio.id] = { ctx, source, gainNode };
           }
           
-          if (gainNodesRef.current[audio.id]) {
-            gainNodesRef.current[audio.id].gainNode.gain.value = targetVol;
+          const node = gainNodesRef.current[audio.id];
+          if (node) {
+            node.gainNode.gain.value = targetVol;
             // Native audio volume must stay at 1.0 because GainNode amplifies the base signal
             audio.volume = 1.0;
           }
@@ -83,9 +84,10 @@ export function useAudioSync() {
           if (media.paused) {
             media.play().catch(() => {});
           }
-          if (prefix === 'audio' && gainNodesRef.current[media.id]) {
-            if (gainNodesRef.current[media.id].ctx.state === 'suspended') {
-              gainNodesRef.current[media.id].ctx.resume();
+          const node = gainNodesRef.current[media.id];
+          if (prefix === 'audio' && node) {
+            if (node.ctx.state === 'suspended') {
+              node.ctx.resume();
             }
           }
           if (Math.abs(media.currentTime - expectedTime) > 1.5) {

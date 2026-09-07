@@ -49,8 +49,10 @@ export const ClipCustomizerModal: React.FC<ClipCustomizerModalProps> = ({
 
   const handleWordChange = (idx: number, newWord: string) => {
     const updated = [...words];
-    updated[idx].word = newWord.toUpperCase();
-    setWords(updated);
+    if (updated[idx]) {
+      updated[idx] = { ...updated[idx], word: newWord.toUpperCase() };
+      setWords(updated);
+    }
   };
 
   const handleReRender = async () => {
@@ -146,7 +148,7 @@ export const ClipCustomizerModal: React.FC<ClipCustomizerModalProps> = ({
                 <Sparkles className="w-3 h-3" /> Live Caption & Framing Studio
               </span>
             </div>
-            <h2 className="text-lg font-bold text-white">Customize Clip #{clip.id || 1}</h2>
+            <h2 className="text-lg font-bold text-white">Customize: {clip.title || (clip as any).id || "Clip"}</h2>
             <p className="text-xs text-gray-400">
               Click any word below to correct typos or slang, pick a high-impact style, and re-bake instantly.
             </p>

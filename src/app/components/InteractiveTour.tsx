@@ -240,7 +240,7 @@ export const InteractiveTour: React.FC<Props> = ({
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
 
   const steps = tourType === "vault" ? VAULT_TOUR_STEPS : TOUR_STEPS;
-  const stepInfo = steps.find((s) => s.step === currentStep) || steps[0];
+  const stepInfo = (steps.find((s) => s.step === currentStep) || steps[0])!;
 
   // 1. Auto-scroll target element into view whenever tour step changes
   useEffect(() => {

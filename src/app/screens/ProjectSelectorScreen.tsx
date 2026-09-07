@@ -1027,7 +1027,7 @@ Effective Date: August 2026 • Published by @jmarkTheDeveloper • Applicable t
                         }}
                       >
                         <IconComponent style={{ width: 13, height: 13, color: isActive ? G : "rgba(255,255,255,0.4)" }} />
-                        <span style={{ truncate: true }}>{tab.label}</span>
+                        <span className="truncate">{tab.label}</span>
                       </button>
                     );
                   })}

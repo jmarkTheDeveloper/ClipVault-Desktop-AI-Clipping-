@@ -57,6 +57,19 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>("project-select");
   const [clipperViewMode, setClipperViewMode] = useState<"setup" | "vault">("setup");
 
+  // Tour States
+  const [tourActive, setTourActive] = useState(false);
+  const [tourType, setTourType] = useState<"clipper" | "vault">("clipper");
+  const [tourStep, setTourStep] = useState(1);
+  const [showWelcomePrompt, setShowWelcomePrompt] = useState(() => {
+    try {
+      return !localStorage.getItem("clipvault_tutorial_completed");
+    } catch {
+      return false;
+    }
+  });
+  const [showVaultWelcomePrompt, setShowVaultWelcomePrompt] = useState(false);
+
   // Background Task State Tracking
   const [taskState, setTaskState] = useState<{
     running: boolean;

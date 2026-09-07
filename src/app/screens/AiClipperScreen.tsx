@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { ArrowLeft, Zap, FolderCheck, Cpu, Download, Folder, Plus, FolderOpen, AlertCircle, HardDrive, ShieldCheck, Sparkles } from "lucide-react";
 import { EngineSettingsModal } from "../components/clipper/EngineSettingsModal";
+import type { ByokMode } from "../components/clipper/EngineSettingsModal";
 import { CropEditorModal } from "../components/clipper/CropEditorModal";
 import { SetupSidebar } from "../components/clipper/SetupSidebar";
 import { PhonePreview } from "../components/clipper/PhonePreview";
@@ -213,9 +214,9 @@ export const AiClipperScreen: React.FC<Props> = ({
   const [showKeySettings, setShowKeySettings] = useState(false);
   const [showRateLimitModal, setShowRateLimitModal] = useState(false);
   const [selectedEngine, setSelectedEngine] = useState(() => localStorage.getItem("clipvault_selected_engine") || "gemini_flash");
-  const [byokMode, setByokMode] = useState<"local" | "custom">(() => {
+  const [byokMode, setByokMode] = useState<ByokMode>(() => {
     const saved = localStorage.getItem("clipvault_byok_mode");
-    if (saved === "local" || saved === "custom") return saved as "local" | "custom";
+    if (saved === "local" || saved === "custom" || saved === "developer") return saved as ByokMode;
     return "custom";
   });
 
@@ -642,7 +643,7 @@ export const AiClipperScreen: React.FC<Props> = ({
       return;
     }
 
-    setErrorMsg(null);
+    setErrorMsg("");
     setRunning(true);
     setProgress(5);
     setStatusText("Initializing AI Clipper Engine...");
@@ -678,14 +679,18 @@ export const AiClipperScreen: React.FC<Props> = ({
           }
           const p = trimmed.split(":").map(Number);
           if (p.some(isNaN)) return null;
-          if (p.length === 2) return p[0] * 60 + p[1];
-          if (p.length === 3) return p[0] * 3600 + p[1] * 60 + p[2];
+          const p0 = p[0] ?? 0;
+          const p1 = p[1] ?? 0;
+          const p2 = p[2] ?? 0;
+          if (p.length === 2) return p0 * 60 + p1;
+          if (p.length === 3) return p0 * 3600 + p1 * 60 + p2;
           return null;
         };
 
         const validRanges: number[][] = [];
         for (let i = 0; i < customSegments.length; i++) {
           const seg = customSegments[i];
+          if (!seg) continue;
           const s = parseSecs(seg.start || (i === 0 ? startTs : ""));
           const e = parseSecs(seg.end || (i === 0 ? endTs : ""));
 
@@ -709,8 +714,11 @@ export const AiClipperScreen: React.FC<Props> = ({
         }
 
         customRanges = validRanges;
-        customRange = validRanges[0];
-        calculatedTargetDuration = Math.max(1, Math.round(validRanges[0][1] - validRanges[0][0]));
+        customRange = validRanges[0] || null;
+        if (validRanges[0]) {
+          const firstRange = validRanges[0];
+          calculatedTargetDuration = Math.max(1, Math.round((firstRange[1] ?? 0) - (firstRange[0] ?? 0)));
+        }
       }
 
       // 1. Trigger process
@@ -1096,7 +1104,7 @@ export const AiClipperScreen: React.FC<Props> = ({
     let count = 0;
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      if (!file.name.match(/\.(mp4|mov|webm|mkv)$/i)) continue;
+      if (!file || !file.name.match(/\.(mp4|mov|webm|mkv)$/i)) continue;
       const formData = new FormData();
       formData.append("file", file);
       formData.append("target_folder", targetFolder || "Main Library");
@@ -1349,7 +1357,7 @@ export const AiClipperScreen: React.FC<Props> = ({
                   setByokMode("local");
                   setSelectedEngine("intel_ai");
                   setShowRateLimitModal(false);
-                  setErrorMsg(null);
+                  setErrorMsg("");
                 }}
                 className="w-full py-2.5 px-4 rounded-xl bg-amber-400 text-black font-bold text-xs hover:bg-amber-300 transition-all cursor-pointer shadow-md flex items-center justify-center gap-2"
               >
@@ -1388,7 +1396,7 @@ export const AiClipperScreen: React.FC<Props> = ({
             {cropModalOpen !== "none" ? (
               <div className="w-[520px] flex-shrink-0 border-r border-white/5 overflow-y-auto px-8 py-6 bg-[#070707] flex flex-col">
                 <CropEditorModal
-                  isOpen={cropModalOpen !== "none"}
+                  isOpen={true}
                   onClose={() => setCropModalOpen("none")}
                   activeVideoUrl={activeVideoUrl}
                   ytUrl={ytUrl}

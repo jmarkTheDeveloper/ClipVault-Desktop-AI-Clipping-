@@ -6,7 +6,7 @@ import { useAudioSync } from '../hooks/useAudioSync';
 import { buildFilterCSS, buildTransformCSS, G, fmt } from '../../../utils/types';
 import type { VideoClip, TextClip, CropBox } from '../../../utils/types';
 
-export function PreviewPlayer() {
+export function PreviewPlayer({ drawFrame }: { drawFrame?: () => void } = {}) {
   const {
     currentState,
     showCropBoxes, setShowCropBoxes,
@@ -28,6 +28,7 @@ export function PreviewPlayer() {
   const hasMedia = (currentState?.clips?.length || 0) > 0 || (currentState?.audioClips?.length || 0) > 0 || (currentState?.textClips?.length || 0) > 0;
 
   const [viewportSize, setViewportSize] = useState({ w: 800, h: 450 });
+  const [showLayoutPanel, setShowLayoutPanel] = useState(false);
   const viewportRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
@@ -49,6 +50,7 @@ export function PreviewPlayer() {
 
   const activeVideoClips = useAudioSync();
   const activeVideoClip = activeVideoClips[0] || (currentState?.clips ? currentState.clips.find((c: any) => c.id === selectedId) || currentState.clips[0] : undefined);
+  const activeTextClips: TextClip[] = (currentState?.textClips || []).filter((tc: TextClip) => currentTime >= (tc.startTime ?? 0) && currentTime <= (tc.startTime ?? 0) + tc.duration);
   
   // Default crop boxes based on Fixed Stage Resolution
   const topCrop = activeVideoClip?.cropTop ?? { x: STAGE_W * 0.1, y: STAGE_H * 0.1, width: STAGE_W * 0.4, height: STAGE_H * 0.4 };
