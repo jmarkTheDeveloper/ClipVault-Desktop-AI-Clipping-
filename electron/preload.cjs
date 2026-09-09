@@ -13,12 +13,13 @@ if (typeof window !== 'undefined') {
     if (!authToken) {
       try { authToken = await ipcRenderer.invoke('get-auth-token'); } catch (e) {}
     }
-    if (url.includes('127.0.0.1:8000') && authToken) {
-      const headers = new Headers(config.headers || {});
+    const isBackendUrl = url.includes(':8000') || url.includes('127.0.0.1') || url.includes('localhost') || url.includes('/api/');
+    if (isBackendUrl && authToken) {
+      const headers = new Headers(config?.headers || {});
       if (!headers.has('X-App-Auth-Token')) {
         headers.set('X-App-Auth-Token', authToken);
       }
-      config.headers = headers;
+      config = { ...config, headers };
     }
     return originalFetch.call(this, resource, config);
   };

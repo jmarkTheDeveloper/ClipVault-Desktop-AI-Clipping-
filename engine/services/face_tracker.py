@@ -333,15 +333,15 @@ class FaceTracker:
             xs = np.array([x for x, c, a in all_face_data], dtype=np.float64)
             weights = np.array([c * (a ** 0.5) for x, c, a in all_face_data], dtype=np.float64)
 
-            nbins = max(8, int(width // 90))
+            nbins = max(10, int(width // 60))
             hist, bin_edges = np.histogram(xs, bins=nbins, weights=weights, range=(0, width))
             peak_indices = np.argsort(hist)[::-1]
             total_mass = np.sum(hist) if np.sum(hist) > 0 else 1.0
 
             for idx in peak_indices:
-                if hist[idx] > 0 and hist[idx] >= total_mass * 0.12:
+                if hist[idx] > 0 and hist[idx] >= total_mass * 0.08:
                     approx_peak = (bin_edges[idx] + bin_edges[idx + 1]) / 2.0
-                    in_cluster_mask = np.abs(xs - approx_peak) < (target_width * 0.40)
+                    in_cluster_mask = np.abs(xs - approx_peak) < (target_width * 0.45)
                     if np.any(in_cluster_mask):
                         c_xs = xs[in_cluster_mask]
                         c_ws = weights[in_cluster_mask]
@@ -385,22 +385,22 @@ class FaceTracker:
                     left_r = sector_scores[0] / tot_score
                     right_r = sector_scores[2] / tot_score
                     if left_r >= 0.38 and left_r > right_r * 1.25:
-                        primary_speaker_x = width * 0.25
+                        primary_speaker_x = width * 0.30
                         print(f"    🎬 Smart Sector Lock: Primary speaker/facecam detected on LEFT sector (X={primary_speaker_x:.0f})")
                     elif right_r >= 0.38 and right_r > left_r * 1.25:
-                        primary_speaker_x = width * 0.75
+                        primary_speaker_x = width * 0.70
                         print(f"    🎬 Smart Sector Lock: Primary speaker/facecam detected on RIGHT sector (X={primary_speaker_x:.0f})")
             except Exception:
                 pass
 
         # ── 2. ROCK-SOLID TRIPOD LOCK FOR DOMINANT SINGLE SPEAKER / REACTION VIDEOS ──
         if primary_is_dominant or len(speaker_clusters) <= 1:
-            # Freeze camera 100% DEAD STILL on primary speaker (Zero Drift, Zero Wobble)
+            # Center target box directly over primary speaker center_x while clamping within frame bounds
             cx = max(target_width / 2.0, min(width - target_width / 2.0, primary_speaker_x))
             x1 = int(round(cx - target_width / 2.0))
             x1 = max(0, min(width - target_width, x1))
 
-            print(f"    🎬 Tripod Lock Active: Perfectly centered & locked at X={primary_speaker_x:.0f} (Zero Drift)")
+            print(f"    🎬 Tripod Lock Active: Perfectly centered & locked at X={primary_speaker_x:.0f} (Crop X1={x1})")
 
             def static_tripod_filter(get_frame, t):
                 frame = get_frame(t)

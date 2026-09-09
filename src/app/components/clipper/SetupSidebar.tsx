@@ -898,8 +898,11 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
               </div>
             </div>
 
-            <div className="space-y-1 mt-3 mb-2">
-              <label className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">Video Language</label>
+            <div className="space-y-1.5 mt-3 mb-2">
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">Video Language</label>
+                <span className="text-[9px] font-semibold text-gray-400">Whisper Multi-Lingual</span>
+              </div>
               <select
                 value={transcriptionLanguage}
                 onChange={(e) => setTranscriptionLanguage(e.target.value)}
@@ -930,6 +933,14 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                   Chinese
                 </option>
               </select>
+
+              {/* Language Accuracy Notice */}
+              <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/25 flex items-start gap-2 mt-2 text-[10px] leading-relaxed text-amber-200">
+                <AlertCircle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold text-amber-300">Non-English Audio Note:</span> For non-English videos (e.g. Tagalog, Spanish), word timing & face-switch sync may vary depending on speech density and background music.
+                </div>
+              </div>
             </div>
 
           <div className="space-y-3">
