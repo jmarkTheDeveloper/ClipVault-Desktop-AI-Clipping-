@@ -909,28 +909,85 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                 className="w-full rounded-lg px-3 py-2 text-xs text-white bg-white/5 border border-white/10 outline-none focus:border-amber-400 cursor-pointer appearance-none"
               >
                 <option className="bg-[#111] text-white" value="auto">
-                  Auto-Detect Language
+                  🌐 Auto-Detect Language
                 </option>
                 <option className="bg-[#111] text-white" value="en">
-                  English
+                  🇺🇸 English
                 </option>
                 <option className="bg-[#111] text-white" value="tl">
-                  Tagalog / Filipino
+                  🇵🇭 Tagalog / Filipino
                 </option>
                 <option className="bg-[#111] text-white" value="es">
-                  Spanish
-                </option>
-                <option className="bg-[#111] text-white" value="fr">
-                  French
-                </option>
-                <option className="bg-[#111] text-white" value="de">
-                  German
-                </option>
-                <option className="bg-[#111] text-white" value="ja">
-                  Japanese
+                  🇪🇸 Spanish
                 </option>
                 <option className="bg-[#111] text-white" value="zh">
-                  Chinese
+                  🇨🇳 Chinese (Mandarin)
+                </option>
+                <option className="bg-[#111] text-white" value="hi">
+                  🇮🇳 Hindi
+                </option>
+                <option className="bg-[#111] text-white" value="ar">
+                  🇸🇦 Arabic
+                </option>
+                <option className="bg-[#111] text-white" value="pt">
+                  🇵🇹 Portuguese
+                </option>
+                <option className="bg-[#111] text-white" value="id">
+                  🇮🇩 Indonesian
+                </option>
+                <option className="bg-[#111] text-white" value="ja">
+                  🇯🇵 Japanese
+                </option>
+                <option className="bg-[#111] text-white" value="ru">
+                  🇷🇺 Russian
+                </option>
+                <option className="bg-[#111] text-white" value="de">
+                  🇩🇪 German
+                </option>
+                <option className="bg-[#111] text-white" value="fr">
+                  🇫🇷 French
+                </option>
+                <option className="bg-[#111] text-white" value="ko">
+                  🇰🇷 Korean
+                </option>
+                <option className="bg-[#111] text-white" value="it">
+                  🇮🇹 Italian
+                </option>
+                <option className="bg-[#111] text-white" value="tr">
+                  🇹🇷 Turkish
+                </option>
+                <option className="bg-[#111] text-white" value="vi">
+                  🇻🇳 Vietnamese
+                </option>
+                <option className="bg-[#111] text-white" value="pl">
+                  🇵🇱 Polish
+                </option>
+                <option className="bg-[#111] text-white" value="nl">
+                  🇳🇱 Dutch
+                </option>
+                <option className="bg-[#111] text-white" value="th">
+                  🇹🇭 Thai
+                </option>
+                <option className="bg-[#111] text-white" value="sv">
+                  🇸🇪 Swedish
+                </option>
+                <option className="bg-[#111] text-white" value="uk">
+                  🇺🇦 Ukrainian
+                </option>
+                <option className="bg-[#111] text-white" value="ms">
+                  🇲🇾 Malay
+                </option>
+                <option className="bg-[#111] text-white" value="he">
+                  🇮🇱 Hebrew
+                </option>
+                <option className="bg-[#111] text-white" value="el">
+                  🇬🇷 Greek
+                </option>
+                <option className="bg-[#111] text-white" value="cs">
+                  🇨🇿 Czech
+                </option>
+                <option className="bg-[#111] text-white" value="ro">
+                  🇷🇴 Romanian
                 </option>
               </select>
 
@@ -938,7 +995,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
               <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/25 flex items-start gap-2 mt-2 text-[10px] leading-relaxed text-amber-200">
                 <AlertCircle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-bold text-amber-300">Non-English Audio Note:</span> For non-English videos (e.g. Spanish, Chinese, French), word timing & face-switch sync may vary depending on speech density and background music.
+                  <span className="font-bold text-amber-300">On-Demand Language Models:</span> Whisper AI models download dynamically per language on first use (~140MB), keeping the app installer lightweight. Word timing & face sync may vary for dense non-English audio.
                 </div>
               </div>
             </div>
