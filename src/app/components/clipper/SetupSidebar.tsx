@@ -69,9 +69,9 @@ const QUALITIES = [
 ];
 
 const LAYOUTS = [
-  { id: "vertical_crop", label: "Auto Face-Tracking (9:16)", desc: "Tracks active speaker smoothly" },
-  { id: "landscape_blur", label: "Landscape + Blurred Canvas", desc: "Preserves horizontal video with soft blur" },
-  { id: "landscape_fit", label: "Landscape Fit (Letterbox)", desc: "Pads inside vertical canvas" },
+  { id: "vertical_crop", label: "Auto Face-Tracking (9:16) 🔥", desc: "Zooms & tracks active speaker (Fills full 9:16 screen)" },
+  { id: "landscape_blur", label: "Landscape + Blurred Canvas", desc: "Full 16:9 video centered with soft blur background" },
+  { id: "landscape_fit", label: "Landscape Fit (Letterbox)", desc: "Full 16:9 video centered with black letterbox bars" },
   { id: "custom_split", label: "Custom Split-Screen (2 Boxes)", desc: "Visual multi-box crop editor" },
   { id: "gameplay_bg", label: "Dual-Layer Split (Speaker + B-Roll)", desc: "Speaker presentation + dynamic B-roll visual canvas" },
 ];
@@ -470,8 +470,16 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
         </div>
 
         {/* Camera Tracking Style */}
-        <div className={layout === "custom_split" ? "opacity-30 pointer-events-none transition-opacity" : "transition-opacity"}>
-          <Section title="Camera Tracking Style">
+        <div className={layout !== "vertical_crop" ? "opacity-35 pointer-events-none transition-opacity" : "transition-opacity"}>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-xs font-bold text-amber-400 uppercase tracking-wider">Camera Tracking Style</h3>
+            {layout !== "vertical_crop" && (
+              <span className="text-[9px] font-bold text-gray-400 bg-white/5 px-2 py-0.5 rounded border border-white/10">
+                (Auto Face-Tracking Only)
+              </span>
+            )}
+          </div>
+          <div>
             <div className="grid grid-cols-3 gap-2">
               <button
                 onClick={() => setCameraStyle("instant")}
