@@ -50,12 +50,19 @@
       {
         "from": "dist_python/engine_server",
         "to": "engine_server",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       }
     ],
     "win": {
       "target": [
-        { "target": "nsis", "arch": ["x64"] }
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
       "icon": "public/icon.ico",
       "requestedExecutionLevel": "asInvoker"
@@ -73,7 +80,13 @@
       "runAfterFinish": true,
       "deleteAppDataOnUninstall": false
     },
-    "publish": null
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "jmarkTheDeveloper",
+        "repo": "ClipVault-Desktop-AI-Clipping-"
+      }
+    ]
   },
   "dependencies": {
     "@babel/core": "^8.0.1",
@@ -116,6 +129,7 @@
     "clsx": "2.1.1",
     "cmdk": "1.1.1",
     "date-fns": "3.6.0",
+    "electron-updater": "^6.8.9",
     "embla-carousel-react": "8.6.0",
     "input-otp": "1.4.2",
     "lucide-react": "0.487.0",
@@ -155,8 +169,12 @@
     "react-dom": "18.3.1"
   },
   "peerDependenciesMeta": {
-    "react": { "optional": true },
-    "react-dom": { "optional": true }
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    }
   },
   "pnpm": {
     "overrides": {

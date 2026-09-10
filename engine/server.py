@@ -75,6 +75,14 @@ app = FastAPI(
     version="1.0.0"
 )
 
+@app.on_event("startup")
+async def startup_event():
+    try:
+        from services.youtube_downloader_yt_dlp import YouTubeDownloader
+        YouTubeDownloader.auto_update_ytdlp_background()
+    except Exception as e:
+        print(f"⚠️ [Startup]: Non-critical YouTube downloader updater notification: {e}")
+
 # Enable CORS for frontend calls
 app.add_middleware(
     CORSMiddleware,

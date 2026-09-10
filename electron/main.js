@@ -5,6 +5,8 @@ import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { spawn, exec } from 'child_process';
 import util from 'util';
+import updaterPkg from 'electron-updater';
+const autoUpdater = updaterPkg.autoUpdater || (updaterPkg.default && updaterPkg.default.autoUpdater);
 
 const execAsync = util.promisify(exec);
 const __filename = fileURLToPath(import.meta.url);
@@ -272,6 +274,7 @@ function createWindow() {
     mainWindow.maximize();
     mainWindow.show();
     mainWindow.focus();
+    setupAutoUpdater();
   });
 
   // Guard Window Exit: Intercept titlebar close button (X) and forward to React to check active task state
@@ -548,6 +551,71 @@ ipcMain.on('quit-app', () => {
   isQuittingConfirmed = true;
   killPythonBackend();
   app.exit(0);
+});
+
+// --- Free GitHub Auto-Updater Logic ---
+function setupAutoUpdater() {
+  if (isDev || !autoUpdater) {
+    console.log('[AutoUpdater]: Skipping auto-updater check in development mode.');
+    return;
+  }
+  try {
+    autoUpdater.autoDownload = true;
+    autoUpdater.autoInstallOnAppQuit = true;
+
+    autoUpdater.on('checking-for-update', () => {
+      console.log('[AutoUpdater]: Checking for updates on GitHub Releases...');
+    });
+
+    autoUpdater.on('update-available', (info) => {
+      console.log('[AutoUpdater]: New update found:', info?.version);
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('update-available', info);
+      }
+    });
+
+    autoUpdater.on('update-not-available', () => {
+      console.log('[AutoUpdater]: ClipVault Studio is up to date.');
+    });
+
+    autoUpdater.on('error', (err) => {
+      console.warn('[AutoUpdater]: Non-critical update check warning:', err?.message || err);
+    });
+
+    autoUpdater.on('download-progress', (progressObj) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('update-download-progress', progressObj);
+      }
+    });
+
+    autoUpdater.on('update-downloaded', (info) => {
+      console.log('[AutoUpdater]: Update downloaded cleanly:', info?.version);
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('update-downloaded', info);
+      }
+    });
+
+    setTimeout(() => {
+      autoUpdater.checkForUpdatesAndNotify().catch((err) => {
+        console.warn('[AutoUpdater]: Background update check failed silently:', err?.message || err);
+      });
+    }, 8000);
+  } catch (err) {
+    console.warn('[AutoUpdater]: Failed to initialize auto-updater:', err);
+  }
+}
+
+ipcMain.handle('check-for-updates', async () => {
+  if (!isDev && autoUpdater) {
+    return await autoUpdater.checkForUpdatesAndNotify();
+  }
+  return { status: 'dev_mode' };
+});
+
+ipcMain.handle('restart-and-install-update', async () => {
+  if (autoUpdater) {
+    autoUpdater.quitAndInstall(false, true);
+  }
 });
 
 app.on('window-all-closed', function () {
