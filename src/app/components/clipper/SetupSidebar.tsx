@@ -518,7 +518,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                 <p className="text-[10px] text-gray-500 mt-0.5 leading-tight">Gentle cinematic glide</p>
               </button>
             </div>
-          </Section>
+          </div>
         </div>
 
         {/* Duration Mode & AI Settings */}
