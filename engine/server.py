@@ -78,10 +78,12 @@ app = FastAPI(
 @app.on_event("startup")
 async def startup_event():
     try:
+        from services.system_guard import SystemGuard
+        SystemGuard.purge_temp_dir()
         from services.youtube_downloader_yt_dlp import YouTubeDownloader
         YouTubeDownloader.auto_update_ytdlp_background()
     except Exception as e:
-        print(f"⚠️ [Startup]: Non-critical YouTube downloader updater notification: {e}")
+        print(f"⚠️ [Startup]: Non-critical startup task notification: {e}")
 
 # Enable CORS for frontend calls
 app.add_middleware(
@@ -231,6 +233,11 @@ def execute_rendering_task(task_id: str, request: ProcessRequest, cancel_event: 
     Worker task running inside the thread pool to execute clip generation.
     """
     try:
+        from services.system_guard import SystemGuard
+        has_space, free_gb, space_msg = SystemGuard.check_disk_space(min_free_gb=1.5)
+        if not has_space:
+            raise Exception(space_msg)
+
         tasks_db[task_id]["message"] = "Initializing video processor..."
         tasks_db[task_id]["progress"] = 5
         api_key = getattr(request, "api_key", None) or os.environ.get("GEMINI_API_KEY")
@@ -355,11 +362,11 @@ def execute_rendering_task(task_id: str, request: ProcessRequest, cancel_event: 
         if task_id in cancellation_events:
             cancellation_events.pop(task_id, None)
         try:
-            from utils.helpers import cleanup_temp_files
-            cleanup_temp_files()
+            from services.system_guard import SystemGuard
+            SystemGuard.purge_temp_dir()
+            SystemGuard.reclaim_memory()
         except Exception:
             pass
-        gc.collect()
 
 def purge_ghost_files():
     """

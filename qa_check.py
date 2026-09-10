@@ -54,6 +54,15 @@ def test_environment():
     except Exception as e:
         record_result("Computer Vision Core", False, str(e), time.time() - t0)
 
+    t0 = time.time()
+    try:
+        from services.system_guard import SystemGuard
+        has_space, free_gb, msg = SystemGuard.check_disk_space(min_free_gb=0.1)
+        reclaimed = SystemGuard.reclaim_memory()
+        record_result("SystemGuard Memory & Storage Core", has_space, f"Disk: {free_gb} GB free, RAM Reclaimed: {reclaimed} objects", time.time() - t0)
+    except Exception as e:
+        record_result("SystemGuard Memory & Storage Core", False, str(e), time.time() - t0)
+
 def test_hardware_encoders():
     print(f'\n{CYAN}{BOLD}[2/5] Testing Hardware Acceleration & Video Encoders...{RESET}')
     t0 = time.time()
