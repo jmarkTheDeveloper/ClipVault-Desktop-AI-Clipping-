@@ -244,7 +244,7 @@ export const ENGINE_IMPACT_PROFILES: Record<string, EngineImpactProfile> = {
     bestFor: "Non-English, Bilingual, Anime & Global Creator Content",
     summary: "The leading global open-weights frontier model. Unrivaled at understanding non-English slang, multilingual dialogue, and regional creator humor.",
     perks: [
-      "Exceptional accuracy in Spanish, Tagalog, Japanese, Chinese, French, and 30+ languages",
+      "Exceptional accuracy in Spanish, Chinese, Japanese, French, German, and 30+ languages",
       "Deep understanding of international pop culture and global trending memes",
       "Accessible via Alibaba Cloud DashScope API"
     ]
