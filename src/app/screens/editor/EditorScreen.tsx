@@ -169,7 +169,7 @@ function EditorLayout({ onBack, initialVideoUrl }: { onBack: () => void, initial
       }
     } catch (e) {
       setIsExporting(false);
-      alert("Failed to connect to ClipVault render engine backend.");
+      alert("ClipVault AI Engine is initializing. Please try again in a moment.");
     }
   };
 

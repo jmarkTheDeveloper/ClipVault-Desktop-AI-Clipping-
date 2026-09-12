@@ -411,6 +411,20 @@ export const AiClipperScreen: React.FC<Props> = ({
   const [progress, setProgress] = useState(0);
   const [done, setDone] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+
+  // Silent auto-recovery: auto-clear initializing notice when ClipVault AI Engine is ready
+  useEffect(() => {
+    if (!errorMsg || !errorMsg.includes("initializing")) return;
+    const timer = setInterval(async () => {
+      try {
+        const res = await fetch("http://127.0.0.1:8000/api/health");
+        if (res.ok) {
+          setErrorMsg("");
+        }
+      } catch {}
+    }, 2500);
+    return () => clearInterval(timer);
+  }, [errorMsg]);
   const [generatedClips, setGeneratedClips] = useState<any[]>([]);
   const [activeClipIndex, setActiveClipIndex] = useState(0);
   const [lastOutputFolder, setLastOutputFolder] = useState("");
@@ -830,7 +844,7 @@ export const AiClipperScreen: React.FC<Props> = ({
       setRunning(false);
       let msg = err.message || "An unexpected error occurred.";
       if (msg.includes("Failed to fetch") || msg.includes("NetworkError") || msg.includes("network")) {
-        msg = "Could not connect to the local AI engine backend (port 8000). Please ensure the backend server is running.";
+        msg = "ClipVault Multi-Lingual AI Engine is initializing. Please try again in a moment.";
       }
       const msgLower = msg.toLowerCase();
       if (msgLower.includes("limit") || msgLower.includes("quota") || msgLower.includes("429")) {
