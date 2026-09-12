@@ -1,6 +1,7 @@
 import React from "react";
 import {
   Link2,
+  Clipboard,
   Upload,
   CheckCircle2,
   Check,
@@ -280,7 +281,24 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                     placeholder="https://www.youtube.com/watch?v=..."
                     className="flex-1 bg-transparent text-xs text-white outline-none placeholder-gray-500 font-mono"
                   />
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        const text = await navigator.clipboard.readText();
+                        if (text) setYtUrl(text.trim());
+                      } catch {}
+                    }}
+                    title="Paste link from clipboard"
+                    className="px-2 py-1 text-[10px] font-semibold bg-amber-400/10 text-amber-400 hover:bg-amber-400/20 border border-amber-400/30 rounded-md transition-all cursor-pointer flex items-center gap-1 flex-shrink-0"
+                  >
+                    <Clipboard className="w-3 h-3" />
+                    Paste
+                  </button>
                 </div>
+                <p className="text-[11px] text-gray-400 mt-1.5 leading-relaxed">
+                  💡 <span className="text-amber-300 font-medium">Tip:</span> Paste links directly from your browser. YouTube video IDs are strictly case-sensitive (e.g. <code className="text-amber-200 bg-amber-400/10 px-1 rounded">EI</code> vs <code className="text-amber-200 bg-amber-400/10 px-1 rounded">I1</code>).
+                </p>
               </>
             ) : (
               <>
