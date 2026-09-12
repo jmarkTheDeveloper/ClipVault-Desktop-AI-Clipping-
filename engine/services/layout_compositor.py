@@ -29,7 +29,34 @@ class LayoutCompositor:
         self.face_tracker = face_tracker
 
     @staticmethod
-    def letterbox(clip, target_width: int, target_height: int):
+    def high_quality_resize(clip, target_width: int, target_height: int):
+        """
+        Applies Lanczos-4 high-fidelity sinc interpolation + adaptive unsharp detail enhancement
+        for ultra-crisp 4K / 8K video upscaling and sharp pixel rendering.
+        """
+        tw, th = int(target_width), int(target_height)
+        if tw % 2 != 0: tw -= 1
+        if th % 2 != 0: th -= 1
+
+        def transform_frame(frame):
+            h, w = frame.shape[:2]
+            if w == tw and h == th:
+                return frame
+
+            # Use Lanczos-4 sinc interpolation for ultra-sharp edge reconstruction
+            resized = cv2.resize(frame, (tw, th), interpolation=cv2.INTER_LANCZOS4)
+
+            # Apply unsharp mask detail enhancement if target resolution is high (>=1080p width/height or upscaled)
+            if tw >= 2160 or th >= 2160 or tw > w * 1.15 or th > h * 1.15:
+                gaussian = cv2.GaussianBlur(resized, (0, 0), 2.0)
+                sharpened = cv2.addWeighted(resized, 1.28, gaussian, -0.28, 0)
+                return sharpened
+            return resized
+
+        return clip.fl_image(transform_frame)
+
+    @classmethod
+    def letterbox(cls, clip, target_width: int, target_height: int):
         """Pads a clip inside a centered black canvas matching target dimensions."""
         W, H = clip.size
         scale = min(target_width / W, target_height / H)
@@ -38,7 +65,7 @@ class LayoutCompositor:
         if new_w % 2 != 0: new_w -= 1
         if new_h % 2 != 0: new_h -= 1
 
-        scaled_clip = clip.resize((new_w, new_h))
+        scaled_clip = cls.high_quality_resize(clip, new_w, new_h)
         bg = ColorClip(size=(target_width, target_height), color=(0, 0, 0), duration=clip.duration)
         return CompositeVideoClip([bg, scaled_clip.set_position("center")], size=(target_width, target_height))
 
@@ -285,7 +312,7 @@ class LayoutCompositor:
             try:
                 tracked = self.face_tracker.track_and_crop(clip, camera_style=camera_style)
                 clips_to_close.append(tracked)
-                resized = tracked.resize((target_width, target_height))
+                resized = self.high_quality_resize(tracked, target_width, target_height)
                 clips_to_close.append(resized)
                 return resized
             except Exception as e:
@@ -297,6 +324,6 @@ class LayoutCompositor:
         crop_x = max(0, clip.w // 2 - crop_w // 2)
         cropped = clip.crop(x1=crop_x, width=crop_w)
         clips_to_close.append(cropped)
-        resized = cropped.resize((target_width, target_height))
+        resized = self.high_quality_resize(cropped, target_width, target_height)
         clips_to_close.append(resized)
         return resized

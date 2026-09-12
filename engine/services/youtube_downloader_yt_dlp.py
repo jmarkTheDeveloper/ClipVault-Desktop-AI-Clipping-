@@ -420,7 +420,7 @@ class YouTubeDownloader:
                 ])
 
                 print(f"🚀 Running direct HTTP range slice with ffmpeg (High-Speed Stream Extraction)...")
-                proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=20)
+                proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=60)
                 if proc.returncode == 0 and temp_slice.exists() and temp_slice.stat().st_size > 10240:
                     if output_path.exists():
                         try: output_path.unlink()
@@ -435,13 +435,13 @@ class YouTubeDownloader:
 
         # Fallback to standard yt-dlp downloader if direct range stream extraction was blocked
         if quality.lower() == "8k":
-            format_str = 'bestvideo[height<=4320]/bestvideo[height<=7680]/bestvideo+bestaudio/best'
+            format_str = 'bestvideo[height<=4320]+bestaudio/bestvideo+bestaudio/best'
         elif quality.lower() == "4k":
-            format_str = 'bestvideo[height<=2160]/bestvideo[height<=3840]/bestvideo+bestaudio/best'
+            format_str = 'bestvideo[height<=2160]+bestaudio/bestvideo+bestaudio/best'
         elif quality.lower() == "1080p":
-            format_str = 'bestvideo[height<=1080]/bestvideo[height<=1920]/bestvideo+bestaudio/best'
+            format_str = 'bestvideo[height<=1080]+bestaudio/bestvideo+bestaudio/best'
         else:
-            format_str = 'bestvideo[height<=720]/bestvideo[height<=1280]/bestvideo+bestaudio/best'
+            format_str = 'bestvideo[height<=720]+bestaudio/bestvideo+bestaudio/best'
 
         def ytdl_progress(d):
             if d.get('status') == 'downloading' and progress_callback:

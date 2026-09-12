@@ -354,22 +354,22 @@ class VideoProcessor:
                 ffmpeg_params = ['-pix_fmt', 'yuv420p', '-threads', str(thread_count), '-crf', '13', '-preset', 'medium', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd']
         elif quality.lower() == '4k':
             if best_codec == 'h264_qsv':
-                ffmpeg_params = ['-pix_fmt', 'nv12', '-b:v', '55M', '-maxrate', '75M', '-global_quality', '14', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd']
+                ffmpeg_params = ['-pix_fmt', 'nv12', '-b:v', '75M', '-maxrate', '100M', '-global_quality', '12', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd+full_chroma_int']
             elif best_codec == 'h264_nvenc':
-                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '55M', '-maxrate', '75M', '-cq', '14', '-rc', 'vbr', '-preset', 'p6', '-tune', 'hq', '-spatial-aq', '1', '-temporal-aq', '1', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd']
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '75M', '-maxrate', '100M', '-cq', '12', '-rc', 'vbr', '-preset', 'p7', '-tune', 'hq', '-spatial-aq', '1', '-temporal-aq', '1', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd+full_chroma_int']
             elif best_codec == 'h264_amf':
-                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '55M', '-maxrate', '75M', '-rc', 'cqp', '-qp_i', '14', '-qp_p', '14', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd']
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '75M', '-maxrate', '100M', '-rc', 'cqp', '-qp_i', '12', '-qp_p', '12', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd+full_chroma_int']
             else:
-                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-threads', str(thread_count), '-crf', '15', '-preset', 'fast', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd']
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-threads', str(thread_count), '-crf', '12', '-preset', 'medium', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd+full_chroma_int']
         elif quality.lower() == '1080p':
             if best_codec == 'h264_qsv':
-                ffmpeg_params = ['-pix_fmt', 'nv12', '-b:v', '20M', '-maxrate', '30M', '-global_quality', '18', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd']
+                ffmpeg_params = ['-pix_fmt', 'nv12', '-b:v', '30M', '-maxrate', '45M', '-global_quality', '16', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd']
             elif best_codec == 'h264_nvenc':
-                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '20M', '-maxrate', '30M', '-cq', '18', '-rc', 'vbr', '-preset', 'p6', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd']
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '30M', '-maxrate', '45M', '-cq', '16', '-rc', 'vbr', '-preset', 'p6', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd']
             elif best_codec == 'h264_amf':
-                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '20M', '-maxrate', '30M', '-rc', 'cqp', '-qp_i', '18', '-qp_p', '18', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd']
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '30M', '-maxrate', '45M', '-rc', 'cqp', '-qp_i', '16', '-qp_p', '16', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd']
             else:
-                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-threads', str(thread_count), '-crf', '18', '-preset', 'veryfast', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd']
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-threads', str(thread_count), '-crf', '15', '-preset', 'fast', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd']
 
         print(f"\n🎬 Processing {len(clip_specs)} viral clips (Saving to: {target_dir})...")
 
@@ -452,30 +452,46 @@ class VideoProcessor:
 
                 # 4. Background music with auto-ducking
                 if add_bg_music and not movie_recap:
-                    from config import MUSIC_DIR
+                    from config import MUSIC_DIR, ENGINE_DIR
                     bg_track = None
-                    if bg_music_file and Path(bg_music_file).exists():
-                        bg_track = Path(bg_music_file)
-                    elif bg_music_file and (MUSIC_DIR / Path(bg_music_file).name).exists():
-                        bg_track = MUSIC_DIR / Path(bg_music_file).name
-                    else:
-                        bg_tracks = list(MUSIC_DIR.glob("*.mp3")) + list(MUSIC_DIR.glob("*.wav")) + list(Path("./bg_music").glob("*.mp3"))
+                    if bg_music_file:
+                        clean_bg = str(bg_music_file).replace("local:///", "").replace("local://", "").replace("file:///", "").replace("file://", "")
+                        if "http://127.0.0.1:8000/music/" in clean_bg:
+                            clean_bg = clean_bg.split("/music/")[-1]
+                        
+                        p = Path(clean_bg)
+                        if p.exists():
+                            bg_track = p
+                        elif (MUSIC_DIR / p.name).exists():
+                            bg_track = MUSIC_DIR / p.name
+                        elif (ENGINE_DIR / "bg_music" / p.name).exists():
+                            bg_track = ENGINE_DIR / "bg_music" / p.name
+
+                    if not bg_track or not bg_track.exists():
+                        bg_tracks = (
+                            list(MUSIC_DIR.glob("*.mp3")) + list(MUSIC_DIR.glob("*.wav")) + list(MUSIC_DIR.glob("*.m4a")) +
+                            list((ENGINE_DIR / "bg_music").glob("*.mp3")) + list((ENGINE_DIR / "bg_music").glob("*.wav")) +
+                            list(Path("./bg_music").glob("*.mp3"))
+                        )
                         if bg_tracks:
                             bg_track = random.choice(bg_tracks)
 
                     if bg_track and bg_track.exists():
                         try:
-                            ducked_vol = max(0.04, min(0.25, bg_music_vol * 0.55 if clip.audio else bg_music_vol))
-                            bg_m = AudioFileClip(str(bg_track)).volumex(ducked_vol)
+                            # Audible & balanced volume: 0.18-0.35 ducked under voice, 0.70 when no voice
+                            base_vol = bg_music_vol if bg_music_vol > 0 else 0.25
+                            target_vol = max(0.15, min(0.40, base_vol * 1.3)) if clip.audio else base_vol
+                            bg_m = AudioFileClip(str(bg_track)).volumex(target_vol)
                             from moviepy.audio.fx.audio_loop import audio_loop
                             bg_m_looped = audio_loop(bg_m, duration=clip.duration)
                             clips_to_close.extend([bg_m, bg_m_looped])
                             if clip.audio:
                                 from moviepy.editor import CompositeAudioClip
-                                vocal_boost = clip.audio.volumex(1.15)
+                                vocal_boost = clip.audio.volumex(1.20)
                                 clip = clip.set_audio(CompositeAudioClip([vocal_boost, bg_m_looped]))
                             else:
                                 clip = clip.set_audio(bg_m_looped)
+                            print(f"    🎵 Added background music track: {bg_track.name} (Vol: {round(target_vol, 2)})")
                         except Exception as bg_err:
                             print(f"    ⚠️ Background music note: {bg_err}")
 
