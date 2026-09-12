@@ -36,7 +36,7 @@ process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true';
 
 // Windows Taskbar & Toast Notification Identity Registration
 if (process.platform === 'win32') {
-  app.setAppUserModelId('ClipVault Studio');
+  app.setAppUserModelId('ClipVault');
 }
 
 // Register privileged scheme BEFORE app is ready to bypass all security blocks
@@ -162,7 +162,7 @@ ipcMain.handle('get-auth-token', (event) => {
         const notifIconPath = icon || path.join(__dirname, '../public/icon.png');
         const notifIcon = nativeImage.createFromPath(notifIconPath);
         const notif = new Notification({
-          title: title || 'ClipVault Studio',
+          title: title || 'ClipVault',
           body: body || 'Your viral clips are ready!',
           icon: notifIcon.isEmpty() ? undefined : notifIcon,
           silent: false,

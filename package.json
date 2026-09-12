@@ -15,8 +15,8 @@
     "build:dist": "npm run build:python && npm run build:electron"
   },
   "build": {
-    "appId": "com.clipvault.studio",
-    "productName": "ClipVault Studio",
+    "appId": "com.clipvault.app",
+    "productName": "ClipVault",
     "copyright": "Copyright (c) 2026 ClipVault Studio LLC",
     "icon": "public/icon.ico",
     "asar": true,

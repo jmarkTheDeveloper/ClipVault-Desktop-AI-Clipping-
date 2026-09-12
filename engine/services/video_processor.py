@@ -523,14 +523,15 @@ class VideoProcessor:
                         clips_to_close.append(clip)
 
                 # Export file
-                raw_stem = Path(video_path).stem if video_path else title
-                clean_stem = sanitize_windows_filename(raw_stem, fallback="video")[:35].rstrip('. ')
                 if custom_file_name:
                     clean_custom = sanitize_windows_filename(custom_file_name, fallback="clip")
-                    name_prefix = clean_custom if num_clips == 1 else f"{clean_custom}_{i}"
+                    name_prefix = clean_custom if len(clip_specs) == 1 else f"{clean_custom}_{i}"
                     filename = f"{name_prefix}.mp4"
                 else:
-                    filename = f"clip_{i}_{virality_score}pts_{clean_stem}.mp4"
+                    clean_highlight = sanitize_windows_filename(title_text, fallback=f"clip_{i}")[:40].rstrip('. ')
+                    filename = f"{clean_highlight}.mp4"
+                    if (target_dir / filename).exists():
+                        filename = f"{clean_highlight}_{i}.mp4"
                 output_path = (target_dir / filename).resolve()
 
                 from proglog import ProgressBarLogger

@@ -816,8 +816,8 @@ export const AiClipperScreen: React.FC<Props> = ({
               setViewMode("vault");
               const clipCount = (data.clips || []).length || 1;
               triggerDesktopNotification(
-                "🎉 Video Processing Complete!",
-                `Generated ${clipCount} viral clip(s) ready in ClipVault Studio!`
+                "Video Processing Complete",
+                `Generated ${clipCount} clip(s) ready in ClipVault!`
               );
             } else if (data.cancelled) {
               if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
