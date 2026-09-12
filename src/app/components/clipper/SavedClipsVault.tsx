@@ -607,16 +607,18 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
   const currentPathSegments = isRoot ? [] : vaultSelectedFolder.split("/").filter(Boolean);
 
   // Discover subfolders belonging directly to the current directory level
-  const directFolders = vaultFolders.filter((f) => {
-    if (isRoot) {
-      return !f.includes("/");
-    } else {
-      const prefix = `${vaultSelectedFolder}/`;
-      if (!f.startsWith(prefix)) return false;
-      const remainder = f.slice(prefix.length);
-      return remainder.length > 0 && !remainder.includes("/");
-    }
-  });
+  const directFolders = vaultFolders
+    .filter((f) => f && f !== "Main Library" && f !== "all" && f !== "root")
+    .filter((f) => {
+      if (isRoot) {
+        return !f.includes("/");
+      } else {
+        const prefix = `${vaultSelectedFolder}/`;
+        if (!f.startsWith(prefix)) return false;
+        const remainder = f.slice(prefix.length);
+        return remainder.length > 0 && !remainder.includes("/");
+      }
+    });
 
   // Calculate parent folder for "Up One Level"
   const getParentFolder = (): string => {

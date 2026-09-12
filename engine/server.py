@@ -98,9 +98,10 @@ AUTH_TOKEN = os.getenv("CLIPVAULT_AUTH_TOKEN", "")
 
 @app.middleware("http")
 async def verify_app_auth(request: Request, call_next):
-    # Allow OPTIONS preflight, static file mounts, video streaming, and health checks
+    # Allow OPTIONS preflight, static file mounts, video streaming, health checks, and local desktop loopback requests
     path = request.url.path
-    if request.method == "OPTIONS" or not path.startswith("/api/") or path == "/api/health" or path.startswith("/api/video_info"):
+    client_host = request.client.host if request.client else ""
+    if request.method == "OPTIONS" or not path.startswith("/api/") or path == "/api/health" or path.startswith("/api/video_info") or client_host in ["127.0.0.1", "::1", "localhost"]:
         return await call_next(request)
     
     if AUTH_TOKEN:
@@ -109,7 +110,7 @@ async def verify_app_auth(request: Request, call_next):
             from fastapi.responses import JSONResponse
             return JSONResponse(
                 status_code=403,
-                content={"detail": "Forbidden: Invalid or missing ClipVault App Auth Token"}
+                content={"detail": "Forbidden: Access token validation failed."}
             )
     return await call_next(request)
 
