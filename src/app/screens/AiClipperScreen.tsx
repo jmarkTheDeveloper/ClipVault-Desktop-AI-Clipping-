@@ -54,7 +54,7 @@ const AI_ENGINES: EngineOption[] = [
   {
     id: "groq_lpu",
     name: "Groq LPU Engine",
-    desc: "Ultra-Fast Llama 3.3 70B and Whisper at 500+ tok/s (Real-Time)",
+    desc: "Ultra-Fast Llama 3.3 70B & Multilingual Speech AI at 500+ tok/s (Real-Time)",
     category: "ultra-fast",
     badge: "500+ t/s",
     providerType: "cloud"
@@ -80,7 +80,7 @@ const AI_ENGINES: EngineOption[] = [
   {
     id: "openai_chatgpt",
     name: "OpenAI ChatGPT",
-    desc: "GPT-4o, OpenAI Sora, and Cloud Whisper Audio Engine",
+    desc: "GPT-4o, OpenAI Sora, & Cloud Multilingual Audio AI Engine",
     category: "frontier-llm",
     badge: "GPT-4o",
     providerType: "cloud"

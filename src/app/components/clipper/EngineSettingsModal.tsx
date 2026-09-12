@@ -172,15 +172,15 @@ export const ENGINE_IMPACT_PROFILES: Record<string, EngineImpactProfile> = {
     ]
   },
   groq_lpu: {
-    title: "Groq LPU (Llama 3.3 70B & Whisper)",
+    title: "Groq LPU (Llama 3.3 70B & Speech AI)",
     badge: "500+ Tokens/Sec",
     viralityFocus: "Ultra-Fast Hook & Moment Extraction",
     speed: "Near Instantaneous (~0.4s)",
     bestFor: "Rapid Batch Clipping & Fast-Paced Gameplay Commentary",
-    summary: "Runs on Groq's custom LPUs at 500+ tokens/sec. Transcribes audio slices in ~0.4s via Whisper-Large-v3-Turbo and extracts viral hooks in sub-second time.",
+    summary: "Runs on Groq's custom LPUs at 500+ tokens/sec. Transcribes audio slices in ~0.4s via Turbo Speech Engine and extracts viral hooks in sub-second time.",
     perks: [
       "Fastest turn-around time of any provider (zero waiting time)",
-      "99%+ word-accurate subtitles with Whisper-Large-v3-Turbo",
+      "99%+ word-accurate subtitles with Turbo Speech AI",
       "Generous free rate limits available on Groq Console"
     ]
   },
@@ -207,7 +207,7 @@ export const ENGINE_IMPACT_PROFILES: Record<string, EngineImpactProfile> = {
     perks: [
       "Top-tier viral hook headlines designed for TikTok and Instagram Reels algorithms",
       "Native conversational understanding of internet slang, humor, and creator culture",
-      "Integrates with OpenAI Whisper-1 transcription engine"
+      "Integrates with High-Precision Multilingual Audio Engine"
     ]
   },
   claude_fable: {

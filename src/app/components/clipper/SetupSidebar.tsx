@@ -909,7 +909,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
             <div className="space-y-1.5 mt-3 mb-2">
               <div className="flex items-center justify-between">
                 <label className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">Video Language</label>
-                <span className="text-[9px] font-semibold text-gray-400">Whisper Multi-Lingual</span>
+                <span className="text-[9px] font-semibold text-gray-400">ClipVault Multi-Lingual AI</span>
               </div>
               <select
                 value={transcriptionLanguage}
@@ -1003,7 +1003,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
               <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/25 flex items-start gap-2 mt-2 text-[10px] leading-relaxed text-amber-200">
                 <AlertCircle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-bold text-amber-300">On-Demand Language Models:</span> Whisper AI models download dynamically per language on first use (~140MB), keeping the app installer lightweight. Word timing & face sync may vary for dense non-English audio.
+                  <span className="font-bold text-amber-300">On-Demand Language Models:</span> ClipVault AI language models download dynamically per language on first use (~140MB), keeping the app installer lightweight. Word timing & face sync may vary for dense non-English audio.
                 </div>
               </div>
             </div>
