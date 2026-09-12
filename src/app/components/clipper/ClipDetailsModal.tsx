@@ -24,6 +24,25 @@ export const ClipDetailsModal: React.FC<ClipDetailsModalProps> = ({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showCustomizer, setShowCustomizer] = useState(false);
 
+  const getStreamUrl = (pathOrUrl?: string) => {
+    if (!pathOrUrl) return "";
+    if (pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://") || pathOrUrl.startsWith("blob:")) {
+      return pathOrUrl;
+    }
+    const clean = pathOrUrl.replace(/^local:\/\/\/?/i, "");
+    return `http://127.0.0.1:8000/stream?path=${encodeURIComponent(clean)}`;
+  };
+
+  const primarySrc = clip ? (clip.path ? getStreamUrl(clip.path) : (clip.url ? getStreamUrl(clip.url) : "")) : "";
+  const fallbackSrc = clip && clip.path ? `local:///${clip.path.replace(/\\/g, "/")}` : "";
+  const [currentSrc, setCurrentSrc] = React.useState<string>(primarySrc);
+
+  React.useEffect(() => {
+    if (clip) {
+      setCurrentSrc(primarySrc);
+    }
+  }, [clip?.path, clip?.url]);
+
   if (!clip) return null;
 
   const handleCopy = () => {
@@ -96,17 +115,14 @@ export const ClipDetailsModal: React.FC<ClipDetailsModalProps> = ({
         {/* 9:16 Video Player */}
         <div className="w-full md:w-80 aspect-[9/16] bg-black rounded-2xl overflow-hidden border border-white/10 shadow-inner shrink-0 relative">
           <video
-            src={clip.url || (clip.path ? `local:///${clip.path.replace(/\\/g, "/")}` : "")}
+            src={currentSrc}
             autoPlay
             loop
             controls
             playsInline
-            onError={(e) => {
-              if (clip.path) {
-                const localSrc = `local:///${clip.path.replace(/\\/g, "/")}`;
-                if (e.currentTarget.src !== localSrc) {
-                  e.currentTarget.src = localSrc;
-                }
+            onError={() => {
+              if (currentSrc !== fallbackSrc && fallbackSrc) {
+                setCurrentSrc(fallbackSrc);
               }
             }}
             className="w-full h-full object-contain bg-black"
@@ -120,8 +136,8 @@ export const ClipDetailsModal: React.FC<ClipDetailsModalProps> = ({
               <span className="text-xs bg-amber-400/20 text-amber-400 border border-amber-400/30 px-2.5 py-0.5 rounded-full font-bold">
                 Score: {clip.virality_score || 99} pts
               </span>
-              <span className="text-xs bg-white/10 text-gray-300 px-2.5 py-0.5 rounded-full font-bold">
-                📁 {clip.folder}
+              <span className="text-xs bg-white/10 text-gray-300 px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1">
+                <Folder className="w-3 h-3 text-amber-400" /> {clip.folder}
               </span>
             </div>
 

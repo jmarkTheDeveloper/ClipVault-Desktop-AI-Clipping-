@@ -372,7 +372,7 @@ export default function App() {
             </div>
             <div>
               <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                Clipping Complete! 🎉
+                Clipping Complete
               </div>
               <p className="text-[11px] text-gray-300">
                 {taskState.clipCount > 0 ? `${taskState.clipCount} viral clips generated & saved` : "Your clips are ready in Saved Vault"}
@@ -395,9 +395,8 @@ export default function App() {
           <div className="fixed inset-0 z-[99999] bg-black/85 backdrop-blur-xl flex items-center justify-center p-6 animate-in fade-in duration-200">
             <div className="bg-[#0d0f12] border border-amber-500/40 shadow-[0_20px_60px_rgba(0,0,0,0.95),0_0_40px_rgba(245,158,11,0.25)] rounded-3xl p-6 sm:p-8 max-w-md w-full text-center space-y-6 relative overflow-hidden">
               {/* Top Warning Badge */}
-              <div className="w-16 h-16 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400 text-2xl flex items-center justify-center mx-auto shadow-lg relative">
-                <span className="animate-ping absolute inset-0 rounded-2xl bg-amber-500/10" />
-                ⚠️
+              <div className="w-16 h-16 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400 text-2xl flex items-center justify-center mx-auto shadow-lg relative font-bold">
+                !
               </div>
 
               <div className="space-y-2">
@@ -434,7 +433,7 @@ export default function App() {
                   }}
                   className="w-full sm:flex-1 py-3 px-4 rounded-xl bg-[#00e676] text-black font-extrabold text-xs hover:brightness-110 shadow-[0_0_20px_rgba(0,230,118,0.3)] transition-all cursor-pointer flex items-center justify-center gap-1.5"
                 >
-                  <span>⚡</span> Keep Clipping in Background
+                  Keep Clipping in Background
                 </button>
 
                 <button

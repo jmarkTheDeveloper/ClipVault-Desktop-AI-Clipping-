@@ -362,11 +362,23 @@ const VaultClipCard: React.FC<{
     }
   };
 
-  const videoSrc = clip.url
-    ? `${clip.url}#t=0.1`
-    : clip.path
-    ? `local:///${clip.path.replace(/\\/g, "/")}#t=0.1`
-    : "";
+  const getStreamUrl = (pathOrUrl?: string) => {
+    if (!pathOrUrl) return "";
+    if (pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://") || pathOrUrl.startsWith("blob:")) {
+      return pathOrUrl;
+    }
+    const clean = pathOrUrl.replace(/^local:\/\/\/?/i, "");
+    return `http://127.0.0.1:8000/stream?path=${encodeURIComponent(clean)}`;
+  };
+
+  const primarySrc = clip.path ? getStreamUrl(clip.path) : (clip.url ? getStreamUrl(clip.url) : "");
+  const fallbackSrc = clip.path ? `local:///${clip.path.replace(/\\/g, "/")}` : "";
+  const [currentSrc, setCurrentSrc] = useState<string>(primarySrc);
+
+  useEffect(() => {
+    setCurrentSrc(primarySrc);
+    setHasError(false);
+  }, [clip.path, clip.url]);
 
   return (
     <div
@@ -392,15 +404,26 @@ const VaultClipCard: React.FC<{
       onClick={onClick}
     >
       <div className="relative w-full aspect-[9/16] bg-[#0d0d0f] overflow-hidden shadow-inner flex items-center justify-center">
-        {!hasError && videoSrc ? (
+        {!hasError && currentSrc ? (
           <video
             ref={videoRef}
-            src={videoSrc}
-            preload="none"
+            src={`${currentSrc}#t=0.1`}
+            preload="metadata"
             muted
             loop
             playsInline
-            onError={() => setHasError(true)}
+            onError={() => {
+              if (currentSrc !== fallbackSrc && fallbackSrc) {
+                setCurrentSrc(fallbackSrc);
+              } else {
+                setHasError(true);
+              }
+            }}
+            onLoadedData={() => {
+              if (videoRef.current && !isHovered) {
+                try { videoRef.current.currentTime = 0.1; } catch {}
+              }
+            }}
             className="w-full h-full object-cover bg-black pointer-events-none"
           />
         ) : (
@@ -480,7 +503,7 @@ const VaultClipCard: React.FC<{
         </div>
 
         <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between text-[10px] text-gray-500">
-          <span className="truncate max-w-[110px]">📁 {clip.folder || "Main Library"}</span>
+          <span className="truncate max-w-[110px]">{clip.folder || "Main Library"}</span>
           <span>{(clip as any).file_size || (clip.size_mb ? `${clip.size_mb} MB` : "")}</span>
         </div>
       </div>
@@ -1000,7 +1023,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-3 py-1.5 text-[10px] text-gray-500 font-extrabold uppercase border-b border-white/10 mb-1 truncate">
-              📁 {folderContextMenu.folder}
+              {folderContextMenu.folder}
             </div>
 
             <button
@@ -1299,11 +1322,11 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
             className="w-full bg-transparent text-xs text-white outline-none cursor-pointer"
           >
             <option value="all" className="bg-[#111] text-white">
-              📁 All Folders ({vaultClips.length} clips)
+              All Folders ({vaultClips.length} clips)
             </option>
             {vaultFolders.map((f) => (
               <option key={f} value={f} className="bg-[#111] text-white">
-                📁 {f} ({vaultClips.filter((c) => c.folder === f).length} clips)
+                {f} ({vaultClips.filter((c) => c.folder === f).length} clips)
               </option>
             ))}
           </select>
@@ -1317,16 +1340,16 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
             className="w-full bg-transparent text-xs text-white outline-none cursor-pointer"
           >
             <option value="virality" className="bg-[#111] text-white">
-              ⚡ Highest Virality Score
+              Highest Virality Score
             </option>
             <option value="newest" className="bg-[#111] text-white">
-              🕒 Newest First
+              Newest First
             </option>
             <option value="oldest" className="bg-[#111] text-white">
-              ⏳ Oldest First
+              Oldest First
             </option>
             <option value="alpha" className="bg-[#111] text-white">
-              🔤 Title (A-Z)
+              Title (A-Z)
             </option>
           </select>
         </div>

@@ -37,6 +37,15 @@ export const ClipCustomizerModal: React.FC<ClipCustomizerModalProps> = ({
     }));
   }, [clip]);
 
+  const getStreamUrl = (pathOrUrl?: string) => {
+    if (!pathOrUrl) return "";
+    if (pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://") || pathOrUrl.startsWith("blob:")) {
+      return pathOrUrl;
+    }
+    const clean = pathOrUrl.replace(/^local:\/\/\/?/i, "");
+    return `http://127.0.0.1:8000/stream?path=${encodeURIComponent(clean)}`;
+  };
+
   const [words, setWords] = useState(initialWords);
   const [selectedStyle, setSelectedStyle] = useState<string>("capcut_yellow");
   const [captionYPct, setCaptionYPct] = useState<number>(0.63);
@@ -44,7 +53,7 @@ export const ClipCustomizerModal: React.FC<ClipCustomizerModalProps> = ({
   const [isRendering, setIsRendering] = useState<boolean>(false);
   const [renderProgress, setRenderProgress] = useState<string>("");
   const [previewSrc, setPreviewSrc] = useState<string>(
-    clip.url || (clip.path ? `local:///${clip.path}` : "")
+    clip.path ? getStreamUrl(clip.path) : (clip.url ? getStreamUrl(clip.url) : "")
   );
 
   const handleWordChange = (idx: number, newWord: string) => {
@@ -79,19 +88,19 @@ export const ClipCustomizerModal: React.FC<ClipCustomizerModalProps> = ({
 
       const data = await resp.json();
       if (data.status === "success" && data.path) {
-        const newLocalSrc = `local:///${data.path}?t=${Date.now()}`;
-        setPreviewSrc(newLocalSrc);
+        const streamUrl = getStreamUrl(data.path);
+        setPreviewSrc(`${streamUrl}?t=${Date.now()}`);
         const updatedMetadata: ClipMetadata = {
           ...clip,
           path: data.path,
           filename: data.filename,
           size_mb: data.size_mb,
-          url: newLocalSrc,
+          url: streamUrl,
         };
         if (onClipUpdated) {
           onClipUpdated(updatedMetadata);
         }
-        setRenderProgress("🎉 Clip successfully updated!");
+        setRenderProgress("Clip successfully updated!");
         setTimeout(() => {
           setIsRendering(false);
           setRenderProgress("");
@@ -99,7 +108,7 @@ export const ClipCustomizerModal: React.FC<ClipCustomizerModalProps> = ({
       }
     } catch (err: any) {
       console.error("Re-render error:", err);
-      setRenderProgress(`❌ Re-render failed: ${err.message || "Error"}`);
+      setRenderProgress(`Re-render failed: ${err.message || "Error"}`);
       setTimeout(() => setIsRendering(false), 3000);
     }
   };

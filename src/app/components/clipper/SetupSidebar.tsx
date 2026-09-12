@@ -70,7 +70,7 @@ const QUALITIES = [
 ];
 
 const LAYOUTS = [
-  { id: "vertical_crop", label: "Auto Face-Tracking (9:16) 🔥", desc: "Zooms & tracks active speaker (Fills full 9:16 screen)" },
+  { id: "vertical_crop", label: "Auto Face-Tracking (9:16)", desc: "Zooms & tracks active speaker (Fills full 9:16 screen)" },
   { id: "landscape_blur", label: "Landscape + Blurred Canvas", desc: "Full 16:9 video centered with soft blur background" },
   { id: "landscape_fit", label: "Landscape Fit (Letterbox)", desc: "Full 16:9 video centered with black letterbox bars" },
   { id: "custom_split", label: "Custom Split-Screen (2 Boxes)", desc: "Visual multi-box crop editor" },
@@ -443,7 +443,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                     {/* Import Button */}
                     <label className="w-full py-2 px-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-extrabold text-[11px] transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md">
                       <Upload className="w-3.5 h-3.5 text-black" />
-                      {gameplayBgVideo ? "Change / Import Another Video" : "📥 Import Secondary / B-Roll Video (.mp4, .mov)"}
+                      {gameplayBgVideo ? "Change / Import Another Video" : "Import Secondary / B-Roll Video (.mp4, .mov)"}
                       <input
                         type="file"
                         accept="video/mp4,video/quicktime,video/webm,video/x-matroska"
@@ -473,7 +473,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                                   : "bg-white/5 text-gray-300 border-white/10 hover:border-amber-400/40"
                               }`}
                             >
-                              🎮 {bg.name}
+                              {bg.name}
                             </button>
                           ))}
                         </div>
@@ -855,12 +855,12 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                   onChange={(e) => setCustomFolderName(e.target.value)}
                   className="w-full rounded-lg px-3 py-2 text-xs text-white bg-black/50 border border-white/15 outline-none focus:border-amber-400 cursor-pointer"
                 >
-                  <option value="">📁 Main Library (Root Directory)</option>
+                  <option value="">Main Library (Root Directory)</option>
                   {vaultFolders
                     .filter((f) => f && f !== "Main Library" && f !== "all" && f !== "root")
                     .map((folder) => (
                       <option key={folder} value={folder}>
-                        📁 {folder}
+                        {folder}
                       </option>
                     ))}
                 </select>
@@ -878,7 +878,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                           : "bg-white/5 text-gray-400 border-white/5 hover:border-white/20 hover:text-white"
                       }`}
                     >
-                      📁 Main Library
+                      Main Library
                     </button>
                     {vaultFolders
                       .filter((f) => f && f !== "Main Library" && f !== "all" && f !== "root")
@@ -893,7 +893,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                               : "bg-white/5 text-gray-400 border-white/5 hover:border-white/20 hover:text-white"
                           }`}
                         >
-                          📁 {folder}
+                          {folder}
                         </button>
                       ))}
                   </div>
@@ -935,85 +935,85 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                 className="w-full rounded-lg px-3 py-2 text-xs text-white bg-white/5 border border-white/10 outline-none focus:border-amber-400 cursor-pointer appearance-none"
               >
                 <option className="bg-[#111] text-white" value="auto">
-                  🌐 Auto-Detect Language
+                  Auto-Detect Language
                 </option>
                 <option className="bg-[#111] text-white" value="en">
-                  🇺🇸 English
+                  English
                 </option>
                 <option className="bg-[#111] text-white" value="tl">
-                  🇵🇭 Tagalog / Filipino
+                  Tagalog / Filipino
                 </option>
                 <option className="bg-[#111] text-white" value="es">
-                  🇪🇸 Spanish
+                  Spanish
                 </option>
                 <option className="bg-[#111] text-white" value="zh">
-                  🇨🇳 Chinese (Mandarin)
+                  Chinese (Mandarin)
                 </option>
                 <option className="bg-[#111] text-white" value="hi">
-                  🇮🇳 Hindi
+                  Hindi
                 </option>
                 <option className="bg-[#111] text-white" value="ar">
-                  🇸🇦 Arabic
+                  Arabic
                 </option>
                 <option className="bg-[#111] text-white" value="pt">
-                  🇵🇹 Portuguese
+                  Portuguese
                 </option>
                 <option className="bg-[#111] text-white" value="id">
-                  🇮🇩 Indonesian
+                  Indonesian
                 </option>
                 <option className="bg-[#111] text-white" value="ja">
-                  🇯🇵 Japanese
+                  Japanese
                 </option>
                 <option className="bg-[#111] text-white" value="ru">
-                  🇷🇺 Russian
+                  Russian
                 </option>
                 <option className="bg-[#111] text-white" value="de">
-                  🇩🇪 German
+                  German
                 </option>
                 <option className="bg-[#111] text-white" value="fr">
-                  🇫🇷 French
+                  French
                 </option>
                 <option className="bg-[#111] text-white" value="ko">
-                  🇰🇷 Korean
+                  Korean
                 </option>
                 <option className="bg-[#111] text-white" value="it">
-                  🇮🇹 Italian
+                  Italian
                 </option>
                 <option className="bg-[#111] text-white" value="tr">
-                  🇹🇷 Turkish
+                  Turkish
                 </option>
                 <option className="bg-[#111] text-white" value="vi">
-                  🇻🇳 Vietnamese
+                  Vietnamese
                 </option>
                 <option className="bg-[#111] text-white" value="pl">
-                  🇵🇱 Polish
+                  Polish
                 </option>
                 <option className="bg-[#111] text-white" value="nl">
-                  🇳🇱 Dutch
+                  Dutch
                 </option>
                 <option className="bg-[#111] text-white" value="th">
-                  🇹🇭 Thai
+                  Thai
                 </option>
                 <option className="bg-[#111] text-white" value="sv">
-                  🇸🇪 Swedish
+                  Swedish
                 </option>
                 <option className="bg-[#111] text-white" value="uk">
-                  🇺🇦 Ukrainian
+                  Ukrainian
                 </option>
                 <option className="bg-[#111] text-white" value="ms">
-                  🇲🇾 Malay
+                  Malay
                 </option>
                 <option className="bg-[#111] text-white" value="he">
-                  🇮🇱 Hebrew
+                  Hebrew
                 </option>
                 <option className="bg-[#111] text-white" value="el">
-                  🇬🇷 Greek
+                  Greek
                 </option>
                 <option className="bg-[#111] text-white" value="cs">
-                  🇨🇿 Czech
+                  Czech
                 </option>
                 <option className="bg-[#111] text-white" value="ro">
-                  🇷🇴 Romanian
+                  Romanian
                 </option>
               </select>
 
@@ -1047,7 +1047,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                   }`}
                 >
                   <div
-                    className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${
+                    className={`w-3 h-3 bg-[#111] rounded-full shadow-md transform transition-transform ${
                       addBgMusic ? "translate-x-4" : "translate-x-0"
                     }`}
                   />
@@ -1087,12 +1087,12 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                     {bgMusicFile ? (
                       <div className="p-2 rounded-lg bg-black/40 border border-white/10 flex items-center justify-between gap-1.5 text-xs text-amber-300">
                         <span className="font-mono text-[10px] truncate">{bgMusicFile.split(/[\\/]/).pop()}</span>
-                        <span className="text-[9px] text-emerald-400 font-bold">✓ Selected</span>
+                        <span className="text-[9px] text-emerald-400 font-bold">Selected</span>
                       </div>
                     ) : null}
                     <label className="w-full py-1.5 px-2.5 rounded-lg bg-white/10 hover:bg-white/15 text-gray-300 hover:text-white text-[10px] font-bold border border-white/10 flex items-center justify-center gap-1.5 cursor-pointer transition-colors">
                       <Upload className="w-3 h-3 text-amber-400" />
-                      {bgMusicFile ? "Change Music File" : "📥 Import Custom Music (.mp3, .wav)"}
+                      {bgMusicFile ? "Change Music File" : "Import Custom Music (.mp3, .wav)"}
                       <input
                         type="file"
                         accept="audio/mp3,audio/wav,audio/m4a,audio/aac,audio/ogg"

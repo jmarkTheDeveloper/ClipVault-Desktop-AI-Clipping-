@@ -64,14 +64,25 @@ const GalleryClipCard: React.FC<{
   };
 
   const clipPath = typeof clip === "object" ? (clip.path || "") : (typeof clip === "string" ? clip : "");
-  const videoSrc =
-    typeof clip === "object" && clip.url
-      ? `${clip.url}#t=0.1`
-      : typeof clip === "string"
-      ? `${clip}#t=0.1`
-      : typeof clip === "object" && clip.path
-      ? `local:///${clip.path.replace(/\\/g, "/")}#t=0.1`
-      : "";
+  const clipUrl = typeof clip === "object" ? clip.url : "";
+
+  const getStreamUrl = (pathOrUrl?: string) => {
+    if (!pathOrUrl) return "";
+    if (pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://") || pathOrUrl.startsWith("blob:")) {
+      return pathOrUrl;
+    }
+    const clean = pathOrUrl.replace(/^local:\/\/\/?/i, "");
+    return `http://127.0.0.1:8000/stream?path=${encodeURIComponent(clean)}`;
+  };
+
+  const primarySrc = clipPath ? getStreamUrl(clipPath) : (clipUrl ? getStreamUrl(clipUrl) : "");
+  const fallbackSrc = clipPath ? `local:///${clipPath.replace(/\\/g, "/")}` : "";
+  const [currentSrc, setCurrentSrc] = useState<string>(primarySrc);
+
+  useEffect(() => {
+    setCurrentSrc(primarySrc);
+    setHasError(false);
+  }, [clipPath, clipUrl]);
 
   return (
     <div
@@ -84,15 +95,26 @@ const GalleryClipCard: React.FC<{
       onClick={() => onSelectClip(index)}
     >
       <div className="relative w-full aspect-[9/16] bg-black overflow-hidden shadow-inner flex items-center justify-center">
-        {!hasError && videoSrc ? (
+        {!hasError && currentSrc ? (
           <video
             ref={videoRef}
-            src={videoSrc}
+            src={`${currentSrc}#t=0.1`}
             preload="metadata"
             muted
             loop
             playsInline
-            onError={() => setHasError(true)}
+            onError={() => {
+              if (currentSrc !== fallbackSrc && fallbackSrc) {
+                setCurrentSrc(fallbackSrc);
+              } else {
+                setHasError(true);
+              }
+            }}
+            onLoadedData={() => {
+              if (videoRef.current && !isHovered) {
+                try { videoRef.current.currentTime = 0.1; } catch {}
+              }
+            }}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 bg-black pointer-events-none"
           />
         ) : (

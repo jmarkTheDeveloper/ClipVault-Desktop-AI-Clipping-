@@ -550,7 +550,7 @@ export const AiClipperScreen: React.FC<Props> = ({
       const data = await res.json().catch(() => ({}));
       if (data.success) {
         setGameplayBgVideo(data.url || data.path);
-        setExportNotice(`✓ Imported secondary B-roll video: "${data.name}"`);
+        setExportNotice(`Imported secondary B-roll video: "${data.name}"`);
         setTimeout(() => setExportNotice(""), 5000);
         loadBackgroundAssets();
       } else {
@@ -573,7 +573,7 @@ export const AiClipperScreen: React.FC<Props> = ({
       const data = await res.json().catch(() => ({}));
       if (data.success) {
         setBgMusicFile(data.url || data.path);
-        setExportNotice(`✓ Imported soundtrack track: "${data.name}"`);
+        setExportNotice(`Imported soundtrack track: "${data.name}"`);
         setTimeout(() => setExportNotice(""), 5000);
         loadBackgroundAssets();
       } else {
@@ -622,13 +622,13 @@ export const AiClipperScreen: React.FC<Props> = ({
               setErrorMsg("");
             } else if (data.error) {
               setActiveVideoUrl("");
-              setErrorMsg(`⚠️ YouTube Notice: This YouTube video (v=${videoId}) is private, deleted, or invalid. Please try another video link!`);
+              setErrorMsg(`YouTube Notice: This YouTube video (v=${videoId}) is private, deleted, or invalid. Please try another video link!`);
             }
             if (data.duration && !isNaN(data.duration) && data.duration > 0) {
               setMediaDuration(data.duration);
             }
           } else {
-            setErrorMsg("⚠️ Unable to fetch YouTube preview. Please verify your video link.");
+            setErrorMsg("Unable to fetch YouTube preview. Please verify your video link.");
           }
         }
       } catch (err) {
@@ -652,7 +652,7 @@ export const AiClipperScreen: React.FC<Props> = ({
     if (isKeyMissingForActiveEngine) {
       const missingKeyWarning = `Oops! You have not yet put any API key for ${activeEngineName}. Please enter your API key to proceed.`;
       setErrorMsg(missingKeyWarning);
-      setExportNotice(`⚠️ Key Required: ${activeEngineName}`);
+      setExportNotice(`Key Required: ${activeEngineName}`);
       setTimeout(() => setExportNotice(""), 6000);
       setShowKeySettings(true);
       return;
@@ -675,7 +675,7 @@ export const AiClipperScreen: React.FC<Props> = ({
       // STRICT VALIDATION & REJECTION: For Dual-Layer Split, a secondary/B-roll video MUST be imported/selected
       if (layout === "gameplay_bg") {
         if (!gameplayBgVideo || gameplayBgVideo.trim() === "") {
-          const rejectMsg = "❌ Rejection: No secondary video found! For 'Dual-Layer Split', you must import or select a secondary B-roll/background video before compiling.";
+          const rejectMsg = "Rejection: No secondary video found! For 'Dual-Layer Split', you must import or select a secondary B-roll/background video before compiling.";
           setErrorMsg(rejectMsg);
           setExportNotice(rejectMsg);
           setTimeout(() => setExportNotice(""), 8000);
@@ -1769,10 +1769,10 @@ export const AiClipperScreen: React.FC<Props> = ({
                 onChange={(e) => setNewFolderParent(e.target.value)}
                 className="w-full rounded-xl px-4 py-2.5 text-xs text-white bg-black/60 border border-white/15 outline-none focus:border-amber-400 cursor-pointer"
               >
-                <option value="root">📁 Root / Top Level</option>
+                <option value="root">Root / Top Level</option>
                 {vaultFolders.map((f) => (
                   <option key={f} value={f}>
-                    ↳ 📁 Inside: {f}
+                    Inside: {f}
                   </option>
                 ))}
               </select>
