@@ -11,6 +11,7 @@ const autoUpdater = updaterPkg.autoUpdater || (updaterPkg.default && updaterPkg.
 const execAsync = util.promisify(exec);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const isDev = process.env.NODE_ENV === 'development' && !app.isPackaged;
 
 // Security Guard 1: Anti-Malicious Debugger & CLI Flag Injection Lockdown
 const suspiciousFlags = ['--remote-debugging-port', '--inspect', '--inspect-brk', '--remote-debugging-targets'];
@@ -189,8 +190,6 @@ function createWindow() {
     ? (fs.existsSync(iconIco) ? iconIco : iconPng)
     : (fs.existsSync(iconPng) ? iconPng : iconIco);
   const appIcon = fs.existsSync(iconTarget) ? nativeImage.createFromPath(iconTarget) : undefined;
-
-  const isDev = process.env.NODE_ENV === 'development' && !app.isPackaged;
 
   mainWindow = new BrowserWindow({
     width: 1280,
