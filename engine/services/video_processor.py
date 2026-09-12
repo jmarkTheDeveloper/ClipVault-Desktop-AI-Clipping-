@@ -580,18 +580,34 @@ class VideoProcessor:
                     print("🛑 Processing cancelled by user.")
                     break
 
+                # Fail-safe Audio Track Recovery: Guarantee audio is present before final rendering
+                if clip.audio is None:
+                    print("    ⚠️ Notice: Clip audio object was missing. Recovering original audio track from source...")
+                    try:
+                        if use_smart_slicing and slice_to_cleanup and slice_to_cleanup.exists():
+                            src_audio = AudioFileClip(str(slice_to_cleanup))
+                            clips_to_close.append(src_audio)
+                            clip = clip.set_audio(src_audio)
+                        elif video_path and Path(video_path).exists():
+                            src_audio = AudioFileClip(str(video_path)).subclip(start, end)
+                            clips_to_close.append(src_audio)
+                            clip = clip.set_audio(src_audio)
+                    except Exception as recovery_err:
+                        print(f"    ⚠️ Audio recovery note: {recovery_err}")
+
                 safe_temp_audio = str((TEMP_DIR / f'temp_audio_{i}_{os.getpid()}_{int(time.time())}.m4a').resolve())
 
                 clip.write_videofile(
                     str(output_path),
                     codec=best_codec,
-                    audio_codec='aac',
+                    audio_codec='aac' if clip.audio else None,
+                    audio=True if clip.audio else False,
                     preset=best_preset,
                     fps=render_fps,
                     ffmpeg_params=ffmpeg_params,
                     verbose=False,
                     logger=my_logger,
-                    temp_audiofile=safe_temp_audio,
+                    temp_audiofile=safe_temp_audio if clip.audio else None,
                     remove_temp=True,
                     threads=thread_count
                 )

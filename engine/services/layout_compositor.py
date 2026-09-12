@@ -53,7 +53,10 @@ class LayoutCompositor:
                 return sharpened
             return resized
 
-        return clip.fl_image(transform_frame)
+        resized_clip = clip.fl_image(transform_frame)
+        if clip.audio is not None:
+            resized_clip = resized_clip.set_audio(clip.audio)
+        return resized_clip
 
     @classmethod
     def letterbox(cls, clip, target_width: int, target_height: int):
@@ -67,7 +70,10 @@ class LayoutCompositor:
 
         scaled_clip = cls.high_quality_resize(clip, new_w, new_h)
         bg = ColorClip(size=(target_width, target_height), color=(0, 0, 0), duration=clip.duration)
-        return CompositeVideoClip([bg, scaled_clip.set_position("center")], size=(target_width, target_height))
+        composed = CompositeVideoClip([bg, scaled_clip.set_position("center")], size=(target_width, target_height))
+        if clip.audio is not None:
+            composed = composed.set_audio(clip.audio)
+        return composed
 
     def compose_layout(
         self,

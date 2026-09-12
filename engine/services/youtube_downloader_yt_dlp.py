@@ -355,15 +355,26 @@ class YouTubeDownloader:
                     ),
                     reverse=True
                 )
-                video_url = video_candidates[0].get("url")
+                best_vid = video_candidates[0]
+                video_url = best_vid.get("url")
+                # If chosen video candidate already has an audio stream, use it as default audio_url too
+                if best_vid.get("acodec") and best_vid.get("acodec") != "none":
+                    audio_url = video_url
 
-            # 2. Look for best audio format
+            # 2. Look for best dedicated audio format or combined audio format
             audio_candidates = [
                 f for f in formats 
-                if f.get("acodec") != "none" and f.get("vcodec") == "none" and f.get("url")
+                if f.get("acodec") and f.get("acodec") != "none" and f.get("url")
             ]
             if audio_candidates:
-                audio_candidates.sort(key=lambda f: (f.get("abr") or 0), reverse=True)
+                # Prioritize audio-only streams (vcodec == 'none'), then highest audio bitrate (abr/tbr)
+                audio_candidates.sort(
+                    key=lambda f: (
+                        1 if f.get("vcodec") == "none" else 0,
+                        f.get("abr") or f.get("tbr") or 0
+                    ),
+                    reverse=True
+                )
                 audio_url = audio_candidates[0].get("url")
 
             # Fallback to combined format (e.g. format 22 or 18)
@@ -402,9 +413,17 @@ class YouTubeDownloader:
                         "-map", "0:v:0",
                         "-map", "1:a:0",
                     ])
+                elif audio_url and audio_url == video_url:
+                    cmd.extend([
+                        "-t", str(duration_sec),
+                        "-map", "0:v:0",
+                        "-map", "0:a:0?",
+                    ])
                 else:
                     cmd.extend([
                         "-t", str(duration_sec),
+                        "-map", "0:v:0",
+                        "-map", "0:a:0?",
                     ])
 
                 # Visually lossless master slice encoding (CRF 14, ultrafast preset for instant slicing)
