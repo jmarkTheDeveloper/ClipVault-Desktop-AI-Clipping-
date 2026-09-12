@@ -608,7 +608,7 @@ export const AiClipperScreen: React.FC<Props> = ({
               setErrorMsg("");
             } else if (data.error) {
               setActiveVideoUrl("");
-              setErrorMsg(`⚠️ YouTube Notice: ${data.error}`);
+              setErrorMsg(`⚠️ YouTube Notice: This YouTube video (v=${videoId}) is private, deleted, or invalid. Please try another video link!`);
             }
             if (data.duration && !isNaN(data.duration) && data.duration > 0) {
               setMediaDuration(data.duration);
