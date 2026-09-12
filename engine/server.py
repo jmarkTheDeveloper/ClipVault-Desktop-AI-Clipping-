@@ -100,7 +100,7 @@ AUTH_TOKEN = os.getenv("CLIPVAULT_AUTH_TOKEN", "")
 async def verify_app_auth(request: Request, call_next):
     # Allow OPTIONS preflight, static file mounts, video streaming, and health checks
     path = request.url.path
-    if request.method == "OPTIONS" or not path.startswith("/api/") or path == "/api/health":
+    if request.method == "OPTIONS" or not path.startswith("/api/") or path == "/api/health" or path.startswith("/api/video_info"):
         return await call_next(request)
     
     if AUTH_TOKEN:
@@ -809,6 +809,64 @@ def stream_video_file(path: str, request: Request):
             return FileResponse(norm_path, media_type=content_type, headers={"Accept-Ranges": "bytes"})
     else:
         return FileResponse(norm_path, media_type=content_type, headers={"Accept-Ranges": "bytes"})
+
+
+@app.get("/api/video_info")
+def get_video_info_endpoint(url: str):
+    """
+    Extracts stream URL, duration, title, and thumbnail for YouTube videos or direct URLs.
+    Powers real-time video player streaming and duration calculation in ClipVault Studio.
+    """
+    if not url or not url.strip():
+        raise HTTPException(status_code=400, detail="URL is required")
+    
+    clean_url = url.strip()
+    try:
+        from services.youtube_downloader_yt_dlp import YouTubeDownloader
+        dl = YouTubeDownloader()
+        info = dl.get_video_info(clean_url)
+        
+        if not info or not info.get("id"):
+            return {
+                "success": False,
+                "error": "This YouTube video is unavailable, private, or deleted.",
+                "stream_url": "",
+                "url": clean_url
+            }
+
+        # Extract best streaming URL
+        stream_url = ""
+        formats = info.get("formats") or []
+        
+        # 1. Look for progressive MP4 format (audio + video together)
+        combined = [f for f in formats if f.get("vcodec") != "none" and f.get("acodec") != "none" and f.get("ext") == "mp4"]
+        if combined:
+            best_combined = sorted(combined, key=lambda x: x.get("height") or 0)[-1]
+            stream_url = best_combined.get("url", "")
+            
+        # 2. Fallback to info.url or format url
+        if not stream_url:
+            stream_url = info.get("url") or (formats[-1].get("url") if formats else clean_url)
+
+        return {
+            "success": True,
+            "title": info.get("title", "YouTube Video"),
+            "duration": info.get("duration") or 0,
+            "thumbnail": info.get("thumbnail") or "",
+            "stream_url": stream_url,
+            "url": stream_url,
+            "id": info.get("id", "")
+        }
+    except Exception as e:
+        print(f"⚠️ [/api/video_info error]: {e}")
+        return {
+            "success": False,
+            "error": "This YouTube video is unavailable, private, or deleted.",
+            "title": "YouTube Video",
+            "duration": 0,
+            "stream_url": "",
+            "url": clean_url
+        }
 
 
 @app.get("/api/cache_info")

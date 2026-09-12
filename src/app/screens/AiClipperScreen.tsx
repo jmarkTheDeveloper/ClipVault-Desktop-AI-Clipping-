@@ -600,13 +600,21 @@ export const AiClipperScreen: React.FC<Props> = ({
       setLoadingPreview(true);
       try {
         const res = await fetch(`http://127.0.0.1:8000/api/video_info?url=${encodeURIComponent(ytUrl)}`);
-        if (res.ok && isMounted) {
-          const data = await res.json();
-          if (data.stream_url || data.url) {
-            setActiveVideoUrl(data.stream_url || data.url);
-          }
-          if (data.duration && !isNaN(data.duration) && data.duration > 0) {
-            setMediaDuration(data.duration);
+        if (isMounted) {
+          if (res.ok) {
+            const data = await res.json();
+            if (data.success && (data.stream_url || data.url)) {
+              setActiveVideoUrl(data.stream_url || data.url);
+              setErrorMsg("");
+            } else if (data.error) {
+              setActiveVideoUrl("");
+              setErrorMsg(`⚠️ YouTube Notice: ${data.error}`);
+            }
+            if (data.duration && !isNaN(data.duration) && data.duration > 0) {
+              setMediaDuration(data.duration);
+            }
+          } else {
+            setErrorMsg("⚠️ Unable to fetch YouTube preview. Please verify your video link.");
           }
         }
       } catch (err) {
