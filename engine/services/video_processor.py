@@ -551,8 +551,10 @@ class VideoProcessor:
                                 pct = int((value / total) * 100)
                                 if pct - self.last_pct >= 3 or pct == 100:
                                     self.last_pct = pct
-                                    base = 60 + int((self.c_idx - 1) / self.total_c * 40)
-                                    self.p_cb(f"Rendering Clip {self.c_idx}/{self.total_c} ({pct}%)...", min(99, base + int(pct * 0.38)))
+                                    clip_budget = 39.0 / max(1, self.total_c)
+                                    base = 60.0 + (self.c_idx - 1) * clip_budget
+                                    overall_pct = min(99, int(base + (pct / 100.0) * clip_budget))
+                                    self.p_cb(f"Rendering Clip {self.c_idx}/{self.total_c} ({pct}%)...", overall_pct)
 
                 my_logger = MyBarLogger(progress_callback, i, len(clip_specs), cancel_event) if progress_callback else None
                 render_fps = 60 if best_codec == 'h264_nvenc' else 30
@@ -579,7 +581,7 @@ class VideoProcessor:
                 output_files.append(str(output_path))
                 print(f"    ✅ Saved: {filename} ({render_fps} FPS)")
                 if progress_callback:
-                    final_pct = min(99, int(60 + (i / len(clip_specs)) * 39))
+                    final_pct = min(99, int(60.0 + (i / max(1, len(clip_specs))) * 39.0))
                     progress_callback(f"Finalized Clip {i}/{len(clip_specs)}", final_pct)
 
                 # Save metadata text file
