@@ -147,9 +147,9 @@ class AISelector:
                 print(f"⚠️ Qwen note: {e}. Falling back to smart chapter analyzer.")
                 raise RuntimeError(e)
 
-        # 7. Google Gemini (Gemini 2.5 Flash / Gemini Flash Latest)
+        # 7. Google Gemini (Gemini 2.0 Flash / Gemini 1.5 Flash)
         else:
-            gemini_models = ["gemini-2.5-flash", "gemini-flash-latest", "gemini-2.5-flash-lite", "gemini-2.5-pro"]
+            gemini_models = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.0-flash-lite", "gemini-1.5-pro"]
             for model_name in gemini_models:
                 try:
                     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={self.api_key}"
@@ -158,7 +158,7 @@ class AISelector:
                         "contents": [{"parts": [{"text": prompt}]}],
                         "generationConfig": {"temperature": 0.4}
                     }
-                    r = requests.post(url, headers=headers, json=payload, timeout=12.0)
+                    r = requests.post(url, headers=headers, json=payload, timeout=3.5)
                     if r.status_code == 200:
                         res_json = r.json()
                         text = res_json["candidates"][0]["content"]["parts"][0]["text"]

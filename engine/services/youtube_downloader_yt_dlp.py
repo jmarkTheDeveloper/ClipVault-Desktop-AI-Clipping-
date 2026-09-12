@@ -377,16 +377,25 @@ class YouTubeDownloader:
             if video_url:
                 ffmpeg_bin = imageio_ffmpeg.get_ffmpeg_exe()
                 duration_sec = max(1.0, end_sec - start_sec)
-                temp_slice = self.temp_dir / f"fast_{slice_name}"
+                user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+                http_options = [
+                    "-headers", f"User-Agent: {user_agent}\r\n",
+                    "-reconnect", "1",
+                    "-reconnect_at_eof", "1",
+                    "-reconnect_streamed", "1",
+                    "-reconnect_delay_max", "2",
+                ]
 
                 cmd = [
                     ffmpeg_bin,
                     "-y",
+                    *http_options,
                     "-ss", str(max(0.0, start_sec)),
                     "-i", video_url,
                 ]
                 if audio_url and audio_url != video_url:
                     cmd.extend([
+                        *http_options,
                         "-ss", str(max(0.0, start_sec)),
                         "-i", audio_url,
                         "-t", str(duration_sec),
@@ -398,11 +407,11 @@ class YouTubeDownloader:
                         "-t", str(duration_sec),
                     ])
 
-                # Visually lossless master slice encoding (CRF 10) with Lanczos scaling flags to preserve razor-sharp detail
+                # Visually lossless master slice encoding (CRF 14, ultrafast preset for instant slicing)
                 cmd.extend([
                     "-c:v", "libx264",
-                    "-preset", "veryfast",
-                    "-crf", "10",
+                    "-preset", "ultrafast",
+                    "-crf", "14",
                     "-sws_flags", "lanczos+accurate_rnd",
                     "-c:a", "aac",
                     "-b:a", "320k",
@@ -410,8 +419,8 @@ class YouTubeDownloader:
                     str(temp_slice)
                 ])
 
-                print(f"🚀 Running direct HTTP range slice with ffmpeg (Pristine Master Quality)...")
-                proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=45)
+                print(f"🚀 Running direct HTTP range slice with ffmpeg (High-Speed Stream Extraction)...")
+                proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=20)
                 if proc.returncode == 0 and temp_slice.exists() and temp_slice.stat().st_size > 10240:
                     if output_path.exists():
                         try: output_path.unlink()
