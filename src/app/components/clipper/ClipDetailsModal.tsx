@@ -43,6 +43,20 @@ export const ClipDetailsModal: React.FC<ClipDetailsModalProps> = ({
     }
   }, [clip?.path, clip?.url]);
 
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (showDeleteConfirm) {
+          setShowDeleteConfirm(false);
+        } else {
+          onClose();
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [showDeleteConfirm, onClose]);
+
   if (!clip) return null;
 
   const handleCopy = () => {
@@ -380,9 +394,9 @@ export const ClipDetailsModal: React.FC<ClipDetailsModalProps> = ({
                   type="button"
                   onClick={async () => {
                     if (onDelete && clip.path) {
-                      await onDelete(clip.path);
                       setShowDeleteConfirm(false);
                       onClose();
+                      await onDelete(clip.path);
                     }
                   }}
                   className="px-5 py-2 rounded-xl text-xs font-bold bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-600/30 transition-all flex items-center gap-1.5 cursor-pointer hover:scale-[1.02] active:scale-95"

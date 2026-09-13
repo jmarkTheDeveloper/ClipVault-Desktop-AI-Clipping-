@@ -626,6 +626,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
         setSelectedClipPaths([]);
         setContextMenu(null);
         setFolderContextMenu(null);
+        setDeleteConfirmState({ isOpen: false, type: "clip" });
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -887,23 +888,24 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
                 <button
                   type="button"
                   onClick={async () => {
-                    if (deleteConfirmState.type === "clip" && deleteConfirmState.targetPath) {
-                      await deleteVaultClip(deleteConfirmState.targetPath);
-                    } else if (deleteConfirmState.type === "batch_clips" && deleteConfirmState.targetPaths) {
+                    const state = { ...deleteConfirmState };
+                    setDeleteConfirmState({ isOpen: false, type: "clip" });
+                    if (state.type === "clip" && state.targetPath) {
+                      await deleteVaultClip(state.targetPath);
+                    } else if (state.type === "batch_clips" && state.targetPaths) {
                       if (deleteVaultClips) {
-                        await deleteVaultClips(deleteConfirmState.targetPaths);
+                        await deleteVaultClips(state.targetPaths);
                       } else {
-                        for (const path of deleteConfirmState.targetPaths) {
+                        for (const path of state.targetPaths) {
                           await deleteVaultClip(path);
                         }
                         setSelectedClipPaths([]);
                       }
-                    } else if (deleteConfirmState.type === "folder" && deleteConfirmState.targetName) {
+                    } else if (state.type === "folder" && state.targetName) {
                       if (deleteFolder) {
-                        deleteFolder(deleteConfirmState.targetName);
+                        deleteFolder(state.targetName);
                       }
                     }
-                    setDeleteConfirmState({ isOpen: false, type: "clip" });
                   }}
                   className="px-5 py-2 rounded-xl text-xs font-bold bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-600/30 transition-all flex items-center gap-1.5 cursor-pointer hover:scale-[1.02] active:scale-95"
                 >
