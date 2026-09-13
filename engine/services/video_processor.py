@@ -66,6 +66,7 @@ from services.face_tracker import FaceTracker
 from services.color_grader import ColorGrader
 from services.layout_compositor import LayoutCompositor
 from services.recap_generator import RecapGenerator
+from services.scene_detector import SceneDetector
 from utils.helpers import cleanup_temp_files
 
 
@@ -84,6 +85,7 @@ class VideoProcessor:
         self.color_grader = ColorGrader()
         self.layout_compositor = LayoutCompositor(self.face_tracker)
         self.recap_generator = RecapGenerator(self.ai_selector)
+        self.scene_detector = SceneDetector()
 
     @staticmethod
     def detect_hardware_encoder():
@@ -285,7 +287,7 @@ class VideoProcessor:
                 'end': end_t,
                 'title': f'Custom Highlight ({start_t:.1f}s - {end_t:.1f}s)',
                 'virality_score': 100,
-                'content_title': f"{title} Highlight 🍿",
+                'content_title': f"{title} Highlight",
                 'content_description': f"Highlight clip from '{title}'! #viral #clips"
             }]
         elif target_duration == -1:
@@ -294,15 +296,26 @@ class VideoProcessor:
                 'end': duration,
                 'title': 'Full Story Highlight',
                 'virality_score': 100,
-                'content_title': f"{title} Highlight 🍿",
+                'content_title': f"{title} Highlight",
                 'content_description': f"Full story highlight of '{title}'! #viral #clips"
             }]
         else:
             if progress_callback: progress_callback("Selecting viral highlights with AI...", 40)
-            clip_specs = self.ai_selector.select_clips(segments, duration, num_clips, target_duration, topic=topic)
+            valid_vid_path = str(video_path) if video_path and Path(video_path).exists() else None
+            clip_specs = self.ai_selector.select_clips(segments, duration, num_clips, target_duration, topic=topic, video_path=valid_vid_path)
 
         if not clip_specs:
             raise ValueError("Could not select any viral clips from this video.")
+
+        # Align clip cut points to natural visual shot boundaries
+        if video_path and Path(video_path).exists() and not custom_segments and target_duration != -1:
+            print("    [VideoProcessor] Aligning clip cut boundaries to visual camera transitions...")
+            for spec in clip_specs:
+                orig_s, orig_e = spec['start'], spec['end']
+                new_s, new_e = self.scene_detector.align_clip_boundaries(orig_s, orig_e, video_path=str(video_path), tolerance=0.75)
+                spec['start'] = new_s
+                spec['end'] = new_e
+                spec['duration'] = new_e - new_s
 
         # Determine target export directory safely
         target_dir = OUTPUT_DIR.resolve()
@@ -636,26 +649,49 @@ class VideoProcessor:
                     threads=thread_count
                 )
                 output_files.append(str(output_path))
-                print(f"    ✅ Saved: {filename} ({render_fps} FPS)")
+                print(f"    [VideoProcessor] Saved: {filename} ({render_fps} FPS)")
                 if progress_callback:
                     final_pct = min(99, int(60.0 + (i / max(1, len(clip_specs))) * 39.0))
                     progress_callback(f"Finalized Clip {i}/{len(clip_specs)}", final_pct)
 
-                # Save metadata text file
+                # Save structured JSON and legacy text metadata files
                 try:
                     metadata_dir = (target_dir / "metadata").resolve()
                     metadata_dir.mkdir(parents=True, exist_ok=True)
+                    clean_title = clip_info.get('content_title', title_text)
+                    clean_desc = clip_info.get('content_description', '')
+                    curation_reason = clip_info.get('reason', '')
+                    sub_scores = clip_info.get('sub_scores', {})
+                    hook_type = clip_info.get('hook_type', 'General Highlight')
+
+                    # 1. Structured JSON metadata for high-fidelity UI rendering
+                    json_meta_path = (metadata_dir / f"{output_path.stem}_metadata.json").resolve()
+                    json_data = {
+                        "title": clean_title,
+                        "description": clean_desc,
+                        "virality_score": int(virality_score),
+                        "sub_scores": sub_scores,
+                        "hook_type": hook_type,
+                        "reason": curation_reason,
+                        "start": float(start),
+                        "end": float(end),
+                        "duration": round(float(clip.duration), 2)
+                    }
+                    with open(json_meta_path, 'w', encoding='utf-8') as f_json:
+                        json.dump(json_data, f_json, indent=2)
+
+                    # 2. Legacy text metadata for clipboard & external editors
                     metadata_path = (metadata_dir / f"clip_{i}_{virality_score}pts_{clean_stem}_metadata.txt").resolve()
                     with open(metadata_path, 'w', encoding='utf-8') as f_meta:
-                        f_meta.write(f"🎬 Catchy Title:\n{clip_info.get('content_title', title_text)}\n\n")
-                        f_meta.write(f"📝 Description & Hashtags:\n{clip_info.get('content_description', '')}\n\n")
-                        if clip_info.get('reason'):
-                            f_meta.write(f"🧠 AI Curation Analysis:\n{clip_info['reason']}\n")
-                except Exception:
-                    pass
+                        f_meta.write(f"Catchy Title:\n{clean_title}\n\n")
+                        f_meta.write(f"Description & Hashtags:\n{clean_desc}\n\n")
+                        if curation_reason:
+                            f_meta.write(f"AI Curation Analysis:\n{curation_reason}\n")
+                except Exception as meta_err:
+                    print(f"    [VideoProcessor] Metadata save notice: {meta_err}")
 
             except Exception as e:
-                print(f"    ❌ Error processing clip {i}: {e}")
+                print(f"    [VideoProcessor] Error processing clip {i}: {e}")
                 import traceback
                 traceback.print_exc()
                 last_clip_error = str(e)

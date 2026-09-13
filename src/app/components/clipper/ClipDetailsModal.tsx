@@ -146,10 +146,15 @@ export const ClipDetailsModal: React.FC<ClipDetailsModalProps> = ({
         {/* Details & Actions */}
         <div className="flex-1 flex flex-col justify-between space-y-4">
           <div>
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
               <span className="text-xs bg-amber-400/20 text-amber-400 border border-amber-400/30 px-2.5 py-0.5 rounded-full font-bold">
                 Score: {clip.virality_score || 99} pts
               </span>
+              {clip.hook_type && (
+                <span className="text-xs bg-cyan-400/10 text-cyan-300 border border-cyan-400/20 px-2.5 py-0.5 rounded-full font-medium">
+                  {clip.hook_type}
+                </span>
+              )}
               <span className="text-xs bg-white/10 text-gray-300 px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1">
                 <Folder className="w-3 h-3 text-amber-400" /> {clip.folder}
               </span>
@@ -161,13 +166,75 @@ export const ClipDetailsModal: React.FC<ClipDetailsModalProps> = ({
               File: {clip.filename} ({clip.size_mb} MB)
             </p>
 
+            {/* Virality Sub-Scores Breakdown */}
+            {clip.sub_scores && (
+              <div className="p-3.5 rounded-2xl bg-zinc-900/90 border border-white/10 space-y-2.5 mb-4 shadow-lg">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-gray-200 tracking-wide uppercase">
+                    Virality Analytics
+                  </span>
+                  <span className="text-[11px] font-mono text-amber-400 font-semibold">
+                    Overall {clip.virality_score || 95}/100
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                  <div className="p-2 rounded-xl bg-white/[0.03] border border-white/5 space-y-1">
+                    <div className="flex justify-between text-[11px]">
+                      <span className="text-gray-400">Hook</span>
+                      <span className="text-white font-mono font-bold">{clip.sub_scores.hook}</span>
+                    </div>
+                    <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden">
+                      <div className="bg-amber-400 h-1.5 rounded-full" style={{ width: `${clip.sub_scores.hook}%` }} />
+                    </div>
+                  </div>
+
+                  <div className="p-2 rounded-xl bg-white/[0.03] border border-white/5 space-y-1">
+                    <div className="flex justify-between text-[11px]">
+                      <span className="text-gray-400">Flow</span>
+                      <span className="text-white font-mono font-bold">{clip.sub_scores.flow}</span>
+                    </div>
+                    <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden">
+                      <div className="bg-cyan-400 h-1.5 rounded-full" style={{ width: `${clip.sub_scores.flow}%` }} />
+                    </div>
+                  </div>
+
+                  <div className="p-2 rounded-xl bg-white/[0.03] border border-white/5 space-y-1">
+                    <div className="flex justify-between text-[11px]">
+                      <span className="text-gray-400">Value</span>
+                      <span className="text-white font-mono font-bold">{clip.sub_scores.value}</span>
+                    </div>
+                    <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden">
+                      <div className="bg-emerald-400 h-1.5 rounded-full" style={{ width: `${clip.sub_scores.value}%` }} />
+                    </div>
+                  </div>
+
+                  <div className="p-2 rounded-xl bg-white/[0.03] border border-white/5 space-y-1">
+                    <div className="flex justify-between text-[11px]">
+                      <span className="text-gray-400">Trend</span>
+                      <span className="text-white font-mono font-bold">{clip.sub_scores.trend}</span>
+                    </div>
+                    <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden">
+                      <div className="bg-purple-400 h-1.5 rounded-full" style={{ width: `${clip.sub_scores.trend}%` }} />
+                    </div>
+                  </div>
+                </div>
+
+                {clip.reason && (
+                  <p className="text-[11px] text-gray-400 leading-relaxed pt-1 border-t border-white/5">
+                    <strong className="text-gray-300">Curation Note:</strong> {clip.reason}
+                  </p>
+                )}
+              </div>
+            )}
+
             {clip.description && (
               <div className="p-3.5 rounded-xl bg-white/5 border border-white/5 text-xs text-gray-300 whitespace-pre-wrap leading-relaxed max-h-36 overflow-y-auto mb-4 font-sans">
                 {clip.description}
               </div>
             )}
 
-            {/* 🚀 Professional Distribution & Web Publishing Helper */}
+            {/* Distribution & Web Publishing Helper */}
             <div className="p-4 rounded-2xl bg-zinc-900/90 border border-white/10 space-y-3 mb-4 shadow-lg">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2">

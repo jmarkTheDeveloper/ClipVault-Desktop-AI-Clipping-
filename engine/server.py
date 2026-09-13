@@ -447,26 +447,48 @@ def get_saved_clips():
                 if folder_name != "Main Library" and "metadata" not in folder_name.lower():
                     folders.add(folder_name)
                     
-                # Look for metadata file in metadata/ subfolder or same folder
-                meta_file = path.parent / "metadata" / f"{path.stem}_metadata.txt"
-                if not meta_file.exists():
-                    meta_file = path.parent / f"{path.stem}_metadata.txt"
-                    
                 title = path.stem.replace("_", " ").title()
                 description = ""
                 virality_score = 95
-                
-                if meta_file.exists():
+                sub_scores = None
+                hook_type = "Viral Highlight"
+                reason = ""
+
+                # 1. Look for structured JSON metadata in metadata/ subfolder or same directory
+                json_meta = path.parent / "metadata" / f"{path.stem}_metadata.json"
+                if not json_meta.exists():
+                    json_meta = path.parent / f"{path.stem}_metadata.json"
+
+                if json_meta.exists():
                     try:
-                        content = meta_file.read_text(encoding="utf-8")
-                        lines = [line.strip() for line in content.split("\n") if line.strip()]
-                        for i, line in enumerate(lines):
-                            if "🎬 Catchy Title:" in line and i + 1 < len(lines):
-                                title = lines[i+1]
-                            elif "📝 Description" in line and i + 1 < len(lines):
-                                description = "\n".join(lines[i+1:])
+                        import json as py_json
+                        j_data = py_json.loads(json_meta.read_text(encoding="utf-8"))
+                        title = j_data.get("title", title)
+                        description = j_data.get("description", description)
+                        virality_score = int(j_data.get("virality_score", virality_score))
+                        sub_scores = j_data.get("sub_scores")
+                        hook_type = j_data.get("hook_type", hook_type)
+                        reason = j_data.get("reason", reason)
                     except Exception:
                         pass
+                else:
+                    # 2. Fall back to legacy metadata text file
+                    meta_file = path.parent / "metadata" / f"{path.stem}_metadata.txt"
+                    if not meta_file.exists():
+                        meta_file = path.parent / f"{path.stem}_metadata.txt"
+                    if meta_file.exists():
+                        try:
+                            content = meta_file.read_text(encoding="utf-8")
+                            lines = [line.strip() for line in content.split("\n") if line.strip()]
+                            for i, line in enumerate(lines):
+                                if ("Catchy Title:" in line or "🎬 Catchy Title:" in line) and i + 1 < len(lines):
+                                    title = lines[i+1]
+                                elif ("Description" in line or "📝 Description" in line) and i + 1 < len(lines):
+                                    description = "\n".join(lines[i+1:])
+                                elif ("AI Curation Analysis:" in line or "🧠 AI Curation Analysis:" in line) and i + 1 < len(lines):
+                                    reason = lines[i+1]
+                        except Exception:
+                            pass
                 
                 # Try to extract score from filename e.g. clip_1_95pts_...
                 if "pts" in path.name:
@@ -475,6 +497,16 @@ def get_saved_clips():
                         virality_score = int(pts_part)
                     except Exception:
                         pass
+
+                # Guarantee clean, consistent sub-scores if not previously serialized
+                if not sub_scores or not isinstance(sub_scores, dict) or not all(k in sub_scores for k in ("hook", "flow", "value", "trend")):
+                    base_s = max(50, min(99, virality_score))
+                    sub_scores = {
+                        "hook": min(99, base_s + 1),
+                        "flow": min(99, max(50, base_s - 2)),
+                        "value": min(99, base_s),
+                        "trend": min(99, max(50, base_s - 1))
+                    }
 
                 # Relative URL for static serving (URL-encoded to handle spaces cleanly)
                 import urllib.parse
@@ -489,12 +521,15 @@ def get_saved_clips():
                     "title": title,
                     "description": description,
                     "virality_score": virality_score,
+                    "sub_scores": sub_scores,
+                    "hook_type": hook_type,
+                    "reason": reason,
                     "created_at": stat.st_mtime,
                     "size_mb": round(stat.st_size / (1024 * 1024), 2),
                     "folder": folder_name
                 })
             except Exception as clip_err:
-                print(f"⚠️ Error reading clip {path}: {clip_err}")
+                print(f"[Server] Error reading clip {path}: {clip_err}")
     except Exception as e:
         print(f"⚠️ Failed to list saved clips: {e}")
 

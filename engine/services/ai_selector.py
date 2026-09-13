@@ -1,8 +1,18 @@
 import sys
+import os
 import json
 import random
+import base64
 import requests
 import google.generativeai as genai
+
+try:
+    from services.virality_models import ViralitySubScores, normalize_sub_scores
+except ImportError:
+    try:
+        from virality_models import ViralitySubScores, normalize_sub_scores
+    except ImportError:
+        from engine.services.virality_models import ViralitySubScores, normalize_sub_scores
 
 if hasattr(sys.stdout, 'reconfigure'):
     try: sys.stdout.reconfigure(encoding='utf-8', errors='replace')
@@ -36,21 +46,67 @@ class AISelector:
             'gemini-pro-latest'
         ]
 
-    def _call_openai_compatible(self, base_url: str, model: str, prompt: str) -> str:
+    def sample_candidate_keyframes(self, video_path: str, timestamps: list, max_frames: int = 4) -> list:
+        """
+        Samples lightweight downsampled keyframes from the video at specified timestamps
+        to provide visual context for multimodal hook evaluation.
+        """
+        import cv2
+        if not video_path or not os.path.exists(video_path) or not timestamps:
+            return []
+
+        frames = []
+        cap = cv2.VideoCapture(str(video_path))
+        if not cap.isOpened():
+            return []
+        try:
+            fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
+            for t in timestamps[:max_frames]:
+                cap.set(cv2.CAP_PROP_POS_FRAMES, int(max(0.0, float(t)) * fps))
+                ret, frame = cap.read()
+                if ret and frame is not None:
+                    # Downsample to 480x270 JPEG for lightweight transmission
+                    small = cv2.resize(frame, (480, 270), interpolation=cv2.INTER_AREA)
+                    success, buf = cv2.imencode('.jpg', small, [cv2.IMWRITE_JPEG_QUALITY, 72])
+                    if success:
+                        frames.append(buf.tobytes())
+        except Exception as e:
+            print(f"[AISelector] Keyframe extraction notice: {e}")
+        finally:
+            cap.release()
+        return frames
+
+    def _call_openai_compatible(self, base_url: str, model: str, prompt: str, image_frames: list = None) -> str:
         """Universal fast caller for OpenAI, Groq, DeepSeek, Moonshot, Qwen, or Custom Proxy."""
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
         }
+
+        user_content = []
+        if image_frames and ("openai" in self.provider or "chatgpt" in self.provider):
+            for frame_bytes in image_frames:
+                b64 = base64.b64encode(frame_bytes).decode("utf-8")
+                user_content.append({
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/jpeg;base64,{b64}"}
+                })
+
+        if user_content:
+            user_content.append({"type": "text", "text": prompt})
+            content_payload = user_content
+        else:
+            content_payload = prompt
+
         payload = {
             "model": model,
             "messages": [
                 {"role": "system", "content": "You are a professional video editor and viral short-form clip curator. Return ONLY valid JSON."},
-                {"role": "user", "content": prompt}
+                {"role": "user", "content": content_payload}
             ],
             "temperature": 0.4
         }
-        r = requests.post(f"{base_url.rstrip('/')}/chat/completions", headers=headers, json=payload, timeout=6.5)
+        r = requests.post(f"{base_url.rstrip('/')}/chat/completions", headers=headers, json=payload, timeout=8.5)
         if r.status_code != 200:
             raise RuntimeError(f"Provider API HTTP {r.status_code}: {r.text[:120]}")
         data = r.json()
@@ -74,8 +130,8 @@ class AISelector:
         data = r.json()
         return data["content"][0]["text"]
 
-    def _generate_with_fallback(self, prompt, generation_config=None):
-        """Tries selected AI provider with strict 6.5s timeout or falls back to local chapter analysis."""
+    def _generate_with_fallback(self, prompt, generation_config=None, image_frames: list = None):
+        """Tries selected AI provider with strict timeout or falls back to local chapter analysis."""
         if not self.api_key or self.api_key in ["YOUR_API_KEY_HERE", "demo", "null", "undefined", ""]:
             raise RuntimeError("Local Hardware / Demo mode active. Using instant local energy-peak analysis.")
 
@@ -89,7 +145,7 @@ class AISelector:
                 m = MockRes(); m.text = text
                 return m
             except Exception as e:
-                print(f"⚠️ Groq LPU note: {e}. Falling back to smart chapter analyzer.")
+                print(f"[AISelector] Groq LPU note: {e}. Falling back to smart chapter analyzer.")
                 raise RuntimeError(e)
 
         # 2. DeepSeek
@@ -100,18 +156,18 @@ class AISelector:
                 m = MockRes(); m.text = text
                 return m
             except Exception as e:
-                print(f"⚠️ DeepSeek note: {e}. Falling back to smart chapter analyzer.")
+                print(f"[AISelector] DeepSeek note: {e}. Falling back to smart chapter analyzer.")
                 raise RuntimeError(e)
 
         # 3. OpenAI ChatGPT / GPT-4o
         elif "openai" in self.provider or "chatgpt" in self.provider or "sora" in self.provider:
             try:
-                text = self._call_openai_compatible("https://api.openai.com/v1", "gpt-4o-mini", prompt)
+                text = self._call_openai_compatible("https://api.openai.com/v1", "gpt-4o-mini", prompt, image_frames=image_frames)
                 class MockRes: text: str
                 m = MockRes(); m.text = text
                 return m
             except Exception as e:
-                print(f"⚠️ OpenAI note: {e}. Falling back to smart chapter analyzer.")
+                print(f"[AISelector] OpenAI note: {e}. Falling back to smart chapter analyzer.")
                 raise RuntimeError(e)
 
         # 4. Anthropic Claude
@@ -122,7 +178,7 @@ class AISelector:
                 m = MockRes(); m.text = text
                 return m
             except Exception as e:
-                print(f"⚠️ Anthropic note: {e}. Falling back to smart chapter analyzer.")
+                print(f"[AISelector] Anthropic note: {e}. Falling back to smart chapter analyzer.")
                 raise RuntimeError(e)
 
         # 5. Moonshot / Moonlight
@@ -133,7 +189,7 @@ class AISelector:
                 m = MockRes(); m.text = text
                 return m
             except Exception as e:
-                print(f"⚠️ Moonlight note: {e}. Falling back to smart chapter analyzer.")
+                print(f"[AISelector] Moonlight note: {e}. Falling back to smart chapter analyzer.")
                 raise RuntimeError(e)
 
         # 6. Alibaba Qwen
@@ -144,21 +200,32 @@ class AISelector:
                 m = MockRes(); m.text = text
                 return m
             except Exception as e:
-                print(f"⚠️ Qwen note: {e}. Falling back to smart chapter analyzer.")
+                print(f"[AISelector] Qwen note: {e}. Falling back to smart chapter analyzer.")
                 raise RuntimeError(e)
 
         # 7. Google Gemini (Gemini 2.0 Flash / Gemini 1.5 Flash)
         else:
             gemini_models = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.0-flash-lite", "gemini-1.5-pro"]
+            parts = []
+            if image_frames:
+                for frame_bytes in image_frames:
+                    parts.append({
+                        "inline_data": {
+                            "mime_type": "image/jpeg",
+                            "data": base64.b64encode(frame_bytes).decode("utf-8")
+                        }
+                    })
+            parts.append({"text": prompt})
+
             for model_name in gemini_models:
                 try:
                     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={self.api_key}"
                     headers = {"Content-Type": "application/json"}
                     payload = {
-                        "contents": [{"parts": [{"text": prompt}]}],
+                        "contents": [{"parts": parts}],
                         "generationConfig": {"temperature": 0.4}
                     }
-                    r = requests.post(url, headers=headers, json=payload, timeout=3.5)
+                    r = requests.post(url, headers=headers, json=payload, timeout=6.0)
                     if r.status_code == 200:
                         res_json = r.json()
                         text = res_json["candidates"][0]["content"]["parts"][0]["text"]
@@ -166,9 +233,9 @@ class AISelector:
                         m = MockRes(); m.text = text
                         return m
                     else:
-                        print(f"⚠️ Google Gemini note ({model_name}): HTTP {r.status_code}")
+                        print(f"[AISelector] Google Gemini note ({model_name}): HTTP {r.status_code}")
                 except Exception as e:
-                    print(f"⚠️ Google Gemini note ({model_name}): {e}")
+                    print(f"[AISelector] Google Gemini note ({model_name}): {e}")
                     continue
             raise RuntimeError("Gemini API call failed across all available models.")
 
@@ -260,16 +327,19 @@ class AISelector:
             for i in range(n):
                 st = max(0.0, min(video_duration - target_duration, i * step))
                 et = min(video_duration, st + target_duration)
+                score = max(70, 95 - (i * 4))
+                sub = normalize_sub_scores(None, score)
                 clips.append({
                     'start': st,
                     'end': et,
-                    'title': f'Peak Highlight #{i+1}',
-                    'virality_score': max(70, 95 - (i * 4)),
-                    'hook_type': 'story_reveal',
-                    'reason': 'Visual energy sequence',
+                    'title': f'Highlight #{i+1}',
+                    'virality_score': score,
+                    'sub_scores': sub.to_dict(),
+                    'hook_type': 'Story Reveal',
+                    'reason': 'Visual energy sequence with continuous narrative',
                     'duration': et - st,
-                    'content_title': f"Peak Highlight #{i+1} 🚀",
-                    'content_description': "Insane viral moment! #shorts #viral #reels"
+                    'content_title': f"Highlight #{i+1}",
+                    'content_description': "Must-watch viral highlight! #shorts #viral #reels"
                 })
             return clips
 
@@ -337,6 +407,7 @@ class AISelector:
                         hook_txt = " ".join(accumulated_text[:min(3, len(accumulated_text))])
                         
                         score = 50.0
+                        hook_bonus = 0.0
 
                         if topic and topic.lower() in full_txt.lower():
                             score += 40.0
@@ -346,15 +417,18 @@ class AISelector:
                         for hp in HOOK_PATTERNS:
                             if re.search(hp, first_seg_txt, re.IGNORECASE):
                                 score += 35.0
+                                hook_bonus += 8.0
                                 break
                             elif re.search(hp, hook_txt, re.IGNORECASE):
                                 score += 20.0
+                                hook_bonus += 4.0
                                 break
 
                         WEAK_STARTS = [r"^(so yeah|um|uh|and then|like i said|anyways|so basically|ok so)\b"]
                         for ws in WEAK_STARTS:
                             if re.search(ws, first_seg_txt, re.IGNORECASE):
                                 score -= 25.0
+                                hook_bonus -= 10.0
 
                         for rp in REACTION_PATTERNS:
                             matches = len(re.findall(rp, full_txt, re.IGNORECASE))
@@ -381,15 +455,24 @@ class AISelector:
                         if len(hook_txt) > 45:
                             title_candidate += "..."
 
+                        comp_score = int(min(99, max(60, score)))
+                        candidate_sub_scores = normalize_sub_scores(
+                            raw_sub_scores=None,
+                            overall_score=comp_score,
+                            hook_bonus=hook_bonus,
+                            wpm=wpm
+                        )
+
                         candidates.append({
                             'start': exp_st,
                             'end': exp_et,
                             'duration': exp_et - exp_st,
-                            'virality_score': int(min(99, max(60, score))),
+                            'virality_score': comp_score,
+                            'sub_scores': candidate_sub_scores.to_dict(),
                             'title': title_candidate,
-                            'hook_type': 'high_engagement_story',
-                            'reason': f'High speech density ({int(wpm)} WPM) with complete story context',
-                            'content_title': f"{title_candidate} 🔥",
+                            'hook_type': 'High Engagement Story',
+                            'reason': f'High speech density ({int(wpm)} WPM) with complete narrative resolution',
+                            'content_title': title_candidate,
                             'content_description': "Must-watch viral highlight! #shorts #viral #reels #trending"
                         })
                     else:
@@ -421,25 +504,28 @@ class AISelector:
                 st = max(0.0, min(video_duration - target_duration, i * step))
                 et = min(video_duration, st + target_duration)
                 exp_st, exp_et = self._expand_to_complete_context(clean_segs, st, et, video_duration)
+                fallback_score = max(65, 88 - (len(selected) * 4))
+                fallback_sub = normalize_sub_scores(None, fallback_score)
                 selected.append({
                     'start': exp_st,
                     'end': exp_et,
-                    'duration': exp_et - exp_st,
-                    'virality_score': max(65, 88 - (len(selected) * 4)),
+                    'duration': exp_st,
+                    'virality_score': fallback_score,
+                    'sub_scores': fallback_sub.to_dict(),
                     'title': f'Chapter Highlight #{len(selected)+1}',
-                    'hook_type': 'story_reveal',
+                    'hook_type': 'Story Reveal',
                     'reason': 'Engaging segment from video chapter',
-                    'content_title': f"Highlight #{len(selected)+1} 🍿",
+                    'content_title': f"Highlight #{len(selected)+1}",
                     'content_description': "Check out this highlight! #shorts #viral"
                 })
 
         selected.sort(key=lambda x: x['virality_score'], reverse=True)
         return selected[:n]
 
-    def select_clips(self, segments, video_duration, n, target_duration, topic=None):
+    def select_clips(self, segments, video_duration, n, target_duration, topic=None, video_path=None):
         """
         Selects the most viral clips from a transcript using frontier AI models 
-        (Gemini, Groq, OpenAI, Claude, DeepSeek) with intelligent NLP fallback.
+        (Gemini, Groq, OpenAI, Claude, DeepSeek) with intelligent multimodal evaluation and NLP fallback.
         """
         # Format clean, continuous transcript (up to 300 contiguous segments without skipping)
         if len(segments) > 300:
@@ -459,18 +545,23 @@ class AISelector:
         
         topic_clause = f"Focus strictly on highlights involving '{topic}'." if topic else "Focus on the most jaw-dropping, funny, emotional, or educational viral peaks."
 
-        prompt = f"""You are a world-class viral video editor (similar to Opus Clip and viral TikTok curators).
+        prompt = f"""You are an elite viral video editor and algorithm curator.
 Analyze this continuous video transcript with timestamps and select the {n} BEST viral short-form clips.
 
 {topic_clause}
 
-CRITICAL RULES FOR FULL CONTEXT & NARRATIVE COMPLETENESS:
-1. FULL CONTEXT SETUP (NEVER START IN THE MIDDLE): Every clip MUST include the opening question, premise, or backstory that introduces the topic. Never start mid-explanation (e.g. starting at "So that's why they did it..." WITHOUT the setup is STRICTLY FORBIDDEN).
-2. FULL NARRATIVE RESOLUTION: Every clip MUST conclude the thought, story, or lesson completely. Never cut off mid-explanation before the conclusion is spoken.
-3. TARGET DURATION GUIDELINE (~{target_duration}s): Use ~{target_duration} seconds as a flexible guide, NOT a rigid guillotine. If completing the full premise-to-conclusion story takes less or more time, capture the complete unbroken story arc.
+CRITICAL RULES FOR VIRAL QUALITY & EXPLAINABLE METRICS:
+1. FULL CONTEXT SETUP (NEVER START IN THE MIDDLE): Every clip MUST include the opening question, premise, or backstory introducing the topic. Never start mid-thought.
+2. FULL NARRATIVE RESOLUTION: Every clip MUST conclude the thought, story, or lesson completely. Never cut off mid-explanation.
+3. TARGET DURATION GUIDELINE (~{target_duration}s): Use ~{target_duration} seconds as a flexible guide capturing the complete unbroken story arc.
 4. ZERO FILLER: Do NOT select sponsor reads, channel plugs, or audio checks.
 5. EXACT SENTENCE BOUNDARIES: Start at word 1 of the opening sentence and end cleanly on the final punctuation mark.
-6. EXACT NUMBER: Return EXACTLY {n} non-overlapping clips in the JSON array.
+6. EXPLAINABLE METRICS: Provide an overall virality_score (0-99) and 4 sub_scores:
+   - hook (0-99): Opening 3-5 seconds retention strength.
+   - flow (0-99): Rhythm, conversational pacing, lack of dead air.
+   - value (0-99): Information density or emotional payoff.
+   - trend (0-99): Viral topical relevance and hook patterns.
+7. EXACT NUMBER: Return EXACTLY {n} non-overlapping clips in the JSON array.
 
 VIDEO DURATION: {video_duration} seconds
 
@@ -484,19 +575,39 @@ Return ONLY valid JSON format:
       "start": 12.4,
       "end": 48.6,
       "title": "Short punchy summary of the clip",
-      "hook_title": "3-5 word clickbait title for on-screen text",
+      "hook_title": "3-5 word on-screen text",
       "virality_score": 94,
-      "hook_type": "shock_reveal",
-      "reason": "Complete narrative arc starting with the opening setup question and ending with full resolution",
-      "content_title": "Catchy viral title for TikTok/Shorts (e.g. 'He revealed the truth! 🤯')",
+      "sub_scores": {{
+        "hook": 96,
+        "flow": 91,
+        "value": 93,
+        "trend": 95
+      }},
+      "hook_type": "Shock Reveal",
+      "reason": "Complete narrative arc starting with opening question and ending with full resolution",
+      "content_title": "He Revealed The Shocking Truth",
       "content_description": "Engaging description with viral hashtags #shorts #viral #reels"
     }}
   ]
 }}"""
         
         try:
-            print(f"🤖 {self.provider.upper()} analyzing transcript for complete narrative story arcs...")
-            response = self._generate_with_fallback(prompt, generation_config={"response_mime_type": "application/json"})
+            image_frames = []
+            if video_path and os.path.exists(video_path):
+                try:
+                    sample_pts = [float(video_duration) * 0.15, float(video_duration) * 0.45, float(video_duration) * 0.75]
+                    image_frames = self.sample_candidate_keyframes(video_path, sample_pts, max_frames=3)
+                    if image_frames:
+                        print(f"[AISelector] Sampled {len(image_frames)} keyframes for multimodal visual evaluation")
+                except Exception as kf_err:
+                    print(f"[AISelector] Keyframe sampling notice: {kf_err}")
+
+            print(f"[AISelector] {self.provider.upper()} analyzing content for complete narrative story arcs...")
+            response = self._generate_with_fallback(
+                prompt,
+                generation_config={"response_mime_type": "application/json"},
+                image_frames=image_frames if image_frames else None
+            )
             raw_text = getattr(response, "text", str(response)).strip()
             clean_text = raw_text
             if clean_text.startswith("```"):
@@ -516,8 +627,10 @@ Return ONLY valid JSON format:
                 end = clip_data.get('end')
                 title = clip_data.get('title', 'Untitled Highlight')
                 score = clip_data.get('virality_score', 85)
-                hook_type = clip_data.get('hook_type', 'story_reveal')
-                content_title = clip_data.get('content_title', f"Viral Moment: {title} 🚀")
+                sub_scores_raw = clip_data.get('sub_scores')
+                hook_type = clip_data.get('hook_type', 'Story Reveal')
+                reason = clip_data.get('reason', 'Strong narrative flow and retention hook')
+                content_title = clip_data.get('content_title', f"Viral Moment: {title}")
                 content_description = clip_data.get('content_description', "Check out this viral moment! #shorts #reels #tiktok #viral")
 
                 if start is None or end is None:
@@ -530,13 +643,17 @@ Return ONLY valid JSON format:
                 # Pass through Context Expander to guarantee setup + conclusion are not truncated
                 exp_st, exp_et = self._expand_to_complete_context(segments, start, end, video_duration)
                 dur = exp_et - exp_st
+                comp_score = max(60, min(99, int(score)))
+                sub_scores = normalize_sub_scores(sub_scores_raw, comp_score)
 
                 validated_clips.append({
                     'start': exp_st,
                     'end': exp_et,
                     'title': title,
-                    'virality_score': max(60, min(99, int(score))),
+                    'virality_score': comp_score,
+                    'sub_scores': sub_scores.to_dict(),
                     'hook_type': hook_type,
+                    'reason': reason,
                     'duration': dur,
                     'content_title': content_title,
                     'content_description': content_description
@@ -549,19 +666,19 @@ Return ONLY valid JSON format:
 
             if len(validated_clips) < n:
                 needed = n - len(validated_clips)
-                print(f"⚠️ Padding {needed} additional viral moments using NLP context detector...")
+                print(f"[AISelector] Padding {needed} additional viral moments using NLP context detector...")
                 extra = self._heuristic_viral_selector(segments, video_duration, needed, target_duration, topic=topic)
                 for ex in extra:
                     validated_clips.append(ex)
 
-            print(f"✅ Selected top {n} complete narrative clips:")
+            print(f"[AISelector] Selected top {n} complete narrative clips:")
             for i, clip in enumerate(validated_clips[:n], 1):
                 print(f"  {i}. {clip['title']} (Score: {clip['virality_score']}pts, Duration: {clip['duration']:.1f}s)")
             
             return validated_clips[:n]
             
         except Exception as e:
-            print(f"⚡ AI selection notice: {e}. Executing Intelligent NLP Virality Scorer...")
+            print(f"[AISelector] AI selection notice: {e}. Executing Intelligent NLP Virality Scorer...")
             return self._heuristic_viral_selector(segments, video_duration, n, target_duration, topic=topic)
 
     def _fallback_selection(self, segments, video_duration, n, target_duration):

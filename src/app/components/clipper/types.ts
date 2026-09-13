@@ -1,5 +1,12 @@
 export type ViewMode = "setup" | "gallery" | "details" | "vault";
 
+export interface ViralitySubScores {
+  hook: number;
+  flow: number;
+  value: number;
+  trend: number;
+}
+
 export interface ClipMetadata {
   filename: string;
   path: string;
@@ -7,6 +14,9 @@ export interface ClipMetadata {
   title: string;
   description: string;
   virality_score: number;
+  sub_scores?: ViralitySubScores;
+  hook_type?: string;
+  reason?: string;
   created_at: number;
   size_mb: number;
   folder: string;
