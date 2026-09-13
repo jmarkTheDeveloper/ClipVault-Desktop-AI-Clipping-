@@ -217,12 +217,29 @@ class FaceTracker:
             except Exception:
                 pass
 
-        # Filter out tiny transient noise, keeping valid facecam or speaker boxes
-        if faces:
-            max_area = max(f['area'] for f in faces)
-            faces = [f for f in faces if f['area'] >= max_area * 0.05 and f['confidence'] >= 0.25]
+        # Filter out false-positive non-face detections (e.g., legs, shoes, pants at bottom of frame, or massive screen-sized boxes)
+        valid_faces = []
+        for f in faces:
+            # 1. Human faces must be in the upper/middle portion of the frame (never at the very bottom legs/feet region)
+            if f['center_y'] > h * 0.70:
+                continue
+            # 2. Human face bounding box cannot take up more than 45% width or 50% height of the entire video frame
+            if f['width'] > w * 0.45 or f['height'] > h * 0.50 or f['area'] > (w * h * 0.20):
+                continue
+            # 3. Minimum size to avoid tiny single-pixel noise
+            if f['width'] < 16 or f['height'] < 16 or f['area'] < 300:
+                continue
+            valid_faces.append(f)
 
-        result = sorted(faces, key=lambda f: (f['confidence'] ** 2) * (f['area'] ** 0.5), reverse=True)
+        if valid_faces:
+            # Rank faces by confidence and upper-body eye-level position (prefer upper 20%-50% region over extreme edges)
+            def face_rank(f):
+                eye_level_bonus = 1.0 - abs(f['center_y'] - h * 0.35) / h
+                return (f['confidence'] ** 2) * (f['area'] ** 0.35) * eye_level_bonus
+
+            result = sorted(valid_faces, key=face_rank, reverse=True)
+        else:
+            result = []
 
         # Extract mouth ROI patch for active speech / lip-motion detection
         for f in result:
@@ -414,13 +431,14 @@ class FaceTracker:
         speaker_A = speaker_clusters[0]
         speaker_B = speaker_clusters[1]
         cluster_dist = abs(speaker_B - speaker_A)
-        two_shot_fits = (cluster_dist <= target_width * 0.80)
+        # Tight 2-shot fit: two people sitting close together on the same couch (<= 45% target width)
+        two_shot_fits = (cluster_dist <= target_width * 0.45)
         two_shot_center = max(target_width / 2.0, min(width - target_width / 2.0, (speaker_A + speaker_B) / 2.0))
 
         raw_shot_candidates = []
         for det_list in all_frame_detections:
             if not det_list:
-                raw_shot_candidates.append('TWO_SHOT')
+                raw_shot_candidates.append('SPEAKER_A')
                 continue
 
             faces_A = [f for f in det_list if abs(f['center_x'] - speaker_A) < target_width * 0.40]
@@ -433,7 +451,8 @@ class FaceTracker:
             elif act_B >= 4.0 and act_B > act_A * 1.4:
                 raw_shot_candidates.append('SPEAKER_B')
             else:
-                raw_shot_candidates.append('TWO_SHOT')
+                # Default to primary speaker A rather than empty middle space
+                raw_shot_candidates.append('SPEAKER_A')
 
         # Adjust reaction hysteresis & switching speed based on selected camera_style
         if camera_style == "instant":
@@ -442,12 +461,12 @@ class FaceTracker:
             min_hold = max(2, int(fps_sample * 1.5))
 
         director_shots = []
-        current_shot = 'TWO_SHOT'
+        current_shot = 'SPEAKER_A'
         hold_count = 0
 
         for i, cand in enumerate(raw_shot_candidates):
             if i < int(fps_sample * 0.6): # Establish scene fast
-                director_shots.append('TWO_SHOT')
+                director_shots.append('SPEAKER_A')
                 continue
 
             if cand == current_shot:
