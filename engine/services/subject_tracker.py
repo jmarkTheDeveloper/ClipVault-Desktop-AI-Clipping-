@@ -49,10 +49,10 @@ class SubjectTracker:
                     col_sums = np.sum(sal_mask, axis=0)
                     total_sal = np.sum(col_sums)
                     if total_sal > 0:
-                        xs = np.arange(len(col_sums))
-                        centroid_x = float(np.average(xs, weights=col_sums))
-                        # Scale back to original video width
-                        return (centroid_x / len(col_sums)) * width
+                        # Smooth 1D distribution to find dominant subject cluster peak rather than empty midpoint
+                        smooth_sal = cv2.GaussianBlur(col_sums.astype(np.float32).reshape(1, -1), (1, 15), 0)[0]
+                        peak_idx = int(np.argmax(smooth_sal))
+                        return (peak_idx / len(col_sums)) * width
         except Exception:
             pass
 
@@ -64,9 +64,9 @@ class SubjectTracker:
             col_energy = np.sum(mag, axis=0)
             total_energy = np.sum(col_energy)
             if total_energy > 0:
-                xs = np.arange(len(col_energy))
-                cx = float(np.average(xs, weights=col_energy))
-                return (cx / len(col_energy)) * width
+                smooth_energy = cv2.GaussianBlur(col_energy.astype(np.float32).reshape(1, -1), (1, 15), 0)[0]
+                peak_idx = int(np.argmax(smooth_energy))
+                return (peak_idx / len(col_energy)) * width
         except Exception:
             pass
 

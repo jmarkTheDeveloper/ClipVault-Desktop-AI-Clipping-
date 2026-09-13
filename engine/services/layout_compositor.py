@@ -225,6 +225,51 @@ class LayoutCompositor:
                 print(f"    [LayoutCompositor] Failed to load gameplay background: {bg_err}")
                 raise bg_err
 
+        elif layout in ("podcast_split", "split_podcast"):
+            print("    [LayoutCompositor] Applying Auto Dual-Speaker Podcast Split (Speaker A Top, Speaker B Bottom)...")
+            try:
+                W, H = clip.size
+                target_half_w = target_width
+                target_half_h = target_height // 2
+                target_ar = float(target_half_w) / float(target_half_h)
+
+                # Query FaceTracker for speaker anchors
+                left_x, right_x = None, None
+                if self.face_tracker:
+                    left_x, right_x = self.face_tracker.get_speaker_anchors(clip)
+
+                if left_x is None:
+                    left_x = W * 0.28
+                if right_x is None:
+                    right_x = W * 0.72
+
+                crop_w = int(H * target_ar)
+                if crop_w % 2 != 0:
+                    crop_w -= 1
+                crop_w = min(W, crop_w)
+
+                def crop_speaker_half(cx):
+                    sx1 = max(0, min(W - crop_w, int(round(cx - crop_w / 2.0))))
+                    half_c = clip.crop(x1=sx1, y1=0, width=crop_w, height=H).resize((target_half_w, target_half_h))
+                    clips_to_close.append(half_c)
+                    return half_c
+
+                top_speaker = crop_speaker_half(left_x)
+                bot_speaker = crop_speaker_half(right_x)
+
+                composed = CompositeVideoClip([
+                    top_speaker.set_position((0, 0)),
+                    bot_speaker.set_position((0, target_half_h))
+                ], size=(target_width, target_height))
+
+                if clip.audio is not None:
+                    composed = composed.set_audio(clip.audio)
+
+                clips_to_close.append(composed)
+                return composed
+            except Exception as pe:
+                print(f"    [LayoutCompositor] Podcast split notice: {pe}. Falling back to active tracking.")
+
         elif layout == "custom_split" and custom_crop_boxes and len(custom_crop_boxes) >= 2:
             print("    [LayoutCompositor] Applying custom dual-box split-screen layout from UI...")
             try:
