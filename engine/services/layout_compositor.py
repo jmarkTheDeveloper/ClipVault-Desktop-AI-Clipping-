@@ -93,13 +93,13 @@ class LayoutCompositor:
             clips_to_close = []
 
         if layout == "landscape":
-            print(f"    📐 Keeping original landscape resolution ({target_width}x{target_height})...")
+            print(f"    [LayoutCompositor] Keeping original landscape resolution ({target_width}x{target_height})...")
             scaled = clip.resize((target_width, target_height))
             clips_to_close.append(scaled)
             return scaled
 
         elif layout == "landscape_blur":
-            print(f"    📐 Fitting landscape video with blurred background inside vertical canvas ({target_width}x{target_height})...")
+            print(f"    [LayoutCompositor] Fitting landscape video with blurred background inside vertical canvas ({target_width}x{target_height})...")
             W, H = clip.size
             scale_bg = max(target_width / W, target_height / H) * 1.15
             bg_w = int(W * scale_bg)
@@ -137,7 +137,7 @@ class LayoutCompositor:
             return composed
 
         elif layout == "landscape_fit":
-            print(f"    📐 Fitting landscape video inside vertical canvas ({target_width}x{target_height})...")
+            print(f"    [LayoutCompositor] Fitting landscape video inside vertical canvas ({target_width}x{target_height})...")
             fg = clip.resize(width=target_width)
             clips_to_close.append(fg)
             bg = ColorClip(size=(target_width, target_height), color=(0, 0, 0), duration=clip.duration)
@@ -147,7 +147,7 @@ class LayoutCompositor:
             return composed
 
         elif layout == "gameplay_bg":
-            print("    🎮 Applying Satisfying Gameplay Split (Speaker Top, Gameplay Bottom)...")
+            print("    [LayoutCompositor] Applying Satisfying Gameplay Split (Speaker Top, Gameplay Bottom)...")
             bg_file = None
             if gameplay_bg_video and Path(gameplay_bg_video).exists():
                 bg_file = Path(gameplay_bg_video)
@@ -170,12 +170,12 @@ class LayoutCompositor:
                 speaker_ratio = speaker_w / speaker_h
                 top_speaker = None
                 if self.face_tracker:
-                    print("    🎯 Applying intelligent face tracking to top speaker frame...")
+                    print("    [LayoutCompositor] Applying intelligent face/subject tracking to top speaker frame...")
                     try:
                         tracked_top = self.face_tracker.track_and_crop(clip, crop_ratio=speaker_ratio, camera_style=camera_style)
                         top_speaker = tracked_top.resize((speaker_w, speaker_h))
                     except Exception as fe:
-                        print(f"    ⚠️ Face tracking fallback in gameplay layout: {fe}")
+                        print(f"    [LayoutCompositor] Tracking fallback in gameplay layout: {fe}")
                         top_speaker = None
 
                 if top_speaker is None:
@@ -230,11 +230,11 @@ class LayoutCompositor:
                 clips_to_close.append(composed)
                 return composed
             except Exception as bg_err:
-                print(f"    ⚠️ Failed to load gameplay background: {bg_err}")
+                print(f"    [LayoutCompositor] Failed to load gameplay background: {bg_err}")
                 raise bg_err
 
         elif layout == "custom_split" and custom_crop_boxes and len(custom_crop_boxes) >= 2:
-            print("    🎛️ Applying custom dual-box split-screen layout from UI...")
+            print("    [LayoutCompositor] Applying custom dual-box split-screen layout from UI...")
             try:
                 W, H = clip.size
                 box_top = custom_crop_boxes[0]
@@ -294,11 +294,11 @@ class LayoutCompositor:
                 clips_to_close.append(composed)
                 return composed
             except Exception as split_err:
-                print(f"    ⚠️ Custom split failed: {split_err}. Falling back to standard vertical crop.")
+                print(f"    [LayoutCompositor] Custom split failed: {split_err}. Falling back to standard vertical crop.")
 
-        # Default: 9:16 Vertical Crop with intelligent Active Speaker Face Tracking
+        # Default: 9:16 Vertical Crop with intelligent Active Speaker Face & Subject Tracking
         if custom_crop_boxes and len(custom_crop_boxes) > 0:
-            print("    📐 Using custom crop coordinates from UI...")
+            print("    [LayoutCompositor] Using custom crop coordinates from UI...")
             box = custom_crop_boxes[0]
             W, H = clip.size
             x_pct, y_pct = float(box.get('x', 0)), float(box.get('y', 0))
@@ -314,7 +314,7 @@ class LayoutCompositor:
             return self.letterbox(cropped, target_width, target_height)
 
         if self.face_tracker:
-            print("    🎯 Applying intelligent face tracking...")
+            print("    [LayoutCompositor] Applying intelligent subject / speaker reframe tracking...")
             try:
                 tracked = self.face_tracker.track_and_crop(clip, camera_style=camera_style)
                 clips_to_close.append(tracked)
@@ -322,7 +322,7 @@ class LayoutCompositor:
                 clips_to_close.append(resized)
                 return resized
             except Exception as e:
-                print(f"    ⚠️ Face tracking note: {e}")
+                print(f"    [LayoutCompositor] Face/Subject tracking notice: {e}")
 
         # Fallback centered vertical crop
         crop_w = int(clip.h * 9 / 16)

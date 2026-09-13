@@ -53,13 +53,24 @@ except Exception:
     mp_face_detector = None
 
 
+try:
+    from services.subject_tracker import SubjectTracker
+except ImportError:
+    try:
+        from subject_tracker import SubjectTracker
+    except ImportError:
+        from engine.services.subject_tracker import SubjectTracker
+
+
 class FaceTracker:
     """
-    Tracks human faces, side profiles, and speakers with zero-jitter tripod stability.
+    Tracks human faces, side profiles, and speakers with zero-jitter tripod stability,
+    with automatic delegation to SubjectTracker when no faces are detected.
     """
     def __init__(self):
         self.face_cache: Dict[float, List[Dict[str, Any]]] = {}
         self.mp_detector = mp_face_detector
+        self.subject_tracker = SubjectTracker()
         
         # Load OpenCV Frontal & Profile Cascades
         self.frontal_cascade = None
@@ -94,7 +105,7 @@ class FaceTracker:
             self.hog_detector = None
 
         try:
-            print(f">> Computer Vision Pipeline: MediaPipe={self.mp_detector is not None}, FrontalCascade={self.frontal_cascade is not None}, ProfileCascade={self.profile_cascade is not None}, HOG={self.hog_detector is not None}")
+            print(f">> Computer Vision Pipeline: MediaPipe={self.mp_detector is not None}, FrontalCascade={self.frontal_cascade is not None}, ProfileCascade={self.profile_cascade is not None}, HOG={self.hog_detector is not None}, SubjectTracker=True")
         except Exception:
             pass
 
@@ -385,30 +396,13 @@ class FaceTracker:
             if len(speaker_clusters) == 1 or top_ratio >= 0.55:
                 primary_is_dominant = True
         else:
-            # Fallback: Smart sector skin-tone & saliency analysis when neural face detection finds 0 faces
+            # When neural face detection finds 0 faces across all sample frames,
+            # engage SubjectTracker to track non-human subjects (action, gameplay, sports, products)
+            print("    [FaceTracker] 0 human faces detected. Engaging general-purpose SubjectTracker...")
             try:
-                sector_scores = [0.0, 0.0, 0.0]
-                for t in sample_times[:min(6, len(sample_times))]:
-                    frm = clip.get_frame(t)
-                    h_f, w_f = frm.shape[:2]
-                    hsv = cv2.cvtColor(frm, cv2.COLOR_RGB2HSV)
-                    skin_mask = cv2.inRange(hsv, np.array([0, 15, 40]), np.array([25, 175, 255]))
-                    w3 = w_f // 3
-                    sector_scores[0] += float(np.sum(skin_mask[:, :w3]))
-                    sector_scores[1] += float(np.sum(skin_mask[:, w3:2*w3]))
-                    sector_scores[2] += float(np.sum(skin_mask[:, 2*w3:]))
-                tot_score = sum(sector_scores)
-                if tot_score > 0:
-                    left_r = sector_scores[0] / tot_score
-                    right_r = sector_scores[2] / tot_score
-                    if left_r >= 0.38 and left_r > right_r * 1.25:
-                        primary_speaker_x = width * 0.30
-                        print(f"    🎬 Smart Sector Lock: Primary speaker/facecam detected on LEFT sector (X={primary_speaker_x:.0f})")
-                    elif right_r >= 0.38 and right_r > left_r * 1.25:
-                        primary_speaker_x = width * 0.70
-                        print(f"    🎬 Smart Sector Lock: Primary speaker/facecam detected on RIGHT sector (X={primary_speaker_x:.0f})")
-            except Exception:
-                pass
+                return self.subject_tracker.track_and_crop(clip, crop_ratio=crop_ratio, camera_style=camera_style)
+            except Exception as st_err:
+                print(f"    [FaceTracker] SubjectTracker notice: {st_err}")
 
         # ── 2. ROCK-SOLID TRIPOD LOCK FOR DOMINANT SINGLE SPEAKER / REACTION VIDEOS ──
         if primary_is_dominant or len(speaker_clusters) <= 1:
@@ -417,7 +411,7 @@ class FaceTracker:
             x1 = int(round(cx - target_width / 2.0))
             x1 = max(0, min(width - target_width, x1))
 
-            print(f"    🎬 Tripod Lock Active: Perfectly centered & locked at X={primary_speaker_x:.0f} (Crop X1={x1})")
+            print(f"    [FaceTracker] Tripod Lock Active: Perfectly centered & locked at X={primary_speaker_x:.0f} (Crop X1={x1})")
 
             def static_tripod_filter(get_frame, t):
                 frame = get_frame(t)
@@ -496,7 +490,7 @@ class FaceTracker:
         sample_times_arr = np.array(sample_times, dtype=np.float64)
         target_xs_arr = np.array(target_xs, dtype=np.float64)
 
-        print(f"    🎬 Camera Director Mode: '{camera_style}' ({len(director_shots)} direction keyframes)")
+        print(f"    [FaceTracker] Camera Director Mode: '{camera_style}' ({len(director_shots)} direction keyframes)")
 
         def multi_speaker_filter(get_frame, t):
             frame = get_frame(t)
