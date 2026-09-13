@@ -27,9 +27,9 @@ if (
 // Generate single-session 256-bit cryptographically secure token for Python API authorization
 const BACKEND_AUTH_TOKEN = crypto.randomBytes(32).toString('hex');
 
-// Set Application Name & Identity so Windows Task Manager, Settings, and Notifications show ClipVault Studio
-app.name = 'ClipVault Studio';
-app.setName('ClipVault Studio');
+// Set Application Name & Identity so Windows Task Manager, Settings, and Notifications show ClipVault
+app.name = 'ClipVault';
+app.setName('ClipVault');
 
 // Disable Electron console security warnings in dev mode (packaged app already excludes these)
 process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true';
@@ -194,7 +194,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 720,
-    title: 'ClipVault AI Video Studio',
+    title: 'ClipVault',
     show: false,
     icon: (appIcon && !appIcon.isEmpty()) ? appIcon : iconTarget,
     webPreferences: {
@@ -446,11 +446,21 @@ app.whenReady().then(() => {
       const shortcutDir = path.join(app.getPath('appData'), 'Microsoft', 'Windows', 'Start Menu', 'Programs');
       const shortcutPath = path.join(shortcutDir, 'ClipVault.lnk');
       const iconIco = path.resolve(__dirname, '../public/icon.ico');
+
+      // Clean up legacy truncated shortcuts so Windows toast notifications always show "ClipVault"
+      const legacyShortcuts = ['ClipVault AI Studi.lnk', 'ClipVault AI Studio.lnk', 'ClipVault Studio.lnk'];
+      for (const legacy of legacyShortcuts) {
+        const legacyPath = path.join(shortcutDir, legacy);
+        if (fs.existsSync(legacyPath)) {
+          try { fs.unlinkSync(legacyPath); } catch (e) {}
+        }
+      }
+
       const shortcutOptions = {
         target: process.execPath,
         args: app.isPackaged ? '' : `"${path.resolve(__dirname, '..')}"`,
         appUserModelId: 'ClipVault',
-        description: 'ClipVault AI Video Studio',
+        description: 'ClipVault',
         icon: iconIco,
         iconIndex: 0,
       };

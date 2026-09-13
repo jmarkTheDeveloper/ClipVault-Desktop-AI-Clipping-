@@ -75,7 +75,7 @@
       "installerHeaderIcon": "public/icon.ico",
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "ClipVault AI",
+      "shortcutName": "ClipVault",
       "license": "LICENSE",
       "runAfterFinish": true,
       "deleteAppDataOnUninstall": false
