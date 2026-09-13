@@ -46,6 +46,7 @@ class YouTubeDownloader:
     def __init__(self, temp_dir: Path = TEMP_DIR):
         self.temp_dir = Path(temp_dir).resolve()
         self.temp_dir.mkdir(parents=True, exist_ok=True)
+        self._stream_cache = {}
 
     @staticmethod
     def auto_update_ytdlp_background():
@@ -303,87 +304,93 @@ class YouTubeDownloader:
             slice_name = f"slice_{video_id}_{int(start_sec)}_{int(end_sec)}.mp4"
             output_path = self.temp_dir / slice_name
 
-        print(f"⚡ Fast-slicing YouTube stream ({start_sec:.1f}s - {end_sec:.1f}s, Quality: {quality})...")
+        print(f"    [YouTubeDownloader] Fast-slicing stream ({start_sec:.1f}s - {end_sec:.1f}s, Quality: {quality})...")
         if progress_callback:
-            progress_callback(f"Connecting to YouTube HD/4K stream...", 18)
+            progress_callback("Connecting to HD/4K stream...", 18)
 
-        # Step 1: Extract direct CDN URLs without downloading the video
-        opts = self._get_base_opts()
-        opts.update({'skip_download': True})
-
+        # Step 1: Check in-memory cache or extract direct CDN URLs without downloading
         try:
-            with yt_dlp.YoutubeDL(opts) as ydl:
-                info = ydl.extract_info(url, download=False)
-
-            formats = info.get("formats", []) if info else []
+            cache_key = f"{video_id}_{quality.lower()}"
+            cached_stream = self._stream_cache.get(cache_key)
             video_url = None
             audio_url = None
 
-            # Find matching quality video stream
-            if quality.lower() == "8k":
-                target_h = 4320
-            elif quality.lower() == "4k":
-                target_h = 2160
-            elif quality.lower() == "1080p":
-                target_h = 1080
+            if cached_stream:
+                video_url, audio_url = cached_stream
+                print(f"    [YouTubeDownloader] Reusing cached stream CDN URLs for {video_id}")
             else:
-                target_h = 720
-            
-            # 1. Look for separated video and audio formats matching target resolution
-            def is_within_target(f):
-                h, w = f.get("height") or 0, f.get("width") or 0
-                if not h and not w:
-                    return True
-                # Use smaller side (shorter dimension) to compare with target height (e.g. 2160 for 4K)
-                shorter_dim = min(h, w) if (h > 0 and w > 0) else (h or w)
-                return shorter_dim <= (target_h + 120)
+                opts = self._get_base_opts()
+                opts.update({'skip_download': True})
 
-            video_candidates = [
-                f for f in formats 
-                if f.get("vcodec") != "none" and f.get("url") and is_within_target(f)
-            ]
-            if not video_candidates:
-                video_candidates = [f for f in formats if f.get("vcodec") != "none" and f.get("url")]
+                with yt_dlp.YoutubeDL(opts) as ydl:
+                    info = ydl.extract_info(url, download=False)
 
-            if video_candidates:
-                # Pick the highest resolution video candidate (by area, height/width, and bitrate)
-                video_candidates.sort(
-                    key=lambda f: (
-                        (f.get("height") or 0) * (f.get("width") or 0),
-                        f.get("height") or 0,
-                        f.get("tbr") or 0
-                    ),
-                    reverse=True
-                )
-                best_vid = video_candidates[0]
-                video_url = best_vid.get("url")
-                # If chosen video candidate already has an audio stream, use it as default audio_url too
-                if best_vid.get("acodec") and best_vid.get("acodec") != "none":
-                    audio_url = video_url
+                formats = info.get("formats", []) if info else []
 
-            # 2. Look for best dedicated audio format or combined audio format
-            audio_candidates = [
-                f for f in formats 
-                if f.get("acodec") and f.get("acodec") != "none" and f.get("url")
-            ]
-            if audio_candidates:
-                # Prioritize audio-only streams (vcodec == 'none'), then highest audio bitrate (abr/tbr)
-                audio_candidates.sort(
-                    key=lambda f: (
-                        1 if f.get("vcodec") == "none" else 0,
-                        f.get("abr") or f.get("tbr") or 0
-                    ),
-                    reverse=True
-                )
-                audio_url = audio_candidates[0].get("url")
+                # Find matching quality video stream
+                if quality.lower() == "8k":
+                    target_h = 4320
+                elif quality.lower() == "4k":
+                    target_h = 2160
+                elif quality.lower() == "1080p":
+                    target_h = 1080
+                else:
+                    target_h = 720
+                
+                # 1. Look for separated video and audio formats matching target resolution
+                def is_within_target(f):
+                    h, w = f.get("height") or 0, f.get("width") or 0
+                    if not h and not w:
+                        return True
+                    shorter_dim = min(h, w) if (h > 0 and w > 0) else (h or w)
+                    return shorter_dim <= (target_h + 120)
 
-            # Fallback to combined format (e.g. format 22 or 18)
-            if not video_url:
-                for fmt in formats:
-                    if fmt.get("url") and fmt.get("vcodec") != "none":
-                        video_url = fmt.get("url")
-                        audio_url = fmt.get("url")
-                        break
+                video_candidates = [
+                    f for f in formats 
+                    if f.get("vcodec") != "none" and f.get("url") and is_within_target(f)
+                ]
+                if not video_candidates:
+                    video_candidates = [f for f in formats if f.get("vcodec") != "none" and f.get("url")]
+
+                if video_candidates:
+                    video_candidates.sort(
+                        key=lambda f: (
+                            (f.get("height") or 0) * (f.get("width") or 0),
+                            f.get("height") or 0,
+                            f.get("tbr") or 0
+                        ),
+                        reverse=True
+                    )
+                    best_vid = video_candidates[0]
+                    video_url = best_vid.get("url")
+                    if best_vid.get("acodec") and best_vid.get("acodec") != "none":
+                        audio_url = video_url
+
+                # 2. Look for best dedicated audio format
+                audio_candidates = [
+                    f for f in formats 
+                    if f.get("acodec") and f.get("acodec") != "none" and f.get("url")
+                ]
+                if audio_candidates:
+                    audio_candidates.sort(
+                        key=lambda f: (
+                            1 if f.get("vcodec") == "none" else 0,
+                            f.get("abr") or f.get("tbr") or 0
+                        ),
+                        reverse=True
+                    )
+                    audio_url = audio_candidates[0].get("url")
+
+                # Fallback to combined format
+                if not video_url:
+                    for fmt in formats:
+                        if fmt.get("url") and fmt.get("vcodec") != "none":
+                            video_url = fmt.get("url")
+                            audio_url = fmt.get("url")
+                            break
+
+                if video_url:
+                    self._stream_cache[cache_key] = (video_url, audio_url)
 
             if video_url:
                 ffmpeg_bin = imageio_ffmpeg.get_ffmpeg_exe()
@@ -439,20 +446,20 @@ class YouTubeDownloader:
                     str(temp_slice)
                 ])
 
-                print(f"🚀 Running direct HTTP range slice with ffmpeg (High-Speed Stream Extraction)...")
+                print("    [YouTubeDownloader] Running direct HTTP range slice with ffmpeg...")
                 proc = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, timeout=45)
                 if proc.returncode == 0 and temp_slice.exists() and temp_slice.stat().st_size > 10240:
                     if output_path.exists():
                         try: output_path.unlink()
                         except Exception: pass
                     shutil.move(str(temp_slice), str(output_path))
-                    print(f"✅ Fast slice extracted in seconds: {output_path.name} ({round(output_path.stat().st_size / (1024*1024), 2)} MB)")
+                    print(f"    [YouTubeDownloader] Fast slice extracted: {output_path.name} ({round(output_path.stat().st_size / (1024*1024), 2)} MB)")
                     return output_path
                 else:
                     err_msg = proc.stderr.decode('utf-8', errors='ignore')[-300:] if proc.stderr else "Unknown error"
-                    print(f"⚠️ Direct stream slice warning: {err_msg}")
+                    print(f"    [YouTubeDownloader] Direct stream slice warning: {err_msg}")
         except Exception as fast_err:
-            print(f"⚠️ Direct fast slicing note: {fast_err}. Falling back to standard slice downloader...")
+            print(f"    [YouTubeDownloader] Direct fast slicing note: {fast_err}. Falling back to standard slice downloader...")
 
         # Fallback to standard yt-dlp downloader if direct range stream extraction was blocked
         if quality.lower() == "8k":
@@ -490,7 +497,7 @@ class YouTubeDownloader:
             'progress_hooks': [ytdl_progress] if progress_callback else [],
         })
 
-        print(f"✂️ Downloading targeted stream slice via yt-dlp ({start_sec:.1f}s - {end_sec:.1f}s, Quality: {quality})...")
+        print(f"    [YouTubeDownloader] Downloading targeted stream slice via yt-dlp ({start_sec:.1f}s - {end_sec:.1f}s, Quality: {quality})...")
         if progress_callback:
             progress_callback(f"Downloading targeted stream slice ({start_sec:.0f}s-{end_sec:.0f}s, {quality})...", 20)
 
@@ -504,7 +511,7 @@ class YouTubeDownloader:
             try:
                 fut.result(timeout=60)
             except Exception as dl_timeout_err:
-                print(f"⚠️ Standard yt-dlp slice download timeout/error: {dl_timeout_err}")
+                print(f"    [YouTubeDownloader] Standard yt-dlp slice download notice: {dl_timeout_err}")
 
         if not output_path.exists():
             candidates = list(self.temp_dir.glob(f"{output_path.stem}.*"))

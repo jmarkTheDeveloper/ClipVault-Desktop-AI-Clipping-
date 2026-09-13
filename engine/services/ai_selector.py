@@ -225,7 +225,7 @@ class AISelector:
                         "contents": [{"parts": parts}],
                         "generationConfig": {"temperature": 0.4}
                     }
-                    r = requests.post(url, headers=headers, json=payload, timeout=6.0)
+                    r = requests.post(url, headers=headers, json=payload, timeout=25.0)
                     if r.status_code == 200:
                         res_json = r.json()
                         text = res_json["candidates"][0]["content"]["parts"][0]["text"]
@@ -527,9 +527,10 @@ class AISelector:
         Selects the most viral clips from a transcript using frontier AI models 
         (Gemini, Groq, OpenAI, Claude, DeepSeek) with intelligent multimodal evaluation and NLP fallback.
         """
-        # Format clean, continuous transcript (up to 300 contiguous segments without skipping)
-        if len(segments) > 300:
-            eval_segments = segments[:300]
+        # Format clean, continuous transcript covering full video timeline (up to 1,200 segments for 1+ hour videos)
+        if len(segments) > 1200:
+            stride = len(segments) / 1200.0
+            eval_segments = [segments[int(i * stride)] for i in range(1200)]
         else:
             eval_segments = segments
 
