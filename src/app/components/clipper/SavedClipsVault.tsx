@@ -407,8 +407,8 @@ const VaultClipCard: React.FC<{
         {!hasError && currentSrc ? (
           <video
             ref={videoRef}
-            src={`${currentSrc}#t=0.1`}
-            preload="metadata"
+            src={currentSrc}
+            preload="auto"
             muted
             loop
             playsInline
@@ -419,9 +419,18 @@ const VaultClipCard: React.FC<{
                 setHasError(true);
               }
             }}
+            onLoadedMetadata={() => {
+              if (videoRef.current && !isHovered) {
+                try { videoRef.current.currentTime = 0.5; } catch {}
+              }
+            }}
             onLoadedData={() => {
               if (videoRef.current && !isHovered) {
-                try { videoRef.current.currentTime = 0.1; } catch {}
+                try {
+                  if (videoRef.current.currentTime < 0.2) {
+                    videoRef.current.currentTime = 0.5;
+                  }
+                } catch {}
               }
             }}
             className="w-full h-full object-cover bg-black pointer-events-none"
