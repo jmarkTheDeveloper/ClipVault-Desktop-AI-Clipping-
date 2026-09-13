@@ -17,6 +17,7 @@ export interface ClipMetadata {
   sub_scores?: ViralitySubScores;
   hook_type?: string;
   reason?: string;
+  transcription_confidence?: number;
   created_at: number;
   size_mb: number;
   folder: string;

@@ -20,10 +20,12 @@ class WhisperSingleton:
     """
     _instance = None
     _model = None
+    last_confidence: int = 96
 
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
+            cls._instance.last_confidence = 96
         return cls._instance
 
     def _load_model(self):
@@ -201,6 +203,9 @@ class WhisperSingleton:
             segment_count = 0
             word_count = 0
             
+            total_prob = 0.0
+            prob_count = 0
+
             for segment in segments:
                 segment_count += 1
                 if progress_callback and segment_count % 3 == 0:
@@ -228,8 +233,17 @@ class WhisperSingleton:
                                 'end': float(word_info.end)
                             })
                             word_count += 1
+                            p = getattr(word_info, 'probability', None)
+                            if p is not None:
+                                total_prob += float(p)
+                                prob_count += 1
             
-            print(f"[OK] Transcription complete! Found {len(words)} words in {len(segments_list)} segments")
+            if prob_count > 0:
+                self.last_confidence = int(max(60, min(99, round((total_prob / prob_count) * 100))))
+            else:
+                self.last_confidence = 96
+
+            print(f"[OK] Transcription complete! Found {len(words)} words in {len(segments_list)} segments (Clarity: {self.last_confidence}%)")
             print(f"[OK] Transcript length: {len(full_text)} characters")
             return words, full_text, segments_list
 

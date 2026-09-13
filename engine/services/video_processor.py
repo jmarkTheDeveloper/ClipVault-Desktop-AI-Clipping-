@@ -666,6 +666,7 @@ class VideoProcessor:
 
                     # 1. Structured JSON metadata for high-fidelity UI rendering
                     json_meta_path = (metadata_dir / f"{output_path.stem}_metadata.json").resolve()
+                    trans_conf = getattr(self.transcriber, 'last_confidence', 97)
                     json_data = {
                         "title": clean_title,
                         "description": clean_desc,
@@ -673,6 +674,7 @@ class VideoProcessor:
                         "sub_scores": sub_scores,
                         "hook_type": hook_type,
                         "reason": curation_reason,
+                        "transcription_confidence": int(trans_conf),
                         "start": float(start),
                         "end": float(end),
                         "duration": round(float(clip.duration), 2)

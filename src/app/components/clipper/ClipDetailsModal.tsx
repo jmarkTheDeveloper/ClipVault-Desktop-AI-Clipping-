@@ -150,6 +150,11 @@ export const ClipDetailsModal: React.FC<ClipDetailsModalProps> = ({
               <span className="text-xs bg-amber-400/20 text-amber-400 border border-amber-400/30 px-2.5 py-0.5 rounded-full font-bold">
                 Score: {clip.virality_score || 99} pts
               </span>
+              {clip.transcription_confidence !== undefined && clip.transcription_confidence !== null && (
+                <span className="text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-0.5 rounded-full font-bold">
+                  Clarity: {clip.transcription_confidence}%
+                </span>
+              )}
               {clip.hook_type && (
                 <span className="text-xs bg-cyan-400/10 text-cyan-300 border border-cyan-400/20 px-2.5 py-0.5 rounded-full font-medium">
                   {clip.hook_type}
@@ -173,9 +178,16 @@ export const ClipDetailsModal: React.FC<ClipDetailsModalProps> = ({
                   <span className="text-xs font-bold text-gray-200 tracking-wide uppercase">
                     Virality Analytics
                   </span>
-                  <span className="text-[11px] font-mono text-amber-400 font-semibold">
-                    Overall {clip.virality_score || 95}/100
-                  </span>
+                  <div className="flex items-center gap-2">
+                    {clip.transcription_confidence !== undefined && clip.transcription_confidence !== null && (
+                      <span className="text-[11px] font-mono text-emerald-400 font-semibold">
+                        Audio Clarity {clip.transcription_confidence}%
+                      </span>
+                    )}
+                    <span className="text-[11px] font-mono text-amber-400 font-semibold">
+                      Overall {clip.virality_score || 95}/100
+                    </span>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 sm:gap-3">

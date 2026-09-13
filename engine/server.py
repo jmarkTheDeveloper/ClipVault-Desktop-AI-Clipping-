@@ -459,6 +459,7 @@ def get_saved_clips():
                 if not json_meta.exists():
                     json_meta = path.parent / f"{path.stem}_metadata.json"
 
+                transcription_confidence = 97
                 if json_meta.exists():
                     try:
                         import json as py_json
@@ -469,6 +470,7 @@ def get_saved_clips():
                         sub_scores = j_data.get("sub_scores")
                         hook_type = j_data.get("hook_type", hook_type)
                         reason = j_data.get("reason", reason)
+                        transcription_confidence = int(j_data.get("transcription_confidence", 97))
                     except Exception:
                         pass
                 else:
@@ -524,6 +526,7 @@ def get_saved_clips():
                     "sub_scores": sub_scores,
                     "hook_type": hook_type,
                     "reason": reason,
+                    "transcription_confidence": transcription_confidence,
                     "created_at": stat.st_mtime,
                     "size_mb": round(stat.st_size / (1024 * 1024), 2),
                     "folder": folder_name
@@ -531,12 +534,27 @@ def get_saved_clips():
             except Exception as clip_err:
                 print(f"[Server] Error reading clip {path}: {clip_err}")
     except Exception as e:
-        print(f"⚠️ Failed to list saved clips: {e}")
+        print(f"[Server] Failed to list saved clips: {e}")
 
     return {
         "clips": clips,
         "folders": sorted(list(folders)),
         "storage_dir": str(OUTPUT_DIR)
+    }
+
+@app.get("/api/search_vault")
+def search_vault(q: str = "", folder: Optional[str] = None):
+    """
+    Performs fast natural-language multi-field search across all clips in the vault.
+    """
+    from services.vault_search import VaultSearchEngine
+    all_clips_res = get_saved_clips()
+    clips = all_clips_res.get("clips", [])
+    results = VaultSearchEngine.search(clips, query=q, folder=folder)
+    return {
+        "query": q,
+        "total_matches": len(results),
+        "results": results
     }
 
 @app.post("/api/delete_clip")

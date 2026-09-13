@@ -513,7 +513,14 @@ const VaultClipCard: React.FC<{
 
         <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between text-[10px] text-gray-500">
           <span className="truncate max-w-[110px]">{clip.folder || "Main Library"}</span>
-          <span>{(clip as any).file_size || (clip.size_mb ? `${clip.size_mb} MB` : "")}</span>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {clip.transcription_confidence !== undefined && clip.transcription_confidence !== null && (
+              <span className="text-[9px] px-1 py-0.2 rounded bg-emerald-500/10 text-emerald-400 font-bold border border-emerald-500/20">
+                {clip.transcription_confidence}% clarity
+              </span>
+            )}
+            <span>{(clip as any).file_size || (clip.size_mb ? `${clip.size_mb} MB` : "")}</span>
+          </div>
         </div>
       </div>
     </div>
@@ -659,16 +666,25 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
     return currentPathSegments.slice(0, -1).join("/");
   };
 
-  // Clips filtering & sorting (strictly shows clips directly in active directory)
+  // Clips filtering & sorting (supports deep multi-field matching and cross-folder search when querying)
+  const isSearchActive = Boolean(vaultSearch && vaultSearch.trim().length > 0);
+  const searchLower = vaultSearch ? vaultSearch.trim().toLowerCase() : "";
+
   const filteredClips = vaultClips
     .filter((clip) => {
+      if (isSearchActive) {
+        const matchesTitle = clip.title && clip.title.toLowerCase().includes(searchLower);
+        const matchesFilename = clip.filename && clip.filename.toLowerCase().includes(searchLower);
+        const matchesDesc = clip.description && clip.description.toLowerCase().includes(searchLower);
+        const matchesReason = clip.reason && clip.reason.toLowerCase().includes(searchLower);
+        const matchesHook = clip.hook_type && clip.hook_type.toLowerCase().includes(searchLower);
+        const matchesFolder = clip.folder && clip.folder.toLowerCase().includes(searchLower);
+        return Boolean(matchesTitle || matchesFilename || matchesDesc || matchesReason || matchesHook || matchesFolder);
+      }
+
       const isClipInRoot = clip.folder === "Main Library" || clip.folder === "root" || !clip.folder || clip.folder === ".";
       const matchesFolder = isRoot ? isClipInRoot : clip.folder === vaultSelectedFolder;
-      const matchesSearch =
-        !vaultSearch ||
-        clip.title.toLowerCase().includes(vaultSearch.toLowerCase()) ||
-        clip.filename.toLowerCase().includes(vaultSearch.toLowerCase());
-      return matchesFolder && matchesSearch;
+      return matchesFolder;
     })
     .sort((a, b) => {
       if (sortBy === "virality") {
@@ -1318,7 +1334,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
           <Search className="w-4 h-4 text-gray-500 mr-2 shrink-0" />
           <input
             type="text"
-            placeholder="Search saved clips by title or filename..."
+            placeholder="Search vault clips by title, hook, keywords..."
             value={vaultSearch}
             onChange={(e) => setVaultSearch(e.target.value)}
             className="w-full bg-transparent text-xs text-white placeholder-gray-500 outline-none"
@@ -1387,9 +1403,9 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
       )}
 
       {/* ----------------------------------------------------------------- */}
-      {/* SECTION 1: PROJECT FOLDERS (Only shown in Root View)              */}
+      {/* SECTION 1: PROJECT FOLDERS (Only shown in Root View when not searching) */}
       {/* ----------------------------------------------------------------- */}
-      {isRoot && (
+      {isRoot && !isSearchActive && (
         <div className="mb-8">
           <div className="flex items-center justify-between gap-4 mb-3">
             <div className="flex items-center gap-2">
@@ -1638,7 +1654,11 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
           <div className="flex items-center gap-2">
             <Play className="w-4 h-4 text-amber-400" />
             <h3 className="text-sm font-black text-white tracking-wide uppercase">
-              {isRoot ? "All Saved Videos" : `Videos in ${currentPathSegments[currentPathSegments.length - 1]}`}
+              {isSearchActive
+                ? `Search Results for "${vaultSearch}"`
+                : isRoot
+                ? "All Saved Videos"
+                : `Videos in ${currentPathSegments[currentPathSegments.length - 1]}`}
             </h3>
             <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30">
               {filteredClips.length}
@@ -1674,9 +1694,13 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
             <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-3">
               <FolderCheck className="w-8 h-8 text-gray-600" />
             </div>
-            <h3 className="text-base font-bold text-white mb-1">No Videos in this Directory</h3>
+            <h3 className="text-base font-bold text-white mb-1">
+              {isSearchActive ? "No Matching Clips Found" : "No Videos in this Directory"}
+            </h3>
             <p className="text-xs text-gray-500 max-w-sm">
-              {isRoot
+              {isSearchActive
+                ? `No clips matched "${vaultSearch}". Try adjusting keywords, hook types, or file names.`
+                : isRoot
                 ? "No clips found. Start creating clips in Studio or drop MP4 files here!"
                 : `No clips in "${vaultSelectedFolder}". Drag and drop clips here or drop files from your desktop.`}
             </p>
