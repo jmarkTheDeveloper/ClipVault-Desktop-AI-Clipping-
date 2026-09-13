@@ -387,10 +387,19 @@ class VideoProcessor:
                 if use_smart_slicing:
                     if progress_callback:
                         progress_callback(f"Downloading clip {i}/{len(clip_specs)} slice ({start:.0f}s-{end:.0f}s)...", 40 + int((i - 1) / len(clip_specs) * 20))
-                    slice_to_cleanup = self.downloader.download_slice(url, start, end, quality=quality, progress_callback=progress_callback)
-                    video = VideoFileClip(str(slice_to_cleanup))
-                    clips_to_close.append(video)
-                    clip = video
+                    try:
+                        slice_to_cleanup = self.downloader.download_slice(url, start, end, quality=quality, progress_callback=progress_callback)
+                        video = VideoFileClip(str(slice_to_cleanup))
+                        clips_to_close.append(video)
+                        clip = video
+                    except Exception as slice_err:
+                        print(f"    ⚠️ Smart slice download note ({slice_err}). Falling back to full video subclip for clip {i}...")
+                        if not video_path or not Path(video_path).exists():
+                            main_vid_path, _, _, _ = self.downloader.download(url, quality=quality, progress_callback=progress_callback)
+                            video_path = main_vid_path
+                        video = VideoFileClip(str(video_path))
+                        clips_to_close.append(video)
+                        clip = video.subclip(start, end)
                 else:
                     video = VideoFileClip(str(video_path))
                     clips_to_close.append(video)

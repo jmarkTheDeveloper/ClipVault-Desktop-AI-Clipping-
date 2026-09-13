@@ -400,6 +400,7 @@ class YouTubeDownloader:
                 cmd = [
                     ffmpeg_bin,
                     "-y",
+                    "-loglevel", "error",
                     *http_options,
                     "-ss", str(max(0.0, start_sec)),
                     "-i", video_url,
@@ -439,7 +440,7 @@ class YouTubeDownloader:
                 ])
 
                 print(f"🚀 Running direct HTTP range slice with ffmpeg (High-Speed Stream Extraction)...")
-                proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=60)
+                proc = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, timeout=45)
                 if proc.returncode == 0 and temp_slice.exists() and temp_slice.stat().st_size > 10240:
                     if output_path.exists():
                         try: output_path.unlink()
@@ -448,7 +449,8 @@ class YouTubeDownloader:
                     print(f"✅ Fast slice extracted in seconds: {output_path.name} ({round(output_path.stat().st_size / (1024*1024), 2)} MB)")
                     return output_path
                 else:
-                    print(f"⚠️ Direct stream slice warning: {proc.stderr.decode('utf-8', errors='ignore')[-300:]}")
+                    err_msg = proc.stderr.decode('utf-8', errors='ignore')[-300:] if proc.stderr else "Unknown error"
+                    print(f"⚠️ Direct stream slice warning: {err_msg}")
         except Exception as fast_err:
             print(f"⚠️ Direct fast slicing note: {fast_err}. Falling back to standard slice downloader...")
 
@@ -483,15 +485,26 @@ class YouTubeDownloader:
             'download_ranges': yt_dlp.utils.download_range_func(None, [(start_sec, end_sec)]),
             'force_keyframes_at_cuts': False,
             'concurrent_fragment_downloads': 4,
-            'socket_timeout': 30,
+            'socket_timeout': 15,
+            'retries': 3,
             'progress_hooks': [ytdl_progress] if progress_callback else [],
         })
 
         print(f"✂️ Downloading targeted stream slice via yt-dlp ({start_sec:.1f}s - {end_sec:.1f}s, Quality: {quality})...")
         if progress_callback:
             progress_callback(f"Downloading targeted stream slice ({start_sec:.0f}s-{end_sec:.0f}s, {quality})...", 20)
-        with yt_dlp.YoutubeDL(fallback_opts) as ydl:
-            ydl.extract_info(url, download=True)
+
+        import concurrent.futures
+        def _exec_slice_download():
+            with yt_dlp.YoutubeDL(fallback_opts) as ydl:
+                ydl.extract_info(url, download=True)
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            fut = executor.submit(_exec_slice_download)
+            try:
+                fut.result(timeout=60)
+            except Exception as dl_timeout_err:
+                print(f"⚠️ Standard yt-dlp slice download timeout/error: {dl_timeout_err}")
 
         if not output_path.exists():
             candidates = list(self.temp_dir.glob(f"{output_path.stem}.*"))
