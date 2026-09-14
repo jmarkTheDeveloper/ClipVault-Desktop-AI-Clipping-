@@ -422,6 +422,13 @@ const VaultClipCard: React.FC<{
               muted
               loop
               playsInline
+              onLoadedMetadata={(e) => {
+                try {
+                  if (e.currentTarget.currentTime === 0) {
+                    e.currentTarget.currentTime = 0.001;
+                  }
+                } catch {}
+              }}
               onError={() => {
                 if (currentSrc !== fallbackSrc && fallbackSrc) {
                   setCurrentSrc(fallbackSrc);

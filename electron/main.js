@@ -212,9 +212,9 @@ function createWindow() {
     }
   });
 
-  if (process.platform !== 'win32' && appIcon && !appIcon.isEmpty()) {
+  if (appIcon && !appIcon.isEmpty()) {
     try {
-      mainWindow.setIcon(appIcon);
+      mainWindow.setIcon(process.platform === 'win32' ? iconTarget : appIcon);
     } catch (e) {}
   }
 
@@ -345,7 +345,7 @@ function startPythonBackend() {
     try {
       let pythonCmd, args, cwd, engineDataDir;
 
-      if (isPackaged && require('fs').existsSync(bundledExePath)) {
+      if (isPackaged && fs.existsSync(bundledExePath)) {
         // ── PRODUCTION: launch bundled standalone engine_server.exe ──────────
         // The exe has all Python + FastAPI + uvicorn embedded inside it.
         // We pass the data dir so it knows where to read/write clips and temp files.
