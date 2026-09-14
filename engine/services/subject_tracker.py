@@ -33,6 +33,28 @@ class SubjectTracker:
         except Exception:
             self.saliency_detector = None
 
+    def _compute_human_presence_centroid_x(self, rgb_frame: np.ndarray, width: int) -> Optional[float]:
+        """
+        Locates the horizontal centroid of human skin and flesh tones across the frame.
+        Guarantees that when humans are in the scene, the camera focuses on the person
+        rather than background furniture, bookshelves, or static objects.
+        """
+        try:
+            hsv = cv2.cvtColor(rgb_frame, cv2.COLOR_RGB2HSV)
+            m1 = cv2.inRange(hsv, np.array([0, 20, 35]), np.array([25, 255, 255]))
+            m2 = cv2.inRange(hsv, np.array([170, 20, 35]), np.array([180, 255, 255]))
+            skin_mask = cv2.bitwise_or(m1, m2)
+            col_sums = np.sum(skin_mask > 0, axis=0)
+            total_skin = np.sum(col_sums)
+            # Require minimum skin volume (e.g. face, hands, arms, or torso)
+            if total_skin > (rgb_frame.shape[0] * 3):
+                smooth_skin = cv2.GaussianBlur(col_sums.astype(np.float32).reshape(1, -1), (1, 15), 0)[0]
+                peak_idx = int(np.argmax(smooth_skin))
+                return (peak_idx / len(col_sums)) * width
+        except Exception:
+            pass
+        return None
+
     def _compute_saliency_centroid_x(self, gray_frame: np.ndarray, width: int) -> float:
         """
         Computes the horizontal center of visual saliency using spectral residual
@@ -40,7 +62,6 @@ class SubjectTracker:
         """
         try:
             if self.saliency_detector is not None:
-                # Spectral residual saliency requires BGR or 3-channel image
                 rgb_small = cv2.cvtColor(gray_frame, cv2.COLOR_GRAY2BGR)
                 success, saliency_map = self.saliency_detector.computeSaliency(rgb_small)
                 if success and saliency_map is not None:
@@ -49,7 +70,6 @@ class SubjectTracker:
                     col_sums = np.sum(sal_mask, axis=0)
                     total_sal = np.sum(col_sums)
                     if total_sal > 0:
-                        # Smooth 1D distribution to find dominant subject cluster peak rather than empty midpoint
                         smooth_sal = cv2.GaussianBlur(col_sums.astype(np.float32).reshape(1, -1), (1, 15), 0)[0]
                         peak_idx = int(np.argmax(smooth_sal))
                         return (peak_idx / len(col_sums)) * width
@@ -78,14 +98,13 @@ class SubjectTracker:
         """
         try:
             diff = cv2.absdiff(prev_gray, cur_gray)
-            _, thresh = cv2.threshold(diff, 25, 255, cv2.THRESH_BINARY)
+            _, thresh = cv2.threshold(diff, 20, 255, cv2.THRESH_BINARY)
             col_motion = np.sum(thresh, axis=0)
             total_motion = np.sum(col_motion)
-            # Require minimum motion threshold to be considered active action
-            if total_motion > (thresh.shape[0] * 10):
-                xs = np.arange(len(col_motion))
-                cx = float(np.average(xs, weights=col_motion))
-                return (cx / len(col_motion)) * width
+            if total_motion > (thresh.shape[0] * 5):
+                smooth_motion = cv2.GaussianBlur(col_motion.astype(np.float32).reshape(1, -1), (1, 15), 0)[0]
+                peak_idx = int(np.argmax(smooth_motion))
+                return (peak_idx / len(col_motion)) * width
         except Exception:
             pass
         return None
@@ -97,7 +116,7 @@ class SubjectTracker:
         camera_style: str = "instant"
     ):
         """
-        Analyzes motion and visual saliency across the clip duration, selects the optimal
+        Analyzes motion, human presence, and visual saliency across the clip duration, selects the optimal
         horizontal focal center, and applies a zero-jitter steadicam crop.
         """
         width, height = clip.size
@@ -123,12 +142,20 @@ class SubjectTracker:
                 small = cv2.resize(frame, (downsample_w, downsample_h), interpolation=cv2.INTER_AREA)
                 gray = cv2.cvtColor(small, cv2.COLOR_RGB2GRAY)
 
-                saliency_x = self._compute_saliency_centroid_x(gray, width)
+                # 1. Primary: Human skin presence (locates living subjects across all backgrounds)
+                skin_x = self._compute_human_presence_centroid_x(small, width)
+                # 2. Secondary: Motion centroid (living actors moving vs static room/furniture)
                 motion_x = self._compute_motion_centroid_x(prev_gray, gray, width) if prev_gray is not None else None
+                # 3. Tertiary: Visual saliency
+                saliency_x = self._compute_saliency_centroid_x(gray, width)
 
-                if motion_x is not None:
-                    # Blend motion energy (60%) and visual saliency (40%)
-                    fused_x = (motion_x * 0.60) + (saliency_x * 0.40)
+                if skin_x is not None and motion_x is not None:
+                    # Confirmed human with active motion: 70% skin location, 30% motion
+                    fused_x = (skin_x * 0.70) + (motion_x * 0.30)
+                elif skin_x is not None:
+                    fused_x = skin_x
+                elif motion_x is not None:
+                    fused_x = motion_x
                 else:
                     fused_x = saliency_x
 

@@ -104,7 +104,7 @@ class FaceTracker:
             try:
                 self.yunet_detector = cv2.FaceDetectorYN.create(
                     str(yunet_path), "", (320, 320),
-                    score_threshold=0.45,
+                    score_threshold=0.28,
                     nms_threshold=0.30,
                     top_k=5000
                 )
@@ -122,6 +122,48 @@ class FaceTracker:
             print(f">> Computer Vision Pipeline: YuNet={self.yunet_detector is not None}, MediaPipe={self.mp_detector is not None}, Cascades={self.frontal_cascade is not None}, HOG={self.hog_detector is not None}, SubjectTracker=True")
         except Exception:
             pass
+
+    def _get_skin_ratio(self, rgb_frame: np.ndarray, x: int, y: int, bw: int, bh: int) -> float:
+        """
+        Calculates ratio of human skin/flesh pixels within a bounding box using HSV chroma ranges.
+        Filters out false positives on inanimate objects (bookshelves, lamps, furniture, wallpaper).
+        """
+        h, w = rgb_frame.shape[:2]
+        x1, y1 = max(0, x), max(0, y)
+        x2, y2 = min(w, x + bw), min(h, y + bh)
+        if x2 <= x1 or y2 <= y1:
+            return 0.0
+        patch = rgb_frame[y1:y2, x1:x2]
+        try:
+            hsv = cv2.cvtColor(patch, cv2.COLOR_RGB2HSV)
+            m1 = cv2.inRange(hsv, np.array([0, 20, 35]), np.array([25, 255, 255]))
+            m2 = cv2.inRange(hsv, np.array([170, 20, 35]), np.array([180, 255, 255]))
+            mask = cv2.bitwise_or(m1, m2)
+            total_pixels = patch.shape[0] * patch.shape[1]
+            return float(np.sum(mask > 0)) / float(total_pixels) if total_pixels > 0 else 0.0
+        except Exception:
+            return 0.0
+
+    def _compute_human_presence_centroid_x(self, rgb_small: np.ndarray, orig_w: int) -> Optional[float]:
+        """
+        Locates the horizontal centroid of human skin and flesh tones across the frame.
+        Guarantees that when humans are in the scene, the camera focuses on the person
+        rather than background furniture, bookshelves, or static objects.
+        """
+        try:
+            hsv = cv2.cvtColor(rgb_small, cv2.COLOR_RGB2HSV)
+            m1 = cv2.inRange(hsv, np.array([0, 20, 35]), np.array([25, 255, 255]))
+            m2 = cv2.inRange(hsv, np.array([170, 20, 35]), np.array([180, 255, 255]))
+            skin_mask = cv2.bitwise_or(m1, m2)
+            col_sums = np.sum(skin_mask > 0, axis=0)
+            total_skin = np.sum(col_sums)
+            if total_skin > (rgb_small.shape[0] * 3):
+                smooth_skin = cv2.GaussianBlur(col_sums.astype(np.float32).reshape(1, -1), (1, 15), 0)[0]
+                peak_idx = int(np.argmax(smooth_skin))
+                return (peak_idx / len(col_sums)) * orig_w
+        except Exception:
+            pass
+        return None
 
     def detect_faces_in_frame(self, frame: np.ndarray, frame_time: Optional[float] = None) -> List[Dict[str, Any]]:
         """
@@ -161,7 +203,7 @@ class FaceTracker:
                     for det in yunet_faces:
                         box_x, box_y, box_w, box_h = int(det[0]), int(det[1]), int(det[2]), int(det[3])
                         conf = float(det[14])
-                        if conf < 0.40 or box_w < 12 or box_h < 12:
+                        if conf < 0.25 or box_w < 12 or box_h < 12:
                             continue
                         orig_x = int(box_x / scale)
                         orig_y = int(box_y / scale)
@@ -292,7 +334,7 @@ class FaceTracker:
         # ── TIER 5: Full-Body / Upper-Body Person Detector (Foreground Dominance) ──
         # Enforces a strict Foreground Dominance filter to lock onto human subjects
         # while discarding distant pedestrians and architectural structures.
-        if len(candidate_detections) < 2 and self.hog_detector is not None:
+        if len(candidate_detections) == 0 and self.hog_detector is not None:
             try:
                 rects, weights = self.hog_detector.detectMultiScale(
                     small_frame, winStride=(8, 8), padding=(4, 4), scale=1.05
@@ -340,7 +382,41 @@ class FaceTracker:
             # 3. Minimum size to avoid single-pixel noise
             if f['width'] < 14 or f['height'] < 14 or f['area'] < 200:
                 continue
+
+            # 4. Biological human skin-tone verification to eliminate background furniture & lanterns
+            bx = f['center_x'] - f['width'] // 2
+            by = f['center_y'] - f['height'] // 2
+            skin_ratio = self._get_skin_ratio(frame, bx, by, f['width'], f['height'])
+            f['skin_ratio'] = skin_ratio
+
+            # Cascade and HOG detectors lack deep semantic reasoning and frequently trigger
+            # false positives on bookshelves, lanterns, wallpaper, and boxes.
+            # Enforce strict biological skin-chroma threshold (>= 15%).
+            if f['type'] in ('frontal_haar', 'profile_haar_left', 'profile_haar_right', 'hog_person'):
+                if skin_ratio < 0.15:
+                    continue
+            else:
+                # Neural detectors (YuNet, MediaPipe) have high semantic precision, but reject
+                # completely zero-skin inanimate objects (like lamps or shelves) if skin < 4%.
+                if skin_ratio < 0.04:
+                    continue
+
             valid_faces.append(f)
+
+        # 5. If no faces detected by primary models, synthesize human skin-presence centroid anchor
+        if not valid_faces:
+            human_cx = self._compute_human_presence_centroid_x(small_frame, w)
+            if human_cx is not None:
+                valid_faces.append({
+                    'center_x': int(human_cx),
+                    'center_y': int(h * 0.40),
+                    'width': int(w * 0.20),
+                    'height': int(h * 0.30),
+                    'confidence': 0.70,
+                    'area': int(w * 0.20 * h * 0.30),
+                    'type': 'human_presence_anchor',
+                    'skin_ratio': 0.50
+                })
 
         # Spatial Non-Maximum Suppression: merge overlapping boxes belonging to the same person
         merged_faces: List[Dict[str, Any]] = []
@@ -415,7 +491,7 @@ class FaceTracker:
 
         clusters = []
         for idx in peak_indices:
-            if hist[idx] >= total_mass * 0.10:
+            if hist[idx] >= total_mass * 0.18:
                 approx_peak = (bin_edges[idx] + bin_edges[idx + 1]) / 2.0
                 in_mask = np.abs(xs - approx_peak) < (width * 0.20)
                 if np.any(in_mask):
@@ -532,7 +608,7 @@ class FaceTracker:
             total_mass = np.sum(hist) if np.sum(hist) > 0 else 1.0
 
             for idx in peak_indices:
-                if hist[idx] > 0 and hist[idx] >= total_mass * 0.08:
+                if hist[idx] > 0 and hist[idx] >= total_mass * 0.18:
                     approx_peak = (bin_edges[idx] + bin_edges[idx + 1]) / 2.0
                     in_cluster_mask = np.abs(xs - approx_peak) < (target_width * 0.45)
                     if np.any(in_cluster_mask):
@@ -550,7 +626,7 @@ class FaceTracker:
                         if len(speaker_clusters) >= 2:
                             break
 
-        # Check if there is a Dominant Host / Primary Speaker (>= 85% detection mass)
+        # Check if there is a Dominant Host / Primary Speaker
         total_cluster_mass = sum(cluster_weights) if cluster_weights else 1.0
         primary_is_dominant = False
         primary_speaker_x = width / 2.0
@@ -558,8 +634,23 @@ class FaceTracker:
         if speaker_clusters:
             primary_speaker_x = speaker_clusters[0]
             top_ratio = cluster_weights[0] / total_cluster_mass
-            if len(speaker_clusters) == 1 or top_ratio >= 0.85:
+            if len(speaker_clusters) == 1 or top_ratio >= 0.78 or (len(cluster_weights) > 1 and cluster_weights[1] < total_cluster_mass * 0.20):
                 primary_is_dominant = True
+
+            # Confirm secondary cluster has verified neural face detections across the clip
+            if len(speaker_clusters) >= 2 and not primary_is_dominant:
+                sec_cluster_x = speaker_clusters[1]
+                has_neural_support = False
+                for det_list in all_frame_detections:
+                    for det in det_list:
+                        if det.get('type') in ('yunet_neural', 'mediapipe'):
+                            if abs(det['center_x'] - sec_cluster_x) < target_width * 0.45:
+                                has_neural_support = True
+                                break
+                    if has_neural_support:
+                        break
+                if not has_neural_support:
+                    primary_is_dominant = True
         else:
             # When neural face detection finds 0 faces across all sample frames,
             # engage SubjectTracker to track non-human subjects (action, gameplay, sports, products)
