@@ -1041,13 +1041,6 @@ export const AiClipperScreen: React.FC<Props> = ({
 
   const handleDeleteFolder = async (folderName: string) => {
     if (!folderName || folderName === "all" || folderName === "Main Library") return;
-    if (
-      !window.confirm(
-        `Are you sure you want to delete folder "${folderName}"?\nAny video clips inside will remain safe in Main Library.`
-      )
-    ) {
-      return;
-    }
     setVaultFolders((prev) => prev.filter((f) => f !== folderName && !f.startsWith(`${folderName}/`)));
     if (vaultSelectedFolder === folderName || vaultSelectedFolder.startsWith(`${folderName}/`)) {
       setVaultSelectedFolder("all");

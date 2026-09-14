@@ -47,7 +47,7 @@ def _safe_system_print(*args, **kwargs):
         except Exception:
             pass
 builtins.print = _safe_system_print
-print("⚡ Background engine priority set to 'Normal High-Speed Priority'.")
+print(" Background engine priority set to 'Normal High-Speed Priority'.")
 
 # Add project root to path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -83,7 +83,7 @@ async def startup_event():
         from services.youtube_downloader_yt_dlp import YouTubeDownloader
         YouTubeDownloader.auto_update_ytdlp_background()
     except Exception as e:
-        print(f"⚠️ [Startup]: Non-critical startup task notification: {e}")
+        print(f" [Startup]: Non-critical startup task notification: {e}")
 
 # Enable CORS for frontend calls
 app.add_middleware(
@@ -354,7 +354,7 @@ def execute_rendering_task(task_id: str, request: ProcessRequest, cancel_event: 
         elif "errno 22" in lower_err:
             clean_msg = "Invalid path or file character detected on Windows. Please verify your folder and file name settings."
 
-        print(f"⚠️ Task {task_id} error: {clean_msg}")
+        print(f" Task {task_id} error: {clean_msg}")
         tasks_db[task_id]["status"] = "failed"
         tasks_db[task_id]["is_rate_limit"] = is_rate_limit
         tasks_db[task_id]["error"] = clean_msg
@@ -403,7 +403,7 @@ def purge_ghost_files():
                     paths.sort(key=lambda x: x.stat().st_mtime, reverse=True)
                     active_clip = paths[0]
                     stale_clips = paths[1:]
-                    print(f"🧹 Deduplicating '{name}': keeping newest in '{active_clip.parent.name}', purging {len(stale_clips)} older copy/copies")
+                    print(f" Deduplicating '{name}': keeping newest in '{active_clip.parent.name}', purging {len(stale_clips)} older copy/copies")
                     for old_p in stale_clips:
                         try:
                             old_p.unlink()
@@ -483,11 +483,11 @@ def get_saved_clips():
                             content = meta_file.read_text(encoding="utf-8")
                             lines = [line.strip() for line in content.split("\n") if line.strip()]
                             for i, line in enumerate(lines):
-                                if ("Catchy Title:" in line or "🎬 Catchy Title:" in line) and i + 1 < len(lines):
+                                if ("Catchy Title:" in line or " Catchy Title:" in line) and i + 1 < len(lines):
                                     title = lines[i+1]
-                                elif ("Description" in line or "📝 Description" in line) and i + 1 < len(lines):
+                                elif ("Description" in line or " Description" in line) and i + 1 < len(lines):
                                     description = "\n".join(lines[i+1:])
-                                elif ("AI Curation Analysis:" in line or "🧠 AI Curation Analysis:" in line) and i + 1 < len(lines):
+                                elif ("AI Curation Analysis:" in line or " AI Curation Analysis:" in line) and i + 1 < len(lines):
                                     reason = lines[i+1]
                         except Exception:
                             pass
@@ -611,13 +611,18 @@ def delete_clip(data: dict = Body(...)):
     for item in paths_to_delete:
         target = resolve_target(item)
         if target and target.exists() and target.is_file():
-            # 1. Clean up metadata first
-            meta_file = target.parent / "metadata" / f"{target.stem}_metadata.txt"
-            if not meta_file.exists():
-                meta_file = target.parent / f"{target.stem}_metadata.txt"
-            if meta_file.exists():
-                try: meta_file.unlink()
-                except: pass
+            # 1. Clean up all metadata and thumbnail files in both same dir and metadata/ subfolder
+            for meta_cand in [
+                target.parent / "metadata" / f"{target.stem}_metadata.txt",
+                target.parent / f"{target.stem}_metadata.txt",
+                target.parent / "metadata" / f"{target.stem}_metadata.json",
+                target.parent / f"{target.stem}_metadata.json",
+                target.parent / f"{target.stem}_thumbnail.jpg",
+                target.parent / "metadata" / f"{target.stem}_thumbnail.jpg",
+            ]:
+                if meta_cand.exists():
+                    try: meta_cand.unlink()
+                    except Exception: pass
 
             # 2. Delete main video file
             deleted = False
@@ -653,7 +658,7 @@ def delete_clip(data: dict = Body(...)):
 
             if deleted or not target.exists():
                 deleted_files.append(str(target))
-                print(f"🗑️ Permanently deleted clip: {target.name}")
+                print(f" Permanently deleted clip: {target.name}")
 
     # 3. Clean up any 0-byte ghost clips immediately
     purge_ghost_files()
@@ -713,7 +718,7 @@ def open_system_folder(data: dict = Body(...)):
             subprocess.Popen(["xdg-open", resolved])
         return {"success": True, "opened": resolved}
     except Exception as e:
-        print(f"⚠️ Error opening folder {target}: {e}")
+        print(f" Error opening folder {target}: {e}")
         return {"success": False, "error": str(e)}
 
 @app.get("/api/video_info")
@@ -781,7 +786,7 @@ def get_video_info(url: str):
                 "url": stream_url
             }
     except Exception as e:
-        print(f"⚠️ Video info warning: {e}")
+        print(f" Video info warning: {e}")
         return {
             "success": False,
             "title": "YouTube Video",
@@ -839,25 +844,37 @@ def stream_video_file(path: str, request: Request):
             end = min(end, file_size - 1)
             length = (end - start) + 1
 
-            def iter_file():
-                with open(norm_path, "rb") as f:
-                    f.seek(start)
-                    remaining = length
-                    chunk_size = 512 * 1024  # 512 KB chunks for snappy responsive seeking
-                    while remaining > 0:
-                        read_size = min(chunk_size, remaining)
-                        data = f.read(read_size)
-                        if not data:
-                            break
-                        remaining -= len(data)
-                        yield data
-
             headers = {
                 "Content-Range": f"bytes {start}-{end}/{file_size}",
                 "Accept-Ranges": "bytes",
                 "Content-Length": str(length),
                 "Content-Type": content_type,
             }
+
+            # For chunks up to 10MB: read immediately and close file so Windows file locks are NEVER held
+            if length <= 10 * 1024 * 1024:
+                with open(norm_path, "rb") as f:
+                    f.seek(start)
+                    chunk_data = f.read(length)
+                from fastapi import Response
+                return Response(content=chunk_data, status_code=206, headers=headers)
+
+            def iter_file():
+                try:
+                    with open(norm_path, "rb") as f:
+                        f.seek(start)
+                        remaining = length
+                        chunk_size = 512 * 1024
+                        while remaining > 0:
+                            read_size = min(chunk_size, remaining)
+                            data = f.read(read_size)
+                            if not data:
+                                break
+                            remaining -= len(data)
+                            yield data
+                finally:
+                    gc.collect()
+
             return StreamingResponse(iter_file(), status_code=206, headers=headers)
         except Exception:
             return FileResponse(norm_path, media_type=content_type, headers={"Accept-Ranges": "bytes"})
@@ -923,7 +940,7 @@ def clear_cache():
         print(f"Error clearing cache: {e}")
 
     freed_mb = round(freed_bytes / (1024 * 1024), 2)
-    print(f"🧹 Cache Cleaned: Freed {freed_mb} MB ({deleted_count} items)")
+    print(f" Cache Cleaned: Freed {freed_mb} MB ({deleted_count} items)")
     return {
         "success": True,
         "deleted_count": deleted_count,
@@ -947,16 +964,18 @@ def create_new_folder(data: dict = Body(...)):
     new_dir = OUTPUT_DIR / clean_name
     new_dir.mkdir(parents=True, exist_ok=True)
     (new_dir / "metadata").mkdir(exist_ok=True)
-    print(f"📁 Created folder: {new_dir.resolve()}")
+    print(f" Created folder: {new_dir.resolve()}")
     return {"success": True, "folder_name": clean_name, "folder": clean_name, "path": str(new_dir.resolve())}
 
 @app.post("/api/delete_folder")
 def delete_folder(data: dict = Body(...)):
     """
-    Deletes a folder from disk.
-    Moves any clips inside back to the Main Library before deleting to prevent media loss.
+    Deletes a folder from disk cleanly, removing all subfiles and metadata.
     """
     import shutil
+    import stat
+    import subprocess
+    import gc
     folder_name = data.get("folder_name", "").strip()
     if not folder_name or folder_name.strip().lower() in ["all", "main library", "root", "", "none"]:
         return {"success": False, "error": "Cannot delete root library"}
@@ -972,23 +991,33 @@ def delete_folder(data: dict = Body(...)):
     if not target_dir.exists():
         return {"success": False, "error": "Folder not found on disk"}
 
-    # Move any clips inside it back to root OUTPUT_DIR before deleting
-    for mp4 in list(target_dir.glob("*.mp4")):
+    # Release any lingering file handles
+    gc.collect()
+
+    def remove_readonly(func, path, excinfo):
         try:
-            dest = OUTPUT_DIR / mp4.name
-            if not dest.exists():
-                shutil.move(str(mp4), str(dest))
-        except Exception as e:
-            print(f"⚠️ Note moving clip before folder delete: {e}")
+            os.chmod(path, stat.S_IWRITE)
+            func(path)
+        except Exception:
+            pass
 
     try:
-        shutil.rmtree(str(target_dir))
-        print(f"🗑️ Deleted folder: {target_dir}")
+        shutil.rmtree(str(target_dir), onerror=remove_readonly)
+    except Exception as e:
+        print(f"[delete_folder] Note during shutil.rmtree: {e}")
+
+    if target_dir.exists():
+        try:
+            subprocess.run(["cmd", "/c", "rd", "/s", "/q", str(target_dir.resolve())], check=False, capture_output=True)
+        except Exception:
+            pass
+
+    if not target_dir.exists():
+        print(f"[delete_folder] Deleted folder: {clean_name}")
         purge_ghost_files()
         return {"success": True, "deleted_folder": clean_name}
-    except Exception as e:
-        print(f"⚠️ Error deleting folder {target_dir}: {e}")
-        return {"success": False, "error": str(e)}
+    else:
+        return {"success": False, "error": "Folder could not be deleted due to an active file lock"}
 
 @app.post("/api/rename_folder")
 def rename_folder(data: dict = Body(...)):
@@ -1023,11 +1052,11 @@ def rename_folder(data: dict = Body(...)):
         
     try:
         os.rename(str(src_dir), str(dest_dir))
-        print(f"✏️ Renamed folder: {src_dir} -> {dest_dir}")
+        print(f" Renamed folder: {src_dir} -> {dest_dir}")
         purge_ghost_files()
         return {"success": True, "old_folder": old_clean, "new_folder": new_clean}
     except Exception as e:
-        print(f"⚠️ Error renaming folder: {e}")
+        print(f" Error renaming folder: {e}")
         return {"success": False, "error": str(e)}
 
 @app.post("/api/import_clip")
@@ -1057,7 +1086,7 @@ async def import_clip(
         content = await file.read()
         f.write(content)
         
-    print(f"📥 Imported external clip: {target_path}")
+    print(f" Imported external clip: {target_path}")
     return {"success": True, "filename": clean_filename, "path": str(target_path.resolve())}
 
 @app.post("/api/move_clips")
@@ -1188,7 +1217,7 @@ def move_clips_to_folder(data: dict = Body(...)):
                         
                     if moved_ok:
                         moved.append(str(dest_file.resolve()))
-                        print(f"📦 Moved clip cleanly: {src} -> {dest_file}")
+                        print(f" Moved clip cleanly: {src} -> {dest_file}")
             except Exception as move_err:
                 print(f"Error moving {src} to {dest_dir}: {move_err}")
                 
@@ -1242,10 +1271,10 @@ def duplicate_clip(data: dict = Body(...)):
             meta_dest = meta_dest_dir / f"{dest_path.stem}_metadata.txt"
             shutil.copy2(str(meta_src), str(meta_dest))
             
-        print(f"📋 Duplicated clip: {src.name} -> {dest_path.name}")
+        print(f" Duplicated clip: {src.name} -> {dest_path.name}")
         return {"success": True, "original": str(src.resolve()), "duplicate": str(dest_path.resolve()), "filename": dest_name}
     except Exception as e:
-        print(f"⚠️ Error duplicating {src}: {e}")
+        print(f" Error duplicating {src}: {e}")
         return {"success": False, "error": str(e)}
 
 
@@ -1307,7 +1336,7 @@ async def upload_background_video(file: UploadFile = File(...)):
     with open(dest_path, "wb") as buffer:
         content = await file.read()
         buffer.write(content)
-    print(f"🎮 Imported custom gameplay video: {dest_path.name}")
+    print(f" Imported custom gameplay video: {dest_path.name}")
     return {
         "success": True, 
         "name": file.filename, 
@@ -1357,7 +1386,7 @@ async def upload_background_music(file: UploadFile = File(...)):
     with open(dest_path, "wb") as buffer:
         content = await file.read()
         buffer.write(content)
-    print(f"🎵 Imported custom background music: {dest_path.name}")
+    print(f" Imported custom background music: {dest_path.name}")
     return {
         "success": True, 
         "name": file.filename, 
@@ -1501,7 +1530,7 @@ def get_vault_keys():
                 if isinstance(data, dict):
                     return {"success": True, "keys": data}
     except Exception as e:
-        print(f"⚠️ Note reading key vault: {e}")
+        print(f" Note reading key vault: {e}")
     return {"success": True, "keys": {}}
 
 @app.post("/api/save_vault_keys")
@@ -1530,7 +1559,7 @@ def save_vault_keys(data: dict = Body(...)):
         tmp_file.replace(VAULT_FILE)
         return {"success": True, "saved_count": len(existing)}
     except Exception as e:
-        print(f"⚠️ Error saving key vault: {e}")
+        print(f" Error saving key vault: {e}")
         return {"success": False, "error": str(e)}
 
 if __name__ == "__main__":

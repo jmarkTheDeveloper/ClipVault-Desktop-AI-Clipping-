@@ -371,9 +371,20 @@ const VaultClipCard: React.FC<{
     return `http://127.0.0.1:8000/stream?path=${encodeURIComponent(clean)}`;
   };
 
-  const primarySrc = clip.path ? getStreamUrl(clip.path) : (clip.url ? getStreamUrl(clip.url) : "");
+  const thumbnailUrl = (clip as any).thumbnail_url || (clip.url ? clip.url.replace(/\.mp4$/i, "_thumbnail.jpg") : "");
+  const primarySrc = clip.url || (clip.path ? getStreamUrl(clip.path) : "");
   const fallbackSrc = clip.path ? `local:///${clip.path.replace(/\\/g, "/")}` : "";
   const [currentSrc, setCurrentSrc] = useState<string>(primarySrc);
+
+  const releaseVideo = () => {
+    if (videoRef.current) {
+      try {
+        videoRef.current.pause();
+        videoRef.current.removeAttribute("src");
+        videoRef.current.load();
+      } catch {}
+    }
+  };
 
   useEffect(() => {
     setCurrentSrc(primarySrc);
@@ -384,12 +395,7 @@ const VaultClipCard: React.FC<{
     <div
       draggable
       onDragStart={(e) => {
-        // Release video file handle in browser to avoid Windows file locks
-        if (videoRef.current) {
-          try {
-            videoRef.current.pause();
-          } catch {}
-        }
+        releaseVideo();
         onDragStart(e);
       }}
       onDragEnd={onDragEnd}
@@ -404,37 +410,43 @@ const VaultClipCard: React.FC<{
       onClick={onClick}
     >
       <div className="relative w-full aspect-[9/16] bg-[#0d0d0f] overflow-hidden shadow-inner flex items-center justify-center">
-        {!hasError && currentSrc ? (
-          <video
-            ref={videoRef}
-            src={currentSrc}
-            preload="auto"
-            muted
-            loop
-            playsInline
-            onError={() => {
-              if (currentSrc !== fallbackSrc && fallbackSrc) {
-                setCurrentSrc(fallbackSrc);
-              } else {
-                setHasError(true);
-              }
-            }}
-            onLoadedMetadata={() => {
-              if (videoRef.current && !isHovered) {
-                try { videoRef.current.currentTime = 0.5; } catch {}
-              }
-            }}
-            onLoadedData={() => {
-              if (videoRef.current && !isHovered) {
-                try {
-                  if (videoRef.current.currentTime < 0.2) {
-                    videoRef.current.currentTime = 0.5;
+        {!hasError && (currentSrc || thumbnailUrl) ? (
+          <>
+            {/* Show static thumbnail image by default for 0% CPU & memory usage */}
+            {thumbnailUrl && !isHovered && (
+              <img
+                src={thumbnailUrl}
+                alt={clip.title}
+                loading="lazy"
+                className="w-full h-full object-cover bg-black pointer-events-none"
+                onError={(e) => {
+                  (e.target as HTMLElement).style.display = "none";
+                }}
+              />
+            )}
+
+            {/* Mount video on hover or if no thumbnail exists */}
+            {(isHovered || !thumbnailUrl) && currentSrc && (
+              <video
+                ref={videoRef}
+                src={currentSrc}
+                preload="metadata"
+                muted
+                loop
+                playsInline
+                onError={() => {
+                  if (currentSrc !== fallbackSrc && fallbackSrc) {
+                    setCurrentSrc(fallbackSrc);
+                  } else {
+                    setHasError(true);
                   }
-                } catch {}
-              }
-            }}
-            className="w-full h-full object-cover bg-black pointer-events-none"
-          />
+                }}
+                className={`w-full h-full object-cover bg-black pointer-events-none ${
+                  thumbnailUrl && !isHovered ? "hidden" : "block"
+                }`}
+              />
+            )}
+          </>
         ) : (
           <div className="flex flex-col items-center justify-center text-gray-600 gap-2 p-4 text-center">
             <Play className="w-8 h-8 text-gray-700" />

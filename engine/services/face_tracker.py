@@ -97,6 +97,20 @@ class FaceTracker:
                 if self.profile_cascade.empty(): self.profile_cascade = None
             except Exception: pass
             
+        # Initialize OpenCV YuNet Neural Face Detector (Extreme Profiles & Landmarks)
+        self.yunet_detector = None
+        yunet_path = models_dir / "face_detection_yunet.onnx"
+        if yunet_path.exists() and hasattr(cv2, 'FaceDetectorYN'):
+            try:
+                self.yunet_detector = cv2.FaceDetectorYN.create(
+                    str(yunet_path), "", (320, 320),
+                    score_threshold=0.45,
+                    nms_threshold=0.30,
+                    top_k=5000
+                )
+            except Exception:
+                self.yunet_detector = None
+
         # Initialize OpenCV HOG Body / Person Detector
         try:
             self.hog_detector = cv2.HOGDescriptor()
@@ -105,7 +119,7 @@ class FaceTracker:
             self.hog_detector = None
 
         try:
-            print(f">> Computer Vision Pipeline: MediaPipe={self.mp_detector is not None}, FrontalCascade={self.frontal_cascade is not None}, ProfileCascade={self.profile_cascade is not None}, HOG={self.hog_detector is not None}, SubjectTracker=True")
+            print(f">> Computer Vision Pipeline: YuNet={self.yunet_detector is not None}, MediaPipe={self.mp_detector is not None}, Cascades={self.frontal_cascade is not None}, HOG={self.hog_detector is not None}, SubjectTracker=True")
         except Exception:
             pass
 
@@ -124,12 +138,57 @@ class FaceTracker:
         frame = np.ascontiguousarray(frame)
 
         h, w = frame.shape[:2]
-        scale = 0.75  # High-res sampling for precision
-        small_frame = cv2.resize(frame, (int(w * scale), int(h * scale)))
-        small_h, small_w = small_frame.shape[:2]
+        max_dim = 640
+        if max(h, w) > max_dim:
+            scale = max_dim / float(max(h, w))
+            small_w = int(w * scale)
+            small_h = int(h * scale)
+            small_frame = cv2.resize(frame, (small_w, small_h), interpolation=cv2.INTER_AREA)
+        else:
+            scale = 1.0
+            small_frame = frame.copy()
+            small_h, small_w = h, w
+
         candidate_detections: List[Dict[str, Any]] = []
 
-        # ── TIER 1: MediaPipe Neural Face Detector (TFLite) ──
+        # ── TIER 1: OpenCV YuNet Neural Face Detector (Extreme Profiles, Walking, Landmarks) ──
+        if self.yunet_detector is not None:
+            try:
+                self.yunet_detector.setInputSize((small_w, small_h))
+                bgr_small = cv2.cvtColor(small_frame, cv2.COLOR_RGB2BGR)
+                _, yunet_faces = self.yunet_detector.detect(bgr_small)
+                if yunet_faces is not None:
+                    for det in yunet_faces:
+                        box_x, box_y, box_w, box_h = int(det[0]), int(det[1]), int(det[2]), int(det[3])
+                        conf = float(det[14])
+                        if conf < 0.40 or box_w < 12 or box_h < 12:
+                            continue
+                        orig_x = int(box_x / scale)
+                        orig_y = int(box_y / scale)
+                        orig_w = int(box_w / scale)
+                        orig_h = int(box_h / scale)
+                        center_x = max(0, min(w, orig_x + orig_w // 2))
+                        center_y = max(0, min(h, orig_y + orig_h // 2))
+
+                        # Landmarks: det[10..13] right and left mouth corners
+                        rx, ry = int(det[10] / scale), int(det[11] / scale)
+                        lx, ly = int(det[12] / scale), int(det[13] / scale)
+
+                        candidate_detections.append({
+                            'center_x': center_x,
+                            'center_y': center_y,
+                            'width': orig_w,
+                            'height': orig_h,
+                            'confidence': float(conf),
+                            'area': orig_w * orig_h,
+                            'type': 'yunet_neural',
+                            'mouth_center_y': (ry + ly) // 2,
+                            'mouth_span': abs(rx - lx)
+                        })
+            except Exception:
+                pass
+
+        # ── TIER 2: MediaPipe Neural Face Detector (TFLite) ──
         if self.mp_detector is not None:
             try:
                 rgb_small = np.ascontiguousarray(small_frame)
@@ -163,11 +222,11 @@ class FaceTracker:
         gray_eq = cv2.equalizeHist(gray)
         gray_flipped = cv2.flip(gray_eq, 1)
 
-        # ── TIER 2: Frontal Haar Cascade ──
+        # ── TIER 3: Frontal Haar Cascade ──
         if self.frontal_cascade is not None:
             try:
                 detected_frontal = self.frontal_cascade.detectMultiScale(
-                    gray_eq, scaleFactor=1.12, minNeighbors=4, minSize=(30, 30)
+                    gray_eq, scaleFactor=1.12, minNeighbors=4, minSize=(26, 26)
                 )
                 for (sx, sy, sw, sh) in detected_frontal:
                     orig_x = int(sx / scale)
@@ -186,12 +245,12 @@ class FaceTracker:
             except Exception:
                 pass
 
-        # ── TIER 3: Bidirectional Profile Haar Cascade (Both Left & Right Facing Profiles) ──
+        # ── TIER 4: Bidirectional Profile Haar Cascade (Both Left & Right Facing Profiles) ──
         if self.profile_cascade is not None:
             try:
-                # 3A: Left-facing profiles (standard orientation)
+                # 4A: Left-facing profiles (standard orientation)
                 detected_left = self.profile_cascade.detectMultiScale(
-                    gray_eq, scaleFactor=1.10, minNeighbors=3, minSize=(28, 28)
+                    gray_eq, scaleFactor=1.10, minNeighbors=3, minSize=(26, 26)
                 )
                 for (sx, sy, sw, sh) in detected_left:
                     orig_x = int(sx / scale)
@@ -208,12 +267,11 @@ class FaceTracker:
                         'type': 'profile_haar_left'
                     })
 
-                # 3B: Right-facing profiles (horizontally flipped orientation)
+                # 4B: Right-facing profiles (horizontally flipped orientation)
                 detected_right = self.profile_cascade.detectMultiScale(
-                    gray_flipped, scaleFactor=1.10, minNeighbors=3, minSize=(28, 28)
+                    gray_flipped, scaleFactor=1.10, minNeighbors=3, minSize=(26, 26)
                 )
                 for (fx, fy, fw, fh) in detected_right:
-                    # Invert horizontal coordinate back to original non-flipped image
                     sx = small_w - (fx + fw)
                     orig_x = int(sx / scale)
                     orig_y = int(fy / scale)
@@ -231,83 +289,56 @@ class FaceTracker:
             except Exception:
                 pass
 
-        # ── TIER 4: Seated Upper-Body & Skin-Cluster Spatial Anchoring ──
-        # If fewer than 2 distinct horizontal zones have candidates, inspect skin chrominance
-        # in the upper portion of the frame to anchor seated podcast speakers
-        unique_zones = {int(d['center_x'] / (w * 0.40)) for d in candidate_detections}
-        if len(unique_zones) < 2:
+        # ── TIER 5: Full-Body / Upper-Body Person Detector (Foreground Dominance) ──
+        # Enforces a strict Foreground Dominance filter to lock onto human subjects
+        # while discarding distant pedestrians and architectural structures.
+        if len(candidate_detections) < 2 and self.hog_detector is not None:
             try:
-                # Skin chrominance detection in YCrCb: Cr in [133, 173], Cb in [77, 127]
-                ycrcb = cv2.cvtColor(small_frame, cv2.COLOR_RGB2YCrCb)
-                skin_mask = cv2.inRange(ycrcb, np.array([0, 133, 77]), np.array([255, 173, 127]))
-
-                # Mask out lower 35% (legs/shoes/table) and upper 5% (ceiling/lights)
-                skin_mask[int(small_h * 0.65):, :] = 0
-                skin_mask[:int(small_h * 0.05), :] = 0
-
-                kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
-                skin_clean = cv2.morphologyEx(skin_mask, cv2.MORPH_OPEN, kernel)
-                skin_clean = cv2.dilate(skin_clean, kernel, iterations=2)
-
-                contours, _ = cv2.findContours(skin_clean, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-                min_skin_area = (small_w * small_h) * 0.003
-                max_skin_area = (small_w * small_h) * 0.18
-
-                for c in contours:
-                    area = cv2.contourArea(c)
-                    if min_skin_area <= area <= max_skin_area:
-                        bx, by, bw, bh = cv2.boundingRect(c)
-                        ar = bw / float(bh)
-                        if 0.4 <= ar <= 2.2:
-                            orig_x = int(bx / scale)
-                            orig_y = int(by / scale)
-                            orig_w = int(bw / scale)
-                            orig_h = int(bh / scale)
-                            candidate_detections.append({
-                                'center_x': orig_x + orig_w // 2,
-                                'center_y': orig_y + orig_h // 2,
-                                'width': orig_w,
-                                'height': orig_h,
-                                'confidence': 0.65,
-                                'area': orig_w * orig_h,
-                                'type': 'skin_head_cluster'
-                            })
-            except Exception:
-                pass
-
-        # ── TIER 5: HOG Person Detector Fallback ──
-        if not candidate_detections and self.hog_detector is not None:
-            try:
-                rects, weights = self.hog_detector.detectMultiScale(small_frame, winStride=(8, 8), padding=(4, 4), scale=1.05)
+                rects, weights = self.hog_detector.detectMultiScale(
+                    small_frame, winStride=(8, 8), padding=(4, 4), scale=1.05
+                )
                 for (sx, sy, sw, sh), wgt in zip(rects, weights):
-                    if wgt >= 0.25:
-                        orig_x = int(sx / scale)
-                        orig_y = int(sy / scale)
-                        orig_w = int(sw / scale)
-                        orig_h = int(sh / scale)
-                        candidate_detections.append({
-                            'center_x': orig_x + orig_w // 2,
-                            'center_y': orig_y + orig_h // 3,
-                            'width': orig_w,
-                            'height': orig_h,
-                            'confidence': float(wgt),
-                            'area': orig_w * orig_h,
-                            'type': 'hog_person'
-                        })
+                    orig_h = int(sh / scale)
+                    # FOREGROUND DOMINANCE FILTER:
+                    # In street vlogs or interviews, main subjects occupy >= 25% of frame height.
+                    # Distant pedestrians in background occupy < 20% of frame height.
+                    if orig_h < (h * 0.25) or wgt < 0.20:
+                        continue
+
+                    orig_x = int(sx / scale)
+                    orig_y = int(sy / scale)
+                    orig_w = int(sw / scale)
+
+                    # Compute head position and head bounding box from upper body
+                    head_cx = orig_x + orig_w // 2
+                    head_cy = orig_y + int(orig_h * 0.16)
+                    head_w = int(orig_w * 0.45)
+                    head_h = int(orig_h * 0.25)
+
+                    candidate_detections.append({
+                        'center_x': max(0, min(w, head_cx)),
+                        'center_y': max(0, min(h, head_cy)),
+                        'width': head_w,
+                        'height': head_h,
+                        'confidence': float(wgt) * 0.88,
+                        'area': head_w * head_h,
+                        'type': 'hog_person',
+                        'body_height': orig_h
+                    })
             except Exception:
                 pass
 
         # Filter out false-positive non-face detections
         valid_faces = []
         for f in candidate_detections:
-            # 1. Human faces must be in the upper/middle portion of the frame (never at the bottom legs/feet region)
-            if f['center_y'] > h * 0.72:
+            # 1. Human faces must be in the upper/middle portion of the frame
+            if f['center_y'] > h * 0.78:
                 continue
-            # 2. Bounding box cannot take up more than 48% width or 52% height of the entire frame
-            if f['width'] > w * 0.48 or f['height'] > h * 0.52 or f['area'] > (w * h * 0.22):
+            # 2. Bounding box cannot take up more than 52% width or 55% height of the entire frame
+            if f['width'] > w * 0.52 or f['height'] > h * 0.55 or f['area'] > (w * h * 0.25):
                 continue
             # 3. Minimum size to avoid single-pixel noise
-            if f['width'] < 16 or f['height'] < 16 or f['area'] < 250:
+            if f['width'] < 14 or f['height'] < 14 or f['area'] < 200:
                 continue
             valid_faces.append(f)
 

@@ -88,6 +88,38 @@ export default function App() {
   const [showDoneToast, setShowDoneToast] = useState(false);
   const [showExitConfirmModal, setShowExitConfirmModal] = useState(false);
 
+  // Auto-Update State & Listeners
+  const [updateNotification, setUpdateNotification] = useState<{
+    status: "idle" | "available" | "downloading" | "ready";
+    version?: string;
+    progress?: number;
+  }>({ status: "idle" });
+
+  useEffect(() => {
+    const electronAPI = (window as any).electronAPI;
+    if (electronAPI) {
+      if (electronAPI.onUpdateAvailable) {
+        electronAPI.onUpdateAvailable((info: any) => {
+          setUpdateNotification({ status: "downloading", version: info?.version, progress: 0 });
+        });
+      }
+      if (electronAPI.onUpdateProgress) {
+        electronAPI.onUpdateProgress((progress: any) => {
+          setUpdateNotification((prev) => ({
+            ...prev,
+            status: "downloading",
+            progress: Math.round(progress?.percent || 0),
+          }));
+        });
+      }
+      if (electronAPI.onUpdateDownloaded) {
+        electronAPI.onUpdateDownloaded((info: any) => {
+          setUpdateNotification({ status: "ready", version: info?.version });
+        });
+      }
+    }
+  }, []);
+
   useEffect(() => {
     const handleTaskUpdate = (e: any) => {
       if (e.detail) {
@@ -353,6 +385,32 @@ export default function App() {
             <div className="px-2.5 py-1.5 rounded-lg bg-white/10 group-hover:bg-[#00e676] group-hover:text-black text-gray-300 text-[11px] font-bold transition-all flex items-center gap-1 flex-shrink-0">
               View
               <span>→</span>
+            </div>
+          </div>
+        )}
+
+        {/* Auto-Update Notification Banner */}
+        {updateNotification.status === "ready" && (
+          <div className="fixed top-6 right-6 z-[9999] animate-in fade-in slide-in-from-top-4 duration-300">
+            <div className="flex items-center gap-3.5 bg-[#0a1811]/95 border border-[#00e676]/60 shadow-[0_12px_36px_rgba(0,0,0,0.9),0_0_25px_rgba(0,230,118,0.3)] px-4 py-3 rounded-2xl backdrop-blur-xl">
+              <div className="w-2.5 h-2.5 rounded-full bg-[#00e676] animate-pulse flex-shrink-0" />
+              <div className="text-xs text-white">
+                <span className="font-bold text-[#00e676]">ClipVault v{updateNotification.version || "New"}</span> is ready to install!
+              </div>
+              <button
+                onClick={() => (window as any).electronAPI?.restartAndInstallUpdate?.()}
+                className="px-3.5 py-1.5 bg-[#00e676] hover:brightness-110 text-black text-xs font-bold rounded-xl transition-all cursor-pointer shadow-sm"
+              >
+                Restart & Update
+              </button>
+            </div>
+          </div>
+        )}
+        {updateNotification.status === "downloading" && (
+          <div className="fixed top-6 right-6 z-[9999] animate-in fade-in slide-in-from-top-4 duration-300">
+            <div className="flex items-center gap-2.5 bg-black/85 border border-white/15 px-3.5 py-2 rounded-2xl shadow-lg backdrop-blur-xl text-xs text-gray-300">
+              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse flex-shrink-0" />
+              <span>Downloading update {updateNotification.progress ? `(${updateNotification.progress}%)` : "..."}</span>
             </div>
           </div>
         )}

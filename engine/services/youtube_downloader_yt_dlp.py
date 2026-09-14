@@ -56,7 +56,7 @@ class YouTubeDownloader:
         """
         def _update():
             try:
-                print("🔄 [YouTube Security Engine]: Checking for yt-dlp extraction hotfixes...")
+                print(" [YouTube Security Engine]: Checking for yt-dlp extraction hotfixes...")
                 if hasattr(yt_dlp, 'update') and hasattr(yt_dlp.update, 'update_self'):
                     yt_dlp.update.update_self()
                 else:
@@ -66,9 +66,9 @@ class YouTubeDownloader:
                         text=True,
                         timeout=30
                     )
-                print("✅ [YouTube Security Engine]: yt-dlp extraction rules are up to date.")
+                print(" [YouTube Security Engine]: yt-dlp extraction rules are up to date.")
             except Exception as e:
-                print(f"ℹ️ [YouTube Security Engine]: Silent update check complete: {e}")
+                print(f"ℹ [YouTube Security Engine]: Silent update check complete: {e}")
 
         import threading
         t = threading.Thread(target=_update, daemon=True, name="yt_dlp_auto_updater")
@@ -176,7 +176,7 @@ class YouTubeDownloader:
         })
 
         try:
-            print(f"⚡ Probing YouTube for instant native captions ({target_langs[0]})...")
+            print(f" Probing YouTube for instant native captions ({target_langs[0]})...")
             with yt_dlp.YoutubeDL(opts) as ydl:
                 try:
                     ydl.extract_info(url, download=True)
@@ -190,7 +190,7 @@ class YouTubeDownloader:
                 sub_files = list(self.temp_dir.glob(f'*{video_id}*.vtt')) + list(Path('temp').resolve().glob(f'*{video_id}*.vtt'))
 
             if not sub_files:
-                print("ℹ️ No native captions found on YouTube for this video. Will use fast audio Whisper.")
+                print("ℹ No native captions found on YouTube for this video. Will use fast audio Whisper.")
                 return None
 
             for sub_file in sub_files:
@@ -250,13 +250,13 @@ class YouTubeDownloader:
 
                 if len(segments) >= 3:
                     full_text = " ".join(full_text_list)
-                    print(f"🚀 Loaded instant YouTube native captions in 0.5s ({len(words)} words, {len(segments)} segments)!")
+                    print(f" Loaded instant YouTube native captions in 0.5s ({len(words)} words, {len(segments)} segments)!")
                     return words, full_text, segments
 
             return None
 
         except Exception as e:
-            print(f"⚠️ Native caption extraction note: {e}")
+            print(f" Native caption extraction note: {e}")
             return None
 
     def download_audio_only(self, url: str) -> Tuple[Path, str, float]:
@@ -280,7 +280,7 @@ class YouTubeDownloader:
             'outtmpl': (self.temp_dir / f'audio_{video_id}.%(ext)s').as_posix(),
         })
 
-        print(f"⚡ Downloading lightweight audio stream for fast AI transcription...")
+        print(f" Downloading lightweight audio stream for fast AI transcription...")
         with yt_dlp.YoutubeDL(opts) as ydl:
             info = ydl.extract_info(url, download=True) or {}
 
@@ -291,7 +291,7 @@ class YouTubeDownloader:
         audio_path = audio_files[0]
         title = info.get('title', 'YouTube Video')
         duration = float(info.get('duration', 0.0))
-        print(f"✅ Audio stream downloaded: {audio_path.name} ({duration:.1f}s)")
+        print(f" Audio stream downloaded: {audio_path.name} ({duration:.1f}s)")
         return audio_path, title, duration
 
     def download_slice(self, url: str, start_sec: float, end_sec: float, quality: str = "1080p", output_path: Optional[Path] = None, progress_callback: Optional[Any] = None) -> Path:
@@ -327,15 +327,15 @@ class YouTubeDownloader:
 
                 formats = info.get("formats", []) if info else []
 
-                # Find matching quality video stream
+                # Find matching quality video stream with intelligent supersampling
+                # Allows higher source resolution (up to 4K / 2160p) so 9:16 vertical crops
+                # have genuine 1080x1920 native pixel clarity instead of blurry digital zoom
                 if quality.lower() == "8k":
                     target_h = 4320
-                elif quality.lower() == "4k":
+                elif quality.lower() in ("4k", "1080p", "720p"):
                     target_h = 2160
-                elif quality.lower() == "1080p":
-                    target_h = 1080
                 else:
-                    target_h = 720
+                    target_h = 1080
                 
                 # 1. Look for separated video and audio formats matching target resolution
                 def is_within_target(f):
@@ -520,7 +520,7 @@ class YouTubeDownloader:
             else:
                 raise FileNotFoundError(f"Failed to extract slice from {start_sec}s to {end_sec}s")
 
-        print(f"✅ Slice downloaded: {output_path.name} ({round(output_path.stat().st_size / (1024*1024), 2)} MB)")
+        print(f" Slice downloaded: {output_path.name} ({round(output_path.stat().st_size / (1024*1024), 2)} MB)")
         return output_path
 
     def download(self, url: str, quality: str = "720p", custom_range: Optional[List[float]] = None) -> Tuple[Path, Optional[Path], str, float]:
@@ -533,7 +533,7 @@ class YouTubeDownloader:
 
         if custom_range:
             start_sec, end_sec = custom_range
-            print(f"⚡ Fast direct slice download for range [{start_sec}s - {end_sec}s]...")
+            print(f" Fast direct slice download for range [{start_sec}s - {end_sec}s]...")
             slice_path = self.download_slice(url, start_sec, end_sec, quality=quality)
             info = self.get_video_info(url)
             return slice_path, None, info.get('title', 'YouTube Video'), max(1.0, end_sec - start_sec)

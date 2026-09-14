@@ -90,11 +90,12 @@ class VideoProcessor:
     @staticmethod
     def detect_hardware_encoder():
         """Detects available hardware video encoders (NVIDIA NVENC, Intel QSV, AMD AMF) or falls back to CPU."""
-        thread_count = max(2, multiprocessing.cpu_count())
+        # Reserve at least 1 core for OS and frontend UI responsiveness on low-spec hardware
+        thread_count = max(1, multiprocessing.cpu_count() - 1)
         try:
             import torch
             if torch.cuda.is_available():
-                print("    🚀 Hardware acceleration: NVIDIA NVENC (h264_nvenc)...")
+                print("    [Hardware Acceleration]: NVIDIA NVENC (h264_nvenc)...")
                 return 'h264_nvenc', 'p6', ['-pix_fmt', 'yuv420p', '-movflags', '+faststart', '-cq', '16', '-rc', 'vbr', '-b:v', '25M', '-maxrate', '35M'], thread_count
         except Exception:
             pass
@@ -108,7 +109,7 @@ class VideoProcessor:
                     '-c:v', 'h264_qsv', '-f', 'null', '-'
                 ], capture_output=True, text=True, check=False)
                 if test_res.returncode == 0:
-                    print("    🚀 Hardware acceleration: Intel Arc QuickSync (h264_qsv)...")
+                    print("    [Hardware Acceleration]: Intel Arc QuickSync (h264_qsv)...")
                     return 'h264_qsv', 'medium', ['-pix_fmt', 'nv12', '-global_quality', '15', '-b:v', '25M', '-maxrate', '35M', '-movflags', '+faststart'], thread_count
         except Exception:
             pass
@@ -119,12 +120,12 @@ class VideoProcessor:
                 text=True
             )
             if 'AMD' in output or 'Radeon' in output:
-                print("    🚀 Hardware acceleration: AMD AMF (h264_amf)...")
+                print("    [Hardware Acceleration]: AMD AMF (h264_amf)...")
                 return 'h264_amf', 'quality', ['-pix_fmt', 'yuv420p', '-movflags', '+faststart', '-rc', 'cqp', '-qp_i', '15', '-qp_p', '15', '-b:v', '25M'], thread_count
         except Exception:
             pass
 
-        print(f"    🚀 High-speed Multi-threaded CPU encoder (libx264, {thread_count} threads)...")
+        print(f"    [Hardware Acceleration]: Multi-threaded CPU encoder (libx264, {thread_count} threads)...")
         return 'libx264', 'veryfast', ['-pix_fmt', 'yuv420p', '-threads', str(thread_count), '-crf', '19', '-b:v', '25M', '-maxrate', '35M', '-movflags', '+faststart'], thread_count
 
     def process_video(
@@ -171,6 +172,13 @@ class VideoProcessor:
         """
         Main entry point for processing and generating viral video clips.
         """
+        # Lower process priority to prevent UI lag on low-spec hardware during video compilation
+        try:
+            import psutil
+            psutil.Process().nice(psutil.BELOW_NORMAL_PRIORITY_CLASS)
+        except Exception:
+            pass
+
         active_range = None if (custom_ranges and len(custom_ranges) > 1) else (custom_range if custom_range else custom_range_filter)
         use_smart_slicing = False
         video_path = None
@@ -185,7 +193,7 @@ class VideoProcessor:
                     duration = clip.duration
             except Exception:
                 duration = 0.0
-            print(f"📂 Loaded local file: {title} ({duration:.1f}s)")
+            print(f" Loaded local file: {title} ({duration:.1f}s)")
         else:
             if active_range:
                 if progress_callback: progress_callback("Downloading targeted video range...", 5)
@@ -201,7 +209,7 @@ class VideoProcessor:
                 title = info.get('title', 'YouTube Video')
                 duration = float(info.get('duration', 0.0))
                 use_smart_slicing = True
-                print(f"⚡ Smart Slicing Pipeline active for: '{title}' ({duration:.1f}s / {duration/3600:.2f} hrs)")
+                print(f" Smart Slicing Pipeline active for: '{title}' ({duration:.1f}s / {duration/3600:.2f} hrs)")
 
         lang_hint = transcription_language if transcription_language and transcription_language != "auto" else None
         words, transcript, segments = [], "", []
@@ -220,7 +228,7 @@ class VideoProcessor:
             subs = self.downloader.get_native_subtitles(url, language=lang_hint or "en")
             if subs:
                 words, transcript, segments = subs
-                print(f"🚀 Loaded instant dialogue transcript in 0.5s ({len(words)} words)!")
+                print(f" Loaded instant dialogue transcript in 0.5s ({len(words)} words)!")
             else:
                 if use_smart_slicing:
                     if progress_callback: progress_callback("Reading audio track for AI moment analysis...", 15)
@@ -256,7 +264,7 @@ class VideoProcessor:
                 except Exception:
                     pass
 
-        print(f"✅ Transcription complete: {len(segments)} segments, {len(words)} words")
+        print(f" Transcription complete: {len(segments)} segments, {len(words)} words")
 
         # Select viral clips
         if custom_ranges and len(custom_ranges) > 0:
@@ -277,7 +285,7 @@ class VideoProcessor:
                         'end': end_t,
                         'title': f'{title} - Clip {idx + 1} ({time_label})',
                         'virality_score': 100,
-                        'content_title': f"{title} - Part {idx + 1} 🔥",
+                        'content_title': f"{title} - Part {idx + 1} ",
                         'content_description': f"Part {idx + 1} ({time_label}) from '{title}'! #viral #shorts #clips"
                     })
         elif custom_range is not None:
@@ -384,7 +392,7 @@ class VideoProcessor:
             else:
                 ffmpeg_params = ['-pix_fmt', 'yuv420p', '-threads', str(thread_count), '-crf', '15', '-preset', 'fast', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd']
 
-        print(f"\n🎬 Processing {len(clip_specs)} viral clips (Saving to: {target_dir})...")
+        print(f"\n Processing {len(clip_specs)} viral clips (Saving to: {target_dir})...")
 
         last_clip_error = None
         for i, clip_info in enumerate(clip_specs, 1):
@@ -392,7 +400,7 @@ class VideoProcessor:
             end = clip_info['end']
             title_text = clip_info.get('title', f'Clip {i}')
             virality_score = clip_info.get('virality_score', 95)
-            print(f"\n📹 Clip {i}/{len(clip_specs)}: {title_text} ({start:.1f}s - {end:.1f}s)")
+            print(f"\n Clip {i}/{len(clip_specs)}: {title_text} ({start:.1f}s - {end:.1f}s)")
 
             clips_to_close = []
             slice_to_cleanup = None
@@ -406,7 +414,7 @@ class VideoProcessor:
                         clips_to_close.append(video)
                         clip = video
                     except Exception as slice_err:
-                        print(f"    ⚠️ Smart slice download note ({slice_err}). Falling back to full video subclip for clip {i}...")
+                        print(f"     Smart slice download note ({slice_err}). Falling back to full video subclip for clip {i}...")
                         if not video_path or not Path(video_path).exists():
                             main_vid_path, _, _, _ = self.downloader.download(url, quality=quality, progress_callback=progress_callback)
                             video_path = main_vid_path
@@ -500,9 +508,9 @@ class VideoProcessor:
                                 )
                                 if c_words:
                                     clip_words = c_words
-                                    print(f"    🎯 Direct clean clip Whisper captured {len(clip_words)} words with millisecond precision!")
+                                    print(f"     Direct clean clip Whisper captured {len(clip_words)} words with millisecond precision!")
                         except Exception as clip_tr_err:
-                            print(f"    ⚠️ Direct clip transcription note: {clip_tr_err}")
+                            print(f"     Direct clip transcription note: {clip_tr_err}")
                         finally:
                             if clip_audio_tmp and clip_audio_tmp.exists():
                                 try: clip_audio_tmp.unlink()
@@ -571,9 +579,9 @@ class VideoProcessor:
                                     clip = clip.set_audio(CompositeAudioClip([vocal_boost, bg_m_looped]))
                                 else:
                                     clip = clip.set_audio(bg_m_looped)
-                                print(f"    🎵 Added background music track: {bg_track.name} (Vol: {round(target_vol, 2)})")
+                                print(f"     Added background music track: {bg_track.name} (Vol: {round(target_vol, 2)})")
                             except Exception as bg_err:
-                                print(f"    ⚠️ Background music note: {bg_err}")
+                                print(f"     Background music note: {bg_err}")
 
                 # Export file
                 if custom_file_name:
@@ -614,12 +622,12 @@ class VideoProcessor:
                 render_fps = 60 if best_codec == 'h264_nvenc' else 30
 
                 if cancel_event and cancel_event.is_set():
-                    print("🛑 Processing cancelled by user.")
+                    print(" Processing cancelled by user.")
                     break
 
                 # Fail-safe Audio Track Recovery: Guarantee audio is present before final rendering
                 if clip.audio is None:
-                    print("    ⚠️ Notice: Clip audio object was missing. Recovering original audio track from source...")
+                    print("     Notice: Clip audio object was missing. Recovering original audio track from source...")
                     try:
                         if use_smart_slicing and slice_to_cleanup and slice_to_cleanup.exists():
                             src_audio = AudioFileClip(str(slice_to_cleanup))
@@ -630,7 +638,7 @@ class VideoProcessor:
                             clips_to_close.append(src_audio)
                             clip = clip.set_audio(src_audio)
                     except Exception as recovery_err:
-                        print(f"    ⚠️ Audio recovery note: {recovery_err}")
+                        print(f"     Audio recovery note: {recovery_err}")
 
                 safe_temp_audio = str((TEMP_DIR / f'temp_audio_{i}_{os.getpid()}_{int(time.time())}.m4a').resolve())
 
@@ -692,6 +700,27 @@ class VideoProcessor:
                 except Exception as meta_err:
                     print(f"    [VideoProcessor] Metadata save notice: {meta_err}")
 
+                # Auto-generate viral 9:16 portrait thumbnail with Arial Black typography
+                try:
+                    from services.thumbnail_generator import ThumbnailGenerator
+                    thumb_gen = ThumbnailGenerator(self.face_tracker)
+                    thumb_target = target_dir / f"{output_path.stem}_thumbnail.jpg"
+                    hook_t = clip_info.get('hook_text', '') or hook_text or ''
+                    clean_t = clean_title if 'clean_title' in locals() else title_text
+                    thumb_gen.generate_thumbnail(
+                        str(output_path),
+                        output_path=str(thumb_target),
+                        hook_text=hook_t,
+                        title=clean_t
+                    )
+                    # Mirror thumbnail into metadata directory
+                    meta_thumb = metadata_dir / f"{output_path.stem}_thumbnail.jpg"
+                    if thumb_target.exists() and not meta_thumb.exists():
+                        import shutil
+                        shutil.copy2(str(thumb_target), str(meta_thumb))
+                except Exception as thumb_err:
+                    print(f"    [VideoProcessor] Thumbnail generation note: {thumb_err}")
+
             except Exception as e:
                 print(f"    [VideoProcessor] Error processing clip {i}: {e}")
                 import traceback
@@ -718,6 +747,13 @@ class VideoProcessor:
 
         self.face_tracker.close()
         cleanup_temp_files()
+
+        # Restore normal process priority
+        try:
+            import psutil
+            psutil.Process().nice(psutil.NORMAL_PRIORITY_CLASS)
+        except Exception:
+            pass
 
         if not output_files and clip_specs:
             err_detail = f": {last_clip_error}" if last_clip_error else ""
