@@ -196,7 +196,7 @@ function createWindow() {
     height: 720,
     title: 'ClipVault',
     show: false,
-    icon: (appIcon && !appIcon.isEmpty()) ? appIcon : iconTarget,
+    icon: iconTarget,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       nodeIntegration: false,
@@ -212,7 +212,7 @@ function createWindow() {
     }
   });
 
-  if (appIcon && !appIcon.isEmpty()) {
+  if (process.platform !== 'win32' && appIcon && !appIcon.isEmpty()) {
     try {
       mainWindow.setIcon(appIcon);
     } catch (e) {}
