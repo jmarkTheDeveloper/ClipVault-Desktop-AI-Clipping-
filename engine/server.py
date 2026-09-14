@@ -516,10 +516,26 @@ def get_saved_clips():
                 quoted_rel_path = urllib.parse.quote(rel_path)
                 clip_url = f"http://127.0.0.1:8000/clips/{quoted_rel_path}"
 
+                # Check if thumbnail file actually exists on disk
+                thumb_candidates = [
+                    path.parent / f"{path.stem}_thumbnail.jpg",
+                    path.parent / "metadata" / f"{path.stem}_thumbnail.jpg"
+                ]
+                thumb_url = None
+                for tc in thumb_candidates:
+                    if tc.exists():
+                        try:
+                            tc_rel = tc.relative_to(OUTPUT_DIR).as_posix()
+                            thumb_url = f"http://127.0.0.1:8000/clips/{urllib.parse.quote(tc_rel)}"
+                            break
+                        except Exception:
+                            pass
+
                 clips.append({
                     "filename": path.name,
                     "path": str(path.resolve()),
                     "url": clip_url,
+                    "thumbnail_url": thumb_url,
                     "title": title,
                     "description": description,
                     "virality_score": virality_score,

@@ -371,10 +371,11 @@ const VaultClipCard: React.FC<{
     return `http://127.0.0.1:8000/stream?path=${encodeURIComponent(clean)}`;
   };
 
-  const thumbnailUrl = (clip as any).thumbnail_url || (clip.url ? clip.url.replace(/\.mp4$/i, "_thumbnail.jpg") : "");
+  const thumbnailUrl = (clip as any).thumbnail_url || "";
   const primarySrc = clip.url || (clip.path ? getStreamUrl(clip.path) : "");
   const fallbackSrc = clip.path ? `local:///${clip.path.replace(/\\/g, "/")}` : "";
   const [currentSrc, setCurrentSrc] = useState<string>(primarySrc);
+  const [thumbError, setThumbError] = useState<boolean>(false);
 
   const releaseVideo = () => {
     if (videoRef.current) {
@@ -389,7 +390,8 @@ const VaultClipCard: React.FC<{
   useEffect(() => {
     setCurrentSrc(primarySrc);
     setHasError(false);
-  }, [clip.path, clip.url]);
+    setThumbError(false);
+  }, [clip.path, clip.url, thumbnailUrl]);
 
   return (
     <div
@@ -410,40 +412,36 @@ const VaultClipCard: React.FC<{
       onClick={onClick}
     >
       <div className="relative w-full aspect-[9/16] bg-[#0d0d0f] overflow-hidden shadow-inner flex items-center justify-center">
-        {!hasError && (currentSrc || thumbnailUrl) ? (
+        {!hasError && currentSrc ? (
           <>
-            {/* Show static thumbnail image by default for 0% CPU & memory usage */}
-            {thumbnailUrl && !isHovered && (
+            {/* High-Performance Video Element with First-Frame Poster Preview */}
+            <video
+              ref={videoRef}
+              src={currentSrc}
+              preload="metadata"
+              muted
+              loop
+              playsInline
+              onError={() => {
+                if (currentSrc !== fallbackSrc && fallbackSrc) {
+                  setCurrentSrc(fallbackSrc);
+                } else {
+                  setHasError(true);
+                }
+              }}
+              className="w-full h-full object-cover bg-black pointer-events-none"
+            />
+
+            {/* Static viral portrait thumbnail overlay when available */}
+            {thumbnailUrl && !thumbError && !isHovered && (
               <img
                 src={thumbnailUrl}
                 alt={clip.title}
                 loading="lazy"
-                className="w-full h-full object-cover bg-black pointer-events-none"
-                onError={(e) => {
-                  (e.target as HTMLElement).style.display = "none";
-                }}
-              />
-            )}
-
-            {/* Mount video on hover or if no thumbnail exists */}
-            {(isHovered || !thumbnailUrl) && currentSrc && (
-              <video
-                ref={videoRef}
-                src={currentSrc}
-                preload="metadata"
-                muted
-                loop
-                playsInline
+                className="absolute inset-0 w-full h-full object-cover bg-black pointer-events-none z-10"
                 onError={() => {
-                  if (currentSrc !== fallbackSrc && fallbackSrc) {
-                    setCurrentSrc(fallbackSrc);
-                  } else {
-                    setHasError(true);
-                  }
+                  setThumbError(true);
                 }}
-                className={`w-full h-full object-cover bg-black pointer-events-none ${
-                  thumbnailUrl && !isHovered ? "hidden" : "block"
-                }`}
               />
             )}
           </>
