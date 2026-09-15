@@ -376,6 +376,10 @@ class FaceTracker:
             # 1. Human faces must be in the upper/middle portion of the frame
             if f['center_y'] > h * 0.78:
                 continue
+            # Ceiling rejection: Objects with face centers in the extreme top 12% of the frame
+            # are ceiling fixtures, hanging portraits/paintings, banners, or wall art.
+            if f['center_y'] < h * 0.12 and f['height'] < h * 0.35:
+                continue
             # 2. Bounding box cannot take up more than 52% width or 55% height of the entire frame
             if f['width'] > w * 0.52 or f['height'] > h * 0.55 or f['area'] > (w * h * 0.25):
                 continue
@@ -434,10 +438,12 @@ class FaceTracker:
                 merged_faces.append(cand)
 
         if merged_faces:
-            # Rank faces by confidence and upper-body eye-level position
+            # Rank faces favoring foreground subjects at human eye level
             def face_rank(f):
-                eye_level_bonus = 1.0 - abs(f['center_y'] - h * 0.35) / h
-                return (f['confidence'] ** 2) * (f['area'] ** 0.35) * eye_level_bonus
+                dist = abs(f['center_y'] - h * 0.38) / (h * 0.45)
+                eye_penalty = max(0.15, 1.0 - dist ** 2)
+                area_ratio = f['area'] / float(w * h)
+                return f['confidence'] * (area_ratio ** 0.65) * eye_penalty
 
             result = sorted(merged_faces, key=face_rank, reverse=True)
         else:
@@ -474,7 +480,10 @@ class FaceTracker:
                 frame = clip.get_frame(t)
                 dets = self.detect_faces_in_frame(frame, frame_time=t)
                 for d in dets:
-                    all_face_xs.append((d['center_x'], d['confidence'] * (d['area'] ** 0.5)))
+                    dist = abs(d['center_y'] - height * 0.38) / (height * 0.45)
+                    eye_penalty = max(0.15, 1.0 - dist ** 2)
+                    area_ratio = d['area'] / float(width * height)
+                    all_face_xs.append((d['center_x'], d['confidence'] * (area_ratio ** 0.65) * eye_penalty))
             except Exception:
                 continue
 
@@ -583,7 +592,7 @@ class FaceTracker:
                                 diff = np.mean(cv2.absdiff(f['mouth_roi'], closest_prev['mouth_roi']))
                                 best_motion = float(diff)
                         f['mouth_motion'] = best_motion
-                        all_face_data.append((f['center_x'], f['confidence'], f['area']))
+                        all_face_data.append((f['center_x'], f['confidence'], f['area'], best_motion, f['center_y']))
 
                     all_frame_detections.append(detected)
                     prev_faces = detected
@@ -599,8 +608,16 @@ class FaceTracker:
         cluster_weights = []
 
         if all_face_data:
-            xs = np.array([x for x, c, a in all_face_data], dtype=np.float64)
-            weights = np.array([c * (a ** 0.5) for x, c, a in all_face_data], dtype=np.float64)
+            xs = np.array([x for x, c, a, m, cy in all_face_data], dtype=np.float64)
+            weights = []
+            for x, c, a, m, cy in all_face_data:
+                dist = abs(cy - height * 0.38) / (height * 0.45)
+                eye_penalty = max(0.15, 1.0 - dist ** 2)
+                area_ratio = a / float(width * height)
+                # Active living mouth/speech motion multiplier (1.0 for static background art, up to 3.5 for active speaker)
+                motion_mult = 1.0 + min(2.5, max(0.0, m - 2.0) * 0.15)
+                weights.append(c * (area_ratio ** 0.65) * eye_penalty * motion_mult)
+            weights = np.array(weights, dtype=np.float64)
 
             nbins = max(10, int(width // 60))
             hist, bin_edges = np.histogram(xs, bins=nbins, weights=weights, range=(0, width))
