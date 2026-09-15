@@ -365,7 +365,13 @@ class VideoProcessor:
         output_files = []
         best_codec, best_preset, ffmpeg_params, thread_count = self.detect_hardware_encoder()
         if quality.lower() == '8k':
-            if best_codec == 'h264_qsv':
+            # Hardware H.264 encoders (QSV, NVENC, AMF) physically cannot encode dimensions exceeding 4096px
+            if target_h > 4096 or target_w > 4096:
+                print(f"    [VideoProcessor] 8K vertical canvas ({target_w}x{target_h}) exceeds hardware H.264 limit (4096 max). Routing to high-speed multi-threaded CPU encoder (libx264)...")
+                best_codec = 'libx264'
+                best_preset = 'veryfast'
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-threads', str(thread_count), '-crf', '14', '-preset', 'veryfast', '-movflags', '+faststart']
+            elif best_codec == 'h264_qsv':
                 ffmpeg_params = ['-pix_fmt', 'nv12', '-b:v', '85M', '-maxrate', '120M', '-global_quality', '12', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd']
             elif best_codec == 'h264_nvenc':
                 ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '85M', '-maxrate', '120M', '-cq', '12', '-rc', 'vbr', '-preset', 'p6', '-tune', 'hq', '-spatial-aq', '1', '-temporal-aq', '1', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd']
@@ -391,6 +397,16 @@ class VideoProcessor:
                 ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '30M', '-maxrate', '45M', '-rc', 'cqp', '-qp_i', '16', '-qp_p', '16', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd']
             else:
                 ffmpeg_params = ['-pix_fmt', 'yuv420p', '-threads', str(thread_count), '-crf', '15', '-preset', 'fast', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd']
+        else:
+            # 720p standard vertical
+            if best_codec == 'h264_qsv':
+                ffmpeg_params = ['-pix_fmt', 'nv12', '-b:v', '18M', '-maxrate', '25M', '-global_quality', '18', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd']
+            elif best_codec == 'h264_nvenc':
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '18M', '-maxrate', '25M', '-cq', '18', '-rc', 'vbr', '-preset', 'p5', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd']
+            elif best_codec == 'h264_amf':
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '18M', '-maxrate', '25M', '-rc', 'cqp', '-qp_i', '18', '-qp_p', '18', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd']
+            else:
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-threads', str(thread_count), '-crf', '18', '-preset', 'fast', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd']
 
         print(f"\n Processing {len(clip_specs)} viral clips (Saving to: {target_dir})...")
 
@@ -454,134 +470,133 @@ class VideoProcessor:
                     clip = self.color_grader.apply_profile(clip, filter_profile)
                     clips_to_close.append(clip)
 
-                    # Deep copy words for this clip to avoid mutating global words in-place across multiple clips
-                    import copy
-                    clip_fallback_words = copy.deepcopy(words) if words else []
+                # Deep copy words for this clip to avoid mutating global words in-place across multiple clips
+                import copy
+                clip_fallback_words = copy.deepcopy(words) if words else []
 
-                    # 3. Dynamic anti-ContentID bypass (Fast C-Level Visual & Acoustic Fingerprint Disruption)
-                    if yt_bypass:
-                        from moviepy.video.fx.mirror_x import mirror_x
-                        from moviepy.video.fx.speedx import speedx
-                        from moviepy.video.fx.crop import crop
-                        
-                        # 1. Flip horizontally (C-pointer matrix inversion, zero overhead)
-                        clip = mirror_x(clip)
-                        # 2. Slight tempo shift (1.04x)
-                        clip = speedx(clip, 1.04)
-                        
-                        # 3. Micro-crop 1.04x to break outer bounding box perceptual hash
-                        cw, ch = clip.size
-                        crop_w = int(cw / 1.04)
-                        crop_h = int(ch / 1.04)
-                        if crop_w % 2 != 0: crop_w -= 1
-                        if crop_h % 2 != 0: crop_h -= 1
-                        clip = crop(clip, width=crop_w, height=crop_h, x_center=cw/2, y_center=ch/2)
-                        clip = clip.resize((cw, ch))
+                # 3. Dynamic anti-ContentID bypass (Fast C-Level Visual & Acoustic Fingerprint Disruption)
+                if yt_bypass:
+                    from moviepy.video.fx.mirror_x import mirror_x
+                    from moviepy.video.fx.speedx import speedx
+                    from moviepy.video.fx.crop import crop
+                    
+                    # 1. Flip horizontally (C-pointer matrix inversion, zero overhead)
+                    clip = mirror_x(clip)
+                    # 2. Slight tempo shift (1.04x)
+                    clip = speedx(clip, 1.04)
+                    
+                    # 3. Micro-crop 1.04x to break outer bounding box perceptual hash
+                    cw, ch = clip.size
+                    crop_w = int(cw / 1.04)
+                    crop_h = int(ch / 1.04)
+                    if crop_w % 2 != 0: crop_w -= 1
+                    if crop_h % 2 != 0: crop_h -= 1
+                    clip = crop(clip, width=crop_w, height=crop_h, x_center=cw/2, y_center=ch/2)
+                    clip = clip.resize((cw, ch))
+                    clips_to_close.append(clip)
+                    if clip_fallback_words:
+                        for w_info in clip_fallback_words:
+                            w_info['start'] /= 1.04
+                            w_info['end'] /= 1.04
+
+                # 4. Add Word-by-Word Animated Typography BEFORE background music (ensures clean speech transcription)
+                is_none_style = self.caption_maker.styles.get(self.caption_maker.selected_style, {}).get('no_captions', False)
+                if add_captions and not is_none_style:
+                    # High-Accuracy Direct Clip Transcription on Clean Audio (CapCut & Opus Clip Standard)
+                    clip_words = []
+                    clip_audio_tmp = None
+                    try:
+                        clip_audio_tmp = TEMP_DIR / f"clip_audio_{i}_{int(time.time()*1000)}.wav"
+                        if clip.audio is not None:
+                            clip.audio.write_audiofile(
+                                str(clip_audio_tmp),
+                                fps=16000,
+                                nbytes=2,
+                                codec='pcm_s16le',
+                                logger=None
+                            )
+                            c_words, _, _ = self.transcriber.transcribe(
+                                str(clip_audio_tmp),
+                                language=lang_hint,
+                                api_key=self.api_key,
+                                ai_engine=self.ai_engine
+                            )
+                            if c_words:
+                                clip_words = c_words
+                                print(f"     Direct clean clip Whisper captured {len(clip_words)} words with millisecond precision!")
+                    except Exception as clip_tr_err:
+                        print(f"     Direct clip transcription note: {clip_tr_err}")
+                    finally:
+                        if clip_audio_tmp and clip_audio_tmp.exists():
+                            try: clip_audio_tmp.unlink()
+                            except Exception: pass
+
+                    # Filter fallback words for the clip time window
+                    words_in_range = [
+                        w for w in clip_fallback_words
+                        if (start - 0.5) <= w.get('start', 0.0) <= (end + 0.5)
+                    ] if clip_fallback_words else []
+
+                    # Validate word count & coverage to guarantee complete captions across all spoken segments
+                    if clip_words and (not words_in_range or len(clip_words) >= max(2, int(len(words_in_range) * 0.4))):
+                        final_words = clip_words
+                        offset_time = 0.0
+                    else:
+                        final_words = words_in_range if words_in_range else clip_words
+                        offset_time = start if words_in_range else 0.0
+
+                    if final_words:
+                        ai_hook_text = clip_info.get('hook_title', hook_text)
+                        clip = self.caption_maker.add_captions(
+                            clip, final_words, offset_time, layout=layout,
+                            hook_text=ai_hook_text, auto_sfx=auto_sfx, caption_y_pct=caption_y_pct
+                        )
                         clips_to_close.append(clip)
+
+                # 5. Background music with auto-ducking (Composited after captions are applied)
+                if add_bg_music and not movie_recap:
+                    from config import MUSIC_DIR, ENGINE_DIR
+                    bg_track = None
+                    if bg_music_file:
+                        clean_bg = str(bg_music_file).replace("local:///", "").replace("local://", "").replace("file:///", "").replace("file://", "")
+                        if "http://127.0.0.1:8000/music/" in clean_bg:
+                            clean_bg = clean_bg.split("/music/")[-1]
                         
-                        if clip_fallback_words:
-                            for w_info in clip_fallback_words:
-                                w_info['start'] /= 1.04
-                                w_info['end'] /= 1.04
+                        p = Path(clean_bg)
+                        if p.exists():
+                            bg_track = p
+                        elif (MUSIC_DIR / p.name).exists():
+                            bg_track = MUSIC_DIR / p.name
+                        elif (ENGINE_DIR / "bg_music" / p.name).exists():
+                            bg_track = ENGINE_DIR / "bg_music" / p.name
 
-                    # 4. Add Word-by-Word Animated Typography BEFORE background music (ensures clean speech transcription)
-                    is_none_style = self.caption_maker.styles.get(self.caption_maker.selected_style, {}).get('no_captions', False)
-                    if add_captions and not is_none_style:
-                        # High-Accuracy Direct Clip Transcription on Clean Audio (CapCut & Opus Clip Standard)
-                        clip_words = []
-                        clip_audio_tmp = None
+                    if not bg_track or not bg_track.exists():
+                        bg_tracks = (
+                            list(MUSIC_DIR.glob("*.mp3")) + list(MUSIC_DIR.glob("*.wav")) + list(MUSIC_DIR.glob("*.m4a")) +
+                            list((ENGINE_DIR / "bg_music").glob("*.mp3")) + list((ENGINE_DIR / "bg_music").glob("*.wav")) +
+                            list(Path("./bg_music").glob("*.mp3"))
+                        )
+                        if bg_tracks:
+                            bg_track = random.choice(bg_tracks)
+
+                    if bg_track and bg_track.exists():
                         try:
-                            clip_audio_tmp = TEMP_DIR / f"clip_audio_{i}_{int(time.time()*1000)}.wav"
-                            if clip.audio is not None:
-                                clip.audio.write_audiofile(
-                                    str(clip_audio_tmp),
-                                    fps=16000,
-                                    nbytes=2,
-                                    codec='pcm_s16le',
-                                    logger=None
-                                )
-                                c_words, _, _ = self.transcriber.transcribe(
-                                    str(clip_audio_tmp),
-                                    language=lang_hint,
-                                    api_key=self.api_key,
-                                    ai_engine=self.ai_engine
-                                )
-                                if c_words:
-                                    clip_words = c_words
-                                    print(f"     Direct clean clip Whisper captured {len(clip_words)} words with millisecond precision!")
-                        except Exception as clip_tr_err:
-                            print(f"     Direct clip transcription note: {clip_tr_err}")
-                        finally:
-                            if clip_audio_tmp and clip_audio_tmp.exists():
-                                try: clip_audio_tmp.unlink()
-                                except Exception: pass
-
-                        # Filter fallback words for the clip time window
-                        words_in_range = [
-                            w for w in clip_fallback_words
-                            if (start - 0.5) <= w.get('start', 0.0) <= (end + 0.5)
-                        ] if clip_fallback_words else []
-
-                        # Validate word count & coverage to guarantee complete captions across all spoken segments
-                        if clip_words and (not words_in_range or len(clip_words) >= max(2, int(len(words_in_range) * 0.4))):
-                            final_words = clip_words
-                            offset_time = 0.0
-                        else:
-                            final_words = words_in_range if words_in_range else clip_words
-                            offset_time = start if words_in_range else 0.0
-
-                        if final_words:
-                            ai_hook_text = clip_info.get('hook_title', hook_text)
-                            clip = self.caption_maker.add_captions(
-                                clip, final_words, offset_time, layout=layout,
-                                hook_text=ai_hook_text, auto_sfx=auto_sfx, caption_y_pct=caption_y_pct
-                            )
-                            clips_to_close.append(clip)
-
-                    # 5. Background music with auto-ducking (Composited after captions are applied)
-                    if add_bg_music and not movie_recap:
-                        from config import MUSIC_DIR, ENGINE_DIR
-                        bg_track = None
-                        if bg_music_file:
-                            clean_bg = str(bg_music_file).replace("local:///", "").replace("local://", "").replace("file:///", "").replace("file://", "")
-                            if "http://127.0.0.1:8000/music/" in clean_bg:
-                                clean_bg = clean_bg.split("/music/")[-1]
-                            
-                            p = Path(clean_bg)
-                            if p.exists():
-                                bg_track = p
-                            elif (MUSIC_DIR / p.name).exists():
-                                bg_track = MUSIC_DIR / p.name
-                            elif (ENGINE_DIR / "bg_music" / p.name).exists():
-                                bg_track = ENGINE_DIR / "bg_music" / p.name
-
-                        if not bg_track or not bg_track.exists():
-                            bg_tracks = (
-                                list(MUSIC_DIR.glob("*.mp3")) + list(MUSIC_DIR.glob("*.wav")) + list(MUSIC_DIR.glob("*.m4a")) +
-                                list((ENGINE_DIR / "bg_music").glob("*.mp3")) + list((ENGINE_DIR / "bg_music").glob("*.wav")) +
-                                list(Path("./bg_music").glob("*.mp3"))
-                            )
-                            if bg_tracks:
-                                bg_track = random.choice(bg_tracks)
-
-                        if bg_track and bg_track.exists():
-                            try:
-                                # Audible & balanced volume: 0.18-0.35 ducked under voice, 0.70 when no voice
-                                base_vol = bg_music_vol if bg_music_vol > 0 else 0.25
-                                target_vol = max(0.15, min(0.40, base_vol * 1.3)) if clip.audio else base_vol
-                                bg_m = AudioFileClip(str(bg_track)).volumex(target_vol)
-                                from moviepy.audio.fx.audio_loop import audio_loop
-                                bg_m_looped = audio_loop(bg_m, duration=clip.duration)
-                                clips_to_close.extend([bg_m, bg_m_looped])
-                                if clip.audio:
-                                    from moviepy.editor import CompositeAudioClip
-                                    vocal_boost = clip.audio.volumex(1.20)
-                                    clip = clip.set_audio(CompositeAudioClip([vocal_boost, bg_m_looped]))
-                                else:
-                                    clip = clip.set_audio(bg_m_looped)
-                                print(f"     Added background music track: {bg_track.name} (Vol: {round(target_vol, 2)})")
-                            except Exception as bg_err:
-                                print(f"     Background music note: {bg_err}")
+                            # Audible & balanced volume: 0.18-0.35 ducked under voice, 0.70 when no voice
+                            base_vol = bg_music_vol if bg_music_vol > 0 else 0.25
+                            target_vol = max(0.15, min(0.40, base_vol * 1.3)) if clip.audio else base_vol
+                            bg_m = AudioFileClip(str(bg_track)).volumex(target_vol)
+                            from moviepy.audio.fx.audio_loop import audio_loop
+                            bg_m_looped = audio_loop(bg_m, duration=clip.duration)
+                            clips_to_close.extend([bg_m, bg_m_looped])
+                            if clip.audio:
+                                from moviepy.editor import CompositeAudioClip
+                                vocal_boost = clip.audio.volumex(1.20)
+                                clip = clip.set_audio(CompositeAudioClip([vocal_boost, bg_m_looped]))
+                            else:
+                                clip = clip.set_audio(bg_m_looped)
+                            print(f"     Added background music track: {bg_track.name} (Vol: {round(target_vol, 2)})")
+                        except Exception as bg_err:
+                            print(f"     Background music note: {bg_err}")
 
                 # Export file
                 if custom_file_name:
@@ -642,20 +657,46 @@ class VideoProcessor:
 
                 safe_temp_audio = str((TEMP_DIR / f'temp_audio_{i}_{os.getpid()}_{int(time.time())}.m4a').resolve())
 
-                clip.write_videofile(
-                    str(output_path),
-                    codec=best_codec,
-                    audio_codec='aac' if clip.audio else None,
-                    audio=True if clip.audio else False,
-                    preset=best_preset,
-                    fps=render_fps,
-                    ffmpeg_params=ffmpeg_params,
-                    verbose=False,
-                    logger=my_logger,
-                    temp_audiofile=safe_temp_audio if clip.audio else None,
-                    remove_temp=True,
-                    threads=thread_count
-                )
+                try:
+                    clip.write_videofile(
+                        str(output_path),
+                        codec=best_codec,
+                        audio_codec='aac' if clip.audio else None,
+                        audio=True if clip.audio else False,
+                        preset=best_preset,
+                        fps=render_fps,
+                        ffmpeg_params=ffmpeg_params,
+                        verbose=False,
+                        logger=my_logger,
+                        temp_audiofile=safe_temp_audio if clip.audio else None,
+                        remove_temp=True,
+                        threads=thread_count
+                    )
+                except Exception as hw_enc_err:
+                    if best_codec != 'libx264':
+                        print(f"    [VideoProcessor] Hardware encoder '{best_codec}' encountered error: {hw_enc_err}")
+                        print(f"    [VideoProcessor] Automatically recovering: re-rendering with multi-threaded CPU encoder (libx264)...")
+                        if output_path.exists():
+                            try: output_path.unlink()
+                            except Exception: pass
+
+                        cpu_fallback_params = ['-pix_fmt', 'yuv420p', '-threads', str(thread_count), '-crf', '17', '-preset', 'veryfast', '-movflags', '+faststart']
+                        clip.write_videofile(
+                            str(output_path),
+                            codec='libx264',
+                            audio_codec='aac' if clip.audio else None,
+                            audio=True if clip.audio else False,
+                            preset='veryfast',
+                            fps=render_fps,
+                            ffmpeg_params=cpu_fallback_params,
+                            verbose=False,
+                            logger=my_logger,
+                            temp_audiofile=safe_temp_audio if clip.audio else None,
+                            remove_temp=True,
+                            threads=thread_count
+                        )
+                    else:
+                        raise hw_enc_err
                 output_files.append(str(output_path))
                 print(f"    [VideoProcessor] Saved: {filename} ({render_fps} FPS)")
                 if progress_callback:
