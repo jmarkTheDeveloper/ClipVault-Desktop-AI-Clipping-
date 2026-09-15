@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Sparkles,
   FolderOpen,
@@ -47,19 +47,22 @@ const GalleryClipCard: React.FC<{
   onContextMenu: (e: React.MouseEvent, clip: any, idx: number) => void;
   onToggleSelect: (e: React.MouseEvent) => void;
 }> = ({ clip, index, isSelected, onSelectClip, onDeleteClip, onContextMenu, onToggleSelect }) => {
-  const videoRef = React.useRef<HTMLVideoElement | null>(null);
-  const [hasError, setHasError] = React.useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [hasError, setHasError] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
   const handleMouseEnter = () => {
+    setIsHovered(true);
     if (videoRef.current && !hasError) {
       videoRef.current.play().catch(() => {});
     }
   };
 
   const handleMouseLeave = () => {
+    setIsHovered(false);
     if (videoRef.current && !hasError) {
       videoRef.current.pause();
-      try { videoRef.current.currentTime = 0.1; } catch {}
+      try { videoRef.current.currentTime = 0.5; } catch {}
     }
   };
 
@@ -208,7 +211,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
   onSelectClip,
   onDeleteClip,
 }) => {
-  const [contextMenu, setContextMenu] = React.useState<{ x: number; y: number; clip: any; index: number } | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; clip: any; index: number } | null>(null);
 
   return (
     <div className="flex-1 bg-[#0a0a0a] overflow-y-auto p-8 animate-fadeIn relative">
