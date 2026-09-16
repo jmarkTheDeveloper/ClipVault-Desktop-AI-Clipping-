@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Link2,
   Clipboard,
@@ -27,6 +27,11 @@ import {
   Clock,
   Pin,
   Layers,
+  ChevronDown,
+  ChevronUp,
+  Sliders,
+  Maximize2,
+  Activity,
 } from "lucide-react";
 import type { CustomSegment } from "./types";
 
@@ -277,6 +282,8 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
   diagnosticMode = false,
   setDiagnosticMode,
 }) => {
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
   return (
     <div className="w-[520px] flex-shrink-0 border-r border-white/5 overflow-y-auto px-8 py-6 bg-[#070707] flex flex-col">
       <div className="space-y-7 w-full animate-fadeIn">
@@ -596,6 +603,139 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
               </button>
             </div>
           </div>
+        </div>
+
+        {/* Advanced Camera & Quality Settings Collapsible Button */}
+        <div className={layout !== "vertical_crop" && layout !== "custom_split" ? "opacity-35 pointer-events-none transition-opacity" : "transition-opacity"}>
+          <button
+            type="button"
+            onClick={() => setShowAdvanced((prev) => !prev)}
+            className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 text-xs font-semibold text-gray-300 hover:text-white transition-all cursor-pointer"
+          >
+            <div className="flex items-center gap-2">
+              <Sliders className="w-3.5 h-3.5 text-amber-400" />
+              <span>Advanced Camera & Quality Controls</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-[10px] text-gray-400 font-medium">
+              <span>{showAdvanced ? "Hide Options" : "Show Options"}</span>
+              {showAdvanced ? (
+                <ChevronUp className="w-3.5 h-3.5 text-amber-400" />
+              ) : (
+                <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
+              )}
+            </div>
+          </button>
+
+          {showAdvanced && (
+            <div className="mt-2.5 space-y-3 p-3.5 rounded-xl bg-white/[0.02] border border-white/10 animate-fadeIn">
+              {/* Adaptive Quality Framing Toggle */}
+              <div
+                className="flex items-center justify-between cursor-pointer select-none"
+                onClick={() => setAdaptiveCrop && setAdaptiveCrop(!adaptiveCrop)}
+              >
+                <div className="pr-2">
+                  <span className="text-xs text-white font-semibold flex items-center gap-1.5">
+                    <Maximize2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    Adaptive Quality-Aware Framing
+                  </span>
+                  <span className="text-[10px] text-gray-400 block mt-0.5 leading-tight">
+                    Automatically widens framing if zooming in would cause pixel blur
+                  </span>
+                </div>
+                <div
+                  className={`w-8 h-4 rounded-full flex items-center p-0.5 transition-colors shrink-0 ${
+                    adaptiveCrop ? "bg-amber-400" : "bg-white/20"
+                  }`}
+                >
+                  <div
+                    className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${
+                      adaptiveCrop ? "translate-x-4" : "translate-x-0"
+                    }`}
+                  />
+                </div>
+              </div>
+
+              {/* Max Digital Zoom Slider */}
+              <div className="pt-2.5 border-t border-white/5 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-gray-300 font-medium flex items-center gap-1.5">
+                    <Sliders className="w-3 h-3 text-amber-400 shrink-0" /> Maximum Digital Zoom Limit
+                  </span>
+                  <span className="text-[11px] font-mono font-bold text-amber-400">
+                    {(maxDigitalZoom ?? 1.35).toFixed(2)}x
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="1.0"
+                  max="2.5"
+                  step="0.05"
+                  value={maxDigitalZoom ?? 1.35}
+                  onChange={(e) => setMaxDigitalZoom && setMaxDigitalZoom(parseFloat(e.target.value))}
+                  className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-amber-400"
+                />
+                <div className="flex justify-between text-[9px] text-gray-500 font-mono">
+                  <span>1.0x (No zoom)</span>
+                  <span>1.35x (Balanced)</span>
+                  <span>2.5x (Deep zoom)</span>
+                </div>
+              </div>
+
+              {/* AI Resolution Enhancement Toggle */}
+              <div
+                className="pt-2.5 border-t border-white/5 flex items-center justify-between cursor-pointer select-none"
+                onClick={() => setEnableSuperResolution && setEnableSuperResolution(!enableSuperResolution)}
+              >
+                <div className="pr-2">
+                  <span className="text-xs text-white font-semibold flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    AI Resolution Enhancer
+                  </span>
+                  <span className="text-[10px] text-gray-400 block mt-0.5 leading-tight">
+                    Uses on-device neural upscaling to restore edge sharpness on lower-resolution footage
+                  </span>
+                </div>
+                <div
+                  className={`w-8 h-4 rounded-full flex items-center p-0.5 transition-colors shrink-0 ${
+                    enableSuperResolution ? "bg-amber-400" : "bg-white/20"
+                  }`}
+                >
+                  <div
+                    className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${
+                      enableSuperResolution ? "translate-x-4" : "translate-x-0"
+                    }`}
+                  />
+                </div>
+              </div>
+
+              {/* Visual Diagnostics Video Toggle */}
+              <div
+                className="pt-2.5 border-t border-white/5 flex items-center justify-between cursor-pointer select-none"
+                onClick={() => setDiagnosticMode && setDiagnosticMode(!diagnosticMode)}
+              >
+                <div className="pr-2">
+                  <span className="text-xs text-white font-semibold flex items-center gap-1.5">
+                    <Activity className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    Visual Tracking Diagnostics
+                  </span>
+                  <span className="text-[10px] text-gray-400 block mt-0.5 leading-tight">
+                    Exports debug video with subject tracking boxes and camera coordinates
+                  </span>
+                </div>
+                <div
+                  className={`w-8 h-4 rounded-full flex items-center p-0.5 transition-colors shrink-0 ${
+                    diagnosticMode ? "bg-amber-400" : "bg-white/20"
+                  }`}
+                >
+                  <div
+                    className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${
+                      diagnosticMode ? "translate-x-4" : "translate-x-0"
+                    }`}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Duration Mode & AI Settings */}
