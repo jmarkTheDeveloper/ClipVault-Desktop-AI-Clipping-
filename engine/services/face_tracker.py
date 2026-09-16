@@ -55,11 +55,23 @@ except Exception:
 
 try:
     from services.subject_tracker import SubjectTracker
+    from services.temporal_tracker import TemporalTracker
+    from services.virtual_camera import VirtualCamera
+    from services.quality_engine import QualityEngine
+    from services.diagnostics import DiagnosticsVisualizer
 except ImportError:
     try:
         from subject_tracker import SubjectTracker
+        from temporal_tracker import TemporalTracker
+        from virtual_camera import VirtualCamera
+        from quality_engine import QualityEngine
+        from diagnostics import DiagnosticsVisualizer
     except ImportError:
         from engine.services.subject_tracker import SubjectTracker
+        from engine.services.temporal_tracker import TemporalTracker
+        from engine.services.virtual_camera import VirtualCamera
+        from engine.services.quality_engine import QualityEngine
+        from engine.services.diagnostics import DiagnosticsVisualizer
 
 
 class FaceTracker:
@@ -555,30 +567,49 @@ class FaceTracker:
         bg_dimmed[y_off:y_off + scaled_h, 0:target_w] = fg
         return bg_dimmed
 
-    def track_and_crop(self, clip, crop_ratio: float = 9/16, camera_style: str = "instant"):
+    def track_and_crop(
+        self,
+        clip,
+        crop_ratio: float = 9/16,
+        camera_style: str = "instant",
+        adaptive_crop: bool = True,
+        max_digital_zoom: float = 1.35,
+        min_crop_margin: float = 0.30,
+        diagnostic_mode: bool = False,
+        scene_cut_times: Optional[List[float]] = None,
+        target_resolution: Optional[Tuple[int, int]] = None
+    ):
         """
-        Intelligent AI Video Director for 9:16 Shorts/Reels/TikTok.
-        Features Rock-Solid Cinema Tripod Locking on primary speakers,
-        eliminating dizzying camera drift and erratic back-and-forth movement.
+        AI Virtual Camera Director with Temporal Tracking & Quality-Aware Cropping.
+        Utilizes Kalman multi-object state estimation, ByteTrack association,
+        deadzone filtering, and kinematic spring smoothing.
         """
         width, height = clip.size
-        target_width = int(height * crop_ratio)
-        if target_width % 2 != 0:
-            target_width -= 1
+        base_crop_w = int(height * crop_ratio)
+        if base_crop_w % 2 != 0: base_crop_w -= 1
 
-        if width <= target_width:
+        if width <= base_crop_w and not diagnostic_mode:
             return clip
 
         self.face_cache = {}
 
-        fps_sample = 5
-        num_samples = max(5, int(clip.duration * fps_sample))
+        # Sample clip frames to perform multi-model detection and temporal tracking
+        fps_sample = 6
+        num_samples = max(6, int(clip.duration * fps_sample))
         sample_times = np.linspace(0.05, max(0.1, clip.duration - 0.05), num_samples)
 
-        all_frame_detections = []
-        all_face_data = []
+        temporal_tracker = TemporalTracker(max_age=int(fps_sample * 2.5), min_hits=2)
+        virtual_cam = VirtualCamera(
+            width, height, aspect_ratio=crop_ratio,
+            deadzone_ratio=0.10 if camera_style == "snappy" else (0.16 if camera_style == "smooth" else 0.12),
+            pan_speed=550.0 if camera_style == "snappy" else (280.0 if camera_style == "smooth" else 400.0),
+            fps=float(fps_sample)
+        )
 
+        all_timeline_data = []
         prev_faces = []
+        found_any_human = False
+
         for t in sample_times:
             try:
                 frame = clip.get_frame(t)
@@ -588,218 +619,117 @@ class FaceTracker:
                         best_motion = 0.0
                         if 'mouth_roi' in f and prev_faces:
                             closest_prev = min(prev_faces, key=lambda pf: abs(pf['center_x'] - f['center_x']) + abs(pf['center_y'] - f['center_y']))
-                            if 'mouth_roi' in closest_prev and abs(closest_prev['center_x'] - f['center_x']) < target_width * 0.35:
+                            if 'mouth_roi' in closest_prev and abs(closest_prev['center_x'] - f['center_x']) < width * 0.35:
                                 diff = np.mean(cv2.absdiff(f['mouth_roi'], closest_prev['mouth_roi']))
                                 best_motion = float(diff)
                         f['mouth_motion'] = best_motion
-                        all_face_data.append((f['center_x'], f['confidence'], f['area'], best_motion, f['center_y']))
-
-                    all_frame_detections.append(detected)
                     prev_faces = detected
                 else:
-                    all_frame_detections.append([])
                     prev_faces = []
+
+                tracks = temporal_tracker.update(detected, width, height)
+                primary_track = tracks[0] if tracks else None
+                if primary_track:
+                    found_any_human = True
+
+                # Calculate target crop
+                is_cut = bool(scene_cut_times and any(abs(t - ct) < (0.5 / fps_sample) for ct in scene_cut_times))
+                tcx, tcy, tcw, tch = virtual_cam.calculate_target_crop(
+                    primary_track, tracks, min_margin_pct=min_crop_margin, max_digital_zoom=max_digital_zoom
+                )
+
+                if adaptive_crop:
+                    tw = target_resolution[0] if target_resolution else int(tch * crop_ratio)
+                    th = target_resolution[1] if target_resolution else int(tch)
+                    tcw, tch = QualityEngine.adjust_crop_for_quality(
+                        int(tcw), int(tch), tw, th, width, height,
+                        max_digital_zoom=max_digital_zoom, aspect_ratio=crop_ratio
+                    )
+
+                crop_rect = virtual_cam.update(tcx, tcy, tcw, tch, is_scene_cut=is_cut)
+
+                # Quality evaluation
+                tw = target_resolution[0] if target_resolution else int(crop_rect[3] * crop_ratio)
+                th = target_resolution[1] if target_resolution else crop_rect[3]
+                q_eval = QualityEngine.evaluate_quality(width, height, crop_rect[2], crop_rect[3], tw, th)
+
+                all_timeline_data.append({
+                    "t": t,
+                    "crop_rect": crop_rect,
+                    "tracks": tracks,
+                    "primary_track": primary_track,
+                    "quality_eval": q_eval
+                })
             except Exception:
-                all_frame_detections.append([])
-                prev_faces = []
+                pass
 
-        # ── 1. SPATIAL SPEAKER CLUSTERING & ANCHOR IDENTIFICATION ──
-        speaker_clusters = []
-        cluster_weights = []
-
-        if all_face_data:
-            xs = np.array([x for x, c, a, m, cy in all_face_data], dtype=np.float64)
-            weights = []
-            for x, c, a, m, cy in all_face_data:
-                dist = abs(cy - height * 0.38) / (height * 0.45)
-                eye_penalty = max(0.15, 1.0 - dist ** 2)
-                area_ratio = a / float(width * height)
-                # Active living mouth/speech motion multiplier (1.0 for static background art, up to 3.5 for active speaker)
-                motion_mult = 1.0 + min(2.5, max(0.0, m - 2.0) * 0.15)
-                weights.append(c * (area_ratio ** 0.65) * eye_penalty * motion_mult)
-            weights = np.array(weights, dtype=np.float64)
-
-            nbins = max(10, int(width // 60))
-            hist, bin_edges = np.histogram(xs, bins=nbins, weights=weights, range=(0, width))
-            peak_indices = np.argsort(hist)[::-1]
-            total_mass = np.sum(hist) if np.sum(hist) > 0 else 1.0
-
-            for idx in peak_indices:
-                if hist[idx] > 0 and hist[idx] >= total_mass * 0.18:
-                    approx_peak = (bin_edges[idx] + bin_edges[idx + 1]) / 2.0
-                    in_cluster_mask = np.abs(xs - approx_peak) < (target_width * 0.45)
-                    if np.any(in_cluster_mask):
-                        c_xs = xs[in_cluster_mask]
-                        c_ws = weights[in_cluster_mask]
-                        true_center = float(np.average(c_xs, weights=c_ws))
-                        c_mass = float(np.sum(c_ws))
-                    else:
-                        true_center = approx_peak
-                        c_mass = float(hist[idx])
-
-                    if not any(abs(true_center - c) < target_width * 0.35 for c in speaker_clusters):
-                        speaker_clusters.append(true_center)
-                        cluster_weights.append(c_mass)
-                        if len(speaker_clusters) >= 2:
-                            break
-
-        # Check if there is a Dominant Host / Primary Speaker
-        total_cluster_mass = sum(cluster_weights) if cluster_weights else 1.0
-        primary_is_dominant = False
-        primary_speaker_x = width / 2.0
-
-        if speaker_clusters:
-            primary_speaker_x = speaker_clusters[0]
-            top_ratio = cluster_weights[0] / total_cluster_mass
-            if len(speaker_clusters) == 1 or top_ratio >= 0.78 or (len(cluster_weights) > 1 and cluster_weights[1] < total_cluster_mass * 0.20):
-                primary_is_dominant = True
-
-            # Confirm secondary cluster has verified neural face detections across the clip
-            if len(speaker_clusters) >= 2 and not primary_is_dominant:
-                sec_cluster_x = speaker_clusters[1]
-                has_neural_support = False
-                for det_list in all_frame_detections:
-                    for det in det_list:
-                        if det.get('type') in ('yunet_neural', 'mediapipe'):
-                            if abs(det['center_x'] - sec_cluster_x) < target_width * 0.45:
-                                has_neural_support = True
-                                break
-                    if has_neural_support:
-                        break
-                if not has_neural_support:
-                    primary_is_dominant = True
-        else:
-            # When neural face detection finds 0 faces across all sample frames,
-            # engage SubjectTracker to track non-human subjects (action, gameplay, sports, products)
-            print("    [FaceTracker] 0 human faces detected. Engaging general-purpose SubjectTracker...")
+        if not found_any_human:
+            print("    [FaceTracker] 0 human tracks detected. Engaging general-purpose SubjectTracker...")
             try:
                 return self.subject_tracker.track_and_crop(clip, crop_ratio=crop_ratio, camera_style=camera_style)
             except Exception as st_err:
                 print(f"    [FaceTracker] SubjectTracker notice: {st_err}")
 
-        # ── 2. ROCK-SOLID TRIPOD LOCK FOR DOMINANT SINGLE SPEAKER / REACTION VIDEOS ──
-        if primary_is_dominant or len(speaker_clusters) <= 1:
-            # Center target box directly over primary speaker center_x while clamping within frame bounds
-            cx = max(target_width / 2.0, min(width - target_width / 2.0, primary_speaker_x))
-            x1 = int(round(cx - target_width / 2.0))
-            x1 = max(0, min(width - target_width, x1))
+        if not all_timeline_data:
+            return clip
 
-            print(f"    [FaceTracker] Tripod Lock Active: Perfectly centered & locked at X={primary_speaker_x:.0f} (Crop X1={x1})")
+        # Timeline keyframe arrays
+        t_keys = np.array([item["t"] for item in all_timeline_data], dtype=np.float64)
+        x1_keys = np.array([item["crop_rect"][0] for item in all_timeline_data], dtype=np.float64)
+        y1_keys = np.array([item["crop_rect"][1] for item in all_timeline_data], dtype=np.float64)
+        cw_keys = np.array([item["crop_rect"][2] for item in all_timeline_data], dtype=np.float64)
+        ch_keys = np.array([item["crop_rect"][3] for item in all_timeline_data], dtype=np.float64)
 
-            def static_tripod_filter(get_frame, t):
-                frame = get_frame(t)
-                return frame[:, x1:x1 + target_width]
+        final_out_w = int(round(float(np.median(cw_keys))))
+        final_out_h = int(round(float(np.median(ch_keys))))
+        if final_out_w % 2 != 0: final_out_w -= 1
+        if final_out_h % 2 != 0: final_out_h -= 1
 
-            cropped_clip = clip.fl(static_tripod_filter, apply_to=["mask"])
-            cropped_clip.size = (target_width, height)
-            return cropped_clip
+        print(
+            f"    [FaceTracker] Temporal Virtual Camera Active ({len(t_keys)} keyframes) | "
+            f"Aspect: {crop_ratio:.3f} | Style: {camera_style} | Adaptive Crop: {adaptive_crop} | Diagnostics: {diagnostic_mode}"
+        )
 
-        # ── 3. TWO CO-HOST PODCAST / CONVERSATION MODE ──
-        # Order clusters left-to-right: speaker_A is left, speaker_B is right
-        speaker_A = min(speaker_clusters[0], speaker_clusters[1])
-        speaker_B = max(speaker_clusters[0], speaker_clusters[1])
-        cluster_dist = abs(speaker_B - speaker_A)
-        # Tight 2-shot fit: two people sitting close together on the same couch (<= 40% target width)
-        two_shot_fits = (cluster_dist <= target_width * 0.40)
-        two_shot_center = max(target_width / 2.0, min(width - target_width / 2.0, (speaker_A + speaker_B) / 2.0))
-
-        raw_shot_candidates = []
-        last_active = 'SPEAKER_A'
-        for det_list in all_frame_detections:
-            if not det_list:
-                raw_shot_candidates.append(last_active)
-                continue
-
-            faces_A = [f for f in det_list if abs(f['center_x'] - speaker_A) < target_width * 0.45]
-            faces_B = [f for f in det_list if abs(f['center_x'] - speaker_B) < target_width * 0.45]
-            act_A = max([f.get('mouth_motion', 0.0) for f in faces_A], default=0.0)
-            act_B = max([f.get('mouth_motion', 0.0) for f in faces_B], default=0.0)
-
-            if act_A >= 3.0 and act_A > act_B * 1.25:
-                last_active = 'SPEAKER_A'
-            elif act_B >= 3.0 and act_B > act_A * 1.25:
-                last_active = 'SPEAKER_B'
-
-            raw_shot_candidates.append(last_active)
-
-        # Adjust reaction hysteresis & switching speed based on selected camera_style
-        if camera_style == "instant":
-            min_hold = max(1, int(fps_sample * 0.6)) # Ultra-fast 0.6s instant teleport cut
-        else:
-            min_hold = max(2, int(fps_sample * 1.5))
-
-        director_shots = []
-        current_shot = 'SPEAKER_A'
-        hold_count = 0
-
-        for i, cand in enumerate(raw_shot_candidates):
-            if i < int(fps_sample * 0.6): # Establish scene fast
-                director_shots.append('SPEAKER_A')
-                continue
-
-            if cand == current_shot:
-                hold_count += 1
-            else:
-                fwd = raw_shot_candidates[i:i + 3]
-                if hold_count >= min_hold and fwd.count(cand) >= 2:
-                    current_shot = cand
-                    hold_count = 1
-
-            director_shots.append(current_shot)
-
-        # Precompute target X centers per sample time
-        # STRICT NO-MIDDLE-GROUND RULE: Never center on the table/dead-space between speakers
-        target_xs = []
-        for shot in director_shots:
-            if shot == 'SPEAKER_A':
-                c = max(target_width / 2.0, min(width - target_width / 2.0, speaker_A))
-            elif shot == 'SPEAKER_B':
-                c = max(target_width / 2.0, min(width - target_width / 2.0, speaker_B))
-            else:
-                if two_shot_fits:
-                    c = two_shot_center
-                else:
-                    c = max(target_width / 2.0, min(width - target_width / 2.0, speaker_A))
-            target_xs.append(c)
-
-        sample_times_arr = np.array(sample_times, dtype=np.float64)
-        target_xs_arr = np.array(target_xs, dtype=np.float64)
-
-        print(f"    [FaceTracker] Camera Director Mode: '{camera_style}' ({len(director_shots)} direction keyframes)")
-
-        def multi_speaker_filter(get_frame, t):
+        def virtual_camera_filter(get_frame, t):
             frame = get_frame(t)
-            
+            idx = int(np.searchsorted(t_keys, t))
+            idx = max(0, min(len(t_keys) - 1, idx))
+
             if camera_style == "instant":
-                # Instant Teleport Cut: Hard 0ms jump-cut directly to speaker (zero sliding)
-                idx = int(np.searchsorted(sample_times_arr, t))
-                idx = max(0, min(len(target_xs_arr) - 1, idx))
-                cx = target_xs_arr[idx]
-            elif camera_style == "snappy":
-                # Snappy Glide: Fast 0.25s linear camera pan between speakers
-                cx = float(np.interp(t, sample_times_arr, target_xs_arr))
+                x1 = int(round(x1_keys[idx]))
+                y1 = int(round(y1_keys[idx]))
+                cw = int(round(cw_keys[idx]))
+                ch = int(round(ch_keys[idx]))
             else:
-                # Smooth Cinema: Cosine ease-in-out camera glide
-                idx = int(np.searchsorted(sample_times_arr, t))
-                idx = max(0, min(len(target_xs_arr) - 1, idx))
-                prev_idx = max(0, idx - 1)
-                t_start = sample_times_arr[prev_idx]
-                t_end = sample_times_arr[idx]
-                x_start = target_xs_arr[prev_idx]
-                x_end = target_xs_arr[idx]
-                if t_end > t_start and x_start != x_end:
-                    factor = min(1.0, max(0.0, (t - t_start) / (t_end - t_start)))
-                    ease_factor = (1.0 - np.cos(factor * np.pi)) / 2.0
-                    cx = x_start + (x_end - x_start) * ease_factor
-                else:
-                    cx = target_xs_arr[idx]
+                x1 = int(round(float(np.interp(t, t_keys, x1_keys))))
+                y1 = int(round(float(np.interp(t, t_keys, y1_keys))))
+                cw = int(round(float(np.interp(t, t_keys, cw_keys))))
+                ch = int(round(float(np.interp(t, t_keys, ch_keys))))
 
-            x1 = int(round(cx - target_width / 2.0))
-            x1 = max(0, min(width - target_width, x1))
-            return frame[:, x1:x1 + target_width]
+            # Clamp boundaries
+            x1 = max(0, min(width - cw, x1))
+            y1 = max(0, min(height - ch, y1))
 
-        cropped_clip = clip.fl(multi_speaker_filter, apply_to=["mask"])
-        cropped_clip.size = (target_width, height)
+            if diagnostic_mode:
+                item = all_timeline_data[idx]
+                zoom = max(1.0, float(width) / max(1.0, float(cw)))
+                q_score = item["quality_eval"]["detail_score"]
+                ratio = item["quality_eval"]["enlargement_ratio"]
+                status = "COASTING" if (item["primary_track"] and item["primary_track"].get("is_coasting")) else "ACTIVE_TRACK"
+                annotated = DiagnosticsVisualizer.draw_telemetry_hud(
+                    frame, item["tracks"], item["primary_track"],
+                    (x1, y1, cw, ch), zoom, q_score, ratio, status
+                )
+                cropped_patch = annotated[y1:y1 + ch, x1:x1 + cw]
+            else:
+                cropped_patch = frame[y1:y1 + ch, x1:x1 + cw]
+
+            if cropped_patch.shape[0] != final_out_h or cropped_patch.shape[1] != final_out_w:
+                return cv2.resize(cropped_patch, (final_out_w, final_out_h), interpolation=cv2.INTER_LANCZOS4)
+            return cropped_patch
+
+        cropped_clip = clip.fl(virtual_camera_filter, apply_to=["mask"])
+        cropped_clip.size = (final_out_w, final_out_h)
         return cropped_clip
 
     def close(self):

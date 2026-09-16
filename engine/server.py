@@ -168,6 +168,13 @@ class ProcessRequest(BaseModel):
     camera_style: str = "instant"
     gameplay_bg_video: Optional[str] = None
     bg_music_file: Optional[str] = None
+    aspect_ratio: str = "9:16"
+    export_resolution: Optional[str] = None
+    max_digital_zoom: float = 1.35
+    min_crop_margin: float = 0.30
+    adaptive_crop: bool = True
+    enable_super_resolution: bool = False
+    diagnostic_mode: bool = False
 
     model_config = {"arbitrary_types_allowed": True}
 
@@ -297,6 +304,13 @@ def execute_rendering_task(task_id: str, request: ProcessRequest, cancel_event: 
             output_dir=request.output_dir,
             gameplay_bg_video=request.gameplay_bg_video,
             bg_music_file=request.bg_music_file,
+            aspect_ratio=getattr(request, 'aspect_ratio', '9:16'),
+            export_resolution=getattr(request, 'export_resolution', None),
+            max_digital_zoom=getattr(request, 'max_digital_zoom', 1.35),
+            min_crop_margin=getattr(request, 'min_crop_margin', 0.30),
+            adaptive_crop=getattr(request, 'adaptive_crop', True),
+            enable_super_resolution=getattr(request, 'enable_super_resolution', False),
+            diagnostic_mode=getattr(request, 'diagnostic_mode', False),
             progress_callback=on_progress,
             cancel_event=cancel_event
         )

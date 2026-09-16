@@ -31,8 +31,8 @@ class LayoutCompositor:
     @classmethod
     def high_quality_resize(cls, clip, target_w: int, target_h: int):
         """
-        High-performance frame resizer leveraging vectorized C-level scaling.
-        Final high-fidelity Lanczos reconstruction is handled in hardware by FFmpeg/QuickSync.
+        High-fidelity frame resizer using Lanczos 4-lobed sinc interpolation.
+        Preserves fine details without blocky bilinear blur or jagged aliasing.
         """
         w, h = clip.size
         if w == target_w and h == target_h:
@@ -40,13 +40,10 @@ class LayoutCompositor:
         tw = target_w if target_w % 2 == 0 else target_w - 1
         th = target_h if target_h % 2 == 0 else target_h - 1
 
-        try:
-            resized_clip = clip.resize(newsize=(tw, th))
-        except Exception:
-            def transform_frame(frame):
-                return cv2.resize(frame, (tw, th), interpolation=cv2.INTER_LINEAR)
-            resized_clip = clip.fl_image(transform_frame)
+        def transform_frame(frame):
+            return cv2.resize(frame, (tw, th), interpolation=cv2.INTER_LANCZOS4)
 
+        resized_clip = clip.fl_image(transform_frame)
         if clip.audio is not None:
             resized_clip = resized_clip.set_audio(clip.audio)
         return resized_clip
@@ -77,7 +74,13 @@ class LayoutCompositor:
         custom_crop_boxes: Optional[List[Dict[str, Any]]] = None,
         camera_style: str = "instant",
         clips_to_close: Optional[List[Any]] = None,
-        gameplay_bg_video: Optional[str] = None
+        gameplay_bg_video: Optional[str] = None,
+        adaptive_crop: bool = True,
+        max_digital_zoom: float = 1.35,
+        min_crop_margin: float = 0.30,
+        diagnostic_mode: bool = False,
+        aspect_ratio: Optional[float] = None,
+        scene_cut_times: Optional[List[float]] = None
     ):
         """
         Applies the selected layout transformation and returns the composed MoviePy clip.
@@ -353,16 +356,30 @@ class LayoutCompositor:
         if self.face_tracker:
             print("    [LayoutCompositor] Applying intelligent subject / speaker reframe tracking...")
             try:
-                tracked = self.face_tracker.track_and_crop(clip, camera_style=camera_style)
+                active_ar = aspect_ratio if aspect_ratio is not None else (float(target_width) / float(target_height))
+                tracked = self.face_tracker.track_and_crop(
+                    clip,
+                    crop_ratio=active_ar,
+                    camera_style=camera_style,
+                    adaptive_crop=adaptive_crop,
+                    max_digital_zoom=max_digital_zoom,
+                    min_crop_margin=min_crop_margin,
+                    diagnostic_mode=diagnostic_mode,
+                    scene_cut_times=scene_cut_times,
+                    target_resolution=(target_width, target_height)
+                )
                 clips_to_close.append(tracked)
-                resized = self.high_quality_resize(tracked, target_width, target_height)
-                clips_to_close.append(resized)
-                return resized
+                if tracked.size != (target_width, target_height):
+                    resized = self.high_quality_resize(tracked, target_width, target_height)
+                    clips_to_close.append(resized)
+                    return resized
+                return tracked
             except Exception as e:
                 print(f"    [LayoutCompositor] Face/Subject tracking notice: {e}")
 
         # Fallback centered vertical crop
-        crop_w = int(clip.h * 9 / 16)
+        active_ar = aspect_ratio if aspect_ratio is not None else (float(target_width) / float(target_height))
+        crop_w = int(clip.h * active_ar)
         if crop_w % 2 != 0: crop_w -= 1
         crop_x = max(0, clip.w // 2 - crop_w // 2)
         cropped = clip.crop(x1=crop_x, width=crop_w)

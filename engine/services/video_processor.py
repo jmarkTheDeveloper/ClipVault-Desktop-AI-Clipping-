@@ -67,6 +67,9 @@ from services.color_grader import ColorGrader
 from services.layout_compositor import LayoutCompositor
 from services.recap_generator import RecapGenerator
 from services.scene_detector import SceneDetector
+from services.source_analyzer import SourceAnalyzer
+from services.quality_engine import QualityEngine
+from services.super_resolution import SuperResolutionEngine
 from utils.helpers import cleanup_temp_files
 
 
@@ -86,6 +89,9 @@ class VideoProcessor:
         self.layout_compositor = LayoutCompositor(self.face_tracker)
         self.recap_generator = RecapGenerator(self.ai_selector)
         self.scene_detector = SceneDetector()
+        self.source_analyzer = SourceAnalyzer()
+        self.quality_engine = QualityEngine()
+        self.super_res_engine = SuperResolutionEngine()
 
     @staticmethod
     def detect_hardware_encoder():
@@ -165,6 +171,13 @@ class VideoProcessor:
         camera_style: str = "instant",
         gameplay_bg_video: Optional[str] = None,
         bg_music_file: Optional[str] = None,
+        aspect_ratio: str = "9:16",
+        export_resolution: Optional[str] = None,
+        max_digital_zoom: float = 1.35,
+        min_crop_margin: float = 0.30,
+        adaptive_crop: bool = True,
+        enable_super_resolution: bool = False,
+        diagnostic_mode: bool = False,
         progress_callback: Optional[Any] = None,
         cancel_event: Optional[Any] = None,
         **kwargs: Any
@@ -352,15 +365,76 @@ class VideoProcessor:
         if caption_style in self.caption_maker.styles:
             self.caption_maker.selected_style = caption_style
 
-        # Determine standard vertical dimensions
-        if quality.lower() == "8k":
-            target_h, target_w = 7680, 4320
-        elif quality.lower() == "4k":
-            target_h, target_w = 3840, 2160
-        elif quality.lower() == "1080p":
-            target_h, target_w = 1920, 1080
+        # Automatic Source Analysis using PyAV / FFprobe
+        source_meta = None
+        if video_path and Path(video_path).exists():
+            try:
+                source_meta = self.source_analyzer.analyze(str(video_path))
+            except Exception as e:
+                print(f"    [VideoProcessor] Source analysis note: {e}")
+
+        src_w = source_meta["width"] if source_meta else 1920
+        src_h = source_meta["height"] if source_meta else 1080
+        src_fps = source_meta["fps"] if source_meta else 30.0
+
+        # Calculate requested aspect ratio
+        ar_str = str(aspect_ratio or "9:16").lower().strip()
+        if ar_str in ("original", "source"):
+            active_ar = float(src_w) / float(src_h)
+        elif ar_str in ("16:9", "landscape"):
+            active_ar = 16.0 / 9.0
+        elif ar_str in ("1:1", "square"):
+            active_ar = 1.0
+        elif ar_str in ("4:5", "portrait_4_5"):
+            active_ar = 4.0 / 5.0
+        elif ":" in ar_str:
+            parts = ar_str.split(":")
+            try: active_ar = float(parts[0]) / float(parts[1])
+            except Exception: active_ar = 9.0 / 16.0
         else:
-            target_h, target_w = 1280, 720
+            active_ar = 9.0 / 16.0
+
+        # Calculate canvas dimensions based on export resolution and aspect ratio
+        res_str = str(export_resolution or quality or "1080p").lower().strip()
+        if res_str in ("original", "source"):
+            if abs(active_ar - (src_w / float(src_h))) < 0.01:
+                target_w, target_h = src_w, src_h
+            elif active_ar < 1.0: # Vertical format
+                target_h = src_h
+                target_w = int(round(src_h * active_ar))
+            else: # Horizontal format
+                target_w = src_w
+                target_h = int(round(src_w / active_ar))
+        elif "8k" in res_str:
+            if active_ar < 1.0:
+                target_h, target_w = 7680, int(round(7680 * active_ar))
+            else:
+                target_w, target_h = 7680, int(round(7680 / active_ar))
+        elif "4k" in res_str:
+            if active_ar < 1.0:
+                target_h, target_w = 3840, int(round(3840 * active_ar))
+            else:
+                target_w, target_h = 3840, int(round(3840 / active_ar))
+        elif "1440p" in res_str:
+            if active_ar < 1.0:
+                target_h, target_w = 2560, int(round(2560 * active_ar))
+            else:
+                target_w, target_h = 2560, int(round(2560 / active_ar))
+        elif "720p" in res_str:
+            if active_ar < 1.0:
+                target_h, target_w = 1280, int(round(1280 * active_ar))
+            else:
+                target_w, target_h = 1280, int(round(1280 / active_ar))
+        else: # 1080p default
+            if active_ar < 1.0:
+                target_h, target_w = 1920, int(round(1920 * active_ar))
+            else:
+                target_w, target_h = 1920, int(round(1920 / active_ar))
+
+        if target_w % 2 != 0: target_w -= 1
+        if target_h % 2 != 0: target_h -= 1
+
+        print(f"    [VideoProcessor] Master Target Canvas: {target_w}x{target_h} (Aspect: {active_ar:.3f}, Profile: {res_str})")
 
         output_files = []
         best_codec, best_preset, ffmpeg_params, thread_count = self.detect_hardware_encoder()
@@ -456,14 +530,27 @@ class VideoProcessor:
                         pass
                 clips_to_close.append(clip)
 
-                # 1. Apply Layout Composition (9:16 vertical crop, blur background, split screen)
+                # 1. Apply Layout Composition (intelligent auto-reframe, adaptive crop, multi-person framing)
                 clip = self.layout_compositor.compose_layout(
                     clip, layout, target_w, target_h,
                     custom_crop_boxes=custom_crop_boxes,
                     camera_style=camera_style,
                     clips_to_close=clips_to_close,
-                    gameplay_bg_video=gameplay_bg_video
+                    gameplay_bg_video=gameplay_bg_video,
+                    adaptive_crop=adaptive_crop,
+                    max_digital_zoom=max_digital_zoom,
+                    min_crop_margin=min_crop_margin,
+                    diagnostic_mode=diagnostic_mode,
+                    aspect_ratio=active_ar
                 )
+
+                # Optional AI Super-Resolution Enhancement
+                if enable_super_resolution:
+                    print(f"    [VideoProcessor] Applying AI Super-Resolution detail enhancement to {target_w}x{target_h}...")
+                    def super_res_frame(frame):
+                        return self.super_res_engine.upscale_frame_opencv(frame, target_w, target_h)
+                    clip = clip.fl_image(super_res_frame)
+                    clips_to_close.append(clip)
 
                 # 2. Apply Color Grading LUT
                 if filter_profile and filter_profile != 'default':
@@ -634,7 +721,7 @@ class VideoProcessor:
                                     self.p_cb(f"Rendering Clip {self.c_idx}/{self.total_c} ({pct}%)...", overall_pct)
 
                 my_logger = MyBarLogger(progress_callback, i, len(clip_specs), cancel_event) if progress_callback else None
-                render_fps = 60 if best_codec == 'h264_nvenc' else 30
+                render_fps = src_fps if src_fps > 0 else (60 if best_codec == 'h264_nvenc' else 30)
 
                 if cancel_event and cancel_event.is_set():
                     print(" Processing cancelled by user.")

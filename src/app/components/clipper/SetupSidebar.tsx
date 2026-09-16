@@ -27,6 +27,9 @@ import {
   Clock,
   Pin,
   Layers,
+  Maximize2,
+  Sliders,
+  Activity,
 } from "lucide-react";
 import type { CustomSegment } from "./types";
 
@@ -63,10 +66,20 @@ const Section = ({ title, children, accent = "text-amber-400" }: { title: string
 );
 
 const QUALITIES = [
+  { id: "source", label: "Source Native", desc: "Match source resolution" },
   { id: "720p", label: "720p HD", desc: "Fast rendering • Optimal" },
   { id: "1080p", label: "1080p FHD", desc: "Crisp detail • Recommended" },
+  { id: "1440p", label: "1440p QHD", desc: "2K Quad HD • High detail" },
   { id: "4k", label: "4K Master", desc: "Ultra HD master export" },
   { id: "8k", label: "8K Cinema", desc: "Maximum bitrate" },
+];
+
+const ASPECT_RATIOS = [
+  { id: "9:16", label: "9:16 Vertical", desc: "Shorts, Reels, TikTok" },
+  { id: "16:9", label: "16:9 Landscape", desc: "YouTube, Desktop, TV" },
+  { id: "1:1", label: "1:1 Square", desc: "Instagram & Feed" },
+  { id: "4:5", label: "4:5 Social", desc: "Social Portrait" },
+  { id: "original", label: "Source Native", desc: "Original Aspect" },
 ];
 
 const LAYOUTS = [
@@ -161,6 +174,18 @@ interface SetupSidebarProps {
   activeEngineName?: string;
   onOpenEngineSettings?: () => void;
   onClearError?: () => void;
+  aspectRatio?: string;
+  setAspectRatio?: (ar: string) => void;
+  exportResolution?: string;
+  setExportResolution?: (r: string) => void;
+  maxDigitalZoom?: number;
+  setMaxDigitalZoom?: (z: number) => void;
+  adaptiveCrop?: boolean;
+  setAdaptiveCrop?: (a: boolean) => void;
+  enableSuperResolution?: boolean;
+  setEnableSuperResolution?: (sr: boolean) => void;
+  diagnosticMode?: boolean;
+  setDiagnosticMode?: (d: boolean) => void;
 }
 
 export const SetupSidebar: React.FC<SetupSidebarProps> = ({
@@ -242,6 +267,18 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
   setBgMusicFile = () => {},
   backgroundTracks = [],
   onUploadBackgroundMusic,
+  aspectRatio = "9:16",
+  setAspectRatio,
+  exportResolution,
+  setExportResolution,
+  maxDigitalZoom = 1.35,
+  setMaxDigitalZoom,
+  adaptiveCrop = true,
+  setAdaptiveCrop,
+  enableSuperResolution = false,
+  setEnableSuperResolution,
+  diagnosticMode = false,
+  setDiagnosticMode,
 }) => {
   return (
     <div className="w-[520px] flex-shrink-0 border-r border-white/5 overflow-y-auto px-8 py-6 bg-[#070707] flex flex-col">
@@ -343,20 +380,45 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
         </div>
 
         {/* Download Quality */}
-        <Section title="Download Quality">
-          <div className="grid grid-cols-2 gap-3">
+        <Section title="Export Resolution Profile">
+          <div className="grid grid-cols-2 gap-2.5">
             {QUALITIES.map((q) => (
               <button
                 key={q.id}
-                onClick={() => setQuality(q.id)}
-                className={`p-3 rounded-xl text-left border transition-all cursor-pointer ${
-                  quality === q.id
-                    ? "bg-amber-400/10 border-amber-400/50 shadow-[0_0_15px_rgba(251,191,36,0.15)]"
+                type="button"
+                onClick={() => {
+                  setQuality(q.id);
+                  if (setExportResolution) setExportResolution(q.id);
+                }}
+                className={`p-2.5 rounded-xl text-left border transition-all cursor-pointer ${
+                  (exportResolution || quality) === q.id
+                    ? "bg-amber-400/10 border-amber-400/50 shadow-[0_0_15px_rgba(251,191,36,0.15)] ring-1 ring-amber-400/30"
                     : "bg-white/[0.02] border-white/5 hover:border-white/10"
                 }`}
               >
                 <p className="text-white text-xs font-bold">{q.label}</p>
                 <p className="text-[10px] text-gray-500 mt-0.5">{q.desc}</p>
+              </button>
+            ))}
+          </div>
+        </Section>
+
+        {/* Aspect Ratio & Framing */}
+        <Section title="Aspect Ratio & Framing">
+          <div className="grid grid-cols-3 gap-2">
+            {ASPECT_RATIOS.map((ar) => (
+              <button
+                key={ar.id}
+                type="button"
+                onClick={() => setAspectRatio && setAspectRatio(ar.id)}
+                className={`p-2.5 rounded-xl text-left border transition-all cursor-pointer ${
+                  (aspectRatio || "9:16") === ar.id
+                    ? "bg-amber-400/10 border-amber-400/50 shadow-[0_0_12px_rgba(251,191,36,0.15)] ring-1 ring-amber-400/30"
+                    : "bg-white/[0.02] border-white/5 hover:border-white/10"
+                }`}
+              >
+                <p className="text-white text-xs font-bold truncate">{ar.label}</p>
+                <p className="text-[10px] text-gray-500 mt-0.5 truncate">{ar.desc}</p>
               </button>
             ))}
           </div>
@@ -537,6 +599,120 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
               </button>
             </div>
           </div>
+        </div>
+
+        {/* Intelligent Tracking & Quality Controls */}
+        <div className={layout !== "vertical_crop" && layout !== "custom_split" ? "opacity-35 pointer-events-none transition-opacity" : "transition-opacity"}>
+          <Section title="Quality & Kinematic Controls">
+            <div className="space-y-3 p-3.5 rounded-xl bg-white/[0.02] border border-white/10">
+              {/* Adaptive Crop Switch */}
+              <div
+                className="flex items-center justify-between cursor-pointer select-none"
+                onClick={() => setAdaptiveCrop && setAdaptiveCrop(!adaptiveCrop)}
+              >
+                <div className="pr-2">
+                  <span className="text-xs text-white font-semibold flex items-center gap-1.5">
+                    <Maximize2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    Adaptive Quality-Aware Cropping
+                  </span>
+                  <span className="text-[10px] text-gray-400 block mt-0.5 leading-tight">
+                    Dynamically expands crop window to prevent severe digital blur when subject is distant
+                  </span>
+                </div>
+                <div
+                  className={`w-8 h-4 rounded-full flex items-center p-0.5 transition-colors shrink-0 ${
+                    adaptiveCrop ? "bg-amber-400" : "bg-white/20"
+                  }`}
+                >
+                  <div
+                    className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${
+                      adaptiveCrop ? "translate-x-4" : "translate-x-0"
+                    }`}
+                  />
+                </div>
+              </div>
+
+              {/* Max Digital Zoom Slider */}
+              <div className="pt-2 border-t border-white/5 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-gray-300 font-medium flex items-center gap-1.5">
+                    <Sliders className="w-3 h-3 text-amber-400 shrink-0" /> Max Digital Zoom Threshold
+                  </span>
+                  <span className="text-[11px] font-mono font-bold text-amber-400">
+                    {(maxDigitalZoom ?? 1.35).toFixed(2)}x
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="1.0"
+                  max="2.5"
+                  step="0.05"
+                  value={maxDigitalZoom ?? 1.35}
+                  onChange={(e) => setMaxDigitalZoom && setMaxDigitalZoom(parseFloat(e.target.value))}
+                  className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-amber-400"
+                />
+                <div className="flex justify-between text-[9px] text-gray-500 font-mono">
+                  <span>1.0x (No blowup)</span>
+                  <span>1.35x (Balanced)</span>
+                  <span>2.5x (Deep zoom)</span>
+                </div>
+              </div>
+
+              {/* AI Super-Resolution Switch */}
+              <div
+                className="pt-2 border-t border-white/5 flex items-center justify-between cursor-pointer select-none"
+                onClick={() => setEnableSuperResolution && setEnableSuperResolution(!enableSuperResolution)}
+              >
+                <div className="pr-2">
+                  <span className="text-xs text-white font-semibold flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    AI Super-Resolution Engine
+                  </span>
+                  <span className="text-[10px] text-gray-400 block mt-0.5 leading-tight">
+                    Local Real-ESRGAN Vulkan & Lanczos 4-lobed sinc interpolation for crisp textures
+                  </span>
+                </div>
+                <div
+                  className={`w-8 h-4 rounded-full flex items-center p-0.5 transition-colors shrink-0 ${
+                    enableSuperResolution ? "bg-amber-400" : "bg-white/20"
+                  }`}
+                >
+                  <div
+                    className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${
+                      enableSuperResolution ? "translate-x-4" : "translate-x-0"
+                    }`}
+                  />
+                </div>
+              </div>
+
+              {/* Diagnostics Telemetry Overlay */}
+              <div
+                className="pt-2 border-t border-white/5 flex items-center justify-between cursor-pointer select-none"
+                onClick={() => setDiagnosticMode && setDiagnosticMode(!diagnosticMode)}
+              >
+                <div className="pr-2">
+                  <span className="text-xs text-white font-semibold flex items-center gap-1.5">
+                    <Activity className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    Diagnostics Telemetry Video
+                  </span>
+                  <span className="text-[10px] text-gray-400 block mt-0.5 leading-tight">
+                    Renders Kalman filter bounding boxes, track IDs, velocity vectors, and HUD overlay
+                  </span>
+                </div>
+                <div
+                  className={`w-8 h-4 rounded-full flex items-center p-0.5 transition-colors shrink-0 ${
+                    diagnosticMode ? "bg-amber-400" : "bg-white/20"
+                  }`}
+                >
+                  <div
+                    className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${
+                      diagnosticMode ? "translate-x-4" : "translate-x-0"
+                    }`}
+                  />
+                </div>
+              </div>
+            </div>
+          </Section>
         </div>
 
         {/* Duration Mode & AI Settings */}

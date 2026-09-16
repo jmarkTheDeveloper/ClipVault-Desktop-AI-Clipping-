@@ -375,6 +375,13 @@ export const AiClipperScreen: React.FC<Props> = ({
 
   // Processing Parameters (Clean studio defaults on every launch)
   const [quality, setQuality] = useState("1080p");
+  const [exportResolution, setExportResolution] = useState("1080p");
+  const [aspectRatio, setAspectRatio] = useState("9:16");
+  const [maxDigitalZoom, setMaxDigitalZoom] = useState(1.35);
+  const [minCropMargin, setMinCropMargin] = useState(0.30);
+  const [adaptiveCrop, setAdaptiveCrop] = useState(true);
+  const [enableSuperResolution, setEnableSuperResolution] = useState(false);
+  const [diagnosticMode, setDiagnosticMode] = useState(false);
   const [layout, setLayout] = useState("vertical_crop");
   const [cameraStyle, setCameraStyle] = useState<"instant" | "snappy" | "smooth">("instant");
   const [durationMode, setDurationMode] = useState("auto");
@@ -755,6 +762,13 @@ export const AiClipperScreen: React.FC<Props> = ({
           custom_ranges: customRanges,
           topic: topicPrompt || null,
           quality,
+          export_resolution: exportResolution || quality,
+          aspect_ratio: aspectRatio,
+          max_digital_zoom: maxDigitalZoom,
+          min_crop_margin: minCropMargin,
+          adaptive_crop: adaptiveCrop,
+          enable_super_resolution: enableSuperResolution,
+          diagnostic_mode: diagnosticMode,
           layout,
           camera_style: cameraStyle,
           add_captions: addCaptions,
@@ -1446,6 +1460,18 @@ export const AiClipperScreen: React.FC<Props> = ({
                 mediaDuration={mediaDuration}
                 quality={quality}
                 setQuality={setQuality}
+                exportResolution={exportResolution}
+                setExportResolution={setExportResolution}
+                aspectRatio={aspectRatio}
+                setAspectRatio={setAspectRatio}
+                maxDigitalZoom={maxDigitalZoom}
+                setMaxDigitalZoom={setMaxDigitalZoom}
+                adaptiveCrop={adaptiveCrop}
+                setAdaptiveCrop={setAdaptiveCrop}
+                enableSuperResolution={enableSuperResolution}
+                setEnableSuperResolution={setEnableSuperResolution}
+                diagnosticMode={diagnosticMode}
+                setDiagnosticMode={setDiagnosticMode}
                 layout={layout}
                 setLayout={setLayout}
                 setCropModalOpen={setCropModalOpen}
