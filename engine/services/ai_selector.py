@@ -230,12 +230,23 @@ class AISelector:
                     headers = {"Content-Type": "application/json"}
                     payload = {
                         "contents": [{"parts": parts}],
-                        "generationConfig": {"temperature": 0.4}
+                        "generationConfig": {
+                            "temperature": 0.4,
+                            "responseMimeType": "application/json"
+                        }
                     }
-                    r = requests.post(url, headers=headers, json=payload, timeout=25.0)
+                    r = requests.post(url, headers=headers, json=payload, timeout=45.0)
                     if r.status_code == 200:
                         res_json = r.json()
-                        text = res_json["candidates"][0]["content"]["parts"][0]["text"]
+                        candidates_list = res_json.get("candidates", [])
+                        if not candidates_list:
+                            continue
+                        parts_list = candidates_list[0].get("content", {}).get("parts", [])
+                        if not parts_list:
+                            continue
+                        text = parts_list[0].get("text", "")
+                        if not text:
+                            continue
                         class MockRes: text: str
                         m = MockRes(); m.text = text
                         return m
@@ -256,31 +267,34 @@ class AISelector:
         if not segments:
             return max(0.0, float(start_time)), min(float(video_duration), float(end_time) + 0.35)
 
-        # Normalize segment list
-        clean_segs = []
-        for s in segments:
-            if isinstance(s, dict):
-                st = float(s.get('start', 0.0))
-                et = float(s.get('end', st + 1.0))
-                txt = str(s.get('text', '')).strip()
-            elif isinstance(s, (list, tuple)) and len(s) >= 2:
-                st = float(s[0])
-                et = float(s[1])
-                txt = str(s[2]).strip() if len(s) > 2 else ''
-            else:
-                continue
-            if et > st and txt:
-                clean_segs.append({'start': st, 'end': et, 'text': txt})
+        import bisect
+
+        # Normalize segment list if not already cleaned
+        if isinstance(segments, list) and len(segments) > 0 and isinstance(segments[0], dict) and 'start' in segments[0] and isinstance(segments[0]['start'], (int, float)) and 'end' in segments[0] and 'text' in segments[0]:
+            clean_segs = segments
+        else:
+            clean_segs = []
+            for s in segments:
+                if isinstance(s, dict):
+                    st = float(s.get('start', 0.0))
+                    et = float(s.get('end', st + 1.0))
+                    txt = str(s.get('text', '')).strip()
+                elif isinstance(s, (list, tuple)) and len(s) >= 2:
+                    st = float(s[0])
+                    et = float(s[1])
+                    txt = str(s[2]).strip() if len(s) > 2 else ''
+                else:
+                    continue
+                if et > st and txt:
+                    clean_segs.append({'start': st, 'end': et, 'text': txt})
 
         if not clean_segs:
             return max(0.0, float(start_time)), min(float(video_duration), float(end_time) + 0.35)
 
-        # 1. Find segment index matching start_time
-        start_idx = 0
-        for i, s in enumerate(clean_segs):
-            if s['start'] <= start_time <= s['end'] or s['start'] >= start_time:
-                start_idx = i
-                break
+        start_times = [s['start'] for s in clean_segs]
+        # 1. Find segment index matching start_time via binary search
+        start_idx = bisect.bisect_right(start_times, float(start_time)) - 1
+        start_idx = max(0, min(len(clean_segs) - 1, start_idx))
 
         # 2. Backward Context Expansion:
         # Check if the start segment begins with dangling pronouns, conjunctions, or conversational continuations
@@ -366,11 +380,8 @@ class AISelector:
         new_start = max(0.0, clean_segs[start_idx]['start'] - 0.15)
 
         # 3. Forward Expansion: Step forwards until the speaker reaches a true sentence conclusion
-        end_idx = len(clean_segs) - 1
-        for i in range(len(clean_segs) - 1, -1, -1):
-            if clean_segs[i]['start'] <= end_time <= clean_segs[i]['end'] or clean_segs[i]['end'] <= end_time:
-                end_idx = i
-                break
+        end_idx = bisect.bisect_right(start_times, float(end_time)) - 1
+        end_idx = max(0, min(len(clean_segs) - 1, end_idx))
 
         fwd_steps = 0
         max_fwd_steps = 16
@@ -420,29 +431,6 @@ class AISelector:
                     'content_title': f"Highlight #{i+1}",
                     'content_description': "Must-watch viral highlight! #shorts #viral #reels"
                 })
-            return clips
-
-        # High-converting hook triggers
-        HOOK_PATTERNS = [
-            r"\b(why|how|what if|did you know|is it true|can you believe|who else|have you ever)\b",
-            r"\b(the truth about|nobody talks about|the biggest mistake|the real reason|i never told|they lied|secret|hack)\b",
-            r"\b(insane|crazy|unbelievable|impossible|illegal|dangerous|million dollars|police|arrested|ruined|deadly|genius|shocking)\b",
-            r"\b(one day|so i was|suddenly|out of nowhere|i remember when|listen to this|look at what happened)\b",
-            r"\b(the worst|the best|number one|top 3|never do this|always do this|stop doing)\b"
-        ]
-
-        REACTION_PATTERNS = [
-            r"\b(oh my god|omg|no way|what the|holy|bro|wait wait|look at this|check this out|are you kidding)\b",
-            r"\[laughter\]|\b(haha|hahaha|lmao|lol|giggle|giggling)\b",
-            r"(\!|\?){1,}"
-        ]
-
-        BAN_PATTERNS = [
-            r"\b(sponsored by|sponsor|nordvpn|betterhelp|expressvpn|audible|link in the description|use code|discount code|promo code)\b",
-            r"\b(subscribe to my channel|subscribe to the channel|hit the bell|leave a like|comment down below|patreon\.com)\b",
-            r"\b(can you hear me|mic test|audio check|stream starting|be right back|brb|technical difficulties)\b"
-        ]
-
         # Normalize segment structures
         clean_segs = []
         for s in segments:
@@ -462,115 +450,161 @@ class AISelector:
         if not clean_segs:
             return self._heuristic_viral_selector([], video_duration, n, target_duration, topic)
 
+        # Pre-compile regex patterns
+        HOOK_REGEXES = [
+            re.compile(r"\b(why|how|what if|did you know|is it true|can you believe|who else|have you ever)\b", re.IGNORECASE),
+            re.compile(r"\b(the truth about|nobody talks about|the biggest mistake|the real reason|i never told|they lied|secret|hack)\b", re.IGNORECASE),
+            re.compile(r"\b(insane|crazy|unbelievable|impossible|illegal|dangerous|million dollars|police|arrested|ruined|deadly|genius|shocking)\b", re.IGNORECASE),
+            re.compile(r"\b(one day|so i was|suddenly|out of nowhere|i remember when|listen to this|look at what happened)\b", re.IGNORECASE),
+            re.compile(r"\b(the worst|the best|number one|top 3|never do this|always do this|stop doing)\b", re.IGNORECASE)
+        ]
+        REACTION_REGEXES = [
+            re.compile(r"\b(oh my god|omg|no way|what the|holy|bro|wait wait|look at this|check this out|are you kidding)\b", re.IGNORECASE),
+            re.compile(r"\[laughter\]|\b(haha|hahaha|lmao|lol|giggle|giggling)\b", re.IGNORECASE),
+            re.compile(r"(\!|\?){1,}")
+        ]
+        BAN_REGEXES = [
+            re.compile(r"\b(sponsored by|sponsor|nordvpn|betterhelp|expressvpn|audible|link in the description|use code|discount code|promo code)\b", re.IGNORECASE),
+            re.compile(r"\b(subscribe to my channel|subscribe to the channel|hit the bell|leave a like|comment down below|patreon\.com)\b", re.IGNORECASE),
+            re.compile(r"\b(can you hear me|mic test|audio check|stream starting|be right back|brb|technical difficulties)\b", re.IGNORECASE)
+        ]
+        WEAK_START_REGEXES = [re.compile(r"^(so yeah|um|uh|and then|like i said|anyways|so basically|ok so)\b", re.IGNORECASE)]
+
         # Flexible target window (soft threshold rather than rigid hard clamp)
-        min_dur = max(6.0, float(target_duration) * 0.35)
+        min_dur = max(6.0, float(target_duration) * 0.4)
         max_dur = min(float(video_duration), float(target_duration) * 1.35 + 20.0)
 
-        candidates = []
+        # Step 1: Identify high-potential candidate start indices
+        # (Sentence starts, questions, hooks, or regular anchors every ~12s to guarantee full video coverage)
         total_segs = len(clean_segs)
+        start_indices = set()
+        last_anchor_time = -999.0
 
         for i in range(total_segs):
+            seg = clean_segs[i]
+            st = seg['start']
+            txt = seg['text']
+
+            if (st - last_anchor_time) >= 12.0:
+                start_indices.add(i)
+                last_anchor_time = st
+                continue
+
+            is_prev_sentence_end = (i == 0 or clean_segs[i - 1]['text'].strip().endswith(('.', '!', '?')))
+            if is_prev_sentence_end:
+                start_indices.add(i)
+                continue
+
+            if txt.strip().endswith('?') or any(hp.search(txt) for hp in HOOK_REGEXES):
+                start_indices.add(i)
+
+        sorted_starts = sorted(list(start_indices))
+
+        # Step 2: For each start anchor, find best 1-2 sentence endings near target_duration
+        candidates = []
+        for i in sorted_starts:
             start_seg = clean_segs[i]
             st = start_seg['start']
-            
-            accumulated_text = []
-            for j in range(i, total_segs):
+            first_seg_txt = start_seg['text']
+
+            base_score = 50.0
+            base_hook_bonus = 0.0
+
+            for hp in HOOK_REGEXES:
+                if hp.search(first_seg_txt):
+                    base_score += 35.0
+                    base_hook_bonus += 8.0
+                    break
+
+            for ws in WEAK_START_REGEXES:
+                if ws.search(first_seg_txt):
+                    base_score -= 25.0
+                    base_hook_bonus -= 10.0
+                    break
+
+            if first_seg_txt.strip().endswith('?'):
+                base_score += 40.0
+                base_hook_bonus += 10.0
+            elif i > 0 and clean_segs[i - 1]['text'].strip().endswith('?'):
+                base_score += 35.0
+                base_hook_bonus += 8.0
+
+            first_word = first_seg_txt.strip().lower().split()[0] if first_seg_txt.strip() else ''
+            if first_word in {'he', 'she', 'they', 'them', 'him', 'her', 'it', 'this', 'that', 'these', 'those'}:
+                base_score -= 25.0
+                base_hook_bonus -= 6.0
+
+            accumulated = []
+            best_ends_for_start = []
+            for j in range(i, min(total_segs, i + 100)):
                 end_seg = clean_segs[j]
-                et = end_seg['end']
-                cur_dur = et - st
-                accumulated_text.append(end_seg['text'])
+                cur_dur = end_seg['end'] - st
+                accumulated.append(end_seg['text'])
+
+                if cur_dur > max_dur:
+                    break
 
                 if cur_dur >= min_dur:
-                    if cur_dur <= max_dur:
-                        full_txt = " ".join(accumulated_text)
-                        hook_txt = " ".join(accumulated_text[:min(3, len(accumulated_text))])
-                        
-                        score = 50.0
-                        hook_bonus = 0.0
+                    is_end = end_seg['text'].rstrip().endswith(('.', '!', '?'))
+                    diff = abs(cur_dur - target_duration)
+                    if is_end or diff <= 3.0 or j == total_segs - 1:
+                        best_ends_for_start.append((diff, j, cur_dur, list(accumulated)))
 
-                        if topic and topic.lower() in full_txt.lower():
-                            score += 40.0
+            # Keep only the top 2 closest endpoints for this start
+            best_ends_for_start.sort(key=lambda x: x[0])
+            for _, j, cur_dur, acc in best_ends_for_start[:2]:
+                full_txt = " ".join(acc)
+                hook_txt = " ".join(acc[:min(3, len(acc))])
 
-                        # Direct Hook Start
-                        first_seg_txt = clean_segs[i]['text']
-                        for hp in HOOK_PATTERNS:
-                            if re.search(hp, first_seg_txt, re.IGNORECASE):
-                                score += 35.0
-                                hook_bonus += 8.0
-                                break
-                            elif re.search(hp, hook_txt, re.IGNORECASE):
-                                score += 20.0
-                                hook_bonus += 4.0
-                                break
+                score = base_score
+                hook_bonus = base_hook_bonus
 
-                        WEAK_STARTS = [r"^(so yeah|um|uh|and then|like i said|anyways|so basically|ok so)\b"]
-                        for ws in WEAK_STARTS:
-                            if re.search(ws, first_seg_txt, re.IGNORECASE):
-                                score -= 25.0
-                                hook_bonus -= 10.0
+                if topic and topic.lower() in full_txt.lower():
+                    score += 40.0
 
-                        # Bonus for question-answer pairs (podcasts/interviews):
-                        # If candidate starts with a question, or answers a preceding question
-                        if clean_segs[i]['text'].strip().endswith('?'):
-                            score += 40.0
-                            hook_bonus += 10.0
-                        elif i > 0 and clean_segs[i - 1]['text'].strip().endswith('?'):
-                            score += 35.0
-                            hook_bonus += 8.0
+                if hook_bonus == 0.0:
+                    for hp in HOOK_REGEXES:
+                        if hp.search(hook_txt):
+                            score += 20.0
+                            hook_bonus += 4.0
+                            break
 
-                        # Penalty for starting on unreferenced pronouns without the question anchor
-                        first_word = first_seg_txt.strip().lower().split()[0] if first_seg_txt.strip() else ''
-                        if first_word in {'he', 'she', 'they', 'them', 'him', 'her', 'it', 'this', 'that', 'these', 'those'}:
-                            score -= 25.0
-                            hook_bonus -= 6.0
+                for rp in REACTION_REGEXES:
+                    matches = len(rp.findall(full_txt))
+                    score += min(20.0, matches * 6.0)
 
-                        for rp in REACTION_PATTERNS:
-                            matches = len(re.findall(rp, full_txt, re.IGNORECASE))
-                            score += min(20.0, matches * 6.0)
+                words = full_txt.split()
+                wpm = (len(words) / max(1.0, cur_dur)) * 60.0
+                if 120 <= wpm <= 220:
+                    score += 15.0
+                elif wpm < 70:
+                    score -= 30.0
 
-                        words = full_txt.split()
-                        wpm = (len(words) / max(1.0, cur_dur)) * 60.0
-                        if 120 <= wpm <= 220:
-                            score += 15.0
-                        elif wpm < 70:
-                            score -= 30.0
+                if full_txt.rstrip().endswith(('.', '!', '?')):
+                    score += 10.0
 
-                        if full_txt.rstrip().endswith(('.', '!', '?')):
-                            score += 10.0
+                for bp in BAN_REGEXES:
+                    if bp.search(full_txt):
+                        score -= 80.0
 
-                        for bp in BAN_PATTERNS:
-                            if re.search(bp, full_txt, re.IGNORECASE):
-                                score -= 80.0
+                title_candidate = hook_txt.strip()[:45]
+                if len(hook_txt) > 45:
+                    title_candidate += "..."
 
-                        # Expand candidate to full context (premise setup + full conclusion)
-                        exp_st, exp_et = self._expand_to_complete_context(clean_segs, st, et, video_duration, target_duration=target_duration)
-
-                        title_candidate = hook_txt.strip()[:45]
-                        if len(hook_txt) > 45:
-                            title_candidate += "..."
-
-                        comp_score = int(min(99, max(60, score)))
-                        candidate_sub_scores = normalize_sub_scores(
-                            raw_sub_scores=None,
-                            overall_score=comp_score,
-                            hook_bonus=hook_bonus,
-                            wpm=wpm
-                        )
-
-                        candidates.append({
-                            'start': exp_st,
-                            'end': exp_et,
-                            'duration': exp_et - exp_st,
-                            'virality_score': comp_score,
-                            'sub_scores': candidate_sub_scores.to_dict(),
-                            'title': title_candidate,
-                            'hook_type': 'High Engagement Story',
-                            'reason': f'High speech density ({int(wpm)} WPM) with complete narrative resolution',
-                            'content_title': title_candidate,
-                            'content_description': "Must-watch viral highlight! #shorts #viral #reels #trending"
-                        })
-                    else:
-                        break
+                comp_score = int(min(99, max(60, score)))
+                candidates.append({
+                    'start': st,
+                    'end': clean_segs[j]['end'],
+                    'duration': cur_dur,
+                    'virality_score': comp_score,
+                    'title': title_candidate,
+                    'hook_bonus': hook_bonus,
+                    'wpm': wpm,
+                    'hook_type': 'High Engagement Story',
+                    'reason': f'High speech density ({int(wpm)} WPM) with complete narrative resolution',
+                    'content_title': title_candidate,
+                    'content_description': "Must-watch viral highlight! #shorts #viral #reels #trending"
+                })
 
         candidates.sort(key=lambda x: x['virality_score'], reverse=True)
 
@@ -578,16 +612,29 @@ class AISelector:
         for cand in candidates:
             if len(selected) >= n:
                 break
-            
+
+            # Expand only candidates being actively considered for selection
+            exp_st, exp_et = self._expand_to_complete_context(clean_segs, cand['start'], cand['end'], video_duration, target_duration=target_duration)
+
             overlaps = False
             for s in selected:
-                overlap_start = max(cand['start'], s['start'])
-                overlap_end = min(cand['end'], s['end'])
+                overlap_start = max(exp_st, s['start'])
+                overlap_end = min(exp_et, s['end'])
                 if (overlap_end - overlap_start) > 6.0:
                     overlaps = True
                     break
-            
+
             if not overlaps:
+                cand['start'] = exp_st
+                cand['end'] = exp_et
+                cand['duration'] = exp_et - exp_st
+                candidate_sub_scores = normalize_sub_scores(
+                    raw_sub_scores=None,
+                    overall_score=cand['virality_score'],
+                    hook_bonus=cand.get('hook_bonus', 0.0),
+                    wpm=cand.get('wpm', 140.0)
+                )
+                cand['sub_scores'] = candidate_sub_scores.to_dict()
                 selected.append(cand)
 
         if len(selected) < n:
@@ -596,7 +643,8 @@ class AISelector:
                 if len(selected) >= n:
                     break
                 st = max(0.0, min(video_duration - target_duration, i * step))
-                exp_st, exp_et = self._expand_to_complete_context(clean_segs, st, et, video_duration, target_duration=target_duration)
+                et_candidate = min(video_duration, st + target_duration)
+                exp_st, exp_et = self._expand_to_complete_context(clean_segs, st, et_candidate, video_duration, target_duration=target_duration)
                 fallback_score = max(65, 88 - (len(selected) * 4))
                 fallback_sub = normalize_sub_scores(None, fallback_score)
                 selected.append({
