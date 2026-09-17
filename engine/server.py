@@ -720,6 +720,53 @@ def get_saved_clips():
         "storage_dir": str(OUTPUT_DIR)
     }
 
+@app.get("/api/thumbnail")
+def get_clip_thumbnail(path: str):
+    """
+    Returns the cached thumbnail JPEG for a video clip, or extracts a frame on-the-fly.
+    """
+    import urllib.parse
+    import subprocess
+    clean_path = urllib.parse.unquote(path).replace("local:///", "").replace("local://", "").strip()
+    p = Path(clean_path)
+    if not p.is_absolute():
+        if p.exists():
+            p = p.resolve()
+        else:
+            p = (OUTPUT_DIR / clean_path).resolve()
+
+    if not p.exists():
+        raise HTTPException(status_code=404, detail="Video file not found")
+
+    thumb_candidates = [
+        p.parent / f"{p.stem}_thumbnail.jpg",
+        p.parent / "metadata" / f"{p.stem}_thumbnail.jpg",
+        OUTPUT_DIR / "metadata" / f"{p.stem}_thumbnail.jpg"
+    ]
+    for tc in thumb_candidates:
+        if tc.exists():
+            return FileResponse(str(tc), media_type="image/jpeg")
+
+    # Fast on-demand extraction of 1 frame using FFmpeg
+    try:
+        out_thumb = p.parent / f"{p.stem}_thumbnail.jpg"
+        cmd = [
+            FFMPEG_PATH, "-y",
+            "-ss", "0.5",
+            "-i", str(p),
+            "-vframes", "1",
+            "-vf", "scale=360:-1",
+            "-q:v", "3",
+            str(out_thumb)
+        ]
+        subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=5)
+        if out_thumb.exists():
+            return FileResponse(str(out_thumb), media_type="image/jpeg")
+    except Exception as err:
+        print(f"[Server] On-the-fly thumbnail error: {err}")
+
+    raise HTTPException(status_code=404, detail="Thumbnail not available")
+
 @app.get("/api/search_vault")
 def search_vault(q: str = "", folder: Optional[str] = None):
     """

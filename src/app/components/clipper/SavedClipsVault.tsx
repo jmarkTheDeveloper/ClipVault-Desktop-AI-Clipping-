@@ -413,22 +413,16 @@ const VaultClipCard: React.FC<{
     >
       <div className="relative w-full aspect-[9/16] bg-[#0d0d0f] overflow-hidden shadow-inner flex items-center justify-center">
         {!hasError && currentSrc ? (
-          <>
-            {/* High-Performance Video Element with First-Frame Poster Preview */}
+          isHovered ? (
+            /* Live Hover Video Preview - Only active on currently hovered card */
             <video
               ref={videoRef}
               src={currentSrc}
-              preload="metadata"
+              autoPlay
               muted
               loop
               playsInline
-              onLoadedMetadata={(e) => {
-                try {
-                  if (e.currentTarget.currentTime === 0) {
-                    e.currentTarget.currentTime = 0.001;
-                  }
-                } catch {}
-              }}
+              className="w-full h-full object-cover bg-black pointer-events-none z-10"
               onError={() => {
                 if (currentSrc !== fallbackSrc && fallbackSrc) {
                   setCurrentSrc(fallbackSrc);
@@ -436,22 +430,29 @@ const VaultClipCard: React.FC<{
                   setHasError(true);
                 }
               }}
-              className="w-full h-full object-cover bg-black pointer-events-none"
             />
-
-            {/* Static viral portrait thumbnail overlay when available */}
-            {thumbnailUrl && !thumbError && !isHovered && (
+          ) : (
+            /* High-Speed Static Poster / Thumbnail - Zero CPU/GPU decoding overhead */
+            <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center">
               <img
-                src={thumbnailUrl}
+                src={thumbnailUrl || `http://127.0.0.1:8000/api/thumbnail?path=${encodeURIComponent(clip.path || "")}`}
                 alt={clip.title}
                 loading="lazy"
-                className="absolute inset-0 w-full h-full object-cover bg-black pointer-events-none z-10"
-                onError={() => {
+                decoding="async"
+                className="w-full h-full object-cover bg-black pointer-events-none"
+                onError={(e) => {
                   setThumbError(true);
+                  (e.target as HTMLElement).style.display = "none";
                 }}
               />
-            )}
-          </>
+              {/* Subtle play badge indicator */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none bg-black/20 group-hover:bg-transparent transition-colors">
+                <div className="w-9 h-9 rounded-full bg-black/60 border border-white/20 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                  <Play className="w-4 h-4 text-amber-400 fill-amber-400 ml-0.5" />
+                </div>
+              </div>
+            </div>
+          )
         ) : (
           <div className="flex flex-col items-center justify-center text-gray-600 gap-2 p-4 text-center">
             <Play className="w-8 h-8 text-gray-700" />
@@ -604,8 +605,15 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
     type: "clip",
   });
 
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const [cacheSizeMb, setCacheSizeMb] = useState<number | null>(null);
   const [isCleaningCache, setIsCleaningCache] = useState(false);
+
+  useEffect(() => {
+    if (containerRef.current) {
+      containerRef.current.scrollTop = 0;
+    }
+  }, [vaultSelectedFolder]);
 
   const fetchCacheInfo = async () => {
     try {
@@ -739,6 +747,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
 
   return (
     <div
+      ref={containerRef}
       onDragEnter={(e) => {
         if (e.dataTransfer.types.includes("Files")) {
           setIsWindowFileDragging(true);
@@ -759,7 +768,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
           );
         }
       }}
-      className="flex-1 bg-[#0a0a0a] overflow-y-auto p-6 md:p-8 animate-fadeIn relative"
+      className="flex-1 bg-[#0a0a0a] overflow-y-auto p-5 md:p-6 animate-fadeIn relative"
     >
       {/* External OS File Drop Overlay */}
       {isWindowFileDragging && (
@@ -1156,30 +1165,27 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
       )}
 
       {/* Header Toolbar */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 pb-6 border-b border-white/10">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3 pb-3 border-b border-white/10">
         <div>
           <div className="flex items-center gap-3">
-            <h2 className="text-2xl font-black text-white flex items-center gap-2.5">
-              <FolderCheck className="text-amber-400 w-7 h-7" />
+            <h2 className="text-xl font-black text-white flex items-center gap-2">
+              <FolderCheck className="text-amber-400 w-6 h-6" />
               <span>Saved Clips Vault</span>
             </h2>
             <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-400/15 text-amber-400 border border-amber-400/30 font-extrabold tracking-wide">
               {vaultClips.length} {vaultClips.length === 1 ? "Video" : "Videos"}
             </span>
           </div>
-          <p className="text-xs text-gray-400 mt-1">
-            Windows Explorer-style file organization. Drag clips between folders, drag out to desktop, or drop external videos to import.
-          </p>
         </div>
 
-        <div id="vault-tour-step-1-storage" className="flex items-center gap-2 flex-wrap lg:flex-nowrap shrink-0">
+        <div id="vault-tour-step-1-storage" className="flex items-center gap-2 flex-wrap shrink-0">
           {/* Primary Action: Open in Windows Explorer */}
           <button
             onClick={() => openOutputFolder(vaultSelectedFolder !== "all" && vaultSelectedFolder !== "Main Library" ? vaultSelectedFolder : undefined)}
-            className="px-3.5 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-extrabold text-xs transition-all shadow-[0_0_20px_rgba(251,191,36,0.25)] flex items-center gap-1.5 cursor-pointer shrink-0 hover:scale-[1.02] active:scale-95"
+            className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-extrabold text-xs transition-all shadow-[0_0_20px_rgba(251,191,36,0.25)] flex items-center gap-1.5 cursor-pointer shrink-0 hover:scale-[1.02] active:scale-95"
             title="Open the active folder in native Windows Explorer"
           >
-            <FolderOpen className="w-4 h-4 text-black" />
+            <FolderOpen className="w-3.5 h-3.5 text-black" />
             <span>Open in Explorer</span>
           </button>
 
@@ -1187,7 +1193,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
           <button
             onClick={handleCleanCache}
             disabled={isCleaningCache}
-            className="px-3 py-2 rounded-xl bg-[#141416] hover:bg-white/10 text-gray-200 hover:text-white font-bold text-xs border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0 hover:border-amber-400/40"
+            className="px-3 py-1.5 rounded-xl bg-[#141416] hover:bg-white/10 text-gray-200 hover:text-white font-bold text-xs border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0 hover:border-amber-400/40"
             title="Clean temporary downloads, audio chunks, and frame cache to free up hard drive space"
           >
             <Trash2 className="w-3.5 h-3.5 text-amber-400" />
@@ -1199,7 +1205,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
             <button
               onClick={onRefresh}
               disabled={vaultLoading}
-              className="px-3 py-2 rounded-xl bg-[#141416] hover:bg-white/10 text-gray-200 hover:text-white font-bold text-xs border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0 hover:border-amber-400/40"
+              className="px-3 py-1.5 rounded-xl bg-[#141416] hover:bg-white/10 text-gray-200 hover:text-white font-bold text-xs border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0 hover:border-amber-400/40"
               title="Refresh and sync clips and folders directly from local disk"
             >
               <RefreshCw className={`w-3.5 h-3.5 text-amber-400 ${vaultLoading ? "animate-spin" : ""}`} />
@@ -1211,7 +1217,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
           {onStartVaultTour && (
             <button
               onClick={onStartVaultTour}
-              className="px-3 py-2 rounded-xl bg-amber-400/10 hover:bg-amber-400/20 text-amber-300 border border-amber-400/30 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 shadow-sm hover:scale-[1.02] active:scale-95"
+              className="px-3 py-1.5 rounded-xl bg-amber-400/10 hover:bg-amber-400/20 text-amber-300 border border-amber-400/30 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 shadow-sm hover:scale-[1.02] active:scale-95"
               title="Launch Saved Clips Vault Walkthrough"
             >
               <Sparkles className="w-3.5 h-3.5 text-amber-400" />
@@ -1222,7 +1228,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
           {/* Back to Studio Navigation */}
           <button
             onClick={onBackToEditor}
-            className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/15 transition-all flex items-center gap-1.5 cursor-pointer shrink-0 hover:scale-[1.02] active:scale-95 shadow-sm"
+            className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/15 transition-all flex items-center gap-1.5 cursor-pointer shrink-0 hover:scale-[1.02] active:scale-95 shadow-sm"
             title="Return to AI Clipper Studio"
           >
             <ArrowLeft className="w-3.5 h-3.5 text-white" />
@@ -1232,8 +1238,8 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
       </div>
 
       {/* Explorer Breadcrumb Navigation Path Bar (with Drop Target Support) */}
-      <div id="vault-tour-step-2-breadcrumbs" className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 bg-[#121212] border border-white/10 rounded-2xl p-3">
-        <div className="flex items-center gap-2 overflow-x-auto scrollbar-thin py-1">
+      <div id="vault-tour-step-2-breadcrumbs" className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3 bg-[#121212] border border-white/10 rounded-xl p-2 sm:px-3">
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-thin py-0.5">
           {!isRoot && (
             <button
               onClick={() => setVaultSelectedFolder(getParentFolder())}
@@ -1250,11 +1256,11 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
                   : "bg-white/10 hover:bg-amber-400 hover:text-black text-amber-400"
               }`}
             >
-              <ArrowUp className="w-4 h-4" />
+              <ArrowUp className="w-3.5 h-3.5" />
             </button>
           )}
 
-          {/* Root Breadcrumb Chip (Drop clips here to move to Root!) */}
+          {/* Root Breadcrumb Chip */}
           <button
             onClick={() => setVaultSelectedFolder("all")}
             onDragOver={(e) => {
@@ -1263,7 +1269,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
             }}
             onDragLeave={() => setDragOverBreadcrumb(null)}
             onDrop={(e) => handleDropClips(e, "Main Library")}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${
+            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${
               dragOverBreadcrumb === "all"
                 ? "bg-amber-400 text-black ring-2 ring-amber-400 shadow-lg scale-105"
                 : isRoot
@@ -1289,7 +1295,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
                   }}
                   onDragLeave={() => setDragOverBreadcrumb(null)}
                   onDrop={(e) => handleDropClips(e, segmentFullPath)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${
                     isTarget
                       ? "bg-amber-400 text-black ring-2 ring-amber-400 shadow-lg scale-105"
                       : isLast
@@ -1314,7 +1320,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
                   setShowNewFolderModal(true);
                 }
               }}
-              className="px-3.5 py-1.5 rounded-xl bg-amber-400/10 hover:bg-amber-400/20 text-amber-300 border border-amber-400/30 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+              className="px-3 py-1 rounded-lg bg-amber-400/10 hover:bg-amber-400/20 text-amber-300 border border-amber-400/30 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
             >
               <Plus className="w-3.5 h-3.5 text-amber-400" />
               New Folder
@@ -1330,7 +1336,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
                     newName: vaultSelectedFolder,
                   });
                 }}
-                className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-amber-400 hover:text-black text-gray-300 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-amber-400 hover:text-black text-gray-300 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
                 title="Rename this folder"
               >
                 <Edit2 className="w-3.5 h-3.5" />
@@ -1346,7 +1352,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
                       targetName: vaultSelectedFolder,
                     });
                   }}
-                  className="px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500 hover:text-white text-red-400 border border-red-500/20 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                  className="px-2.5 py-1 rounded-lg bg-red-500/10 hover:bg-red-500 hover:text-white text-red-400 border border-red-500/20 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
                   title="Delete this folder"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -1359,9 +1365,9 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
       </div>
 
       {/* Search & Filter & Sort Bar */}
-      <div id="vault-tour-step-3-search" className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
-        <div className="flex items-center bg-[#111] border border-white/10 rounded-xl px-3 py-2">
-          <Search className="w-4 h-4 text-gray-500 mr-2 shrink-0" />
+      <div id="vault-tour-step-3-search" className="grid grid-cols-1 md:grid-cols-4 gap-2.5 mb-3">
+        <div className="flex items-center bg-[#111] border border-white/10 rounded-xl px-3 py-1.5">
+          <Search className="w-3.5 h-3.5 text-gray-500 mr-2 shrink-0" />
           <input
             type="text"
             placeholder="Search vault clips by title, hook, keywords..."
@@ -1371,8 +1377,8 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
           />
         </div>
 
-        <div className="flex items-center bg-[#111] border border-white/10 rounded-xl px-3 py-2">
-          <Filter className="w-4 h-4 text-amber-400 mr-2 shrink-0" />
+        <div className="flex items-center bg-[#111] border border-white/10 rounded-xl px-3 py-1.5">
+          <Filter className="w-3.5 h-3.5 text-amber-400 mr-2 shrink-0" />
           <select
             value={vaultSelectedFolder}
             onChange={(e) => setVaultSelectedFolder(e.target.value)}
@@ -1389,8 +1395,8 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
           </select>
         </div>
 
-        <div className="flex items-center bg-[#111] border border-white/10 rounded-xl px-3 py-2">
-          <ArrowUpDown className="w-4 h-4 text-amber-400 mr-2 shrink-0" />
+        <div className="flex items-center bg-[#111] border border-white/10 rounded-xl px-3 py-1.5">
+          <ArrowUpDown className="w-3.5 h-3.5 text-amber-400 mr-2 shrink-0" />
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as any)}
@@ -1427,29 +1433,29 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
 
       {/* Notifications */}
       {exportNotice && (
-        <div className="mb-6 p-3.5 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 text-xs font-bold animate-fadeIn flex items-center gap-2">
+        <div className="mb-3 p-2.5 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 text-xs font-bold animate-fadeIn flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4" /> {exportNotice}
         </div>
       )}
 
       {/* ----------------------------------------------------------------- */}
-      {/* SECTION 1: PROJECT FOLDERS (Only shown in Root View when not searching) */}
+      {/* SECTION 1: PROJECT FOLDERS (Only shown when folders actually exist) */}
       {/* ----------------------------------------------------------------- */}
-      {isRoot && !isSearchActive && (
-        <div className="mb-8">
-          <div className="flex items-center justify-between gap-4 mb-3">
+      {isRoot && !isSearchActive && directFolders.length > 0 && (
+        <div className="mb-4">
+          <div className="flex items-center justify-between gap-4 mb-2.5">
             <div className="flex items-center gap-2">
-              <Folder className="w-5 h-5 text-amber-400" />
-              <h3 className="text-sm font-black text-white tracking-wide uppercase">
+              <Folder className="w-4 h-4 text-amber-400" />
+              <h3 className="text-xs font-black text-white tracking-wide uppercase">
                 Project Folders
               </h3>
-              <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-white/10 text-gray-400">
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/10 text-gray-400">
                 {directFolders.length}
               </span>
             </div>
 
             <div className="flex items-center gap-2">
-              <div className="bg-[#141414] border border-white/10 rounded-xl p-1 flex items-center gap-1">
+              <div className="bg-[#141414] border border-white/10 rounded-xl p-0.5 flex items-center gap-0.5">
                 <button
                   type="button"
                   onClick={() => setFolderViewMode("grid")}
@@ -1474,30 +1480,8 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
             </div>
           </div>
 
-          {directFolders.length === 0 ? (
-            <div className="p-6 rounded-2xl bg-[#121212] border border-dashed border-white/10 text-center flex flex-col items-center justify-center gap-2">
-              <FolderPlus className="w-8 h-8 text-gray-600 mb-1" />
-              <p className="text-xs text-gray-400 font-bold">
-                No custom project folders yet
-              </p>
-              <p className="text-[11px] text-gray-500 max-w-sm">
-                Organize your clips into categories like TikTok Highlights, Stream Highlights, or Shorts.
-              </p>
-              <button
-                onClick={() => {
-                  if (openNewSubfolderModal) {
-                    openNewSubfolderModal("root");
-                  } else {
-                    setShowNewFolderModal(true);
-                  }
-                }}
-                className="mt-2 px-4 py-2 rounded-xl bg-amber-400 text-black font-bold text-xs hover:bg-amber-300 transition-all flex items-center gap-1.5 cursor-pointer shadow-md"
-              >
-                <Plus className="w-4 h-4" /> Create First Folder
-              </button>
-            </div>
-          ) : folderViewMode === "grid" ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+          {folderViewMode === "grid" ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
               {directFolders.map((folderPath) => {
                 const displayName = folderPath.split("/").pop() || folderPath;
                 const directClips = vaultClips.filter((c) => c.folder === folderPath).length;
@@ -1547,20 +1531,20 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
                     setShowNewFolderModal(true);
                   }
                 }}
-                className="p-4 rounded-2xl border border-dashed border-white/15 hover:border-amber-400/60 bg-[#121212] hover:bg-[#181818] transition-all cursor-pointer flex flex-col items-center justify-center gap-2 text-center group min-h-[110px]"
+                className="p-3 rounded-2xl border border-dashed border-white/15 hover:border-amber-400/60 bg-[#121212] hover:bg-[#181818] transition-all cursor-pointer flex flex-col items-center justify-center gap-1.5 text-center group min-h-[90px]"
               >
-                <div className="w-10 h-10 rounded-full bg-white/5 group-hover:bg-amber-400/20 flex items-center justify-center transition-colors">
-                  <Plus className="w-5 h-5 text-gray-400 group-hover:text-amber-400 transition-colors" />
+                <div className="w-8 h-8 rounded-full bg-white/5 group-hover:bg-amber-400/20 flex items-center justify-center transition-colors">
+                  <Plus className="w-4 h-4 text-gray-400 group-hover:text-amber-400 transition-colors" />
                 </div>
-                <span className="text-xs font-bold text-gray-400 group-hover:text-white transition-colors">
+                <span className="text-[11px] font-bold text-gray-400 group-hover:text-white transition-colors">
                   + Add New Folder
                 </span>
               </div>
             </div>
           ) : (
             /* List View */
-            <div className="flex flex-col gap-2">
-              <div className="px-4 py-2 text-[10px] font-extrabold uppercase text-gray-500 flex items-center justify-between border-b border-white/5">
+            <div className="flex flex-col gap-1.5">
+              <div className="px-4 py-1.5 text-[10px] font-extrabold uppercase text-gray-500 flex items-center justify-between border-b border-white/5">
                 <span>Name</span>
                 <div className="flex items-center gap-6">
                   <span className="w-24 text-right">Videos</span>
@@ -1612,23 +1596,21 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
         </div>
       )}
 
-      {/* Drag & Drop Interactivity Banner */}
-      <div id="vault-tour-step-4-drag" className="mb-6 p-3 rounded-2xl bg-amber-400/5 border border-amber-400/20 flex flex-wrap items-center justify-between gap-3 text-xs text-amber-300/80">
-        <div className="flex items-center gap-2">
-          <Move className="w-4 h-4 text-amber-400 shrink-0" />
-          <span>
-            <strong className="text-amber-300">Drag & Drop:</strong> Drag video cards onto folder cards or breadcrumb chips above to move them.
-          </span>
+      {/* Drag & Drop Quick Bar */}
+      <div id="vault-tour-step-4-drag" className="mb-3 px-3 py-1.5 rounded-xl bg-amber-400/5 border border-amber-400/15 flex flex-wrap items-center justify-between gap-2 text-[11px] text-amber-300/80">
+        <div className="flex items-center gap-1.5">
+          <Move className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+          <span>Drag clips directly into folders or drop external video files to import.</span>
         </div>
-        <div className="flex items-center gap-2 text-[11px] text-gray-400">
-          <UploadCloud className="w-3.5 h-3.5 text-amber-400" />
-          <span>Drop external MP4 files anywhere into this window to import.</span>
+        <div className="flex items-center gap-1.5 text-[10px] text-gray-400">
+          <UploadCloud className="w-3 h-3 text-amber-400" />
+          <span>Desktop Drag & Drop Active</span>
         </div>
       </div>
 
       {/* Multi-Selection Batch Actions Bar */}
       {selectedClipPaths.length > 0 && (
-        <div className="mb-6 p-3 rounded-2xl bg-amber-400/10 border border-amber-400/30 flex items-center justify-between gap-4 animate-fadeIn">
+        <div className="mb-3 p-3 rounded-2xl bg-amber-400/10 border border-amber-400/30 flex items-center justify-between gap-4 animate-fadeIn">
           <div className="flex items-center gap-2 text-xs font-bold text-amber-300">
             <CheckSquare className="w-4 h-4 text-amber-400" />
             <span>{selectedClipPaths.length} Clip(s) Selected</span>
@@ -1680,7 +1662,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
       {/* SECTION 2: VIDEOS & CLIPS GALLERY                                 */}
       {/* ----------------------------------------------------------------- */}
       <div>
-        <div className="flex items-center justify-between gap-4 mb-4 pb-2 border-b border-white/5">
+        <div className="flex items-center justify-between gap-4 mb-3 pb-2 border-b border-white/5">
           <div className="flex items-center gap-2">
             <Play className="w-4 h-4 text-amber-400" />
             <h3 className="text-sm font-black text-white tracking-wide uppercase">
@@ -1736,7 +1718,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-3.5">
             {filteredClips.map((clip) => {
               const isSelected = selectedClipPaths.includes(clip.path);
               return (
