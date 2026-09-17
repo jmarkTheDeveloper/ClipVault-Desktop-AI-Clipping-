@@ -403,14 +403,14 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
   };
 
   return (
-    <div ref={containerRef} className="flex-1 flex flex-col items-center justify-center p-4 bg-[#0a0a0a] select-none relative overflow-y-auto">
+    <div ref={containerRef} className="flex-1 flex flex-col items-center p-6 bg-[#0a0a0a] select-none relative overflow-y-auto">
       {/* Background Ambient Glow */}
       <div className="absolute w-[500px] h-[500px] bg-amber-400/5 rounded-full blur-3xl pointer-events-none" />
 
       {/* 9:16 Smartphone Mockup */}
-      <div className="relative w-[330px] sm:w-[360px] h-[520px] sm:h-[570px] max-h-[62vh] bg-black rounded-[48px] p-3 shadow-[0_0_80px_rgba(0,0,0,0.9)] border-[7px] border-[#222] ring-1 ring-white/15 flex flex-col z-10 shrink-0">
+      <div className="relative w-[385px] h-[680px] bg-black rounded-[52px] p-3.5 shadow-[0_0_80px_rgba(0,0,0,0.85)] border-[7px] border-[#222] ring-1 ring-white/15 flex flex-col z-10 shrink-0 my-auto">
         {/* Dynamic Island / Speaker Pill */}
-        <div className="absolute top-5 left-1/2 -translate-x-1/2 w-24 h-4 bg-[#111] rounded-full z-40 flex items-center justify-center shadow-inner border border-white/5 pointer-events-none">
+        <div className="absolute top-6 left-1/2 -translate-x-1/2 w-24 h-4 bg-[#111] rounded-full z-40 flex items-center justify-center shadow-inner border border-white/5 pointer-events-none">
           <div className="w-2.5 h-2.5 rounded-full bg-[#1c1c1e] mr-2" />
           <div className="w-10 h-1.5 rounded-full bg-[#1c1c1e]" />
         </div>
@@ -418,7 +418,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
         {/* Screen Viewport (Full Bleed 9:16) */}
         <div
           onClick={togglePlayAll}
-          className="relative flex-1 bg-black rounded-[38px] overflow-hidden flex flex-col border border-white/5 cursor-pointer group select-none"
+          className="relative flex-1 bg-black rounded-[42px] overflow-hidden flex flex-col border border-white/5 cursor-pointer group select-none"
         >
           {/* Central Play Indicator Overlay when Paused */}
           {!isPlaying && hasMedia && !isProcessing && !loadingPreview && (
@@ -784,12 +784,12 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
         </div>
 
         {/* Home Indicator Bar (Swipe Bar) */}
-        <div className="w-28 h-1 bg-white/20 rounded-full mx-auto mt-2 mb-0.5 pointer-events-none shrink-0" />
+        <div className="w-32 h-1 bg-white/20 rounded-full mx-auto mt-2 mb-0.5 pointer-events-none shrink-0" />
       </div>
 
       {/* Interactive Mobile Playback & Timestamp Dock Underneath Phone Mockup */}
       {hasMedia && !isProcessing && (
-        <div className="w-[330px] sm:w-[360px] mt-3.5 p-3.5 bg-[#121216] border border-white/10 rounded-2xl shadow-2xl space-y-2.5 z-20 shrink-0 select-none animate-fadeIn">
+        <div className="w-[385px] mt-4 p-3.5 bg-[#121216] border border-white/10 rounded-2xl shadow-2xl space-y-2.5 z-20 shrink-0 select-none animate-fadeIn">
           {/* Timeline Scrubber & Timestamp Readout */}
           <div className="flex items-center justify-between text-[11px] font-mono text-gray-300 font-bold">
             <span className="text-amber-400 flex items-center gap-1">
