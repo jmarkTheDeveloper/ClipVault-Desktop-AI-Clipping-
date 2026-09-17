@@ -64,6 +64,8 @@ import mimetypes
 import threading
 import gc
 import traceback
+import urllib.parse
+import requests
 from pathlib import Path
 
 from services.video_processor import VideoProcessor
@@ -129,6 +131,131 @@ app.mount("/music", StaticFiles(directory=str(MUSIC_DIR.resolve())), name="music
 
 # In-memory database to store background task status
 tasks_db = {}
+
+@app.get("/stream")
+def stream_media(request: Request, path: Optional[str] = None, url: Optional[str] = None):
+    """
+    High-performance video streaming endpoint with HTTP 206 Partial Content (Byte Range) support.
+    Streams both local files and remote/YouTube direct streams smoothly to HTML5 video elements,
+    bypassing CORS, 403 Forbidden, and browser format restrictions.
+    """
+    target_path = path or request.query_params.get("path")
+    target_url = url or request.query_params.get("url")
+
+    # If path is actually an http/https URL, route to url proxy
+    if target_path and (target_path.startswith("http://") or target_path.startswith("https://")):
+        target_url = target_path
+        target_path = None
+
+    if target_url:
+        # Proxy remote video stream (e.g. Google Video stream URL from YouTube)
+        req_headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        }
+        range_header = request.headers.get("Range") or request.headers.get("range")
+        if range_header:
+            req_headers["Range"] = range_header
+
+        try:
+            r = requests.get(target_url, headers=req_headers, stream=True, timeout=15)
+            resp_headers = {
+                "Accept-Ranges": "bytes",
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+                "Access-Control-Allow-Headers": "*",
+            }
+            for k in ["Content-Type", "Content-Length", "Content-Range"]:
+                if k in r.headers:
+                    resp_headers[k] = r.headers[k]
+                elif k.lower() in r.headers:
+                    resp_headers[k] = r.headers[k.lower()]
+
+            if "Content-Type" not in resp_headers:
+                resp_headers["Content-Type"] = "video/mp4"
+
+            def iter_remote():
+                try:
+                    for chunk in r.iter_content(chunk_size=128 * 1024):
+                        if chunk:
+                            yield chunk
+                finally:
+                    r.close()
+
+            return StreamingResponse(
+                iter_remote(),
+                status_code=r.status_code,
+                headers=resp_headers
+            )
+        except Exception as e:
+            print(f"[StreamProxy] Remote stream error: {e}")
+            raise HTTPException(status_code=502, detail=f"Failed to proxy stream: {e}")
+
+    elif target_path:
+        # Resolve local video file on disk
+        file_path = Path(target_path)
+        if not (file_path.is_absolute() and file_path.exists()):
+            clean_name = target_path.replace("\\", "/").split("clips/")[-1].lstrip("/")
+            candidates = [
+                file_path.resolve(),
+                (Path.cwd() / target_path).resolve(),
+                (OUTPUT_DIR / target_path).resolve(),
+                (OUTPUT_DIR / clean_name).resolve(),
+                (OUTPUT_DIR.parent / target_path).resolve(),
+                (Path(os.path.dirname(os.path.abspath(__file__))).parent / target_path).resolve(),
+            ]
+            found = False
+            for cand in candidates:
+                if cand.exists() and cand.is_file():
+                    file_path = cand
+                    found = True
+                    break
+            if not found:
+                raise HTTPException(status_code=404, detail=f"Video file not found: {target_path}")
+
+        file_size = file_path.stat().st_size
+        mime_type, _ = mimetypes.guess_type(str(file_path))
+        if not mime_type:
+            mime_type = "video/mp4"
+
+        range_header = request.headers.get("Range") or request.headers.get("range")
+        if range_header:
+            try:
+                bytes_str = range_header.replace("bytes=", "").strip()
+                parts = bytes_str.split("-")
+                start = int(parts[0]) if parts[0] else 0
+                end = int(parts[1]) if len(parts) > 1 and parts[1] else file_size - 1
+                end = min(end, file_size - 1)
+                start = max(0, min(start, end))
+                chunk_len = end - start + 1
+
+                def file_chunk_iter():
+                    with open(file_path, "rb") as f:
+                        f.seek(start)
+                        remaining = chunk_len
+                        buf_size = 256 * 1024
+                        while remaining > 0:
+                            read_len = min(remaining, buf_size)
+                            data = f.read(read_len)
+                            if not data:
+                                break
+                            remaining -= len(data)
+                            yield data
+
+                headers = {
+                    "Content-Range": f"bytes {start}-{end}/{file_size}",
+                    "Accept-Ranges": "bytes",
+                    "Content-Length": str(chunk_len),
+                    "Content-Type": mime_type,
+                    "Access-Control-Allow-Origin": "*",
+                }
+                return StreamingResponse(file_chunk_iter(), status_code=206, headers=headers)
+            except Exception as e:
+                print(f"[StreamLocal] Range error: {e}, falling back to full file")
+                return FileResponse(file_path, media_type=mime_type, headers={"Accept-Ranges": "bytes", "Access-Control-Allow-Origin": "*"})
+        else:
+            return FileResponse(file_path, media_type=mime_type, headers={"Accept-Ranges": "bytes", "Access-Control-Allow-Origin": "*"})
+
+    raise HTTPException(status_code=400, detail="Must provide 'path' or 'url' query parameter.")
 
 class ProcessRequest(BaseModel):
     url: str
@@ -868,13 +995,16 @@ def get_video_info(url: str):
             if not stream_url and info:
                 stream_url = info.get("url")
 
+            proxied_url = f"http://127.0.0.1:8000/stream?url={urllib.parse.quote(stream_url, safe='')}" if stream_url else None
+
             return {
                 "success": True,
                 "title": info.get("title", "YouTube Video") if info else "YouTube Video",
                 "duration": float(info.get("duration", 0)) if info else 0.0,
                 "author": info.get("uploader", "YouTube Channel") if info else "YouTube",
-                "stream_url": stream_url,
-                "url": stream_url
+                "stream_url": proxied_url or stream_url,
+                "url": proxied_url or stream_url,
+                "direct_stream_url": stream_url
             }
     except Exception as e:
         print(f" Video info warning: {e}")
