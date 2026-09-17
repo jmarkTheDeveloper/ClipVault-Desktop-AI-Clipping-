@@ -1561,7 +1561,18 @@ def get_task_status(task_id: str):
     Retrieves the execution status and progress of a background clipping task.
     """
     if task_id not in tasks_db:
-        raise HTTPException(status_code=404, detail="Task ID not found")
+        return {
+            "task_id": task_id,
+            "status": "Task expired or server was restarted.",
+            "progress": 0,
+            "completed": False,
+            "cancelled": True,
+            "is_rate_limit": False,
+            "error": "Task not found or server was restarted.",
+            "clips": [],
+            "output_dir": "",
+            "title": ""
+        }
     
     t = tasks_db[task_id]
     result = t.get("result") or {}

@@ -810,43 +810,55 @@ export const AiClipperScreen: React.FC<Props> = ({
       currentTaskIdRef.current = task_id;
 
       // 2. Poll progress
+      let consecutiveErrors = 0;
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
       pollIntervalRef.current = setInterval(async () => {
         try {
           const pollRes = await fetch(`http://127.0.0.1:8000/api/progress/${task_id}`);
-          if (pollRes.ok) {
-            const data = await pollRes.json();
-            if (data.status) setStatusText(data.status);
-            if (typeof data.progress === "number") setProgress(data.progress);
-
-            if (data.completed) {
+          if (!pollRes.ok) {
+            consecutiveErrors++;
+            if (consecutiveErrors >= 3) {
               if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
               setRunning(false);
-              setDone(true);
-              setGeneratedClips(data.clips || []);
-              if (data.output_dir) setLastOutputFolder(data.output_dir);
-              loadVaultClips(false);
-              setViewMode("vault");
-              const clipCount = (data.clips || []).length || 1;
-              triggerDesktopNotification(
-                "Video Processing Complete",
-                `Generated ${clipCount} clip(s) ready in ClipVault!`
-              );
-            } else if (data.cancelled) {
-              if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
-              setRunning(false);
-              setStatusText("Processing stopped by user.");
+              setStatusText("Task interrupted or server was restarted.");
               setProgress(0);
-              loadVaultClips();
-            } else if (data.error) {
-              if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
-              setRunning(false);
-              const errLower = (data.error || "").toLowerCase();
-              if (data.is_rate_limit || errLower.includes("limit") || errLower.includes("quota") || errLower.includes("429")) {
-                setShowRateLimitModal(true);
-              }
-              setErrorMsg(data.error);
+              setErrorMsg("The clipping task is no longer running on the server. Please start a new session.");
             }
+            return;
+          }
+          consecutiveErrors = 0;
+          const data = await pollRes.json();
+          if (data.status) setStatusText(data.status);
+          if (typeof data.progress === "number") setProgress(data.progress);
+
+          if (data.completed) {
+            if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+            setRunning(false);
+            setDone(true);
+            setGeneratedClips(data.clips || []);
+            if (data.output_dir) setLastOutputFolder(data.output_dir);
+            loadVaultClips(false);
+            setViewMode("vault");
+            const clipCount = (data.clips || []).length || 1;
+            triggerDesktopNotification(
+              "Video Processing Complete",
+              `Generated ${clipCount} clip(s) ready in ClipVault!`
+            );
+          } else if (data.cancelled) {
+            if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+            setRunning(false);
+            setStatusText(data.status || "Processing stopped.");
+            setProgress(0);
+            loadVaultClips();
+            if (data.error) setErrorMsg(data.error);
+          } else if (data.error) {
+            if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+            setRunning(false);
+            const errLower = (data.error || "").toLowerCase();
+            if (data.is_rate_limit || errLower.includes("limit") || errLower.includes("quota") || errLower.includes("429")) {
+              setShowRateLimitModal(true);
+            }
+            setErrorMsg(data.error);
           }
         } catch {
           // ignore transient poll error
