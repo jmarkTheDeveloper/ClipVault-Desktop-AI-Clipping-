@@ -652,6 +652,7 @@ class FaceTracker:
                     "crop_rect": crop_rect,
                     "tracks": tracks,
                     "primary_track": primary_track,
+                    "is_cut": is_cut,
                     "quality_eval": q_eval
                 })
             except Exception:
@@ -666,6 +667,66 @@ class FaceTracker:
 
         if not all_timeline_data:
             return clip
+
+        # ── Shot Segment Post-Processing & Tripod Stabilization ──
+        # Group timeline keyframes into stable broadcast shot segments
+        segments = []
+        current_seg = []
+        for item in all_timeline_data:
+            if current_seg and item.get("is_cut", False):
+                segments.append(current_seg)
+                current_seg = []
+            current_seg.append(item)
+        if current_seg:
+            segments.append(current_seg)
+
+        if camera_style == "instant":
+            # True Broadcast Multi-Camera Studio Behavior:
+            # Every shot segment is 100.0% LOCKED on a static tripod.
+            # Zero micro-creeping, zero 6-FPS stair-stepping, zero roughness.
+            # When switching speakers or scenes, the camera cuts instantly in 0.0 seconds.
+            for seg in segments:
+                med_x1 = float(np.median([it["crop_rect"][0] for it in seg]))
+                med_y1 = float(np.median([it["crop_rect"][1] for it in seg]))
+                med_cw = float(np.median([it["crop_rect"][2] for it in seg]))
+                med_ch = float(np.median([it["crop_rect"][3] for it in seg]))
+                for it in seg:
+                    it["crop_rect"] = (med_x1, med_y1, med_cw, med_ch)
+        else:
+            # Smooth / Snappy Steadi-Cam Mode:
+            # 1. Deadzone: If movement within a segment is small (< 5% width), lock to tripod to eliminate jitter.
+            # 2. Gaussian temporal smoothing: eliminates piecewise-linear kinks and creates buttery fluid pans.
+            raw_x1 = np.array([it["crop_rect"][0] for it in all_timeline_data], dtype=np.float64)
+            raw_y1 = np.array([it["crop_rect"][1] for it in all_timeline_data], dtype=np.float64)
+            raw_cw = np.array([it["crop_rect"][2] for it in all_timeline_data], dtype=np.float64)
+            raw_ch = np.array([it["crop_rect"][3] for it in all_timeline_data], dtype=np.float64)
+
+            stable_x1 = raw_x1.copy()
+            stable_y1 = raw_y1.copy()
+            idx_start = 0
+            for seg in segments:
+                seg_len = len(seg)
+                idx_end = idx_start + seg_len
+                seg_x = raw_x1[idx_start:idx_end]
+                if np.std(seg_x) < (width * 0.05):
+                    stable_x1[idx_start:idx_end] = np.median(seg_x)
+                    stable_y1[idx_start:idx_end] = np.median(raw_y1[idx_start:idx_end])
+                idx_start = idx_end
+
+            kernel_size = 5 if camera_style == "snappy" else 9
+            if len(stable_x1) >= kernel_size:
+                sigma = 1.2 if camera_style == "snappy" else 2.0
+                k = cv2.getGaussianKernel(kernel_size, sigma).flatten()
+                padded_x = np.pad(stable_x1, (kernel_size // 2, kernel_size // 2), mode='edge')
+                padded_y = np.pad(stable_y1, (kernel_size // 2, kernel_size // 2), mode='edge')
+                smoothed_x1 = np.convolve(padded_x, k, mode='valid')
+                smoothed_y1 = np.convolve(padded_y, k, mode='valid')
+            else:
+                smoothed_x1 = stable_x1
+                smoothed_y1 = stable_y1
+
+            for i, it in enumerate(all_timeline_data):
+                it["crop_rect"] = (float(smoothed_x1[i]), float(smoothed_y1[i]), float(raw_cw[i]), float(raw_ch[i]))
 
         # Timeline keyframe arrays
         t_keys = np.array([item["t"] for item in all_timeline_data], dtype=np.float64)

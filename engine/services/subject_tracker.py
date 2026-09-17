@@ -174,7 +174,7 @@ class SubjectTracker:
         x_std = float(np.std(centroids_arr))
         median_x = float(np.median(centroids_arr))
 
-        if x_std < (width * 0.06):
+        if x_std < (width * 0.06) or camera_style == "instant":
             cx = max(target_width / 2.0, min(width - target_width / 2.0, median_x))
             x1 = int(round(cx - target_width / 2.0))
             x1 = max(0, min(width - target_width, x1))
@@ -192,23 +192,27 @@ class SubjectTracker:
         # ── Fluid Steadicam Motion Filter ──
         print(f"    [SubjectTracker] Steadicam Following Mode: Dynamic subject panning across {len(centroids)} keyframes")
 
-        # Smooth raw centroids with Exponential Moving Average (EMA)
+        # Smooth raw centroids with Exponential Moving Average (EMA) and Gaussian filter
         smoothed_xs = []
         current_ema = centroids[0]
-        alpha = 0.22 if camera_style == "smooth" else 0.35
+        alpha = 0.20 if camera_style == "smooth" else 0.35
 
         for c in centroids:
             current_ema = (alpha * c) + ((1.0 - alpha) * current_ema)
-            # Clamp within valid video crop margins
             clamped = max(target_width / 2.0, min(width - target_width / 2.0, current_ema))
             smoothed_xs.append(clamped)
 
+        smoothed_arr = np.array(smoothed_xs, dtype=np.float64)
+        if len(smoothed_arr) >= 5:
+            k = cv2.getGaussianKernel(5, 1.5).flatten()
+            padded = np.pad(smoothed_arr, (2, 2), mode='edge')
+            smoothed_arr = np.convolve(padded, k, mode='valid')
+
         sample_times_arr = np.array(sample_times, dtype=np.float64)
-        smoothed_xs_arr = np.array(smoothed_xs, dtype=np.float64)
+        smoothed_xs_arr = smoothed_arr
 
         def dynamic_steadicam_filter(get_frame, t):
             frame = get_frame(t)
-            # Interpolate horizontal focal center at current playback second
             target_cx = float(np.interp(t, sample_times_arr, smoothed_xs_arr))
             x_left = int(round(target_cx - target_width / 2.0))
             x_left = max(0, min(width - target_width, x_left))
