@@ -92,16 +92,15 @@ class VirtualCamera:
     ) -> Tuple[float, float, float, float]:
         """
         Calculates the ideal target bounding box [cx, cy, w, h] based on tracked subjects.
-        In vertical 9:16 framing, locks onto the primary speaker to prevent slicing subjects in half.
+        In vertical 9:16 framing, locks onto the primary speaker or frames a clean two-shot if subjects fit.
         In horizontal/square framing, frames multiple prominent subjects if feasible.
         """
         if not primary_track:
             return float(self.frame_w / 2.0), float(self.frame_h / 2.0), self.base_crop_w, self.base_crop_h
 
-        # Multi-person bounding envelope is only viable in horizontal/square viewports (aspect_ratio >= 1.0).
-        # In vertical 9:16 framing (aspect_ratio < 1.0), spanning multiple horizontal subjects centers
-        # on the empty gap between them, slicing both people in half.
+        # Multi-person bounding envelope handling:
         if self.aspect_ratio >= 1.0:
+            # Horizontal / Square viewports
             prominent_tracks = [
                 t for t in all_active_tracks
                 if t.get("prominence_score", 0.0) >= 0.35 * primary_track.get("prominence_score", 1.0)
@@ -123,6 +122,26 @@ class VirtualCamera:
                     req_w = max(self.base_crop_w / max_digital_zoom, req_w)
                     req_h = req_w / self.aspect_ratio
                     return group_cx, group_cy, req_w, req_h
+        else:
+            # Vertical 9:16 viewports (aspect_ratio < 1.0):
+            # Check if 2 prominent subjects can be cleanly framed together in a two-shot!
+            prominent_tracks = [
+                t for t in all_active_tracks
+                if t.get("prominence_score", 0.0) >= 0.25 * primary_track.get("prominence_score", 1.0)
+            ]
+            if len(prominent_tracks) >= 2:
+                all_boxes = [t["bbox"] for t in prominent_tracks[:2]]
+                min_x = min(b[0] for b in all_boxes)
+                min_y = min(b[1] for b in all_boxes)
+                max_x = max(b[2] for b in all_boxes)
+                max_y = max(b[3] for b in all_boxes)
+                two_shot_span = (max_x - min_x) + (self.base_crop_w * 0.12)
+                # If both subjects fit inside the standard 9:16 crop width, frame the two-shot!
+                if two_shot_span <= self.base_crop_w:
+                    group_cx = (min_x + max_x) / 2.0
+                    avg_cy = (min_y + max_y) / 2.0
+                    target_cy = avg_cy + (self.base_crop_h * 0.10)
+                    return group_cx, target_cy, self.base_crop_w, self.base_crop_h
 
         # Single Primary Subject Framing
         s_cx = float(primary_track["center_x"])
@@ -130,11 +149,17 @@ class VirtualCamera:
         s_w = float(primary_track["width"])
         s_h = float(primary_track["height"])
 
-        # Eye-level centering: position subject head at ~38% of crop height
-        target_crop_w = max(self.base_crop_w / max_digital_zoom, min(float(self.frame_w), s_w * (1.0 + min_margin_pct * 3.5)))
-        target_crop_h = target_crop_w / self.aspect_ratio
+        # When multiple people are in the video, NEVER apply digital zoom!
+        # Keeping full base crop width avoids claustrophobic framing and preserves conversational context.
+        if len(all_active_tracks) >= 2:
+            target_crop_w = self.base_crop_w
+            target_crop_h = self.base_crop_h
+        else:
+            # Solo speaker: allow moderate digital zoom for crisp aesthetic framing
+            target_crop_w = max(self.base_crop_w / max_digital_zoom, min(float(self.frame_w), s_w * (1.0 + min_margin_pct * 3.5)))
+            target_crop_h = target_crop_w / self.aspect_ratio
 
-        # Align crop center so subject eyes sit at 38% of the vertical viewport
+        # Align crop center so subject eyes sit at ~38% of the vertical viewport
         target_cy = s_cy + (target_crop_h * 0.12)
         target_cx = s_cx
 
@@ -158,20 +183,23 @@ class VirtualCamera:
 
         if self.camera_style == "instant":
             # True broadcast instant cut behavior:
-            # Hold 100% steady on tripod (zero sliding, zero jitter).
-            # Jump cut immediately (snap_to) only if the primary subject changes or moves significantly
-            # outside the framing safe zone.
+            # Instant snap is reserved for confirmed speaker switches or scene cuts.
+            # For micro-movements of the same subject, apply gentle deadzone drift rather than jumping.
             diff_x = target_cx - self.cx
             diff_y = target_cy - self.cy
             diff_w = target_w - self.w
-            diff_h = target_h - self.h
 
-            pos_threshold_x = self.w * 0.20
-            pos_threshold_y = self.h * 0.20
-            scale_threshold_w = self.w * 0.25
+            switch_threshold_x = self.w * 0.40
 
-            if abs(diff_x) > pos_threshold_x or abs(diff_y) > pos_threshold_y or abs(diff_w) > scale_threshold_w:
+            if abs(diff_x) > switch_threshold_x:
                 self.snap_to(target_cx, target_cy, target_w, target_h)
+            elif abs(diff_x) > (self.w * self.deadzone_ratio):
+                # Gentle continuous follow for natural movement of the same speaker
+                self.cx += (diff_x * 0.18)
+                self.cy += (diff_y * 0.18)
+                self.w += (diff_w * 0.18)
+                self.h = self.w / self.aspect_ratio
+                self._clamp_bounds()
 
             return self.get_crop_rect()
 
@@ -195,8 +223,8 @@ class VirtualCamera:
             effective_dy = diff_y - math.copysign(deadzone_h, diff_y)
 
         # 2. Critically Damped Spring Smoothing
-        k_spring = 10.0 if self.camera_style == "snappy" else 6.0
-        c_damping = 6.0 if self.camera_style == "snappy" else 4.5
+        k_spring = 8.0 if self.camera_style == "snappy" else 4.5
+        c_damping = 5.5 if self.camera_style == "snappy" else 4.0
 
         # Acceleration = spring force - damping
         ax = k_spring * effective_dx - c_damping * self.vx
@@ -210,7 +238,7 @@ class VirtualCamera:
         self.vw += aw * self.dt
         self.vh += ah * self.dt
 
-        # Clamp max pan and zoom speeds
+        # Strictly clamp max pan and zoom speeds to prevent whip-pans
         max_v = self.pan_speed
         speed = math.hypot(self.vx, self.vy)
         if speed > max_v:

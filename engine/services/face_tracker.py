@@ -587,14 +587,15 @@ class FaceTracker:
         virtual_cam = VirtualCamera(
             width, height, aspect_ratio=crop_ratio,
             camera_style=camera_style,
-            deadzone_ratio=0.10 if camera_style == "snappy" else (0.16 if camera_style == "smooth" else 0.14),
-            pan_speed=550.0 if camera_style == "snappy" else (280.0 if camera_style == "smooth" else 400.0),
+            deadzone_ratio=0.12 if camera_style == "snappy" else (0.18 if camera_style == "smooth" else 0.16),
+            pan_speed=400.0 if camera_style == "snappy" else (240.0 if camera_style == "smooth" else 350.0),
             fps=float(fps_sample)
         )
 
         all_timeline_data = []
         prev_faces = []
         found_any_human = False
+        prev_primary_id = None
 
         for t in sample_times:
             try:
@@ -618,8 +619,15 @@ class FaceTracker:
                 if primary_track:
                     found_any_human = True
 
+                # Determine if a hard scene cut or a confirmed broadcast speaker switch occurred
+                is_scene_boundary = bool(scene_cut_times and any(abs(t - ct) < (0.5 / fps_sample) for ct in scene_cut_times))
+                is_speaker_switch = bool(prev_primary_id is not None and primary_track and primary_track["track_id"] != prev_primary_id)
+                is_cut = is_scene_boundary or (is_speaker_switch and camera_style == "instant")
+
+                if primary_track:
+                    prev_primary_id = primary_track["track_id"]
+
                 # Calculate target crop
-                is_cut = bool(scene_cut_times and any(abs(t - ct) < (0.5 / fps_sample) for ct in scene_cut_times))
                 tcx, tcy, tcw, tch = virtual_cam.calculate_target_crop(
                     primary_track, tracks, min_margin_pct=min_crop_margin, max_digital_zoom=max_digital_zoom
                 )

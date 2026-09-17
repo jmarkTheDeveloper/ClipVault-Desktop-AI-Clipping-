@@ -156,12 +156,18 @@ class TemporalTracker:
         self.trackers: List[KalmanBoxTracker] = []
         self.frame_count = 0
         self.primary_track_id: Optional[int] = None
+        self.speaker_dwell_frames: int = 0
+        self.challenger_track_id: Optional[int] = None
+        self.challenger_streak: int = 0
 
     def reset(self):
         """Clears all active tracks (e.g. at a hard scene cut)."""
         self.trackers = []
         self.frame_count = 0
         self.primary_track_id = None
+        self.speaker_dwell_frames = 0
+        self.challenger_track_id = None
+        self.challenger_streak = 0
 
     def update(self, detections: List[Dict[str, Any]], frame_w: int, frame_h: int) -> List[Dict[str, Any]]:
         """
@@ -246,15 +252,12 @@ class TemporalTracker:
                     tw, th = trk.dimensions
                     state_box = trk.get_state()
 
-                    # Prominence score: factors in face type, area, eye-level bonus, speech/mouth motion, track stability, and sticky speaker lock
+                    # Prominence score: factors in face type, area, eye-level bonus, speech/mouth motion, and track stability
                     det_type = trk.metadata.get("type", "human_subject")
                     type_weight = 3.0 if det_type in ("yunet_neural", "mediapipe", "frontal_haar", "profile_haar_left", "profile_haar_right") else 1.0
 
                     # Penalize tracks that are currently coasting (not actively detected)
                     coasting_factor = 0.35 if trk.time_since_update > 0 else 1.0
-
-                    # Sticky hysteresis lock: prevent speaker flip-flopping when both people are in frame
-                    sticky_bonus = 1.60 if (self.primary_track_id is not None and trk.id == self.primary_track_id) else 1.0
 
                     dist_eye = abs(cy - frame_h * 0.38) / (frame_h * 0.45)
                     eye_penalty = max(0.20, 1.0 - dist_eye ** 2)
@@ -262,7 +265,7 @@ class TemporalTracker:
                     motion_boost = 1.0 + min(2.5, max(0.0, trk.mouth_motion - 2.0) * 0.20)
                     stability = trk.hits / float(trk.hits + trk.time_since_update)
 
-                    prominence = trk.confidence * type_weight * (normalized_area ** 0.50) * eye_penalty * motion_boost * stability * coasting_factor * sticky_bonus
+                    raw_prominence = trk.confidence * type_weight * (normalized_area ** 0.50) * eye_penalty * motion_boost * stability * coasting_factor
 
                     active_outputs.append({
                         "track_id": trk.id,
@@ -276,17 +279,84 @@ class TemporalTracker:
                         "time_since_update": trk.time_since_update,
                         "is_coasting": trk.time_since_update > 0,
                         "mouth_motion": trk.mouth_motion,
-                        "prominence_score": prominence,
+                        "raw_prominence": raw_prominence,
+                        "prominence_score": raw_prominence,
                         "type": det_type
                     })
 
         self.trackers = alive_trackers
-        # Sort by prominence score descending (primary subject is index 0)
-        active_outputs.sort(key=lambda x: x["prominence_score"], reverse=True)
-        if active_outputs:
-            self.primary_track_id = active_outputs[0]["track_id"]
-        else:
+
+        if not active_outputs:
             self.primary_track_id = None
+            self.speaker_dwell_frames = 0
+            self.challenger_track_id = None
+            self.challenger_streak = 0
+            return []
+
+        # Find currently locked track if still present and active
+        incumbent_track = next((t for t in active_outputs if t["track_id"] == self.primary_track_id), None)
+        num_faces = len(active_outputs)
+
+        # Broadcast Minimum Shot Dwell Rules:
+        # Prevents hyperactive camera movement and fast flipping when multiple people are in the frame.
+        # - 3+ people (panel / group / crowd): 22 frames (~3.7s hold), requires 5 consecutive challenger frames
+        # - 2 people: 16 frames (~2.7s hold), requires 4 consecutive challenger frames
+        # - 1 person: 6 frames (~1.0s hold)
+        if num_faces >= 3:
+            min_dwell_frames = 22
+            req_challenger_streak = 5
+            challenger_margin = 1.60
+        elif num_faces == 2:
+            min_dwell_frames = 16
+            req_challenger_streak = 4
+            challenger_margin = 1.40
+        else:
+            min_dwell_frames = 6
+            req_challenger_streak = 2
+            challenger_margin = 1.15
+
+        if incumbent_track is None or incumbent_track["time_since_update"] > 6:
+            # Incumbent has left the frame or timed out: establish lock on highest raw prominence
+            best_candidate = max(active_outputs, key=lambda x: x["raw_prominence"])
+            self.primary_track_id = best_candidate["track_id"]
+            self.speaker_dwell_frames = 1
+            self.challenger_track_id = None
+            self.challenger_streak = 0
+        else:
+            self.speaker_dwell_frames += 1
+
+            # Check potential challenger among remaining active tracks
+            other_tracks = [t for t in active_outputs if t["track_id"] != self.primary_track_id]
+            if other_tracks:
+                top_challenger = max(other_tracks, key=lambda x: x["raw_prominence"])
+
+                # Challenger can only steal lock after incumbent has completed minimum broadcast dwell duration
+                if self.speaker_dwell_frames >= min_dwell_frames:
+                    if top_challenger["raw_prominence"] >= incumbent_track["raw_prominence"] * challenger_margin:
+                        if self.challenger_track_id == top_challenger["track_id"]:
+                            self.challenger_streak += 1
+                        else:
+                            self.challenger_track_id = top_challenger["track_id"]
+                            self.challenger_streak = 1
+
+                        if self.challenger_streak >= req_challenger_streak:
+                            # Confirmed speaker transition
+                            self.primary_track_id = top_challenger["track_id"]
+                            self.speaker_dwell_frames = 1
+                            self.challenger_track_id = None
+                            self.challenger_streak = 0
+                    else:
+                        self.challenger_streak = max(0, self.challenger_streak - 1)
+                else:
+                    self.challenger_streak = 0
+            else:
+                self.challenger_track_id = None
+                self.challenger_streak = 0
+
+        # Sort so that primary_track is ALWAYS index 0, followed by remaining tracks by prominence
+        active_outputs.sort(
+            key=lambda x: (x["track_id"] != self.primary_track_id, -x["raw_prominence"])
+        )
         return active_outputs
 
     def _associate(
