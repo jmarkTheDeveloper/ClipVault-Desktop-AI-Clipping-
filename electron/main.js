@@ -448,13 +448,17 @@ app.whenReady().then(() => {
       const iconIco = path.resolve(__dirname, '../public/icon.ico');
 
       // Clean up legacy truncated shortcuts so Windows toast notifications always show "ClipVault"
-      const legacyShortcuts = ['ClipVault AI Studi.lnk', 'ClipVault AI Studio.lnk', 'ClipVault Studio.lnk'];
-      for (const legacy of legacyShortcuts) {
-        const legacyPath = path.join(shortcutDir, legacy);
-        if (fs.existsSync(legacyPath)) {
-          try { fs.unlinkSync(legacyPath); } catch (e) {}
+      try {
+        if (fs.existsSync(shortcutDir)) {
+          const files = fs.readdirSync(shortcutDir);
+          for (const file of files) {
+            const fLower = file.toLowerCase();
+            if (fLower.endsWith('.lnk') && fLower.includes('clipvault') && (fLower.includes('studi') || fLower.includes('studio'))) {
+              try { fs.unlinkSync(path.join(shortcutDir, file)); } catch (e) {}
+            }
+          }
         }
-      }
+      } catch (e) {}
 
       const shortcutOptions = {
         target: process.execPath,
