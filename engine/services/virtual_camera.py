@@ -20,6 +20,7 @@ class VirtualCamera:
         frame_w: int,
         frame_h: int,
         aspect_ratio: float = 9 / 16,
+        camera_style: str = "instant",
         deadzone_ratio: float = 0.12,
         pan_speed: float = 350.0,
         zoom_speed: float = 0.20,
@@ -28,6 +29,7 @@ class VirtualCamera:
         self.frame_w = frame_w
         self.frame_h = frame_h
         self.aspect_ratio = aspect_ratio
+        self.camera_style = str(camera_style).lower()
         self.deadzone_ratio = deadzone_ratio
         self.pan_speed = pan_speed
         self.zoom_speed = zoom_speed
@@ -90,32 +92,37 @@ class VirtualCamera:
     ) -> Tuple[float, float, float, float]:
         """
         Calculates the ideal target bounding box [cx, cy, w, h] based on tracked subjects.
-        If multiple prominent subjects exist, frames both within the safe area.
+        In vertical 9:16 framing, locks onto the primary speaker to prevent slicing subjects in half.
+        In horizontal/square framing, frames multiple prominent subjects if feasible.
         """
         if not primary_track:
             return float(self.frame_w / 2.0), float(self.frame_h / 2.0), self.base_crop_w, self.base_crop_h
 
-        # Check if secondary prominent speaker exists
-        prominent_tracks = [t for t in all_active_tracks if t.get("prominence_score", 0.0) >= 0.25 * primary_track.get("prominence_score", 1.0)]
+        # Multi-person bounding envelope is only viable in horizontal/square viewports (aspect_ratio >= 1.0).
+        # In vertical 9:16 framing (aspect_ratio < 1.0), spanning multiple horizontal subjects centers
+        # on the empty gap between them, slicing both people in half.
+        if self.aspect_ratio >= 1.0:
+            prominent_tracks = [
+                t for t in all_active_tracks
+                if t.get("prominence_score", 0.0) >= 0.35 * primary_track.get("prominence_score", 1.0)
+            ]
+            if len(prominent_tracks) >= 2:
+                all_boxes = [t["bbox"] for t in prominent_tracks[:2]]
+                min_x = min(b[0] for b in all_boxes)
+                min_y = min(b[1] for b in all_boxes)
+                max_x = max(b[2] for b in all_boxes)
+                max_y = max(b[3] for b in all_boxes)
+                group_cx = (min_x + max_x) / 2.0
+                group_cy = (min_y + max_y) / 2.0
+                group_w = (max_x - min_x) * (1.0 + min_margin_pct * 2.0)
+                group_h = (max_y - min_y) * (1.0 + min_margin_pct * 2.0)
 
-        if len(prominent_tracks) >= 2:
-            # Multi-person bounding envelope
-            all_boxes = [t["bbox"] for t in prominent_tracks[:2]]
-            min_x = min(b[0] for b in all_boxes)
-            min_y = min(b[1] for b in all_boxes)
-            max_x = max(b[2] for b in all_boxes)
-            max_y = max(b[3] for b in all_boxes)
-            group_cx = (min_x + max_x) / 2.0
-            group_cy = (min_y + max_y) / 2.0
-            group_w = (max_x - min_x) * (1.0 + min_margin_pct * 2.0)
-            group_h = (max_y - min_y) * (1.0 + min_margin_pct * 2.0)
-
-            # Fit to target aspect ratio
-            req_w = max(group_w, group_h * self.aspect_ratio)
-            req_h = req_w / self.aspect_ratio
-            req_w = max(self.base_crop_w / max_digital_zoom, min(float(self.frame_w), req_w))
-            req_h = req_w / self.aspect_ratio
-            return group_cx, group_cy, req_w, req_h
+                req_w = max(group_w, group_h * self.aspect_ratio)
+                req_h = req_w / self.aspect_ratio
+                if req_w <= float(self.frame_w) and req_h <= float(self.frame_h):
+                    req_w = max(self.base_crop_w / max_digital_zoom, req_w)
+                    req_h = req_w / self.aspect_ratio
+                    return group_cx, group_cy, req_w, req_h
 
         # Single Primary Subject Framing
         s_cx = float(primary_track["center_x"])
@@ -142,13 +149,33 @@ class VirtualCamera:
         is_scene_cut: bool = False
     ) -> Tuple[int, int, int, int]:
         """
-        Advances the virtual camera toward the target with deadzone filtering and spring smoothing.
+        Advances the virtual camera toward the target with deadzone filtering and smoothing.
         Returns the active integer crop rectangle [x1, y1, width, height].
         """
         if not self.initialized or is_scene_cut:
             self.snap_to(target_cx, target_cy, target_w, target_h)
             return self.get_crop_rect()
 
+        if self.camera_style == "instant":
+            # True broadcast instant cut behavior:
+            # Hold 100% steady on tripod (zero sliding, zero jitter).
+            # Jump cut immediately (snap_to) only if the primary subject changes or moves significantly
+            # outside the framing safe zone.
+            diff_x = target_cx - self.cx
+            diff_y = target_cy - self.cy
+            diff_w = target_w - self.w
+            diff_h = target_h - self.h
+
+            pos_threshold_x = self.w * 0.20
+            pos_threshold_y = self.h * 0.20
+            scale_threshold_w = self.w * 0.25
+
+            if abs(diff_x) > pos_threshold_x or abs(diff_y) > pos_threshold_y or abs(diff_w) > scale_threshold_w:
+                self.snap_to(target_cx, target_cy, target_w, target_h)
+
+            return self.get_crop_rect()
+
+        # Smooth / Snappy camera styles:
         # 1. Deadzone Filtering (Deadband)
         deadzone_w = self.w * self.deadzone_ratio
         deadzone_h = self.h * self.deadzone_ratio
@@ -167,9 +194,9 @@ class VirtualCamera:
         if abs(diff_y) > deadzone_h:
             effective_dy = diff_y - math.copysign(deadzone_h, diff_y)
 
-        # 2. Critically Damped Spring Smoothing (Spring constant k=12, damping c=7)
-        k_spring = 8.0
-        c_damping = 5.0
+        # 2. Critically Damped Spring Smoothing
+        k_spring = 10.0 if self.camera_style == "snappy" else 6.0
+        c_damping = 6.0 if self.camera_style == "snappy" else 4.5
 
         # Acceleration = spring force - damping
         ax = k_spring * effective_dx - c_damping * self.vx

@@ -381,7 +381,6 @@ export const AiClipperScreen: React.FC<Props> = ({
   const [minCropMargin, setMinCropMargin] = useState(0.30);
   const [adaptiveCrop, setAdaptiveCrop] = useState(true);
   const [enableSuperResolution, setEnableSuperResolution] = useState(false);
-  const [diagnosticMode, setDiagnosticMode] = useState(false);
   const [layout, setLayout] = useState("vertical_crop");
   const [cameraStyle, setCameraStyle] = useState<"instant" | "snappy" | "smooth">("instant");
   const [durationMode, setDurationMode] = useState("auto");
@@ -768,7 +767,7 @@ export const AiClipperScreen: React.FC<Props> = ({
           min_crop_margin: minCropMargin,
           adaptive_crop: adaptiveCrop,
           enable_super_resolution: enableSuperResolution,
-          diagnostic_mode: diagnosticMode,
+          diagnostic_mode: false,
           layout,
           camera_style: cameraStyle,
           add_captions: addCaptions,
@@ -1470,8 +1469,6 @@ export const AiClipperScreen: React.FC<Props> = ({
                 setAdaptiveCrop={setAdaptiveCrop}
                 enableSuperResolution={enableSuperResolution}
                 setEnableSuperResolution={setEnableSuperResolution}
-                diagnosticMode={diagnosticMode}
-                setDiagnosticMode={setDiagnosticMode}
                 layout={layout}
                 setLayout={setLayout}
                 setCropModalOpen={setCropModalOpen}

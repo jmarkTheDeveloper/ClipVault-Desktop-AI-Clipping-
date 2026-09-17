@@ -419,21 +419,6 @@ class FaceTracker:
 
             valid_faces.append(f)
 
-        # 5. If no faces detected by primary models, synthesize human skin-presence centroid anchor
-        if not valid_faces:
-            human_cx = self._compute_human_presence_centroid_x(small_frame, w)
-            if human_cx is not None:
-                valid_faces.append({
-                    'center_x': int(human_cx),
-                    'center_y': int(h * 0.40),
-                    'width': int(w * 0.20),
-                    'height': int(h * 0.30),
-                    'confidence': 0.70,
-                    'area': int(w * 0.20 * h * 0.30),
-                    'type': 'human_presence_anchor',
-                    'skin_ratio': 0.50
-                })
-
         # Spatial Non-Maximum Suppression: merge overlapping boxes belonging to the same person
         merged_faces: List[Dict[str, Any]] = []
         sorted_candidates = sorted(valid_faces, key=lambda x: x['confidence'], reverse=True)
@@ -601,7 +586,8 @@ class FaceTracker:
         temporal_tracker = TemporalTracker(max_age=int(fps_sample * 2.5), min_hits=2)
         virtual_cam = VirtualCamera(
             width, height, aspect_ratio=crop_ratio,
-            deadzone_ratio=0.10 if camera_style == "snappy" else (0.16 if camera_style == "smooth" else 0.12),
+            camera_style=camera_style,
+            deadzone_ratio=0.10 if camera_style == "snappy" else (0.16 if camera_style == "smooth" else 0.14),
             pan_speed=550.0 if camera_style == "snappy" else (280.0 if camera_style == "smooth" else 400.0),
             fps=float(fps_sample)
         )
@@ -692,15 +678,16 @@ class FaceTracker:
 
         def virtual_camera_filter(get_frame, t):
             frame = get_frame(t)
-            idx = int(np.searchsorted(t_keys, t))
-            idx = max(0, min(len(t_keys) - 1, idx))
-
             if camera_style == "instant":
+                idx = int(np.searchsorted(t_keys, t, side="right")) - 1
+                idx = max(0, min(len(t_keys) - 1, idx))
                 x1 = int(round(x1_keys[idx]))
                 y1 = int(round(y1_keys[idx]))
                 cw = int(round(cw_keys[idx]))
                 ch = int(round(ch_keys[idx]))
             else:
+                idx = int(np.searchsorted(t_keys, t))
+                idx = max(0, min(len(t_keys) - 1, idx))
                 x1 = int(round(float(np.interp(t, t_keys, x1_keys))))
                 y1 = int(round(float(np.interp(t, t_keys, y1_keys))))
                 cw = int(round(float(np.interp(t, t_keys, cw_keys))))
@@ -710,19 +697,8 @@ class FaceTracker:
             x1 = max(0, min(width - cw, x1))
             y1 = max(0, min(height - ch, y1))
 
-            if diagnostic_mode:
-                item = all_timeline_data[idx]
-                zoom = max(1.0, float(width) / max(1.0, float(cw)))
-                q_score = item["quality_eval"]["detail_score"]
-                ratio = item["quality_eval"]["enlargement_ratio"]
-                status = "COASTING" if (item["primary_track"] and item["primary_track"].get("is_coasting")) else "ACTIVE_TRACK"
-                annotated = DiagnosticsVisualizer.draw_telemetry_hud(
-                    frame, item["tracks"], item["primary_track"],
-                    (x1, y1, cw, ch), zoom, q_score, ratio, status
-                )
-                cropped_patch = annotated[y1:y1 + ch, x1:x1 + cw]
-            else:
-                cropped_patch = frame[y1:y1 + ch, x1:x1 + cw]
+            # Production video clip must always be pristine clean video frames
+            cropped_patch = frame[y1:y1 + ch, x1:x1 + cw]
 
             if cropped_patch.shape[0] != final_out_h or cropped_patch.shape[1] != final_out_w:
                 return cv2.resize(cropped_patch, (final_out_w, final_out_h), interpolation=cv2.INTER_LANCZOS4)

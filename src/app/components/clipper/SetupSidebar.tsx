@@ -186,8 +186,6 @@ interface SetupSidebarProps {
   setAdaptiveCrop?: (a: boolean) => void;
   enableSuperResolution?: boolean;
   setEnableSuperResolution?: (sr: boolean) => void;
-  diagnosticMode?: boolean;
-  setDiagnosticMode?: (d: boolean) => void;
 }
 
 export const SetupSidebar: React.FC<SetupSidebarProps> = ({
@@ -279,8 +277,6 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
   setAdaptiveCrop,
   enableSuperResolution = false,
   setEnableSuperResolution,
-  diagnosticMode = false,
-  setDiagnosticMode,
 }) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
 
@@ -703,33 +699,6 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                   <div
                     className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${
                       enableSuperResolution ? "translate-x-4" : "translate-x-0"
-                    }`}
-                  />
-                </div>
-              </div>
-
-              {/* Visual Diagnostics Video Toggle */}
-              <div
-                className="pt-2.5 border-t border-white/5 flex items-center justify-between cursor-pointer select-none"
-                onClick={() => setDiagnosticMode && setDiagnosticMode(!diagnosticMode)}
-              >
-                <div className="pr-2">
-                  <span className="text-xs text-white font-semibold flex items-center gap-1.5">
-                    <Activity className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                    Visual Tracking Diagnostics
-                  </span>
-                  <span className="text-[10px] text-gray-400 block mt-0.5 leading-tight">
-                    Exports debug video with subject tracking boxes and camera coordinates
-                  </span>
-                </div>
-                <div
-                  className={`w-8 h-4 rounded-full flex items-center p-0.5 transition-colors shrink-0 ${
-                    diagnosticMode ? "bg-amber-400" : "bg-white/20"
-                  }`}
-                >
-                  <div
-                    className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${
-                      diagnosticMode ? "translate-x-4" : "translate-x-0"
                     }`}
                   />
                 </div>

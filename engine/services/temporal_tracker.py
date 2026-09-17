@@ -155,11 +155,13 @@ class TemporalTracker:
         self.iou_threshold = iou_threshold
         self.trackers: List[KalmanBoxTracker] = []
         self.frame_count = 0
+        self.primary_track_id: Optional[int] = None
 
     def reset(self):
         """Clears all active tracks (e.g. at a hard scene cut)."""
         self.trackers = []
         self.frame_count = 0
+        self.primary_track_id = None
 
     def update(self, detections: List[Dict[str, Any]], frame_w: int, frame_h: int) -> List[Dict[str, Any]]:
         """
@@ -244,14 +246,23 @@ class TemporalTracker:
                     tw, th = trk.dimensions
                     state_box = trk.get_state()
 
-                    # Prominence score: factors in area, eye-level bonus, speech/mouth motion, and track stability
+                    # Prominence score: factors in face type, area, eye-level bonus, speech/mouth motion, track stability, and sticky speaker lock
+                    det_type = trk.metadata.get("type", "human_subject")
+                    type_weight = 3.0 if det_type in ("yunet_neural", "mediapipe", "frontal_haar", "profile_haar_left", "profile_haar_right") else 1.0
+
+                    # Penalize tracks that are currently coasting (not actively detected)
+                    coasting_factor = 0.35 if trk.time_since_update > 0 else 1.0
+
+                    # Sticky hysteresis lock: prevent speaker flip-flopping when both people are in frame
+                    sticky_bonus = 1.60 if (self.primary_track_id is not None and trk.id == self.primary_track_id) else 1.0
+
                     dist_eye = abs(cy - frame_h * 0.38) / (frame_h * 0.45)
                     eye_penalty = max(0.20, 1.0 - dist_eye ** 2)
-                    area_ratio = (tw * th) / float(frame_w * frame_h)
-                    motion_boost = 1.0 + min(2.5, max(0.0, trk.mouth_motion - 2.0) * 0.15)
+                    normalized_area = min(0.35, (tw * th) / float(frame_w * frame_h))
+                    motion_boost = 1.0 + min(2.5, max(0.0, trk.mouth_motion - 2.0) * 0.20)
                     stability = trk.hits / float(trk.hits + trk.time_since_update)
 
-                    prominence = trk.confidence * (area_ratio ** 0.60) * eye_penalty * motion_boost * stability
+                    prominence = trk.confidence * type_weight * (normalized_area ** 0.50) * eye_penalty * motion_boost * stability * coasting_factor * sticky_bonus
 
                     active_outputs.append({
                         "track_id": trk.id,
@@ -266,12 +277,16 @@ class TemporalTracker:
                         "is_coasting": trk.time_since_update > 0,
                         "mouth_motion": trk.mouth_motion,
                         "prominence_score": prominence,
-                        "type": trk.metadata.get("type", "human_subject")
+                        "type": det_type
                     })
 
         self.trackers = alive_trackers
         # Sort by prominence score descending (primary subject is index 0)
         active_outputs.sort(key=lambda x: x["prominence_score"], reverse=True)
+        if active_outputs:
+            self.primary_track_id = active_outputs[0]["track_id"]
+        else:
+            self.primary_track_id = None
         return active_outputs
 
     def _associate(
