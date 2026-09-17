@@ -203,9 +203,16 @@ class AISelector:
                 print(f"[AISelector] Qwen note: {e}. Falling back to smart chapter analyzer.")
                 raise RuntimeError(e)
 
-        # 7. Google Gemini (Gemini 2.0 Flash / Gemini 1.5 Flash)
+        # 7. Google Gemini (Gemini 3.6 Flash / Gemini Flash Latest / Gemini 2.5 Flash)
         else:
-            gemini_models = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.0-flash-lite", "gemini-1.5-pro"]
+            gemini_models = [
+                "gemini-3.6-flash",
+                "gemini-flash-latest",
+                "gemini-2.5-flash",
+                "gemini-3.7-flash",
+                "gemini-pro-latest",
+                "gemini-2.5-pro",
+            ]
             parts = []
             if image_frames:
                 for frame_bytes in image_frames:
