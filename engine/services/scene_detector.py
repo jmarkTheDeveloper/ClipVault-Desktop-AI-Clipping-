@@ -147,8 +147,8 @@ class SceneDetector:
                 end_time=end_time + tolerance + 0.5
             )
 
-            aligned_start = self.snap_boundary(start_time, start_cuts, tolerance=tolerance, prefer="nearest")
-            aligned_end = self.snap_boundary(end_time, end_cuts, tolerance=tolerance, prefer="nearest")
+            aligned_start = self.snap_boundary(start_time, start_cuts, tolerance=tolerance, prefer="earlier")
+            aligned_end = self.snap_boundary(end_time, end_cuts, tolerance=tolerance, prefer="later")
 
             if aligned_end > aligned_start + 4.0:
                 return aligned_start, aligned_end

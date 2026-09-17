@@ -246,10 +246,12 @@ class AISelector:
                     continue
             raise RuntimeError("Gemini API call failed across all available models.")
 
-    def _expand_to_complete_context(self, segments, start_time, end_time, video_duration):
+    def _expand_to_complete_context(self, segments, start_time, end_time, video_duration, target_duration=30.0):
         """
         Expands clip boundaries backwards to capture the premise/question setup 
         and forwards to capture the complete resolution, preventing truncated context.
+        Resolves dangling pronouns ('he', 'she', 'they', 'it', 'this') and bundles
+        interviewer setup questions with guest answers.
         """
         if not segments:
             return max(0.0, float(start_time)), min(float(video_duration), float(end_time) + 0.35)
@@ -267,7 +269,7 @@ class AISelector:
                 txt = str(s[2]).strip() if len(s) > 2 else ''
             else:
                 continue
-            if et > st:
+            if et > st and txt:
                 clean_segs.append({'start': st, 'end': et, 'text': txt})
 
         if not clean_segs:
@@ -280,19 +282,79 @@ class AISelector:
                 start_idx = i
                 break
 
-        # 2. Backward Expansion: Step backwards if current segment starts mid-thought or previous is setup question
-        CONNECTIVE_STARTS = ['and', 'so', 'but', 'because', 'which', 'that', 'then', 'like', 'therefore', 'meaning']
+        # 2. Backward Context Expansion:
+        # Check if the start segment begins with dangling pronouns, conjunctions, or conversational continuations
+        DANGLING_PRONOUNS = {
+            'he', 'she', 'they', 'them', 'him', 'her', 'it', 'this', 'that', 'these',
+            'those', 'his', 'hers', 'their', 'theirs', 'its', 'which', 'who', 'whom'
+        }
+        CONNECTIVE_STARTS = {
+            'and', 'so', 'but', 'because', 'which', 'that', 'then', 'like', 'therefore',
+            'meaning', 'anyway', 'also', 'or', 'well', 'actually', 'meanwhile', 'instead',
+            'though', 'furthermore', 'moreover', 'hence', 'plus'
+        }
+        PHRASE_STARTERS = (
+            "that's why", "this is why", "and that", "so that", "and then", "because of",
+            "so basically", "like i said", "as i was saying", "which means", "meaning that",
+            "in fact", "actually", "he said", "she said", "they said", "he was", "she was",
+            "they were", "one day he", "when he", "when she", "when they", "when it",
+            "what happened was", "and so"
+        )
+        QUESTION_WORDS = (
+            'why', 'how', 'what', 'who', 'where', 'when', 'is it', 'can you', 'did you',
+            'do you', 'have you', 'could you', 'would you', 'tell me', 'what about'
+        )
+
+        orig_start_time = start_time
+        max_back_sec = 28.0  # Max lookback window (seconds) to find setup/question
+
+        # A. First, check if an interviewer question was asked within the preceding 25 seconds
+        question_start_idx = None
+        for k in range(start_idx - 1, max(-1, start_idx - 18), -1):
+            if (clean_segs[start_idx]['start'] - clean_segs[k]['start']) > max_back_sec:
+                break
+            prev_t = clean_segs[k]['text'].strip()
+            if prev_t.endswith('?') or any(prev_t.lower().startswith(qw) for qw in QUESTION_WORDS):
+                # Found the question end! Now step back to find where this question sentence started
+                q_walk = k
+                while q_walk > 0 and (clean_segs[start_idx]['start'] - clean_segs[q_walk - 1]['start']) <= max_back_sec:
+                    prior_t = clean_segs[q_walk - 1]['text'].strip()
+                    if prior_t.endswith(('.', '!', '?')):
+                        break
+                    q_walk -= 1
+                question_start_idx = q_walk
+                break
+
+        # If a setup question was asked nearby, anchor the clip to the beginning of that question!
+        if question_start_idx is not None and question_start_idx < start_idx:
+            potential_dur = (end_time - clean_segs[question_start_idx]['start'])
+            if potential_dur <= max(90.0, float(target_duration) * 1.65):
+                start_idx = question_start_idx
+
+        # B. Additionally, step back if current segment still starts mid-thought or with a dangling reference
         back_steps = 0
-        while start_idx > 0 and back_steps < 6:
+        max_back_steps = 18
+        while start_idx > 0 and back_steps < max_back_steps:
             cur_txt = clean_segs[start_idx]['text'].strip().lower()
-            first_word = cur_txt.split()[0] if cur_txt else ''
-            prev_txt = clean_segs[start_idx - 1]['text'].strip()
-            
+            words = cur_txt.split()
+            first_word = words[0] if words else ''
+            second_word = words[1] if len(words) > 1 else ''
+
             needs_back = False
-            if first_word in CONNECTIVE_STARTS or cur_txt.startswith(("that's why", "this is why", "and that", "so that", "and then")):
+            if first_word in CONNECTIVE_STARTS or first_word in DANGLING_PRONOUNS:
                 needs_back = True
-            elif prev_txt.endswith('?') or any(q in prev_txt.lower() for q in ['why', 'how', 'what about', 'tell me', 'did you know', 'have you']):
+            elif any(cur_txt.startswith(p) for p in PHRASE_STARTERS):
                 needs_back = True
+            elif first_word in ('the', 'a') and second_word in ('guy', 'thing', 'problem', 'reason', 'doctor', 'cop', 'person', 'woman', 'man', 'boss'):
+                needs_back = True
+
+            prev_txt = clean_segs[start_idx - 1]['text'].strip()
+            if prev_txt.endswith('?') or any(prev_txt.lower().startswith(q) for q in QUESTION_WORDS):
+                needs_back = True
+
+            # Guardrails against stepping back too far
+            if (orig_start_time - clean_segs[start_idx - 1]['start']) > max_back_sec:
+                break
 
             if needs_back:
                 start_idx -= 1
@@ -300,7 +362,8 @@ class AISelector:
             else:
                 break
 
-        new_start = clean_segs[start_idx]['start']
+        # Give 0.15s pre-roll buffer so the opening word/consonant is never clipped
+        new_start = max(0.0, clean_segs[start_idx]['start'] - 0.15)
 
         # 3. Forward Expansion: Step forwards until the speaker reaches a true sentence conclusion
         end_idx = len(clean_segs) - 1
@@ -310,14 +373,23 @@ class AISelector:
                 break
 
         fwd_steps = 0
-        while end_idx < len(clean_segs) - 1 and fwd_steps < 6:
+        max_fwd_steps = 16
+        while end_idx < len(clean_segs) - 1 and fwd_steps < max_fwd_steps:
             end_txt = clean_segs[end_idx]['text'].strip()
             if end_txt.endswith(('.', '!', '?')):
+                # Check if next segment immediately continues the payoff punchline or moral
+                next_txt = clean_segs[end_idx + 1]['text'].strip().lower()
+                PAYOFF_CONTINUATIONS = ("and that's why", "which means", "so the moral is", "and i never", "so basically that's", "in conclusion")
+                if any(next_txt.startswith(pc) for pc in PAYOFF_CONTINUATIONS) and fwd_steps < 8:
+                    end_idx += 1
+                    fwd_steps += 1
+                    continue
                 break
             end_idx += 1
             fwd_steps += 1
 
-        new_end = min(video_duration, clean_segs[end_idx]['end'] + 0.35)
+        # Give 0.25s post-roll so the final word's decay isn't abruptly cut
+        new_end = min(video_duration, clean_segs[end_idx]['end'] + 0.25)
         return max(0.0, new_start), new_end
 
     def _heuristic_viral_selector(self, segments, video_duration, n, target_duration, topic=None):
@@ -437,6 +509,21 @@ class AISelector:
                                 score -= 25.0
                                 hook_bonus -= 10.0
 
+                        # Bonus for question-answer pairs (podcasts/interviews):
+                        # If candidate starts with a question, or answers a preceding question
+                        if clean_segs[i]['text'].strip().endswith('?'):
+                            score += 40.0
+                            hook_bonus += 10.0
+                        elif i > 0 and clean_segs[i - 1]['text'].strip().endswith('?'):
+                            score += 35.0
+                            hook_bonus += 8.0
+
+                        # Penalty for starting on unreferenced pronouns without the question anchor
+                        first_word = first_seg_txt.strip().lower().split()[0] if first_seg_txt.strip() else ''
+                        if first_word in {'he', 'she', 'they', 'them', 'him', 'her', 'it', 'this', 'that', 'these', 'those'}:
+                            score -= 25.0
+                            hook_bonus -= 6.0
+
                         for rp in REACTION_PATTERNS:
                             matches = len(re.findall(rp, full_txt, re.IGNORECASE))
                             score += min(20.0, matches * 6.0)
@@ -456,7 +543,7 @@ class AISelector:
                                 score -= 80.0
 
                         # Expand candidate to full context (premise setup + full conclusion)
-                        exp_st, exp_et = self._expand_to_complete_context(clean_segs, st, et, video_duration)
+                        exp_st, exp_et = self._expand_to_complete_context(clean_segs, st, et, video_duration, target_duration=target_duration)
 
                         title_candidate = hook_txt.strip()[:45]
                         if len(hook_txt) > 45:
@@ -509,14 +596,13 @@ class AISelector:
                 if len(selected) >= n:
                     break
                 st = max(0.0, min(video_duration - target_duration, i * step))
-                et = min(video_duration, st + target_duration)
-                exp_st, exp_et = self._expand_to_complete_context(clean_segs, st, et, video_duration)
+                exp_st, exp_et = self._expand_to_complete_context(clean_segs, st, et, video_duration, target_duration=target_duration)
                 fallback_score = max(65, 88 - (len(selected) * 4))
                 fallback_sub = normalize_sub_scores(None, fallback_score)
                 selected.append({
                     'start': exp_st,
                     'end': exp_et,
-                    'duration': exp_st,
+                    'duration': exp_et - exp_st,
                     'virality_score': fallback_score,
                     'sub_scores': fallback_sub.to_dict(),
                     'title': f'Chapter Highlight #{len(selected)+1}',
@@ -529,47 +615,121 @@ class AISelector:
         selected.sort(key=lambda x: x['virality_score'], reverse=True)
         return selected[:n]
 
+    @staticmethod
+    def format_continuous_dialogue(segments: list) -> tuple[str, list]:
+        """
+        Aggregates raw Whisper micro-segments into continuous, paragraph-level dialogue
+        thought-blocks and complete sentences, labeling questions and speaker shifts.
+        Preserves 100% of the conversation without skipping lines.
+        """
+        if not segments:
+            return "", []
+
+        clean_segs = []
+        for s in segments:
+            if isinstance(s, dict):
+                st = float(s.get('start', 0.0))
+                et = float(s.get('end', st + 1.0))
+                txt = str(s.get('text', '')).strip()
+            elif isinstance(s, (list, tuple)) and len(s) >= 2:
+                st = float(s[0])
+                et = float(s[1])
+                txt = str(s[2]).strip() if len(s) > 2 else ''
+            else:
+                continue
+            if et > st and txt:
+                clean_segs.append({'start': st, 'end': et, 'text': txt})
+
+        if not clean_segs:
+            return "", []
+
+        QUESTION_WORDS = (
+            'why', 'how', 'what', 'who', 'where', 'when', 'is it', 'can you', 'did you',
+            'do you', 'have you', 'could you', 'would you', 'tell me', 'what about', 'are you'
+        )
+
+        grouped_sentences = []
+        cur_words = []
+        cur_st = clean_segs[0]['start']
+        cur_et = clean_segs[0]['end']
+
+        for i, seg in enumerate(clean_segs):
+            txt = seg['text'].strip()
+            if not cur_words:
+                cur_st = seg['start']
+            cur_words.append(txt)
+            cur_et = seg['end']
+
+            is_end = txt.endswith(('.', '!', '?'))
+            has_pause = False
+            if i < len(clean_segs) - 1:
+                next_st = clean_segs[i + 1]['start']
+                if (next_st - cur_et) > 0.70:
+                    has_pause = True
+
+            if is_end or has_pause or (cur_et - cur_st) > 16.0:
+                sentence_txt = " ".join(cur_words).strip()
+                is_q = sentence_txt.endswith('?') or any(sentence_txt.lower().startswith(qw) for qw in QUESTION_WORDS)
+                grouped_sentences.append({
+                    'start': cur_st,
+                    'end': cur_et,
+                    'text': sentence_txt,
+                    'is_question': is_q
+                })
+                cur_words = []
+
+        if cur_words:
+            sentence_txt = " ".join(cur_words).strip()
+            is_q = sentence_txt.endswith('?') or any(sentence_txt.lower().startswith(qw) for qw in QUESTION_WORDS)
+            grouped_sentences.append({
+                'start': cur_st,
+                'end': cur_et,
+                'text': sentence_txt,
+                'is_question': is_q
+            })
+
+        lines = []
+        for g in grouped_sentences:
+            tag = "QUESTION" if g['is_question'] else "DIALOGUE"
+            lines.append(f"[{tag} {g['start']:.1f}s-{g['end']:.1f}s]: {g['text']}")
+
+        return "\n".join(lines), grouped_sentences
+
     def select_clips(self, segments, video_duration, n, target_duration, topic=None, video_path=None):
         """
         Selects the most viral clips from a transcript using frontier AI models 
         (Gemini, Groq, OpenAI, Claude, DeepSeek) with intelligent multimodal evaluation and NLP fallback.
+        Enforces complete self-contained context and question-premise anchoring.
         """
-        # Format clean, continuous transcript covering full video timeline (up to 1,200 segments for 1+ hour videos)
-        if len(segments) > 1200:
-            stride = len(segments) / 1200.0
-            eval_segments = [segments[int(i * stride)] for i in range(1200)]
-        else:
-            eval_segments = segments
-
-        segments_text = []
-        for seg in eval_segments:
-            st = float(seg.get('start', 0.0))
-            et = float(seg.get('end', st + 1.0))
-            txt = str(seg.get('text', '')).strip()
-            if txt:
-                segments_text.append(f"[{st:.1f}s-{et:.1f}s]: {txt}")
-        
-        transcript_with_timestamps = "\n".join(segments_text)
+        # Format continuous, coherent dialogue without skipping or striding sentences
+        transcript_with_timestamps, aggregated_dialogue = self.format_continuous_dialogue(segments)
+        if not transcript_with_timestamps:
+            return self._heuristic_viral_selector(segments, video_duration, n, target_duration, topic=topic)
         
         topic_clause = f"Focus strictly on highlights involving '{topic}'." if topic else "Focus on the most jaw-dropping, funny, emotional, or educational viral peaks."
 
-        prompt = f"""You are an elite viral video editor and algorithm curator.
-Analyze this continuous video transcript with timestamps and select the {n} BEST viral short-form clips.
+        prompt = f"""You are an elite viral video editor and algorithm curator for short-form video (TikTok, YouTube Shorts, Instagram Reels).
+Analyze this continuous dialogue transcript with timestamps and select the {n} BEST viral short-form clips.
 
 {topic_clause}
 
-CRITICAL RULES FOR VIRAL QUALITY & EXPLAINABLE METRICS:
-1. FULL CONTEXT SETUP (NEVER START IN THE MIDDLE): Every clip MUST include the opening question, premise, or backstory introducing the topic. Never start mid-thought.
-2. FULL NARRATIVE RESOLUTION: Every clip MUST conclude the thought, story, or lesson completely. Never cut off mid-explanation.
-3. TARGET DURATION GUIDELINE (~{target_duration}s): Use ~{target_duration} seconds as a flexible guide capturing the complete unbroken story arc.
-4. ZERO FILLER: Do NOT select sponsor reads, channel plugs, or audio checks.
-5. EXACT SENTENCE BOUNDARIES: Start at word 1 of the opening sentence and end cleanly on the final punctuation mark.
-6. EXPLAINABLE METRICS: Provide an overall virality_score (0-99) and 4 sub_scores:
+CRITICAL RULES FOR ZERO-KNOWLEDGE STANDALONE CONTEXT (MANDATORY):
+1. THE STANDALONE TEST: The viewer has NEVER seen this podcast or video before and knows NOTHING about the speakers. Every clip must make 100% complete sense in isolation without requiring prior context. If a viewer scrolls past this clip, they must understand who/what is being discussed within the first 3 seconds without feeling confused.
+2. ALWAYS INCLUDE THE QUESTION / PREMISE SETUP: In podcasts and interviews, a story or answer ALWAYS begins with a prompt. You MUST start the clip at the host's question or the speaker's introductory premise. NEVER start mid-answer, mid-explanation, or 10 seconds into a story.
+3. ZERO DANGLING PRONOUNS: NEVER start a clip with an unreferenced pronoun ("he told me", "she was like", "they took it", "this company", "it happened"). The clip MUST start where the subject, person, or situation is first named and introduced.
+4. FULL 3-PART STORY ARC: Every clip MUST contain:
+   - Part 1: The Setup / Hook (The question, mystery, premise, or situation introduction)
+   - Part 2: The Core Meat (The story, argument, struggle, or insight unfolding)
+   - Part 3: The Payoff / Resolution (The conclusion, punchline, takeaway, or moral of the story)
+5. TARGET DURATION GUIDELINE (~{target_duration}s): Use ~{target_duration} seconds as a flexible guide capturing the complete unbroken story arc. Do not cut early or truncate the explanation.
+6. ZERO FILLER: Do NOT select sponsor reads, channel plugs, audio checks, or disconnected punchlines.
+7. EXACT SENTENCE BOUNDARIES: Start precisely at word 1 of the opening sentence (or question) and end cleanly on the final punctuation mark of the conclusion.
+8. EXPLAINABLE METRICS: Provide an overall virality_score (0-99) and 4 sub_scores:
    - hook (0-99): Opening 3-5 seconds retention strength.
    - flow (0-99): Rhythm, conversational pacing, lack of dead air.
    - value (0-99): Information density or emotional payoff.
    - trend (0-99): Viral topical relevance and hook patterns.
-7. EXACT NUMBER: Return EXACTLY {n} non-overlapping clips in the JSON array.
+9. EXACT NUMBER: Return EXACTLY {n} non-overlapping clips in the JSON array.
 
 VIDEO DURATION: {video_duration} seconds
 
@@ -648,8 +808,8 @@ Return ONLY valid JSON format:
                 if start >= end or start < 0 or start >= video_duration:
                     continue
 
-                # Pass through Context Expander to guarantee setup + conclusion are not truncated
-                exp_st, exp_et = self._expand_to_complete_context(segments, start, end, video_duration)
+                # Pass through Deep Context Expander to guarantee setup + conclusion are not truncated
+                exp_st, exp_et = self._expand_to_complete_context(segments, start, end, video_duration, target_duration=target_duration)
                 dur = exp_et - exp_st
                 comp_score = max(60, min(99, int(score)))
                 sub_scores = normalize_sub_scores(sub_scores_raw, comp_score)

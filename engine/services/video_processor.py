@@ -334,9 +334,10 @@ class VideoProcessor:
             for spec in clip_specs:
                 orig_s, orig_e = spec['start'], spec['end']
                 new_s, new_e = self.scene_detector.align_clip_boundaries(orig_s, orig_e, video_path=str(video_path), tolerance=0.75)
-                spec['start'] = new_s
-                spec['end'] = new_e
-                spec['duration'] = new_e - new_s
+                # Speech-safe boundary protection: only expand outward to camera cuts, never truncate spoken words
+                spec['start'] = min(orig_s, new_s)
+                spec['end'] = max(orig_e, new_e)
+                spec['duration'] = spec['end'] - spec['start']
 
         # Determine target export directory safely
         target_dir = OUTPUT_DIR.resolve()
