@@ -383,22 +383,31 @@ def execute_rendering_task(task_id: str, request: ProcessRequest, cancel_event: 
         except Exception:
             pass
 
+DELETED_CLIPS_TOMBSTONES: set = set()
+
 def purge_ghost_files():
     """
     Cleans 0-byte ghost files, .trash temporary leftovers, and any stale duplicates across ALL folders.
     Guarantees that every unique clip appears EXACTLY ONCE across the entire application.
     """
     import time
+    global DELETED_CLIPS_TOMBSTONES
     try:
         if OUTPUT_DIR.exists():
-            # 1. Clean 0-byte ghost files and .trash leftovers
+            # 1. Clean 0-byte ghost files, .trash leftovers, and tombstoned files
             for p in list(OUTPUT_DIR.rglob("*")):
                 try:
                     if p.is_file():
-                        if p.name.startswith(".trash") or p.name.endswith(".trash"):
+                        p_norm = str(p.resolve()).lower()
+                        if p.name.startswith(".trash") or p.name.endswith(".trash") or ".trash" in p.name:
                             try: p.unlink()
                             except Exception: pass
-                        elif p.suffix.lower() == ".mp4" and p.stat().st_size == 0:
+                        elif p.suffix.lower() == ".mp4" and (
+                            p.stat().st_size == 0
+                            or p.name.lower() in DELETED_CLIPS_TOMBSTONES
+                            or p_norm in DELETED_CLIPS_TOMBSTONES
+                            or p.stem.lower() in DELETED_CLIPS_TOMBSTONES
+                        ):
                             try: p.unlink()
                             except Exception: pass
                 except Exception:
@@ -449,7 +458,19 @@ def get_saved_clips():
         # 2. Search root output dir and all subdirectories for video files
         for path in sorted(OUTPUT_DIR.glob("**/*.mp4"), key=lambda p: p.stat().st_mtime, reverse=True):
             try:
-                if path.name.startswith(".") or path.name.startswith(".trash"):
+                if path.name.startswith(".") or path.name.startswith(".trash") or ".trash" in path.name:
+                    continue
+                p_norm = str(path.resolve()).lower()
+                if (
+                    path.name.lower() in DELETED_CLIPS_TOMBSTONES
+                    or path.stem.lower() in DELETED_CLIPS_TOMBSTONES
+                    or p_norm in DELETED_CLIPS_TOMBSTONES
+                ):
+                    try:
+                        os.chmod(str(path), 0o777)
+                        path.unlink()
+                    except Exception:
+                        pass
                     continue
                 stat = path.stat()
                 if stat.st_size == 0:
@@ -598,23 +619,29 @@ def delete_clip(data: dict = Body(...)):
     import gc
     import subprocess
     import time
-    
+    import ctypes
+    global DELETED_CLIPS_TOMBSTONES
+
     paths_to_delete = data.get("paths") or data.get("clip_paths") or data.get("file_paths")
     if not paths_to_delete:
         single = data.get("path") or data.get("file_path") or data.get("filePath") or data.get("filename") or data.get("url")
         if single:
             paths_to_delete = [single]
         else:
-            return {"success": False, "error": "Path(s) are required"}
+            return {"success": False, "error": "Path(s) are required", "deleted_count": 0}
 
     deleted_files = []
-    
+
     def resolve_target(raw_path: str) -> Optional[Path]:
         raw_str = str(raw_path).strip()
         if raw_str.startswith("http://") or raw_str.startswith("https://"):
             parsed = urllib.parse.urlparse(raw_str)
             fname = Path(urllib.parse.unquote(parsed.path)).name
-            p_clean = fname
+            clean_rel = urllib.parse.unquote(parsed.path).lstrip("/")
+            for prefix in ["clips/", "outputs/"]:
+                if clean_rel.lower().startswith(prefix):
+                    clean_rel = clean_rel[len(prefix):]
+            p_clean = clean_rel
         else:
             p_clean = urllib.parse.unquote(raw_str)
             for prefix in ['local:///', 'local://', 'file:///', 'file://']:
@@ -641,54 +668,88 @@ def delete_clip(data: dict = Body(...)):
     for item in paths_to_delete:
         target = resolve_target(item)
         if target and target.exists() and target.is_file():
-            # 1. Clean up all metadata and thumbnail files in both same dir and metadata/ subfolder
+            norm_target = target.resolve()
+
+            # Record in tombstone immediately so get_saved_clips() NEVER returns it again
+            DELETED_CLIPS_TOMBSTONES.add(norm_target.name.lower())
+            DELETED_CLIPS_TOMBSTONES.add(norm_target.stem.lower())
+            DELETED_CLIPS_TOMBSTONES.add(str(norm_target).lower())
+
+            # 1. Clean up all metadata and thumbnail files in same dir, parent/metadata, and root/metadata
             for meta_cand in [
-                target.parent / "metadata" / f"{target.stem}_metadata.txt",
-                target.parent / f"{target.stem}_metadata.txt",
-                target.parent / "metadata" / f"{target.stem}_metadata.json",
-                target.parent / f"{target.stem}_metadata.json",
-                target.parent / f"{target.stem}_thumbnail.jpg",
-                target.parent / "metadata" / f"{target.stem}_thumbnail.jpg",
+                norm_target.parent / "metadata" / f"{norm_target.stem}_metadata.txt",
+                norm_target.parent / f"{norm_target.stem}_metadata.txt",
+                norm_target.parent / "metadata" / f"{norm_target.stem}_metadata.json",
+                norm_target.parent / f"{norm_target.stem}_metadata.json",
+                norm_target.parent / f"{norm_target.stem}_thumbnail.jpg",
+                norm_target.parent / "metadata" / f"{norm_target.stem}_thumbnail.jpg",
+                OUTPUT_DIR / "metadata" / f"{norm_target.stem}_metadata.txt",
+                OUTPUT_DIR / "metadata" / f"{norm_target.stem}_metadata.json",
+                OUTPUT_DIR / "metadata" / f"{norm_target.stem}_thumbnail.jpg",
             ]:
                 if meta_cand.exists():
-                    try: meta_cand.unlink()
-                    except Exception: pass
+                    try:
+                        os.chmod(str(meta_cand), 0o777)
+                        meta_cand.unlink()
+                    except Exception:
+                        pass
 
             # 2. Delete main video file
             deleted = False
             try:
-                os.chmod(str(target), 0o777)
-                target.unlink()
+                os.chmod(str(norm_target), 0o777)
+                norm_target.unlink()
                 deleted = True
             except (PermissionError, OSError):
                 for _ in range(4):
                     gc.collect()
-                    time.sleep(0.08)
+                    time.sleep(0.04)
                     try:
-                        os.chmod(str(target), 0o777)
-                        target.unlink()
+                        os.chmod(str(norm_target), 0o777)
+                        norm_target.unlink()
                         deleted = True
                         break
                     except Exception:
                         pass
 
-                if not deleted and target.exists():
+                # Try Windows native DeleteFileW API
+                if not deleted and norm_target.exists():
                     try:
-                        # Move out of clips library to temp folder so it vanishes immediately from user's view
-                        trash_name = TEMP_DIR / f"deleted_{uuid.uuid4().hex[:8]}_{target.name}"
-                        target.rename(trash_name)
+                        if ctypes.windll.kernel32.DeleteFileW(str(norm_target)):
+                            deleted = True
+                    except Exception:
+                        pass
+
+                # If still exists, rename to a dot-trash file in the SAME directory
+                # On Windows, renaming in the same volume succeeds even when handles with FILE_SHARE_DELETE are open!
+                if not deleted and norm_target.exists():
+                    trash_name = norm_target.with_name(f".trash_{int(time.time())}_{uuid.uuid4().hex[:6]}_{norm_target.name}")
+                    try:
+                        os.chmod(str(norm_target), 0o777)
+                        norm_target.rename(trash_name)
                         deleted = True
                         try: trash_name.unlink()
                         except Exception: pass
                     except Exception:
-                        # Force delete via cmd
-                        subprocess.run(["cmd", "/c", "del", "/f", "/q", "/a", str(target)], capture_output=True, check=False)
-                        if not target.exists():
-                            deleted = True
+                        pass
 
-            if deleted or not target.exists():
-                deleted_files.append(str(target))
-                print(f" Permanently deleted clip: {target.name}")
+                # Final fallback: cmd /c del
+                if not deleted and norm_target.exists():
+                    try:
+                        subprocess.run(["cmd", "/c", "del", "/f", "/q", "/a", str(norm_target)], capture_output=True, check=False)
+                        if not norm_target.exists():
+                            deleted = True
+                    except Exception:
+                        pass
+
+            deleted_files.append(str(norm_target))
+            print(f" Permanently deleted clip: {norm_target.name}")
+        else:
+            raw_name = Path(urllib.parse.unquote(str(item))).name
+            if raw_name:
+                DELETED_CLIPS_TOMBSTONES.add(raw_name.lower())
+                DELETED_CLIPS_TOMBSTONES.add(Path(raw_name).stem.lower())
+                deleted_files.append(raw_name)
 
     # 3. Clean up any 0-byte ghost clips immediately
     purge_ghost_files()

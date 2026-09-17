@@ -931,42 +931,68 @@ export const AiClipperScreen: React.FC<Props> = ({
 
   const deleteVaultClip = async (filePath: string) => {
     if (!filePath) return;
-    const cleanName = filePath.split(/[/\\]/).pop() || filePath;
-    // Optimistically remove from both vaultClips and generatedClips immediately
+    const decodedPath = decodeURIComponent(filePath);
+    const cleanName = decodedPath.split(/[/\\]/).pop() || decodedPath;
+    const cleanStem = cleanName.replace(/\.[^/.]+$/, "");
+
+    // 1. Immediately disconnect any HTML5 video elements in the DOM to release OS file locks
+    if (typeof document !== "undefined") {
+      document.querySelectorAll("video").forEach((v) => {
+        try {
+          const s = decodeURIComponent(v.currentSrc || v.src || "");
+          if (s.includes(cleanName) || s.includes(cleanStem)) {
+            v.pause();
+            v.removeAttribute("src");
+            v.load();
+          }
+        } catch {}
+      });
+    }
+
+    // 2. Clear preview modal immediately if viewing this clip
+    setPreviewVaultClip((cur) => {
+      if (!cur) return null;
+      const curPath = decodeURIComponent(String(cur.path || ""));
+      const curName = decodeURIComponent(String(cur.filename || ""));
+      return (curPath === decodedPath || curName === cleanName || curPath.includes(cleanName)) ? null : cur;
+    });
+
+    // 3. Optimistically remove from both vaultClips and generatedClips immediately
     setVaultClips((prev) =>
       prev.filter((c) => {
         if (!c) return false;
-        const cPath = String(c.path || "");
-        const cName = String(c.filename || "");
-        return cPath !== filePath && cName !== cleanName && (!cleanName || !cPath.endsWith(cleanName));
+        const cPath = decodeURIComponent(String(c.path || ""));
+        const cName = decodeURIComponent(String(c.filename || ""));
+        if (cPath === decodedPath || cName === cleanName || cPath.endsWith(cleanName)) {
+          return false;
+        }
+        return true;
       })
     );
     setGeneratedClips((prev) =>
       prev.filter((c) => {
         if (!c) return false;
-        const p = typeof c === "object" ? String(c.path || c.url || "") : String(c || "");
-        return p !== filePath && (!cleanName || !p.endsWith(cleanName));
+        const p = decodeURIComponent(typeof c === "object" ? String(c.path || c.url || "") : String(c || ""));
+        return p !== decodedPath && !p.endsWith(cleanName);
       })
     );
-    setSelectedClipPaths((prev) => prev.filter((p) => p !== filePath));
-    setPreviewVaultClip((cur) => {
-      if (!cur) return null;
-      const curPath = String(cur.path || "");
-      const curName = String(cur.filename || "");
-      return (curPath === filePath || curName === cleanName || (cleanName && curPath.endsWith(cleanName))) ? null : cur;
-    });
+    setSelectedClipPaths((prev) => prev.filter((p) => decodeURIComponent(p) !== decodedPath));
 
+    // 4. Send delete request to backend
     try {
       const res = await fetch("http://127.0.0.1:8000/api/delete_clip", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ path: filePath, file_path: filePath, filename: cleanName }),
+        body: JSON.stringify({ path: decodedPath, file_path: decodedPath, filename: cleanName }),
       });
       const data = await res.json().catch(() => ({}));
-      if (data.success) {
+      if (data.success && (data.deleted_count === undefined || data.deleted_count > 0)) {
         setExportNotice("Clip deleted permanently!");
         setTimeout(() => setExportNotice(""), 3000);
-        loadVaultClips(true); // Silent sync
+        setTimeout(() => loadVaultClips(true), 150);
+      } else {
+        setExportNotice(data.error || "Failed to delete clip");
+        setTimeout(() => setExportNotice(""), 3000);
       }
     } catch (err) {
       console.error("Failed to delete clip:", err);
@@ -975,20 +1001,39 @@ export const AiClipperScreen: React.FC<Props> = ({
 
   const deleteVaultClips = async (filePaths: string[]) => {
     if (!filePaths || filePaths.length === 0) return;
-    const names = filePaths.map((fp) => fp.split(/[/\\]/).pop() || fp);
+    const decodedPaths = filePaths.map((fp) => decodeURIComponent(fp));
+    const names = decodedPaths.map((fp) => fp.split(/[/\\]/).pop() || fp);
+
+    // 1. Immediately disconnect any HTML5 video elements in the DOM to release OS file locks
+    if (typeof document !== "undefined") {
+      document.querySelectorAll("video").forEach((v) => {
+        try {
+          const s = decodeURIComponent(v.currentSrc || v.src || "");
+          if (names.some((n) => s.includes(n))) {
+            v.pause();
+            v.removeAttribute("src");
+            v.load();
+          }
+        } catch {}
+      });
+    }
+
+    setPreviewVaultClip(null);
+
+    // 2. Optimistic filter
     setVaultClips((prev) =>
       prev.filter((c) => {
         if (!c) return false;
-        const cPath = String(c.path || "");
-        const cName = String(c.filename || "");
-        return !filePaths.includes(cPath) && !names.includes(cName);
+        const cPath = decodeURIComponent(String(c.path || ""));
+        const cName = decodeURIComponent(String(c.filename || ""));
+        return !decodedPaths.includes(cPath) && !names.includes(cName) && !names.some((n) => cPath.endsWith(n));
       })
     );
     setGeneratedClips((prev) =>
       prev.filter((c) => {
         if (!c) return false;
-        const p = typeof c === "object" ? String(c.path || c.url || "") : String(c || "");
-        return !filePaths.includes(p);
+        const p = decodeURIComponent(typeof c === "object" ? String(c.path || c.url || "") : String(c || ""));
+        return !decodedPaths.includes(p) && !names.some((n) => p.endsWith(n));
       })
     );
     setSelectedClipPaths([]);
@@ -997,13 +1042,16 @@ export const AiClipperScreen: React.FC<Props> = ({
       const res = await fetch("http://127.0.0.1:8000/api/delete_clip", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ paths: filePaths }),
+        body: JSON.stringify({ paths: decodedPaths }),
       });
       const data = await res.json().catch(() => ({}));
-      if (data.success) {
-        setExportNotice(`${filePaths.length} clip(s) deleted permanently!`);
+      if (data.success && (data.deleted_count === undefined || data.deleted_count > 0)) {
+        setExportNotice(`${data.deleted_count || decodedPaths.length} clip(s) deleted permanently!`);
         setTimeout(() => setExportNotice(""), 3000);
-        loadVaultClips(true); // Silent sync
+        setTimeout(() => loadVaultClips(true), 150);
+      } else {
+        setExportNotice(data.error || "Failed to batch delete clips");
+        setTimeout(() => setExportNotice(""), 3000);
       }
     } catch (err) {
       console.error("Failed to batch delete clips:", err);

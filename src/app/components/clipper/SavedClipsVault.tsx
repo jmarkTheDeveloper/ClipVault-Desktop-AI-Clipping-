@@ -486,6 +486,7 @@ const VaultClipCard: React.FC<{
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
+            releaseVideo();
             const targetPath = clip.path || clip.url || clip.filename;
             if (targetPath) {
               onDelete(targetPath);
@@ -923,6 +924,18 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
                   onClick={async () => {
                     const state = { ...deleteConfirmState };
                     setDeleteConfirmState({ isOpen: false, type: "clip" });
+
+                    // Disconnect active video elements in the DOM to release Windows file handles
+                    if (typeof document !== "undefined") {
+                      document.querySelectorAll("video").forEach((v) => {
+                        try {
+                          v.pause();
+                          v.removeAttribute("src");
+                          v.load();
+                        } catch {}
+                      });
+                    }
+
                     if (state.type === "clip" && state.targetPath) {
                       await deleteVaultClip(state.targetPath);
                     } else if (state.type === "batch_clips" && state.targetPaths) {
