@@ -248,6 +248,15 @@ def stream_media(request: Request, path: Optional[str] = None, url: Optional[str
                     "Content-Type": mime_type,
                     "Access-Control-Allow-Origin": "*",
                 }
+
+                # Chunks <= 10MB read immediately and close file so Windows file locks are never held
+                if chunk_len <= 10 * 1024 * 1024:
+                    with open(file_path, "rb") as f:
+                        f.seek(start)
+                        chunk_data = f.read(chunk_len)
+                    from fastapi import Response
+                    return Response(content=chunk_data, status_code=206, headers=headers)
+
                 return StreamingResponse(file_chunk_iter(), status_code=206, headers=headers)
             except Exception as e:
                 print(f"[StreamLocal] Range error: {e}, falling back to full file")
@@ -990,10 +999,21 @@ def open_system_folder(data: dict = Body(...)):
 def get_video_info(url: str):
     """
     Extracts video metadata (title, duration, uploader, stream_url) without downloading.
-    Uses mobile client spoofing to bypass YouTube bot blocks and provide instant preview stream.
+    Uses multi-client spoofing and JS runtime to bypass YouTube bot blocks and provide instant preview stream.
     """
     import yt_dlp
+    import re
+    import shutil
     clean_url = url.strip()
+
+    # Canonicalize YouTube URL if it matches standard patterns
+    m = re.search(r'(?:v=|\/|youtu\.be\/)([0-9A-Za-z_-]{11})', clean_url)
+    if m:
+        clean_url = f"https://www.youtube.com/watch?v={m.group(1)}"
+
+    node_path = shutil.which('node') or (r'C:\Program Files\nodejs\node.exe' if os.path.exists(r'C:\Program Files\nodejs\node.exe') else None)
+    js_runtimes = {'node': {'path': node_path}} if node_path else {}
+
     try:
         ydl_opts = {
             'quiet': True,
@@ -1001,11 +1021,12 @@ def get_video_info(url: str):
             'skip_download': True,
             'extractor_args': {
                 'youtube': {
-                    'player_client': ['web', 'android', 'ios'],
+                    'player_client': ['mweb', 'web_creator', 'tv', 'web', 'android', 'ios'],
                     'player_skip': ['configs'],
                 }
             },
             'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'js_runtimes': js_runtimes,
         }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(clean_url, download=False)
@@ -1054,7 +1075,16 @@ def get_video_info(url: str):
                 "direct_stream_url": stream_url
             }
     except Exception as e:
-        print(f" Video info warning: {e}")
+        raw_err = str(e)
+        if "This video is unavailable" in raw_err:
+            clean_err = "This YouTube video is unavailable (it may be private, deleted, or region-restricted)."
+        elif "Private video" in raw_err:
+            clean_err = "This YouTube video is private and cannot be streamed."
+        elif "Sign in" in raw_err:
+            clean_err = "This video requires YouTube age verification or account sign-in."
+        else:
+            clean_err = re.sub(r'ERROR:\s*(\[[^\]]+\])?\s*', '', raw_err).strip()
+        print(f" Video info warning: {clean_err}")
         return {
             "success": False,
             "title": "YouTube Video",
@@ -1062,7 +1092,7 @@ def get_video_info(url: str):
             "author": "YouTube",
             "stream_url": None,
             "url": None,
-            "error": str(e)
+            "error": clean_err
         }
 
 import urllib.parse
@@ -1083,72 +1113,6 @@ def download_clip(file: str, name: str):
     safe_name = safe_name.replace(" ", "_") + ".mp4"
     
     return FileResponse(path=file_path, filename=safe_name, media_type='video/mp4')
-
-@app.get("/stream")
-def stream_video_file(path: str, request: Request):
-    """
-    Streams local video files with HTTP 206 Partial Content byte-range support.
-    Enables instant seeking, accurate duration probing, and zero-stutter playback in HTML5 video elements.
-    """
-    import os
-    norm_path = os.path.abspath(path)
-    if not os.path.exists(norm_path):
-        raise HTTPException(status_code=404, detail="File not found")
-        
-    file_size = os.path.getsize(norm_path)
-    range_header = request.headers.get("range")
-    
-    content_type, _ = mimetypes.guess_type(norm_path)
-    if not content_type:
-        content_type = "video/mp4"
-
-    if range_header:
-        # Range header format: "bytes=start-end"
-        try:
-            bytes_unit, byte_range = range_header.split("=")
-            range_parts = byte_range.split("-")
-            start = int(range_parts[0]) if range_parts[0] else 0
-            end = int(range_parts[1]) if len(range_parts) > 1 and range_parts[1] else file_size - 1
-            end = min(end, file_size - 1)
-            length = (end - start) + 1
-
-            headers = {
-                "Content-Range": f"bytes {start}-{end}/{file_size}",
-                "Accept-Ranges": "bytes",
-                "Content-Length": str(length),
-                "Content-Type": content_type,
-            }
-
-            # For chunks up to 10MB: read immediately and close file so Windows file locks are NEVER held
-            if length <= 10 * 1024 * 1024:
-                with open(norm_path, "rb") as f:
-                    f.seek(start)
-                    chunk_data = f.read(length)
-                from fastapi import Response
-                return Response(content=chunk_data, status_code=206, headers=headers)
-
-            def iter_file():
-                try:
-                    with open(norm_path, "rb") as f:
-                        f.seek(start)
-                        remaining = length
-                        chunk_size = 512 * 1024
-                        while remaining > 0:
-                            read_size = min(chunk_size, remaining)
-                            data = f.read(read_size)
-                            if not data:
-                                break
-                            remaining -= len(data)
-                            yield data
-                finally:
-                    gc.collect()
-
-            return StreamingResponse(iter_file(), status_code=206, headers=headers)
-        except Exception:
-            return FileResponse(norm_path, media_type=content_type, headers={"Accept-Ranges": "bytes"})
-    else:
-        return FileResponse(norm_path, media_type=content_type, headers={"Accept-Ranges": "bytes"})
-
 
 
 @app.get("/api/cache_info")

@@ -14,6 +14,7 @@ import {
   Pin,
   Flag,
   XCircle,
+  AlertCircle,
 } from "lucide-react";
 import type { CropBox, CustomSegment } from "./types";
 import { extractYouTubeId } from "./types";
@@ -22,6 +23,8 @@ interface PhonePreviewProps {
   activeVideoUrl: string;
   ytUrl?: string;
   loadingPreview?: boolean;
+  previewError?: string;
+  onRetryPreview?: () => void;
   isProcessing: boolean;
   progress: number;
   layout: string;
@@ -230,6 +233,8 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
   activeVideoUrl,
   ytUrl = "",
   loadingPreview = false,
+  previewError = "",
+  onRetryPreview,
   isProcessing,
   progress,
   layout,
@@ -264,7 +269,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
 }) => {
   const youtubeId = extractYouTubeId(ytUrl);
   const posterUrl = youtubeId ? `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg` : "";
-  const hasMedia = Boolean(activeVideoUrl || youtubeId);
+  const hasMedia = Boolean(activeVideoUrl);
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const lastUpdateTimeRef = useRef<number>(0);
@@ -272,6 +277,14 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
   // Playback & Scrubber States
   const [internalPlaying, setInternalPlaying] = useState(true);
   const [internalCurrentTime, setInternalCurrentTime] = useState(0);
+  const [isBuffering, setIsBuffering] = useState(false);
+  const [streamError, setStreamError] = useState(false);
+
+  // Reset stream error when URL changes
+  useEffect(() => {
+    setStreamError(false);
+    setIsBuffering(false);
+  }, [activeVideoUrl]);
 
   const isPlaying = isPlayingProp !== undefined ? isPlayingProp : internalPlaying;
   const setIsPlaying = setIsPlayingProp || setInternalPlaying;
@@ -300,9 +313,23 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
   const isDraggingRef = useRef<boolean>(false);
   const seekTimeoutRef = useRef<any>(null);
 
+  // Spacebar keyboard play/pause toggle when not inside an input
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeTag = document.activeElement?.tagName.toLowerCase();
+      if (activeTag === "input" || activeTag === "textarea") return;
+      if (e.code === "Space" && hasMedia) {
+        e.preventDefault();
+        togglePlayAll();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isPlaying, hasMedia]);
+
   // Synchronize play/pause state across all video elements in the preview
   useEffect(() => {
-    const vids = document.querySelectorAll("video");
+    const vids = containerRef.current?.querySelectorAll("video") || document.querySelectorAll("video");
     vids.forEach((v) => {
       if (isPlaying) {
         v.play().catch(() => {});
@@ -343,7 +370,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
     const maxDur = duration > 0 ? duration : (mediaDuration && mediaDuration > 0 ? mediaDuration : 3600);
     const target = Math.max(0, Math.min(timeInSeconds, maxDur));
 
-    const allVideos = document.querySelectorAll("video");
+    const allVideos = containerRef.current?.querySelectorAll("video") || document.querySelectorAll("video");
     allVideos.forEach((vid) => {
       try {
         vid.currentTime = target;
@@ -365,7 +392,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
   const togglePlayAll = () => {
     const nextState = !isPlaying;
     setIsPlaying(nextState);
-    const allVideos = document.querySelectorAll("video");
+    const allVideos = containerRef.current?.querySelectorAll("video") || document.querySelectorAll("video");
     allVideos.forEach((vid) => {
       if (nextState) {
         vid.play().catch(() => {});
@@ -373,6 +400,13 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
         vid.pause();
       }
     });
+  };
+
+  const handleVideoAreaClick = (e: React.MouseEvent) => {
+    if (isDraggingCaption) return;
+    const target = e.target as HTMLElement;
+    if (target.closest("button") || target.closest("input") || target.closest("a")) return;
+    togglePlayAll();
   };
 
   const seekRelative = (deltaSeconds: number) => {
@@ -435,329 +469,325 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
               )}
             </div>
           ) : loadingPreview ? (
-            <div className="flex flex-col items-center justify-center p-6 text-center space-y-3">
-              <Loader2 className="w-8 h-8 text-amber-400 animate-spin" />
-              <p className="text-xs font-bold text-white">Loading YouTube Preview...</p>
-              <p className="text-[10px] text-gray-400">Fetching video stream & auto-captions</p>
+            <div className="flex flex-col items-center justify-center p-6 text-center space-y-3 z-30">
+              <Loader2 className="w-9 h-9 text-amber-400 animate-spin" />
+              <p className="text-xs font-bold text-white">Connecting Video Stream...</p>
+              <p className="text-[10px] text-gray-400 max-w-[200px]">Fetching stream & synchronizing preview</p>
             </div>
-          ) : layout === "custom_split" ? (
-            /* Custom Split Screen Preview (Top & Bottom Crop Boxes) */
-            <div className="w-full h-full flex flex-col relative select-none bg-black">
-              {/* HUD Badge */}
-              <div className="absolute top-10 left-3 z-30 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-amber-400/40 text-[9px] font-bold text-amber-400 flex items-center gap-1 shadow-lg">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                Custom Split (9:16)
-              </div>
-
-              {/* Top Viewport */}
-              <div className="w-full h-1/2 relative overflow-hidden border-b-2 border-amber-400/50">
-                <CroppedVideo
-                  videoRef={videoRef}
-                  src={activeVideoUrl}
-                  youtubeId={youtubeId}
-                  crop={cropTop}
-                  isMuted={isMuted}
-                  onTimeUpdate={handleTimeUpdate}
-                  onLoadedMetadata={handleLoadedMetadata}
-                  label="Top Crop (Amber)"
+          ) : previewError || (!activeVideoUrl && youtubeId) ? (
+            <div className="w-full h-full relative overflow-hidden bg-black flex flex-col items-center justify-center p-6 text-center select-none">
+              {posterUrl && (
+                <img
+                  src={posterUrl}
+                  alt="Video thumbnail"
+                  className="absolute inset-0 w-full h-full object-cover filter blur-2xl opacity-20 scale-125 pointer-events-none"
                 />
-              </div>
-
-              {/* Bottom Viewport */}
-              <div className="w-full h-1/2 relative overflow-hidden">
-                <CroppedVideo
-                  src={activeVideoUrl}
-                  youtubeId={youtubeId}
-                  crop={cropBottom}
-                  isMuted={isMuted}
-                  label="Bottom Crop (Cyan)"
-                />
-              </div>
-
-              {/* Video Controls Overlay */}
-              {hasMedia && (
-                <div className="absolute top-3 right-3 z-30 flex items-center gap-1.5 pointer-events-auto">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      togglePlayAll();
-                    }}
-                    className="p-1.5 rounded-full bg-black/70 backdrop-blur-md text-white border border-white/20 hover:bg-black transition-colors cursor-pointer shadow-lg"
-                  >
-                    {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsMuted(!isMuted);
-                    }}
-                    className="p-1.5 rounded-full bg-black/70 backdrop-blur-md text-white border border-white/20 hover:bg-black transition-colors cursor-pointer shadow-lg"
-                  >
-                    {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5 text-amber-400" />}
-                  </button>
-                </div>
               )}
-
-              {/* Draggable Subtitle Preview */}
-              <DraggableCaptionOverlay
-                addCaptions={addCaptions}
-                captionYPct={captionYPct}
-                selectedEffectId={selectedEffectId}
-                isDraggingCaption={isDraggingCaption}
-                startCaptionDrag={startCaptionDrag}
-              />
-            </div>
-          ) : layout === "gameplay_bg" ? (
-            /* Dual-Layer Split (Speaker Top, B-Roll / Visuals Bottom) */
-            <div className="w-full h-full flex flex-col relative select-none bg-black">
-              {/* HUD Badge */}
-              <div className="absolute top-10 left-3 z-30 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-amber-400/40 text-[9px] font-bold text-amber-400 flex items-center gap-1 shadow-lg">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                Dual Split (9:16)
+              <div className="relative z-10 flex flex-col items-center max-w-[270px] space-y-3 p-5 rounded-2xl bg-[#141419]/95 border border-red-500/30 backdrop-blur-xl shadow-2xl">
+                <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/25 flex items-center justify-center text-red-400">
+                  <AlertCircle className="w-6 h-6" />
+                </div>
+                <div className="space-y-1.5">
+                  <p className="text-xs font-bold text-red-200">Video Stream Unavailable</p>
+                  <p className="text-[11px] text-gray-300 leading-relaxed font-medium">
+                    {previewError || "This YouTube video is unavailable, private, or deleted. Please verify the URL or try another link."}
+                  </p>
+                </div>
+                {onRetryPreview && (
+                  <button
+                    type="button"
+                    onClick={onRetryPreview}
+                    className="px-3.5 py-1.5 rounded-xl bg-amber-400 text-black text-xs font-bold hover:bg-amber-300 transition-all cursor-pointer shadow-md flex items-center gap-1.5"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Retry Stream</span>
+                  </button>
+                )}
               </div>
-
-              {/* Speaker Top Viewport */}
-              <div className="w-full h-1/2 relative overflow-hidden border-b-2 border-amber-400/30">
-                {activeVideoUrl ? (
+            </div>
+          ) : !activeVideoUrl ? (
+            <div className="w-full h-full flex flex-col items-center justify-center space-y-3 p-6 text-center text-gray-500 bg-[#0a0a0d] select-none">
+              <div className="w-12 h-12 rounded-2xl border border-dashed border-gray-700 flex items-center justify-center mx-auto mb-1 text-gray-400 bg-white/5">
+                <span className="text-xs font-bold">9:16</span>
+              </div>
+              <p className="text-xs font-bold text-gray-300">Video Preview</p>
+              <p className="text-[11px] text-gray-500 max-w-[200px]">Paste a YouTube link or choose a local video to begin AI framing</p>
+            </div>
+          ) : (
+            /* Active Live Video Viewport Container (Click to Play/Pause) */
+            <div
+              onClick={handleVideoAreaClick}
+              className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center select-none cursor-pointer"
+            >
+              {layout === "custom_split" ? (
+                /* Custom Split Screen Preview (Top & Bottom Crop Boxes) */
+                <div className="w-full h-full flex flex-col relative select-none bg-black pointer-events-none">
+                  <div className="absolute top-10 left-3 z-30 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-amber-400/40 text-[9px] font-bold text-amber-400 flex items-center gap-1 shadow-lg">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                    Custom Split (9:16)
+                  </div>
+                  <div className="w-full h-1/2 relative overflow-hidden border-b-2 border-amber-400/50">
+                    <CroppedVideo
+                      videoRef={videoRef}
+                      src={activeVideoUrl}
+                      youtubeId={youtubeId}
+                      crop={cropTop}
+                      isMuted={isMuted}
+                      onTimeUpdate={handleTimeUpdate}
+                      onLoadedMetadata={handleLoadedMetadata}
+                      label="Top Crop (Amber)"
+                    />
+                  </div>
+                  <div className="w-full h-1/2 relative overflow-hidden">
+                    <CroppedVideo
+                      src={activeVideoUrl}
+                      youtubeId={youtubeId}
+                      crop={cropBottom}
+                      isMuted={isMuted}
+                      label="Bottom Crop (Cyan)"
+                    />
+                  </div>
+                </div>
+              ) : layout === "gameplay_bg" ? (
+                /* Dual-Layer Split (Speaker Top, B-Roll / Visuals Bottom) */
+                <div className="w-full h-full flex flex-col relative select-none bg-black pointer-events-none">
+                  <div className="absolute top-10 left-3 z-30 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-amber-400/40 text-[9px] font-bold text-amber-400 flex items-center gap-1 shadow-lg">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                    Dual Split (9:16)
+                  </div>
+                  <div className="w-full h-1/2 relative overflow-hidden border-b-2 border-amber-400/30">
+                    <video
+                      ref={videoRef}
+                      src={activeVideoUrl}
+                      autoPlay
+                      loop
+                      muted={isMuted}
+                      playsInline
+                      onTimeUpdate={handleTimeUpdate}
+                      onLoadedMetadata={handleLoadedMetadata}
+                      onWaiting={() => setIsBuffering(true)}
+                      onPlaying={() => {
+                        setIsBuffering(false);
+                        setStreamError(false);
+                      }}
+                      onCanPlay={(e) => {
+                        setIsBuffering(false);
+                        if (isPlaying) e.currentTarget.play().catch(() => {});
+                      }}
+                      onError={() => {
+                        setIsBuffering(false);
+                        setStreamError(true);
+                      }}
+                      className="w-full h-full object-cover pointer-events-none"
+                    />
+                  </div>
+                  <div className="w-full h-1/2 relative overflow-hidden bg-black">
+                    {gameplayBgVideo ? (
+                      <video
+                        src={gameplayBgVideo}
+                        className="w-full h-full object-cover pointer-events-none"
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        onCanPlay={(e) => {
+                          if (isPlaying) e.currentTarget.play().catch(() => {});
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-[#0a0a0a] text-amber-400/40 text-xs font-bold font-mono">
+                        [ Secondary B-Roll / Visuals ]
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : layout === "landscape_blur" ? (
+                /* Landscape + Blurred Canvas (9:16) */
+                <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center pointer-events-none">
+                  <video
+                    src={activeVideoUrl}
+                    className="absolute inset-0 w-full h-full object-cover filter blur-2xl scale-125 opacity-60 pointer-events-none"
+                    autoPlay
+                    loop
+                    muted={true}
+                    playsInline
+                  />
                   <video
                     ref={videoRef}
                     src={activeVideoUrl}
+                    poster={posterUrl || undefined}
+                    className="w-full max-h-full object-contain relative z-10 pointer-events-none shadow-2xl"
                     autoPlay
                     loop
                     muted={isMuted}
                     playsInline
                     onTimeUpdate={handleTimeUpdate}
                     onLoadedMetadata={handleLoadedMetadata}
+                    onWaiting={() => setIsBuffering(true)}
+                    onPlaying={() => {
+                      setIsBuffering(false);
+                      setStreamError(false);
+                    }}
                     onCanPlay={(e) => {
+                      setIsBuffering(false);
                       if (isPlaying) e.currentTarget.play().catch(() => {});
                     }}
-                    className="w-full h-full object-cover pointer-events-none"
+                    onError={() => {
+                      setIsBuffering(false);
+                      setStreamError(true);
+                    }}
                   />
-                ) : youtubeId ? (
-                  <img
-                    src={posterUrl}
-                    alt="Speaker Preview"
-                    className="w-full h-full object-cover pointer-events-none"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-xs text-gray-500 font-bold">
-                    Speaker Video
+                  <div className="absolute top-10 left-3 z-20 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-white/20 text-[9px] font-bold text-white/80 flex items-center gap-1 shadow-lg">
+                    Blurred Canvas (9:16)
                   </div>
-                )}
-              </div>
-
-              {/* Secondary Media / B-Roll Bottom Viewport */}
-              <div className="w-full h-1/2 relative overflow-hidden bg-black">
-                {gameplayBgVideo ? (
+                </div>
+              ) : layout === "landscape_fit" ? (
+                /* Landscape Fit / Letterbox (9:16) */
+                <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center pointer-events-none">
                   <video
-                    src={gameplayBgVideo}
-                    className="w-full h-full object-cover pointer-events-none"
+                    ref={videoRef}
+                    src={activeVideoUrl}
+                    poster={posterUrl || undefined}
+                    className="w-full max-h-full object-contain relative z-10 pointer-events-none"
                     autoPlay
                     loop
-                    muted
+                    muted={isMuted}
                     playsInline
+                    onTimeUpdate={handleTimeUpdate}
+                    onLoadedMetadata={handleLoadedMetadata}
+                    onWaiting={() => setIsBuffering(true)}
+                    onPlaying={() => {
+                      setIsBuffering(false);
+                      setStreamError(false);
+                    }}
                     onCanPlay={(e) => {
+                      setIsBuffering(false);
                       if (isPlaying) e.currentTarget.play().catch(() => {});
                     }}
+                    onError={() => {
+                      setIsBuffering(false);
+                      setStreamError(true);
+                    }}
                   />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-[#0a0a0a] text-amber-400/40 text-xs font-bold font-mono">
-                    [ Secondary B-Roll / Visuals ]
+                  <div className="absolute top-10 left-3 z-20 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-white/20 text-[9px] font-bold text-white/80 flex items-center gap-1 shadow-lg">
+                    Letterbox (9:16)
                   </div>
-                )}
+                </div>
+              ) : (
+                /* Auto Face-Tracking (9:16) - Full Vertical Cover Crop */
+                <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center pointer-events-none">
+                  <video
+                    ref={videoRef}
+                    src={activeVideoUrl}
+                    poster={posterUrl || undefined}
+                    className="w-full h-full object-cover object-center relative z-10 pointer-events-none"
+                    autoPlay
+                    loop
+                    muted={isMuted}
+                    playsInline
+                    onTimeUpdate={handleTimeUpdate}
+                    onLoadedMetadata={handleLoadedMetadata}
+                    onWaiting={() => setIsBuffering(true)}
+                    onPlaying={() => {
+                      setIsBuffering(false);
+                      setStreamError(false);
+                    }}
+                    onCanPlay={(e) => {
+                      setIsBuffering(false);
+                      if (isPlaying) e.currentTarget.play().catch(() => {});
+                    }}
+                    onError={() => {
+                      setIsBuffering(false);
+                      setStreamError(true);
+                    }}
+                  />
+                  <div className="absolute top-10 left-3 z-20 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-amber-400/40 text-[9px] font-bold text-amber-400 flex items-center gap-1 shadow-lg">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                    9:16 Face Tracking Active
+                  </div>
+                </div>
+              )}
+
+              {/* Shared Video Controls Overlay (Mute + Mini Play) */}
+              <div className="absolute top-3 right-3 z-30 flex items-center gap-1.5 pointer-events-auto">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    togglePlayAll();
+                  }}
+                  className="p-1.5 rounded-full bg-black/70 backdrop-blur-md text-white border border-white/20 hover:bg-black transition-colors cursor-pointer shadow-lg"
+                  title={isPlaying ? "Pause" : "Play"}
+                >
+                  {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />}
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsMuted(!isMuted);
+                  }}
+                  className="p-1.5 rounded-full bg-black/70 backdrop-blur-md text-white border border-white/20 hover:bg-black transition-colors cursor-pointer shadow-lg"
+                  title={isMuted ? "Unmute" : "Mute"}
+                >
+                  {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5 text-amber-400" />}
+                </button>
               </div>
 
-              {/* Video Controls Overlay */}
-              {activeVideoUrl && (
-                <div className="absolute top-3 right-3 z-30 flex items-center gap-1.5 pointer-events-auto">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      togglePlayAll();
-                    }}
-                    className="p-1.5 rounded-full bg-black/70 backdrop-blur-md text-white border border-white/20 hover:bg-black transition-colors cursor-pointer shadow-lg"
-                  >
-                    {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsMuted(!isMuted);
-                    }}
-                    className="p-1.5 rounded-full bg-black/70 backdrop-blur-md text-white border border-white/20 hover:bg-black transition-colors cursor-pointer shadow-lg"
-                  >
-                    {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5 text-amber-400" />}
-                  </button>
+              {/* Central Big Play Button Indicator when Paused */}
+              {!isPlaying && !isBuffering && !streamError && (
+                <div
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    togglePlayAll();
+                  }}
+                  className="absolute inset-0 z-20 flex items-center justify-center bg-black/25 backdrop-blur-[1px] cursor-pointer pointer-events-auto transition-all"
+                >
+                  <div className="w-14 h-14 rounded-full bg-black/75 backdrop-blur-md border border-amber-400/60 flex items-center justify-center text-amber-400 shadow-2xl hover:scale-110 hover:bg-amber-400 hover:text-black transition-all">
+                    <Play className="w-6 h-6 fill-current ml-1" />
+                  </div>
                 </div>
               )}
 
-              {/* Draggable Subtitle Preview */}
-              <DraggableCaptionOverlay
-                addCaptions={addCaptions}
-                captionYPct={captionYPct}
-                selectedEffectId={selectedEffectId}
-                isDraggingCaption={isDraggingCaption}
-                startCaptionDrag={startCaptionDrag}
-              />
-            </div>
-          ) : (
-            /* Standard 9:16 Vertical Crop / Blur / Fit Viewports */
-            <div className="w-full h-full relative flex items-center justify-center overflow-hidden bg-black select-none">
-              {activeVideoUrl ? (
-                layout === "landscape_blur" ? (
-                  /* 2. Landscape + Blurred Canvas (9:16) */
-                  <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center">
-                    <video
-                      src={activeVideoUrl}
-                      className="absolute inset-0 w-full h-full object-cover filter blur-2xl scale-125 opacity-60 pointer-events-none"
-                      autoPlay
-                      loop
-                      muted={true}
-                      playsInline
-                    />
-                    <video
-                      ref={videoRef}
-                      src={activeVideoUrl}
-                      poster={posterUrl || undefined}
-                      className="w-full max-h-full object-contain relative z-10 pointer-events-none shadow-2xl"
-                      autoPlay
-                      loop
-                      muted={isMuted}
-                      playsInline
-                      onTimeUpdate={handleTimeUpdate}
-                      onLoadedMetadata={handleLoadedMetadata}
-                      onCanPlay={(e) => {
-                        if (isPlaying) e.currentTarget.play().catch(() => {});
-                      }}
-                    />
-                    <div className="absolute top-10 left-3 z-20 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-white/20 text-[9px] font-bold text-white/80 flex items-center gap-1 shadow-lg">
-                      Blurred Canvas (9:16)
-                    </div>
+              {/* Central Buffering Indicator */}
+              {isBuffering && (
+                <div className="absolute inset-0 z-25 flex items-center justify-center bg-black/45 backdrop-blur-[1px] pointer-events-none">
+                  <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-black/80 border border-amber-400/50 text-amber-300 text-xs font-bold shadow-lg animate-pulse">
+                    <Loader2 className="w-4 h-4 text-amber-400 animate-spin" />
+                    <span>Buffering stream...</span>
                   </div>
-                ) : layout === "landscape_fit" ? (
-                  /* 3. Landscape Fit / Letterbox (9:16) */
-                  <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center">
-                    <video
-                      ref={videoRef}
-                      src={activeVideoUrl}
-                      poster={posterUrl || undefined}
-                      className="w-full max-h-full object-contain relative z-10 pointer-events-none"
-                      autoPlay
-                      loop
-                      muted={isMuted}
-                      playsInline
-                      onTimeUpdate={handleTimeUpdate}
-                      onLoadedMetadata={handleLoadedMetadata}
-                      onCanPlay={(e) => {
-                        if (isPlaying) e.currentTarget.play().catch(() => {});
-                      }}
-                    />
-                    <div className="absolute top-10 left-3 z-20 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-white/20 text-[9px] font-bold text-white/80 flex items-center gap-1 shadow-lg">
-                      Letterbox (9:16)
-                    </div>
-                  </div>
-                ) : (
-                  /* 1. Auto Face-Tracking (9:16) - Full Vertical Cover Crop */
-                  <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center">
-                    <video
-                      ref={videoRef}
-                      src={activeVideoUrl}
-                      poster={posterUrl || undefined}
-                      className="w-full h-full object-cover object-center relative z-10 pointer-events-none"
-                      autoPlay
-                      loop
-                      muted={isMuted}
-                      playsInline
-                      onTimeUpdate={handleTimeUpdate}
-                      onLoadedMetadata={handleLoadedMetadata}
-                      onCanPlay={(e) => {
-                        if (isPlaying) e.currentTarget.play().catch(() => {});
-                      }}
-                    />
-                    <div className="absolute top-10 left-3 z-20 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-amber-400/40 text-[9px] font-bold text-amber-400 flex items-center gap-1 shadow-lg">
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                      9:16 Face Tracking Active
-                    </div>
-                  </div>
-                )
-              ) : youtubeId ? (
-                /* High-Res Clean Poster Fallback */
-                layout === "landscape_blur" ? (
-                  <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center">
-                    <img
-                      src={posterUrl}
-                      alt="Poster Blur"
-                      className="absolute inset-0 w-full h-full object-cover filter blur-2xl scale-150 opacity-60 pointer-events-none"
-                    />
-                    <img
-                      src={posterUrl}
-                      alt="Poster"
-                      className="w-full h-[56.25%] object-contain relative z-10 pointer-events-none shadow-2xl"
-                    />
-                    <div className="absolute top-10 left-3 z-20 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-white/20 text-[9px] font-bold text-white/80 flex items-center gap-1 shadow-lg">
-                      Blurred Canvas (9:16)
-                    </div>
-                  </div>
-                ) : layout === "landscape_fit" ? (
-                  <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center">
-                    <img
-                      src={posterUrl}
-                      alt="Poster Fit"
-                      className="w-full h-[56.25%] object-contain relative z-10 pointer-events-none"
-                    />
-                    <div className="absolute top-10 left-3 z-20 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-white/20 text-[9px] font-bold text-white/80 flex items-center gap-1 shadow-lg">
-                      Letterbox (9:16)
-                    </div>
-                  </div>
-                ) : (
-                  <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center">
-                    <img
-                      src={posterUrl}
-                      alt="Poster Cover"
-                      className="w-full h-full object-cover pointer-events-none scale-125"
-                    />
-                    <div className="absolute top-10 left-3 z-20 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-amber-400/40 text-[9px] font-bold text-amber-400 flex items-center gap-1 shadow-lg">
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                      9:16 Face Tracking Active
-                    </div>
-                  </div>
-                )
-              ) : (
-                <div className="flex flex-col items-center justify-center space-y-3 p-6 text-center text-gray-500">
-                  <div className="w-12 h-12 rounded-full border border-dashed border-gray-600 flex items-center justify-center mx-auto mb-2 text-gray-400">
-                    9:16
-                  </div>
-                  <p className="text-xs font-semibold">Video Preview</p>
-                  <p className="text-[10px] text-gray-600 mt-1">Select a video to see live AI framing</p>
                 </div>
               )}
 
-              {/* Video Controls Overlay */}
-              {hasMedia && (
-                <div className="absolute top-3 right-3 z-30 flex items-center gap-1.5 pointer-events-auto">
+              {/* Central Stream Error / Reconnect Indicator */}
+              {streamError && (
+                <div className="absolute inset-0 z-25 flex flex-col items-center justify-center bg-black/85 p-6 text-center space-y-3 pointer-events-auto">
+                  <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                    <AlertCircle className="w-6 h-6" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs font-bold text-white">Stream Interrupted</p>
+                    <p className="text-[11px] text-gray-400 max-w-[210px] leading-relaxed">
+                      Video stream connection stalled or encountered an error.
+                    </p>
+                  </div>
                   <button
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      togglePlayAll();
+                      setStreamError(false);
+                      const vids = containerRef.current?.querySelectorAll("video") || [];
+                      vids.forEach((v) => {
+                        try {
+                          v.load();
+                          if (isPlaying) v.play().catch(() => {});
+                        } catch {}
+                      });
                     }}
-                    className="p-1.5 rounded-full bg-black/70 backdrop-blur-md text-white border border-white/20 hover:bg-black transition-colors cursor-pointer shadow-lg"
+                    className="px-3.5 py-1.5 rounded-xl bg-amber-400 text-black text-xs font-bold hover:bg-amber-300 transition-all cursor-pointer shadow-md flex items-center gap-1.5"
                   >
-                    {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsMuted(!isMuted);
-                    }}
-                    className="p-1.5 rounded-full bg-black/70 backdrop-blur-md text-white border border-white/20 hover:bg-black transition-colors cursor-pointer shadow-lg"
-                  >
-                    {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5 text-amber-400" />}
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Reload Stream</span>
                   </button>
                 </div>
               )}

@@ -417,6 +417,7 @@ export const AiClipperScreen: React.FC<Props> = ({
   const [progress, setProgress] = useState(0);
   const [done, setDone] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [previewError, setPreviewError] = useState("");
 
   // Silent auto-recovery: auto-clear initializing notice when ClipVault AI Engine is ready
   useEffect(() => {
@@ -599,12 +600,54 @@ export const AiClipperScreen: React.FC<Props> = ({
   }, []);
 
   // Automatically fetch YouTube stream preview when user types or pastes YouTube link
+  const fetchYouTubePreview = async (urlToFetch: string) => {
+    const videoId = extractYouTubeId(urlToFetch);
+    if (!videoId) {
+      setActiveVideoUrl("");
+      setPreviewError("");
+      return;
+    }
+
+    setLoadingPreview(true);
+    setPreviewError("");
+    try {
+      const res = await fetch(`http://127.0.0.1:8000/api/video_info?url=${encodeURIComponent(urlToFetch)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && (data.stream_url || data.url)) {
+          setActiveVideoUrl(data.stream_url || data.url);
+          setPreviewError("");
+          setErrorMsg("");
+        } else {
+          setActiveVideoUrl("");
+          const err = data.error || `This YouTube video (v=${videoId}) is private, deleted, or unavailable. Please try another video link!`;
+          setPreviewError(err);
+          setErrorMsg(err);
+        }
+        if (data.duration && !isNaN(data.duration) && data.duration > 0) {
+          setMediaDuration(data.duration);
+        }
+      } else {
+        setActiveVideoUrl("");
+        setPreviewError("Unable to fetch YouTube preview. Please verify your video link.");
+      }
+    } catch (err) {
+      console.error("YouTube preview stream note:", err);
+      setActiveVideoUrl("");
+      setPreviewError("Unable to connect to streaming engine. Please ensure ClipVault engine is running.");
+    } finally {
+      setLoadingPreview(false);
+    }
+  };
+
   useEffect(() => {
     setErrorMsg("");
+    setPreviewError("");
     if (inputType !== "youtube") {
       if (localFilePath) {
         const localUrl = `http://127.0.0.1:8000/stream?path=${encodeURIComponent(localFilePath)}`;
         setActiveVideoUrl(localUrl);
+        setPreviewError("");
       }
       return;
     }
@@ -612,35 +655,14 @@ export const AiClipperScreen: React.FC<Props> = ({
     const videoId = extractYouTubeId(ytUrl);
     if (!videoId) {
       setActiveVideoUrl("");
+      setPreviewError("");
       return;
     }
 
     let isMounted = true;
-    const timer = setTimeout(async () => {
-      setLoadingPreview(true);
-      try {
-        const res = await fetch(`http://127.0.0.1:8000/api/video_info?url=${encodeURIComponent(ytUrl)}`);
-        if (isMounted) {
-          if (res.ok) {
-            const data = await res.json();
-            if (data.success && (data.stream_url || data.url)) {
-              setActiveVideoUrl(data.stream_url || data.url);
-              setErrorMsg("");
-            } else if (data.error) {
-              setActiveVideoUrl("");
-              setErrorMsg(`YouTube Notice: This YouTube video (v=${videoId}) is private, deleted, or invalid. Please try another video link!`);
-            }
-            if (data.duration && !isNaN(data.duration) && data.duration > 0) {
-              setMediaDuration(data.duration);
-            }
-          } else {
-            setErrorMsg("Unable to fetch YouTube preview. Please verify your video link.");
-          }
-        }
-      } catch (err) {
-        console.error("YouTube preview stream note:", err);
-      } finally {
-        if (isMounted) setLoadingPreview(false);
+    const timer = setTimeout(() => {
+      if (isMounted) {
+        fetchYouTubePreview(ytUrl);
       }
     }, 400);
 
@@ -1604,6 +1626,8 @@ export const AiClipperScreen: React.FC<Props> = ({
               activeVideoUrl={activeVideoUrl}
               ytUrl={ytUrl}
               loadingPreview={loadingPreview}
+              previewError={previewError}
+              onRetryPreview={() => fetchYouTubePreview(ytUrl)}
               isProcessing={running}
               progress={progress}
               layout={layout}
