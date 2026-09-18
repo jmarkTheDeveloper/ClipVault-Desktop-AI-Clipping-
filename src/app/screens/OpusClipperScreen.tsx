@@ -863,9 +863,27 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
 
                     <div className="flex flex-col gap-1.5 pt-1">
                       {[
-                        { id: "9:16", label: "9:16 Portrait", sub: "TikTok, Shorts, Reels" },
-                        { id: "1:1", label: "1:1 Square", sub: "Instagram, LinkedIn" },
-                        { id: "16:9", label: "16:9 Landscape", sub: "YouTube, Twitter" },
+                        {
+                          id: "9:16",
+                          label: "9:16 Portrait",
+                          badge: "VIRAL",
+                          badgeStyle: "bg-sky-400/10 text-sky-300 border-sky-400/30",
+                          sub: "TikTok, Shorts, Reels",
+                        },
+                        {
+                          id: "1:1",
+                          label: "1:1 Square",
+                          badge: "FEED",
+                          badgeStyle: "bg-amber-400/10 text-amber-300 border-amber-400/30",
+                          sub: "Instagram, LinkedIn",
+                        },
+                        {
+                          id: "16:9",
+                          label: "16:9 Landscape",
+                          badge: "DESKTOP",
+                          badgeStyle: "bg-purple-400/10 text-purple-300 border-purple-400/30",
+                          sub: "YouTube, Twitter/X",
+                        },
                       ].map((item) => (
                         <button
                           key={item.id}
@@ -873,15 +891,20 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
                           onClick={() => setAspectRatio(item.id as any)}
                           className={`p-2 rounded-lg border text-left flex items-center justify-between transition-all cursor-pointer ${
                             aspectRatio === item.id
-                              ? "bg-sky-400/15 border-sky-400 text-white"
-                              : "bg-white/[0.03] border-white/[0.08] text-gray-400 hover:text-white"
+                              ? "bg-sky-400/15 border-sky-400 text-white shadow-sm"
+                              : "bg-white/[0.03] border-white/[0.08] text-gray-400 hover:text-white hover:bg-white/[0.05]"
                           }`}
                         >
-                          <div>
-                            <div className="text-xs font-bold">{item.label}</div>
-                            <div className="text-[10px] text-gray-500">{item.sub}</div>
+                          <div className="min-w-0 pr-1">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-bold text-white">{item.label}</span>
+                              <span className={`text-[8px] px-1 py-0.2 rounded font-mono font-bold border ${item.badgeStyle}`}>
+                                {item.badge}
+                              </span>
+                            </div>
+                            <div className="text-[10px] text-gray-400 mt-0.5 truncate">{item.sub}</div>
                           </div>
-                          {aspectRatio === item.id && <Check className="w-3.5 h-3.5 text-sky-400" />}
+                          {aspectRatio === item.id && <Check className="w-3.5 h-3.5 text-sky-400 shrink-0 ml-1" />}
                         </button>
                       ))}
                     </div>
@@ -896,9 +919,27 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
 
                     <div className="flex flex-col gap-1.5 pt-1">
                       {[
-                        { id: "1080p", label: "1080p Full HD", sub: "Recommended (60fps)" },
-                        { id: "4k", label: "4K Ultra HD", sub: "AI Super-Resolution" },
-                        { id: "720p", label: "720p Fast", sub: "Rapid Generation" },
+                        {
+                          id: "4k",
+                          label: "4K Ultra HD",
+                          badge: "2160p PRO",
+                          badgeStyle: "bg-purple-400/10 text-purple-300 border-purple-400/30",
+                          sub: "AI Super-Resolution · Master Quality",
+                        },
+                        {
+                          id: "1080p",
+                          label: "1080p Full HD",
+                          badge: "RECOMMENDED",
+                          badgeStyle: "bg-[#00e676]/10 text-[#00e676] border-[#00e676]/30",
+                          sub: "60fps · Optimal for Social Media",
+                        },
+                        {
+                          id: "720p",
+                          label: "720p Fast HD",
+                          badge: "RAPID",
+                          badgeStyle: "bg-sky-400/10 text-sky-300 border-sky-400/30",
+                          sub: "Rapid Generation · Fast Preview",
+                        },
                       ].map((item) => (
                         <button
                           key={item.id}
@@ -906,15 +947,20 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
                           onClick={() => setQuality(item.id as any)}
                           className={`p-2 rounded-lg border text-left flex items-center justify-between transition-all cursor-pointer ${
                             quality === item.id
-                              ? "bg-purple-400/15 border-purple-400 text-white"
-                              : "bg-white/[0.03] border-white/[0.08] text-gray-400 hover:text-white"
+                              ? "bg-purple-400/15 border-purple-400 text-white shadow-sm"
+                              : "bg-white/[0.03] border-white/[0.08] text-gray-400 hover:text-white hover:bg-white/[0.05]"
                           }`}
                         >
-                          <div>
-                            <div className="text-xs font-bold">{item.label}</div>
-                            <div className="text-[10px] text-gray-500">{item.sub}</div>
+                          <div className="min-w-0 pr-1">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-bold text-white">{item.label}</span>
+                              <span className={`text-[8px] px-1 py-0.2 rounded font-mono font-bold border ${item.badgeStyle}`}>
+                                {item.badge}
+                              </span>
+                            </div>
+                            <div className="text-[10px] text-gray-400 mt-0.5 truncate">{item.sub}</div>
                           </div>
-                          {quality === item.id && <Check className="w-3.5 h-3.5 text-purple-400" />}
+                          {quality === item.id && <Check className="w-3.5 h-3.5 text-purple-400 shrink-0 ml-1" />}
                         </button>
                       ))}
                     </div>
