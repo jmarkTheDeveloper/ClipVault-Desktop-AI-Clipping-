@@ -31,6 +31,8 @@ else:
     BASE_DIR = Path(__file__).resolve().parent
     _USER_DATA_DIR = BASE_DIR
 
+ENGINE_DIR = BASE_DIR
+
 # Ensure standard ffmpeg.exe exists and is in system PATH for yt-dlp partial slicing
 try:
     import imageio_ffmpeg
