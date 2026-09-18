@@ -27,6 +27,8 @@ import {
   CheckCheck,
   Search,
   FileText,
+  Sliders,
+  Layers,
 } from "lucide-react";
 import { Logo } from "../components/Logo";
 
@@ -99,12 +101,18 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
     };
   }, [showPrivacyModal, complianceAccepted, hasScrolledToBottom, complianceTab]);
 
-  const features = [
-    "Active Speaker Face Tracking (9:16)",
-    "Dynamic Word-by-Word Subtitles & SFX",
-    "Dual-Layer B-Roll & Visuals Split-Screen",
-    "Smart Stream Slicing Technology",
-    "AI Multi-Language Audio-Sync Engine",
+  const opusFeatures = [
+    "AI Virality Hook Discovery (0-100 pts)",
+    "Auto Speaker Tracking & 9:16 Centering",
+    "Dynamic Word-by-Word Animated Subtitles",
+    "Zero Slicing Hassle: Instant 1-Click Export",
+  ];
+
+  const proFeatures = [
+    "Multi-Range Timeline Slicing & Waveforms",
+    "Dual-Layer Gameplay & B-Roll Split-Screen",
+    "Custom Crop Bounding Boxes (9:16, 1:1, 16:9)",
+    "Custom Audio Tracks & Background Music",
   ];
 
   const stats = [
@@ -153,6 +161,9 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
         @keyframes wfBouncePrompt {
           0%, 100% { transform: translateY(0); }
           50%       { transform: translateY(6px); }
+        }
+        @media (max-width: 1100px) {
+          .wf-right-cards { grid-template-columns: 1fr !important; }
         }
         @media (max-width: 900px) {
           .wf-split-layout { grid-template-columns: 1fr !important; gap: 20px !important; }
@@ -273,9 +284,9 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
           style={{
             position: "relative", zIndex: 10,
             display: "grid",
-            gridTemplateColumns: "1.05fr 1.2fr",
-            gap: 36,
-            maxWidth: 1040,
+            gridTemplateColumns: "360px 1fr",
+            gap: 32,
+            maxWidth: 1220,
             width: "100%",
             alignItems: "center",
           }}
@@ -454,182 +465,265 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
             </div>
           </div>
 
-          {/* Right Column: Studio Card Box & Guided Tour Link */}
-          <div style={{ display: "flex", flexDirection: "column" }}>
+          {/* Right Column: Two Industry-Wide Choice Cards Side-by-Side & Guided Tour Link */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <div
-              id="tour-step-1-clipper-card"
-              className="wf-card-body"
+              className="wf-right-cards"
               style={{
-                position: "relative", overflow: "hidden",
-                background: "linear-gradient(155deg, #111113 0%, #09090b 100%)",
-                borderRadius: 18, padding: "24px 28px",
-                border: "1px solid rgba(0,230,118,0.2)",
-                animationName: "wfGlowPulse", animationDuration: "3.5s",
-                animationTimingFunction: "ease-in-out", animationIterationCount: "infinite",
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 16,
               }}
             >
-            {/* Top highlight edge */}
-            <div style={{
-              position: "absolute", top: 0, left: 0, right: 0, height: 1, pointerEvents: "none",
-              background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)",
-            }} />
-
-            {/* Scan line */}
-            <div style={{
-              position: "absolute", left: 0, right: 0, height: 1, pointerEvents: "none",
-              background: "linear-gradient(90deg, transparent 0%, rgba(0,230,118,0.4) 20%, rgba(0,230,118,0.9) 50%, rgba(0,230,118,0.4) 80%, transparent 100%)",
-              animationName: "wfScanDown", animationDuration: "3.8s",
-              animationTimingFunction: "ease-in-out", animationIterationCount: "infinite",
-            }} />
-
-            {/* Badge row */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-              <div style={{
-                display: "flex", alignItems: "center", gap: 6,
-                padding: "4px 10px", borderRadius: 999,
-                background: "rgba(0,230,118,0.08)", border: "1px solid rgba(0,230,118,0.22)",
-              }}>
-                <Zap style={{ width: 11, height: 11, color: G }} />
-                <span style={{ fontSize: 10.5, fontWeight: 700, color: G }}>Viral Short-Form Engine</span>
-              </div>
-              <span style={{
-                fontFamily: "'Geist Mono', monospace", fontSize: 24, fontWeight: 700,
-                color: "rgba(255,255,255,0.06)", letterSpacing: "-0.05em", lineHeight: 1,
-              }}>
-                01
-              </span>
-            </div>
-
-            {/* Animated icon & Title row */}
-            <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 14 }}>
-              {/* Orbital Icon */}
-              <div style={{ position: "relative", width: 56, height: 56, flexShrink: 0 }}>
+              {/* CARD 1: 1-Click Auto Clipper (Opus Style) */}
+              <div
+                id="tour-step-1-clipper-card"
+                className="wf-card-body"
+                style={{
+                  position: "relative", overflow: "hidden",
+                  background: "linear-gradient(155deg, #111113 0%, #09090b 100%)",
+                  borderRadius: 18, padding: "22px 24px",
+                  border: "1px solid rgba(0,230,118,0.24)",
+                  display: "flex", flexDirection: "column", justifyContent: "space-between",
+                  boxShadow: "0 14px 45px rgba(0,0,0,0.6), 0 0 25px rgba(0,230,118,0.08)",
+                  transition: "all 0.25s ease",
+                }}
+              >
+                {/* Top highlight edge */}
                 <div style={{
-                  position: "absolute", inset: 0, borderRadius: "50%",
-                  border: "1px dashed rgba(0,230,118,0.18)",
-                  animationName: "wfOrbitCW", animationDuration: "10s",
-                  animationTimingFunction: "linear", animationIterationCount: "infinite",
-                }}>
-                  <div style={{
-                    position: "absolute", width: 4, height: 4, borderRadius: "50%",
-                    top: -2, left: "50%", marginLeft: -2,
-                    background: G, boxShadow: `0 0 6px ${G}`,
-                  }} />
-                </div>
-                <div style={{
-                  position: "absolute", inset: 8, borderRadius: "50%",
-                  border: "1px dashed rgba(0,230,118,0.1)",
-                  animationName: "wfOrbitCCW", animationDuration: "5s",
-                  animationTimingFunction: "linear", animationIterationCount: "infinite",
-                }}>
-                  <div style={{
-                    position: "absolute", width: 3, height: 3, borderRadius: "50%",
-                    bottom: -1.5, left: "50%", marginLeft: -1.5,
-                    background: "#2cf590", boxShadow: "0 0 4px #2cf590",
-                  }} />
-                </div>
-                <div style={{
-                  position: "absolute", inset: 12, borderRadius: "50%",
-                  background: "radial-gradient(circle, rgba(0,230,118,0.18) 0%, rgba(0,0,0,0.4) 100%)",
-                  border: "1px solid rgba(0,230,118,0.32)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  animationName: "wfIconGlow", animationDuration: "3s",
-                  animationTimingFunction: "ease-in-out", animationIterationCount: "infinite",
-                }}>
-                  <Zap style={{ width: 14, height: 14, color: G, fill: G }} />
-                </div>
-              </div>
+                  position: "absolute", top: 0, left: 0, right: 0, height: 1, pointerEvents: "none",
+                  background: "linear-gradient(90deg, transparent, rgba(0,230,118,0.6), transparent)",
+                }} />
 
-              {/* Title & Desc */}
-              <div>
-                <h2 style={{
-                  fontFamily: "'Space Grotesk', 'Geist', sans-serif", fontWeight: 800, fontSize: 20,
-                  color: "#fff", letterSpacing: "-0.03em", margin: "0 0 4px",
-                }}>
-                  AI Video Clipper
-                </h2>
-                <p style={{ fontSize: 11.5, color: "rgba(255,255,255,0.4)", margin: 0, fontWeight: 500 }}>
-                  Face tracking 9:16 Shorts with dynamic subtitles
-                </p>
-              </div>
-            </div>
-
-            {/* Feature list */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 7, marginBottom: 18 }}>
-              {features.map((feat, i) => (
-                <div key={feat} style={{
-                  display: "flex", alignItems: "center", gap: 9,
-                  animationName: "wfFeatIn", animationDuration: "0.4s",
-                  animationFillMode: "both", animationDelay: `${i * 0.05}s`,
-                }}>
-                  <div style={{
-                    width: 14, height: 14, borderRadius: "50%", flexShrink: 0,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    background: "rgba(0,230,118,0.09)", border: "1px solid rgba(0,230,118,0.24)",
-                  }}>
-                    <Check style={{ width: 8, height: 8, color: G }} />
+                <div>
+                  {/* Badge row */}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+                    <div style={{
+                      display: "flex", alignItems: "center", gap: 6,
+                      padding: "4px 10px", borderRadius: 999,
+                      background: "rgba(0,230,118,0.08)", border: "1px solid rgba(0,230,118,0.25)",
+                    }}>
+                      <Zap style={{ width: 11, height: 11, color: G }} />
+                      <span style={{ fontSize: 10.5, fontWeight: 700, color: G }}>1-Click AI Pipeline</span>
+                    </div>
+                    <span style={{
+                      fontFamily: "'Geist Mono', monospace", fontSize: 22, fontWeight: 700,
+                      color: "rgba(255,255,255,0.08)", letterSpacing: "-0.05em", lineHeight: 1,
+                    }}>
+                      01
+                    </span>
                   </div>
-                  <span style={{ fontSize: 12, color: "rgba(255,255,255,0.52)", fontWeight: 500 }}>{feat}</span>
+
+                  {/* Animated icon & Title row */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 14 }}>
+                    {/* Orbital Icon */}
+                    <div style={{ position: "relative", width: 48, height: 48, flexShrink: 0 }}>
+                      <div style={{
+                        position: "absolute", inset: 0, borderRadius: "50%",
+                        border: "1px dashed rgba(0,230,118,0.22)",
+                        animationName: "wfOrbitCW", animationDuration: "10s",
+                        animationTimingFunction: "linear", animationIterationCount: "infinite",
+                      }}>
+                        <div style={{
+                          position: "absolute", width: 4, height: 4, borderRadius: "50%",
+                          top: -2, left: "50%", marginLeft: -2,
+                          background: G, boxShadow: `0 0 6px ${G}`,
+                        }} />
+                      </div>
+                      <div style={{
+                        position: "absolute", inset: 10, borderRadius: "50%",
+                        background: "radial-gradient(circle, rgba(0,230,118,0.2) 0%, rgba(0,0,0,0.4) 100%)",
+                        border: "1px solid rgba(0,230,118,0.35)",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                      }}>
+                        <Sparkles style={{ width: 15, height: 15, color: G }} />
+                      </div>
+                    </div>
+
+                    <div>
+                      <h2 style={{
+                        fontFamily: "'Space Grotesk', 'Geist', sans-serif", fontWeight: 800, fontSize: 18,
+                        color: "#fff", letterSpacing: "-0.02em", margin: "0 0 2px",
+                      }}>
+                        1-Click Auto Clipper
+                      </h2>
+                      <p style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", margin: 0, fontWeight: 500 }}>
+                        Opus-style viral clips with zero manual slicing
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Feature list */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 7, marginBottom: 18 }}>
+                    {opusFeatures.map((feat) => (
+                      <div key={feat} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <div style={{
+                          width: 14, height: 14, borderRadius: "50%", flexShrink: 0,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          background: "rgba(0,230,118,0.1)", border: "1px solid rgba(0,230,118,0.3)",
+                        }}>
+                          <Check style={{ width: 8, height: 8, color: G }} />
+                        </div>
+                        <span style={{ fontSize: 11.5, color: "rgba(255,255,255,0.65)", fontWeight: 500 }}>{feat}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              ))}
-            </div>
 
-            {/* Separator */}
-            <div style={{ height: 1, background: "rgba(255,255,255,0.05)", marginBottom: 16 }} />
+                {/* Launch button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!complianceAccepted) {
+                      setShowPrivacyModal(true);
+                      return;
+                    }
+                    onSelect("opus-clipper");
+                  }}
+                  style={{
+                    width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+                    padding: "12px 16px", borderRadius: 10, border: "none", cursor: "pointer",
+                    background: G, color: "#000", fontSize: 12.5, fontWeight: 800,
+                    fontFamily: "'Space Grotesk', 'Geist', sans-serif", letterSpacing: "-0.01em",
+                    boxShadow: "0 0 24px rgba(0,230,118,0.32)", transition: "all 0.2s ease",
+                  }}
+                  onMouseEnter={(e) => { const el = e.currentTarget; el.style.boxShadow = "0 0 40px rgba(0,230,118,0.6)"; el.style.transform = "translateY(-1px)"; }}
+                  onMouseLeave={(e) => { const el = e.currentTarget; el.style.boxShadow = "0 0 24px rgba(0,230,118,0.32)"; el.style.transform = "none"; }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                    <Sparkles style={{ width: 14, height: 14 }} />
+                    <span>Launch 1-Click Studio</span>
+                  </div>
+                  <div style={{ width: 22, height: 22, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.2)" }}>
+                    <ChevronRight style={{ width: 13, height: 13 }} />
+                  </div>
+                </button>
+              </div>
 
-            {/* Launch buttons */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <button
-                type="button"
-                onClick={() => {
-                  if (!complianceAccepted) {
-                    setShowPrivacyModal(true);
-                    return;
-                  }
-                  onSelect("opus-clipper");
-                }}
+              {/* CARD 2: Pro Manual Studio (Timeline & Splits) */}
+              <div
+                className="wf-card-body"
                 style={{
-                  width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
-                  padding: "13px 18px", borderRadius: 10, border: "none", cursor: "pointer",
-                  background: G, color: "#000", fontSize: 13, fontWeight: 800,
-                  fontFamily: "'Space Grotesk', 'Geist', sans-serif", letterSpacing: "-0.01em",
-                  boxShadow: "0 0 24px rgba(0,230,118,0.32)", transition: "all 0.2s ease",
+                  position: "relative", overflow: "hidden",
+                  background: "linear-gradient(155deg, #111113 0%, #09090b 100%)",
+                  borderRadius: 18, padding: "22px 24px",
+                  border: "1px solid rgba(56,189,248,0.22)",
+                  display: "flex", flexDirection: "column", justifyContent: "space-between",
+                  boxShadow: "0 14px 45px rgba(0,0,0,0.6), 0 0 25px rgba(56,189,248,0.06)",
+                  transition: "all 0.25s ease",
                 }}
-                onMouseEnter={(e) => { const el = e.currentTarget; el.style.boxShadow = "0 0 44px rgba(0,230,118,0.6)"; el.style.transform = "translateY(-1px)"; }}
-                onMouseLeave={(e) => { const el = e.currentTarget; el.style.boxShadow = "0 0 24px rgba(0,230,118,0.32)"; el.style.transform = "none"; }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <Sparkles style={{ width: 15, height: 15 }} />
-                  <span>1-Click Auto Clipper (Opus Style)</span>
-                </div>
-                <div style={{ width: 24, height: 24, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.2)" }}>
-                  <ChevronRight style={{ width: 14, height: 14 }} />
-                </div>
-              </button>
+                {/* Top highlight edge */}
+                <div style={{
+                  position: "absolute", top: 0, left: 0, right: 0, height: 1, pointerEvents: "none",
+                  background: "linear-gradient(90deg, transparent, rgba(56,189,248,0.5), transparent)",
+                }} />
 
-              <button
-                type="button"
-                onClick={() => {
-                  if (!complianceAccepted) {
-                    setShowPrivacyModal(true);
-                    return;
-                  }
-                  onSelect("ai-clipper");
-                }}
-                style={{
-                  width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
-                  padding: "10px 18px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.12)", cursor: "pointer",
-                  background: "rgba(255,255,255,0.04)", color: "#fff", fontSize: 12, fontWeight: 700,
-                  fontFamily: "'Space Grotesk', 'Geist', sans-serif", transition: "all 0.2s ease",
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.08)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
-              >
-                <span>Pro Manual Studio (Timeline & Splits)</span>
-                <ChevronRight style={{ width: 14, height: 14, color: "rgba(255,255,255,0.5)" }} />
-              </button>
+                <div>
+                  {/* Badge row */}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+                    <div style={{
+                      display: "flex", alignItems: "center", gap: 6,
+                      padding: "4px 10px", borderRadius: 999,
+                      background: "rgba(56,189,248,0.08)", border: "1px solid rgba(56,189,248,0.25)",
+                    }}>
+                      <Sliders style={{ width: 11, height: 11, color: "#38bdf8" }} />
+                      <span style={{ fontSize: 10.5, fontWeight: 700, color: "#38bdf8" }}>Creative Pro Control</span>
+                    </div>
+                    <span style={{
+                      fontFamily: "'Geist Mono', monospace", fontSize: 22, fontWeight: 700,
+                      color: "rgba(255,255,255,0.08)", letterSpacing: "-0.05em", lineHeight: 1,
+                    }}>
+                      02
+                    </span>
+                  </div>
+
+                  {/* Animated icon & Title row */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 14 }}>
+                    {/* Orbital Icon */}
+                    <div style={{ position: "relative", width: 48, height: 48, flexShrink: 0 }}>
+                      <div style={{
+                        position: "absolute", inset: 0, borderRadius: "50%",
+                        border: "1px dashed rgba(56,189,248,0.22)",
+                        animationName: "wfOrbitCCW", animationDuration: "10s",
+                        animationTimingFunction: "linear", animationIterationCount: "infinite",
+                      }}>
+                        <div style={{
+                          position: "absolute", width: 4, height: 4, borderRadius: "50%",
+                          bottom: -2, left: "50%", marginLeft: -2,
+                          background: "#38bdf8", boxShadow: "0 0 6px #38bdf8",
+                        }} />
+                      </div>
+                      <div style={{
+                        position: "absolute", inset: 10, borderRadius: "50%",
+                        background: "radial-gradient(circle, rgba(56,189,248,0.2) 0%, rgba(0,0,0,0.4) 100%)",
+                        border: "1px solid rgba(56,189,248,0.35)",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                      }}>
+                        <Layers style={{ width: 15, height: 15, color: "#38bdf8" }} />
+                      </div>
+                    </div>
+
+                    <div>
+                      <h2 style={{
+                        fontFamily: "'Space Grotesk', 'Geist', sans-serif", fontWeight: 800, fontSize: 18,
+                        color: "#fff", letterSpacing: "-0.02em", margin: "0 0 2px",
+                      }}>
+                        Pro Manual Studio
+                      </h2>
+                      <p style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", margin: 0, fontWeight: 500 }}>
+                        Frame-accurate timeline, multi-ranges & split-screen
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Feature list */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 7, marginBottom: 18 }}>
+                    {proFeatures.map((feat) => (
+                      <div key={feat} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <div style={{
+                          width: 14, height: 14, borderRadius: "50%", flexShrink: 0,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          background: "rgba(56,189,248,0.1)", border: "1px solid rgba(56,189,248,0.3)",
+                        }}>
+                          <Check style={{ width: 8, height: 8, color: "#38bdf8" }} />
+                        </div>
+                        <span style={{ fontSize: 11.5, color: "rgba(255,255,255,0.65)", fontWeight: 500 }}>{feat}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Launch button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!complianceAccepted) {
+                      setShowPrivacyModal(true);
+                      return;
+                    }
+                    onSelect("ai-clipper");
+                  }}
+                  style={{
+                    width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+                    padding: "12px 16px", borderRadius: 10, border: "1px solid rgba(56,189,248,0.4)", cursor: "pointer",
+                    background: "rgba(56,189,248,0.08)", color: "#38bdf8", fontSize: 12.5, fontWeight: 800,
+                    fontFamily: "'Space Grotesk', 'Geist', sans-serif", letterSpacing: "-0.01em",
+                    boxShadow: "0 0 24px rgba(56,189,248,0.18)", transition: "all 0.2s ease",
+                  }}
+                  onMouseEnter={(e) => { const el = e.currentTarget; el.style.background = "rgba(56,189,248,0.18)"; el.style.boxShadow = "0 0 35px rgba(56,189,248,0.4)"; el.style.transform = "translateY(-1px)"; }}
+                  onMouseLeave={(e) => { const el = e.currentTarget; el.style.background = "rgba(56,189,248,0.08)"; el.style.boxShadow = "0 0 24px rgba(56,189,248,0.18)"; el.style.transform = "none"; }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                    <Sliders style={{ width: 14, height: 14 }} />
+                    <span>Open Pro Studio</span>
+                  </div>
+                  <div style={{ width: 22, height: 22, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(56,189,248,0.15)" }}>
+                    <ChevronRight style={{ width: 13, height: 13 }} />
+                  </div>
+                </button>
+              </div>
             </div>
-          </div>
 
           {/* Guided Tour link underneath the box that holds Launch Studio */}
           {onStartTour && (
