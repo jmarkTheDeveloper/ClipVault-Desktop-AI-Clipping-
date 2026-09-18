@@ -32,7 +32,7 @@ import { Logo } from "../components/Logo";
 
 const G = "#00e676";
 
-export type Mode = "ai-clipper" | "movie-recapper" | "saved-vault";
+export type Mode = "ai-clipper" | "opus-clipper" | "movie-recapper" | "saved-vault";
 
 interface Props {
   onBack?: () => void;
@@ -577,31 +577,58 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
             {/* Separator */}
             <div style={{ height: 1, background: "rgba(255,255,255,0.05)", marginBottom: 16 }} />
 
-            {/* Launch button */}
-            <button
-              type="button"
-              onClick={() => {
-                if (!complianceAccepted) {
-                  setShowPrivacyModal(true);
-                  return;
-                }
-                onSelect("ai-clipper");
-              }}
-              style={{
-                width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
-                padding: "12px 18px", borderRadius: 10, border: "none", cursor: "pointer",
-                background: G, color: "#000", fontSize: 13, fontWeight: 800,
-                fontFamily: "'Space Grotesk', 'Geist', sans-serif", letterSpacing: "-0.01em",
-                boxShadow: "0 0 24px rgba(0,230,118,0.32)", transition: "all 0.2s ease",
-              }}
-              onMouseEnter={(e) => { const el = e.currentTarget; el.style.boxShadow = "0 0 44px rgba(0,230,118,0.6)"; el.style.transform = "translateY(-1px)"; }}
-              onMouseLeave={(e) => { const el = e.currentTarget; el.style.boxShadow = "0 0 24px rgba(0,230,118,0.32)"; el.style.transform = "none"; }}
-            >
-              <span>Launch Studio</span>
-              <div style={{ width: 24, height: 24, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.2)" }}>
-                <ChevronRight style={{ width: 14, height: 14 }} />
-              </div>
-            </button>
+            {/* Launch buttons */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!complianceAccepted) {
+                    setShowPrivacyModal(true);
+                    return;
+                  }
+                  onSelect("opus-clipper");
+                }}
+                style={{
+                  width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "13px 18px", borderRadius: 10, border: "none", cursor: "pointer",
+                  background: G, color: "#000", fontSize: 13, fontWeight: 800,
+                  fontFamily: "'Space Grotesk', 'Geist', sans-serif", letterSpacing: "-0.01em",
+                  boxShadow: "0 0 24px rgba(0,230,118,0.32)", transition: "all 0.2s ease",
+                }}
+                onMouseEnter={(e) => { const el = e.currentTarget; el.style.boxShadow = "0 0 44px rgba(0,230,118,0.6)"; el.style.transform = "translateY(-1px)"; }}
+                onMouseLeave={(e) => { const el = e.currentTarget; el.style.boxShadow = "0 0 24px rgba(0,230,118,0.32)"; el.style.transform = "none"; }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <Sparkles style={{ width: 15, height: 15 }} />
+                  <span>1-Click Auto Clipper (Opus Style)</span>
+                </div>
+                <div style={{ width: 24, height: 24, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.2)" }}>
+                  <ChevronRight style={{ width: 14, height: 14 }} />
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (!complianceAccepted) {
+                    setShowPrivacyModal(true);
+                    return;
+                  }
+                  onSelect("ai-clipper");
+                }}
+                style={{
+                  width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "10px 18px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.12)", cursor: "pointer",
+                  background: "rgba(255,255,255,0.04)", color: "#fff", fontSize: 12, fontWeight: 700,
+                  fontFamily: "'Space Grotesk', 'Geist', sans-serif", transition: "all 0.2s ease",
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.08)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
+              >
+                <span>Pro Manual Studio (Timeline & Splits)</span>
+                <ChevronRight style={{ width: 14, height: 14, color: "rgba(255,255,255,0.5)" }} />
+              </button>
+            </div>
           </div>
 
           {/* Guided Tour link underneath the box that holds Launch Studio */}

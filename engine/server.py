@@ -268,7 +268,7 @@ def stream_media(request: Request, path: Optional[str] = None, url: Optional[str
 
 class ProcessRequest(BaseModel):
     url: str
-    num_clips: int = 1
+    num_clips: Optional[int] = None
     target_duration: int = -1
     topic: Optional[str] = None
     layout: str = "vertical_crop"
@@ -404,10 +404,17 @@ def execute_rendering_task(task_id: str, request: ProcessRequest, cancel_event: 
             tasks_db[task_id]["message"] = message
             tasks_db[task_id]["progress"] = percent
             
+        eff_num_clips = request.num_clips
+        eff_target_duration = request.target_duration
+        if eff_num_clips is None or eff_num_clips <= 0:
+            eff_num_clips = 4
+            if eff_target_duration == -1 and not request.custom_range and not request.custom_ranges:
+                eff_target_duration = 45
+
         outputs, title, output_folder = processor.process_video(
             url=request.url,
-            num_clips=request.num_clips,
-            target_duration=request.target_duration,
+            num_clips=eff_num_clips,
+            target_duration=eff_target_duration,
             topic=request.topic,
             layout=request.layout,
             split_screen=request.split_screen,

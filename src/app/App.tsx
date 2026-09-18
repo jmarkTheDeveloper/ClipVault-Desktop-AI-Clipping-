@@ -7,6 +7,7 @@ import { AiClipperScreen } from "./screens/AiClipperScreen";
 import { MovieRecapperScreen } from "./screens/MovieRecapperScreen";
 import { LyricCreatorScreen } from "./screens/LyricCreatorScreen";
 import { AiChatVideoScreen } from "./screens/AiChatVideoScreen";
+import { OpusClipperScreen } from "./screens/OpusClipperScreen";
 import { InteractiveTour, FirstTimeWelcomeModal } from "./components/InteractiveTour";
 
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; error: any }> {
@@ -50,6 +51,7 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
 export type Screen =
   | "project-select"
   | "ai-clipper"
+  | "opus-clipper"
   | "movie-recapper"
   | "saved-vault";
 
@@ -295,12 +297,25 @@ export default function App() {
                 if (tourActive && tourStep === 1) {
                   setTourStep(2);
                 }
+              } else if (mode === "opus-clipper") {
+                setScreen("opus-clipper");
               } else if (mode === "movie-recapper") {
                 setScreen("movie-recapper");
               } else if (mode === "saved-vault") {
                 setClipperViewMode("vault");
                 setScreen("saved-vault");
               }
+            }}
+          />
+        )}
+
+        {/* 1-Click Auto Clipper (Opus Style) */}
+        {screen === "opus-clipper" && (
+          <OpusClipperScreen
+            onBack={() => setScreen("project-select")}
+            onGoToVault={() => {
+              setClipperViewMode("vault");
+              setScreen("saved-vault");
             }}
           />
         )}
