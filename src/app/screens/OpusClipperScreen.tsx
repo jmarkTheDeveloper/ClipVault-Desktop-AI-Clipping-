@@ -24,10 +24,71 @@ import {
   Layers,
   Clock,
   FileVideo,
-  X
+  X,
+  ChevronDown
 } from "lucide-react";
 
 const G = "#00e676";
+
+interface CaptionStyleOption {
+  id: string;
+  name: string;
+  badge: string;
+  color: string;
+  desc: string;
+}
+
+const CAPTION_STYLE_OPTIONS: CaptionStyleOption[] = [
+  {
+    id: "capcut_yellow",
+    name: "CapCut Viral Yellow",
+    badge: "VIRAL",
+    color: "#FFE600",
+    desc: "Ultra-bold dynamic pop with gold glow",
+  },
+  {
+    id: "opus_green",
+    name: "Opus Neon Emerald",
+    badge: "SIGNATURE",
+    color: "#00FF66",
+    desc: "Signature Opus active word green highlight",
+  },
+  {
+    id: "hormozi_bold",
+    name: "Hormozi Heavy Punch",
+    badge: "HIGH-HOOK",
+    color: "#FFB800",
+    desc: "Bold Anton with heavy outline and punch",
+  },
+  {
+    id: "neon_cyan",
+    name: "Electric Cyan",
+    badge: "CYBER",
+    color: "#00F0FF",
+    desc: "High-contrast glowing cyan word tracking",
+  },
+  {
+    id: "fire_red",
+    name: "High Voltage Red",
+    badge: "RETENTION",
+    color: "#FF3C3C",
+    desc: "Aggressive red active pop for fast retention",
+  },
+  {
+    id: "sigma_pink",
+    name: "Sigma Hot Pink",
+    badge: "TREND",
+    color: "#FF4D94",
+    desc: "Modern aesthetic hot pink highlighted words",
+  },
+  {
+    id: "clean_white",
+    name: "Clean Minimal White",
+    badge: "MINIMAL",
+    color: "#FFFFFF",
+    desc: "Crisp white Anton font with bold black stroke",
+  },
+];
 
 interface Props {
   onBack: () => void;
@@ -69,6 +130,8 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
   const [captionsEnabled, setCaptionsEnabled] = useState(true);
   const [captionStyle, setCaptionStyle] = useState("capcut_yellow");
   const [captionPlacement, setCaptionPlacement] = useState<"bottom" | "middle" | "top">("bottom");
+  const [styleDropdownOpen, setStyleDropdownOpen] = useState(false);
+  const styleDropdownRef = useRef<HTMLDivElement>(null);
   const [aspectRatio, setAspectRatio] = useState<"9:16" | "1:1" | "16:9">("9:16");
   const [quality, setQuality] = useState<"1080p" | "4k" | "720p">("1080p");
 
@@ -86,6 +149,21 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
   const [isMuted, setIsMuted] = useState(false);
   const [copiedTitle, setCopiedTitle] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Close caption style dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (styleDropdownRef.current && !styleDropdownRef.current.contains(event.target as Node)) {
+        setStyleDropdownOpen(false);
+      }
+    }
+    if (styleDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [styleDropdownOpen]);
 
   // Debounced Video Info Fetcher
   useEffect(() => {
@@ -641,7 +719,7 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
 
                   {/* 1. AI CAPTIONS */}
-                  <div className="flex flex-col gap-2.5 p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+                  <div className="flex flex-col gap-2.5 p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] relative z-20">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-white flex items-center gap-1.5">
                         <Subtitles className="w-3.5 h-3.5 text-[#00e676]" />
@@ -665,19 +743,89 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
                     {captionsEnabled ? (
                       <div className="flex flex-col gap-2 pt-1">
                         {/* Style Presets */}
-                        <div className="flex flex-col gap-1">
+                        <div className="flex flex-col gap-1 relative" ref={styleDropdownRef}>
                           <span className="text-[10px] text-gray-400 font-semibold uppercase">Style</span>
-                          <select
-                            value={captionStyle}
-                            onChange={(e) => setCaptionStyle(e.target.value)}
-                            className="w-full bg-white/[0.06] border border-white/[0.1] rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-[#00e676]"
-                          >
-                            <option value="capcut_yellow">CapCut Yellow Glow</option>
-                            <option value="hormozi_bold">Hormozi Punch</option>
-                            <option value="clean_minimal">Clean Minimal White</option>
-                            <option value="neon_cyan">Neon Cyan</option>
-                            <option value="karaoke_glow">Karaoke Animated</option>
-                          </select>
+
+                          {(() => {
+                            const activeStyle =
+                              CAPTION_STYLE_OPTIONS.find((s) => s.id === captionStyle) || CAPTION_STYLE_OPTIONS[0];
+                            return (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => setStyleDropdownOpen(!styleDropdownOpen)}
+                                  className="w-full bg-[#101015] hover:bg-[#15151c] border border-white/10 hover:border-white/20 rounded-lg px-2.5 py-1.5 text-xs text-left text-white flex items-center justify-between transition-all cursor-pointer shadow-sm"
+                                >
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <span
+                                      className="w-2.5 h-2.5 rounded-full shrink-0"
+                                      style={{
+                                        backgroundColor: activeStyle.color,
+                                        boxShadow: `0 0 8px ${activeStyle.color}80`,
+                                      }}
+                                    />
+                                    <span className="font-semibold text-xs text-white truncate">{activeStyle.name}</span>
+                                    <span className="text-[9px] px-1.5 py-0.5 rounded font-mono font-bold bg-white/5 border border-white/10 text-gray-300 shrink-0">
+                                      {activeStyle.badge}
+                                    </span>
+                                  </div>
+                                  <ChevronDown
+                                    className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 shrink-0 ml-1.5 ${
+                                      styleDropdownOpen ? "rotate-180 text-white" : ""
+                                    }`}
+                                  />
+                                </button>
+
+                                {/* Custom Dark Menu Popover */}
+                                {styleDropdownOpen && (
+                                  <div className="absolute top-full left-0 right-0 mt-1.5 z-50 bg-[#121218] border border-white/15 rounded-xl shadow-2xl shadow-black/90 p-1.5 flex flex-col gap-1 backdrop-blur-2xl max-h-60 overflow-y-auto">
+                                    {CAPTION_STYLE_OPTIONS.map((opt) => {
+                                      const isSelected = opt.id === captionStyle;
+                                      return (
+                                        <button
+                                          key={opt.id}
+                                          type="button"
+                                          onClick={() => {
+                                            setCaptionStyle(opt.id);
+                                            setStyleDropdownOpen(false);
+                                          }}
+                                          className={`w-full text-left px-2.5 py-2 rounded-lg text-xs flex items-center justify-between transition-all cursor-pointer ${
+                                            isSelected
+                                              ? "bg-white/[0.08] text-white shadow-sm"
+                                              : "text-gray-300 hover:bg-white/[0.04] hover:text-white"
+                                          }`}
+                                        >
+                                          <div className="flex items-center gap-2.5 min-w-0">
+                                            <span
+                                              className="w-2.5 h-2.5 rounded-full shrink-0"
+                                              style={{
+                                                backgroundColor: opt.color,
+                                                boxShadow: isSelected ? `0 0 10px ${opt.color}` : "none",
+                                              }}
+                                            />
+                                            <div className="flex flex-col min-w-0">
+                                              <div className="flex items-center gap-1.5">
+                                                <span className="font-semibold text-xs truncate text-white">
+                                                  {opt.name}
+                                                </span>
+                                                <span className="text-[8px] px-1 py-0.2 rounded font-mono font-bold bg-white/10 border border-white/10 text-gray-300 shrink-0">
+                                                  {opt.badge}
+                                                </span>
+                                              </div>
+                                              <span className="text-[10px] text-gray-400 truncate">{opt.desc}</span>
+                                            </div>
+                                          </div>
+                                          {isSelected && (
+                                            <Check className="w-3.5 h-3.5 text-[#00e676] shrink-0 ml-2" />
+                                          )}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </>
+                            );
+                          })()}
                         </div>
 
                         {/* Placement */}
