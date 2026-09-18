@@ -597,9 +597,29 @@ class FaceTracker:
         found_any_human = False
         prev_primary_id = None
 
+        prev_sample_hist = None
         for t in sample_times:
             try:
                 frame = clip.get_frame(t)
+
+                # Fast visual scene cut detection via normalized 2D HSV chromatic histogram comparison
+                is_visual_cut = False
+                try:
+                    small_hsv = cv2.cvtColor(cv2.resize(frame, (80, 80), interpolation=cv2.INTER_NEAREST), cv2.COLOR_RGB2HSV)
+                    hist = cv2.calcHist([small_hsv], [0, 1], None, [12, 12], [0, 180, 0, 256])
+                    cv2.normalize(hist, hist, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX)
+                    if prev_sample_hist is not None:
+                        hist_diff = cv2.compareHist(prev_sample_hist, hist, cv2.HISTCMP_BHATTACHARYYA)
+                        if hist_diff > 0.40:
+                            is_visual_cut = True
+                    prev_sample_hist = hist
+                except Exception:
+                    pass
+
+                # If visual cut detected, reset temporal tracker so predictions don't carry over from previous angle
+                if is_visual_cut:
+                    temporal_tracker.reset()
+
                 detected = self.detect_faces_in_frame(frame, frame_time=t)
                 if detected:
                     for f in detected:
@@ -619,8 +639,8 @@ class FaceTracker:
                 if primary_track:
                     found_any_human = True
 
-                # Determine if a hard scene cut or a confirmed broadcast speaker switch occurred
-                is_scene_boundary = bool(scene_cut_times and any(abs(t - ct) < (0.5 / fps_sample) for ct in scene_cut_times))
+                # Determine if a visual scene cut, scene boundary, or confirmed speaker switch occurred
+                is_scene_boundary = is_visual_cut or bool(scene_cut_times and any(abs(t - ct) < (0.5 / fps_sample) for ct in scene_cut_times))
                 is_speaker_switch = bool(prev_primary_id is not None and primary_track and primary_track["track_id"] != prev_primary_id)
                 is_cut = is_scene_boundary or (is_speaker_switch and camera_style == "instant")
 

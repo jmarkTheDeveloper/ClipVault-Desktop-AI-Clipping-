@@ -125,9 +125,12 @@ class VirtualCamera:
         else:
             # Vertical 9:16 viewports (aspect_ratio < 1.0):
             # Check if 2 prominent subjects can be cleanly framed together in a two-shot!
+            # High-confidence threshold ensures background lamps and bright fixtures never bias framing
             prominent_tracks = [
                 t for t in all_active_tracks
-                if t.get("prominence_score", 0.0) >= 0.25 * primary_track.get("prominence_score", 1.0)
+                if t.get("prominence_score", 0.0) >= 0.55 * primary_track.get("prominence_score", 1.0)
+                and t.get("type") in ("yunet_neural", "mediapipe", "frontal_haar", "profile_haar_left", "profile_haar_right")
+                and t.get("confidence", 0.0) >= 0.60
             ]
             if len(prominent_tracks) >= 2:
                 all_boxes = [t["bbox"] for t in prominent_tracks[:2]]
@@ -149,9 +152,13 @@ class VirtualCamera:
         s_w = float(primary_track["width"])
         s_h = float(primary_track["height"])
 
-        # When multiple people are in the video, NEVER apply digital zoom!
+        # When multiple prominent people are in the video, NEVER apply digital zoom!
         # Keeping full base crop width avoids claustrophobic framing and preserves conversational context.
-        if len(all_active_tracks) >= 2:
+        prominent_count = len([
+            t for t in all_active_tracks
+            if t.get("prominence_score", 0.0) >= 0.40 * primary_track.get("prominence_score", 1.0)
+        ])
+        if prominent_count >= 2:
             target_crop_w = self.base_crop_w
             target_crop_h = self.base_crop_h
         else:
@@ -189,15 +196,15 @@ class VirtualCamera:
             diff_y = target_cy - self.cy
             diff_w = target_w - self.w
 
-            switch_threshold_x = self.w * 0.40
+            switch_threshold_x = self.w * 0.28
 
             if abs(diff_x) > switch_threshold_x:
                 self.snap_to(target_cx, target_cy, target_w, target_h)
             elif abs(diff_x) > (self.w * self.deadzone_ratio):
-                # Gentle continuous follow for natural movement of the same speaker
-                self.cx += (diff_x * 0.18)
-                self.cy += (diff_y * 0.18)
-                self.w += (diff_w * 0.18)
+                # Responsive continuous follow for natural movement of the same speaker
+                self.cx += (diff_x * 0.30)
+                self.cy += (diff_y * 0.30)
+                self.w += (diff_w * 0.30)
                 self.h = self.w / self.aspect_ratio
                 self._clamp_bounds()
 
