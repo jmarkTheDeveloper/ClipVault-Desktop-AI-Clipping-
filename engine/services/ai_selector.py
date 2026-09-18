@@ -121,7 +121,7 @@ class AISelector:
         }
         payload = {
             "model": "claude-3-5-sonnet-20241022",
-            "max_tokens": 1500,
+            "max_tokens": 4096,
             "messages": [{"role": "user", "content": prompt}]
         }
         r = requests.post("https://api.anthropic.com/v1/messages", headers=headers, json=payload, timeout=7.0)
@@ -778,6 +778,7 @@ CRITICAL RULES FOR ZERO-KNOWLEDGE STANDALONE CONTEXT (MANDATORY):
    - value (0-99): Information density or emotional payoff.
    - trend (0-99): Viral topical relevance and hook patterns.
 9. EXACT NUMBER: Return EXACTLY {n} non-overlapping clips in the JSON array.
+10. FULL CHRONOLOGICAL COVERAGE: For long videos ({video_duration}s), distribute your clip selections across the ENTIRE video duration (early setups, middle discussions, and late climaxes/conclusions). Do NOT cluster clips only at the beginning.
 
 VIDEO DURATION: {video_duration} seconds
 

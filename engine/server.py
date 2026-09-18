@@ -406,10 +406,8 @@ def execute_rendering_task(task_id: str, request: ProcessRequest, cancel_event: 
             
         eff_num_clips = request.num_clips
         eff_target_duration = request.target_duration
-        if eff_num_clips is None or eff_num_clips <= 0:
-            eff_num_clips = 4
-            if eff_target_duration == -1 and not request.custom_range and not request.custom_ranges:
-                eff_target_duration = 45
+        if eff_target_duration == -1 and not request.custom_range and not request.custom_ranges:
+            eff_target_duration = 45
 
         outputs, title, output_folder = processor.process_video(
             url=request.url,

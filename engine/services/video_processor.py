@@ -323,7 +323,16 @@ class VideoProcessor:
         else:
             if progress_callback: progress_callback("Selecting viral highlights with AI...", 40)
             valid_vid_path = str(video_path) if video_path and Path(video_path).exists() else None
-            clip_specs = self.ai_selector.select_clips(segments, duration, num_clips, target_duration, topic=topic, video_path=valid_vid_path)
+
+            # Intelligent Proportional Virality Scaling:
+            # If num_clips is None or <= 0, automatically calculate optimal clip yield based on video duration
+            target_n = num_clips
+            if target_n is None or target_n <= 0:
+                # 1 viral moment per ~180s (3 mins), with minimum 4 and maximum 25
+                target_n = max(4, min(25, round(duration / 180)))
+                print(f" [Auto Virality]: Video length {duration:.1f}s ({duration/60:.1f}m) -> Auto-discovering top {target_n} viral moments across full video.")
+
+            clip_specs = self.ai_selector.select_clips(segments, duration, target_n, target_duration, topic=topic, video_path=valid_vid_path)
 
         if not clip_specs:
             raise ValueError("Could not select any viral clips from this video.")

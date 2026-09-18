@@ -137,6 +137,24 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
   const styleDropdownRef = useRef<HTMLDivElement>(null);
   const [aspectRatio, setAspectRatio] = useState<"9:16" | "1:1" | "16:9">("9:16");
   const [quality, setQuality] = useState<"1080p" | "4k" | "720p">("1080p");
+  const [clipYield, setClipYield] = useState<"auto" | "max" | "top10">("auto");
+
+  // Dynamic Auto-Yield calculations based on video duration
+  const dynamicAutoClips = videoInfo && videoInfo.duration > 0
+    ? Math.max(5, Math.min(25, Math.round(videoInfo.duration / 180)))
+    : null;
+  const durationMin = videoInfo && videoInfo.duration > 0
+    ? Math.round(videoInfo.duration / 60)
+    : null;
+
+  const getEffectiveNumClips = () => {
+    if (clipYield === "top10") return 10;
+    if (clipYield === "max") return 20;
+    if (videoInfo && videoInfo.duration > 0) {
+      return Math.max(5, Math.min(25, Math.round(videoInfo.duration / 180)));
+    }
+    return null;
+  };
 
   // AI Engine & API Key State (synchronized with localStorage)
   const [showKeySettings, setShowKeySettings] = useState(false);
@@ -374,7 +392,7 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
       url: url.trim(),
       api_key: activeEngineKey || undefined,
       ai_engine: selectedEngine,
-      num_clips: null, // Auto discovery
+      num_clips: getEffectiveNumClips(),
       target_duration: -1,
       layout: aspectRatio === "16:9" ? "landscape" : "vertical_crop",
       aspect_ratio: aspectRatio,
@@ -840,8 +858,8 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
 
                 <div className="h-px bg-white/[0.06]" />
 
-                {/* THE 3 MINIMALIST CONTROLS */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                {/* THE 4 MINIMALIST CONTROLS */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4.5">
 
                   {/* 1. AI CAPTIONS */}
                   <div className="flex flex-col gap-2.5 p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] relative z-20">
@@ -1086,6 +1104,62 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
                             <div className="text-[10px] text-gray-400 mt-0.5 truncate">{item.sub}</div>
                           </div>
                           {quality === item.id && <Check className="w-3.5 h-3.5 text-purple-400 shrink-0 ml-1" />}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 4. VIRAL MOMENTS */}
+                  <div className="flex flex-col gap-2.5 p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+                    <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <TrendingUp className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Viral Moments</span>
+                    </span>
+
+                    <div className="flex flex-col gap-1.5 pt-1">
+                      {[
+                        {
+                          id: "auto",
+                          label: "Auto Discovery",
+                          badge: dynamicAutoClips ? `~${dynamicAutoClips} CLIPS` : "SMART",
+                          badgeStyle: "bg-amber-400/10 text-amber-300 border-amber-400/30",
+                          sub: durationMin ? `Full ${durationMin}m video coverage` : "Proportional to duration",
+                        },
+                        {
+                          id: "max",
+                          label: "Deep Sweep",
+                          badge: "18-25 CLIPS",
+                          badgeStyle: "bg-emerald-400/10 text-emerald-300 border-emerald-400/30",
+                          sub: "Maximum viral yield across timeline",
+                        },
+                        {
+                          id: "top10",
+                          label: "Curated Top 10",
+                          badge: "BALANCED",
+                          badgeStyle: "bg-sky-400/10 text-sky-300 border-sky-400/30",
+                          sub: "Top 10 highest viral score peaks",
+                        },
+                      ].map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => setClipYield(item.id as any)}
+                          className={`p-2 rounded-lg border text-left flex items-center justify-between transition-all cursor-pointer ${
+                            clipYield === item.id
+                              ? "bg-amber-400/15 border-amber-400 text-white shadow-sm"
+                              : "bg-white/[0.03] border-white/[0.08] text-gray-400 hover:text-white hover:bg-white/[0.05]"
+                          }`}
+                        >
+                          <div className="min-w-0 pr-1">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-bold text-white">{item.label}</span>
+                              <span className={`text-[8px] px-1 py-0.2 rounded font-mono font-bold border ${item.badgeStyle}`}>
+                                {item.badge}
+                              </span>
+                            </div>
+                            <div className="text-[10px] text-gray-400 mt-0.5 truncate">{item.sub}</div>
+                          </div>
+                          {clipYield === item.id && <Check className="w-3.5 h-3.5 text-amber-400 shrink-0 ml-1" />}
                         </button>
                       ))}
                     </div>
