@@ -20,7 +20,7 @@ interface Props {
   onTriggerVaultWelcome?: () => void;
 }
 
-const AI_ENGINES: EngineOption[] = [
+export const AI_ENGINES: EngineOption[] = [
   // Local Hardware AI (100% Free, On-Device, Offline)
   {
     id: "intel_ai",

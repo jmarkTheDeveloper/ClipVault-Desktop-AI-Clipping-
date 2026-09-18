@@ -27,6 +27,9 @@ import {
   X,
   ChevronDown
 } from "lucide-react";
+import { EngineSettingsModal } from "../components/clipper/EngineSettingsModal";
+import type { ByokMode } from "../components/clipper/EngineSettingsModal";
+import { AI_ENGINES } from "./AiClipperScreen";
 
 const G = "#00e676";
 
@@ -134,6 +137,82 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
   const styleDropdownRef = useRef<HTMLDivElement>(null);
   const [aspectRatio, setAspectRatio] = useState<"9:16" | "1:1" | "16:9">("9:16");
   const [quality, setQuality] = useState<"1080p" | "4k" | "720p">("1080p");
+
+  // AI Engine & API Key State (synchronized with localStorage)
+  const [showKeySettings, setShowKeySettings] = useState(false);
+  const [selectedEngine, setSelectedEngine] = useState(() => localStorage.getItem("clipvault_selected_engine") || "gemini_flash");
+  const [byokMode, setByokMode] = useState<ByokMode>(() => {
+    const saved = localStorage.getItem("clipvault_byok_mode");
+    if (saved === "local" || saved === "custom" || saved === "developer") return saved as ByokMode;
+    return "custom";
+  });
+  const [anthropicKey, setAnthropicKey] = useState(() => localStorage.getItem("clipvault_anthropic_key") || "");
+  const [higgsfieldKey, setHiggsfieldKey] = useState(() => localStorage.getItem("clipvault_higgsfield_key") || "");
+  const [seeDanceKey, setSeeDanceKey] = useState(() => localStorage.getItem("clipvault_seedance_key") || "");
+  const [openAiKey, setOpenAiKey] = useState(() => localStorage.getItem("clipvault_openai_key") || "");
+  const [geminiKey, setGeminiKey] = useState(() => localStorage.getItem("clipvault_gemini_key") || "");
+  const [groqKey, setGroqKey] = useState(() => localStorage.getItem("clipvault_groq_key") || "");
+  const [deepseekKey, setDeepseekKey] = useState(() => localStorage.getItem("clipvault_deepseek_key") || "");
+  const [moonlightKey, setMoonlightKey] = useState(() => localStorage.getItem("clipvault_moonlight_key") || "");
+  const [qwenKey, setQwenKey] = useState(() => localStorage.getItem("clipvault_qwen_key") || "");
+  const [customBaseUrl, setCustomBaseUrl] = useState(() => localStorage.getItem("clipvault_custom_base_url") || "");
+
+  const getActiveEngineApiKey = (engineId: string = selectedEngine) => {
+    switch (engineId) {
+      case "openai_chatgpt":
+        return openAiKey.trim() || localStorage.getItem("clipvault_openai_key")?.trim() || "";
+      case "claude_fable":
+        return anthropicKey.trim() || localStorage.getItem("clipvault_anthropic_key")?.trim() || "";
+      case "gemini_flash":
+        return geminiKey.trim() || localStorage.getItem("clipvault_gemini_key")?.trim() || "";
+      case "groq_lpu":
+        return groqKey.trim() || localStorage.getItem("clipvault_groq_key")?.trim() || "";
+      case "deepseek":
+        return deepseekKey.trim() || localStorage.getItem("clipvault_deepseek_key")?.trim() || "";
+      case "moonlight":
+        return moonlightKey.trim() || localStorage.getItem("clipvault_moonlight_key")?.trim() || "";
+      case "qwen_ai":
+      case "qwen":
+        return qwenKey.trim() || localStorage.getItem("clipvault_qwen_key")?.trim() || "";
+      case "higgsfield":
+        return higgsfieldKey.trim() || localStorage.getItem("clipvault_higgsfield_key")?.trim() || "";
+      case "seedance":
+        return seeDanceKey.trim() || localStorage.getItem("clipvault_seedance_key")?.trim() || "";
+      default:
+        return "";
+    }
+  };
+
+  const activeEngineObj = AI_ENGINES.find((e) => e.id === selectedEngine) || AI_ENGINES[0];
+  const activeEngineKey = getActiveEngineApiKey(selectedEngine);
+
+  useEffect(() => {
+    localStorage.setItem("clipvault_selected_engine", selectedEngine);
+  }, [selectedEngine]);
+  useEffect(() => {
+    localStorage.setItem("clipvault_byok_mode", byokMode);
+  }, [byokMode]);
+  useEffect(() => {
+    localStorage.setItem("clipvault_gemini_key", geminiKey);
+  }, [geminiKey]);
+  useEffect(() => {
+    localStorage.setItem("clipvault_openai_key", openAiKey);
+  }, [openAiKey]);
+  useEffect(() => {
+    localStorage.setItem("clipvault_anthropic_key", anthropicKey);
+  }, [anthropicKey]);
+  useEffect(() => {
+    localStorage.setItem("clipvault_groq_key", groqKey);
+  }, [groqKey]);
+  useEffect(() => {
+    localStorage.setItem("clipvault_deepseek_key", deepseekKey);
+  }, [deepseekKey]);
+  useEffect(() => {
+    localStorage.setItem("clipvault_moonlight_key", moonlightKey);
+  }, [moonlightKey]);
+  useEffect(() => {
+    localStorage.setItem("clipvault_qwen_key", qwenKey);
+  }, [qwenKey]);
 
   // Processing & Task State
   const [isGenerating, setIsGenerating] = useState(false);
@@ -293,6 +372,8 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
 
     const payload = {
       url: url.trim(),
+      api_key: activeEngineKey || undefined,
+      ai_engine: selectedEngine,
       num_clips: null, // Auto discovery
       target_duration: -1,
       layout: aspectRatio === "16:9" ? "landscape" : "vertical_crop",
@@ -349,8 +430,11 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
   return (
     <div className="h-screen w-screen flex flex-col bg-[#070709] text-white select-none overflow-hidden">
       {/* Top Header Navigation Bar */}
-      <header className="h-14 px-6 border-b border-white/[0.08] flex items-center justify-between bg-[#0b0b0e]/90 backdrop-blur-md z-20 flex-shrink-0">
-        <div className="flex items-center gap-3">
+      <header
+        className="h-14 pl-6 pr-40 border-b border-white/[0.08] flex items-center justify-between bg-[#0b0b0e]/90 backdrop-blur-md z-20 flex-shrink-0"
+        style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
+      >
+        <div className="flex items-center gap-3" style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}>
           <button
             type="button"
             onClick={onBack}
@@ -371,7 +455,29 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5" style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}>
+          {/* AI Model & API Key Configuration */}
+          <button
+            type="button"
+            onClick={() => setShowKeySettings(true)}
+            className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
+              activeEngineKey || activeEngineObj?.providerType === "local"
+                ? "bg-white/[0.05] hover:bg-white/[0.1] text-gray-200 border-white/[0.1]"
+                : "bg-amber-400/10 hover:bg-amber-400/20 text-amber-300 border-amber-400/30"
+            }`}
+            title="Configure AI Model and API Key (Gemini, OpenAI, Groq, DeepSeek, Local Hardware)"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-[#00e676]" />
+            <span className="max-w-[130px] truncate">{activeEngineObj?.name || "AI Engine"}</span>
+            <span
+              className={`w-2 h-2 rounded-full shrink-0 ${
+                activeEngineKey || activeEngineObj?.providerType === "local"
+                  ? "bg-[#00e676] shadow-[0_0_6px_#00e676]"
+                  : "bg-amber-400 animate-pulse"
+              }`}
+            />
+          </button>
+
           {onGoToVault && (
             <button
               type="button"
@@ -614,6 +720,25 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
               {/* Main Input Card */}
               <div className="bg-[#111115] border border-white/[0.08] rounded-2xl p-6 shadow-2xl flex flex-col gap-5">
                 
+                {/* AI API Key Setup Notice if not configured */}
+                {!activeEngineKey && activeEngineObj?.providerType !== "local" && (
+                  <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-between text-xs text-amber-300">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+                      <span className="truncate">
+                        AI API Key not set: Click to add your free Google Gemini API key for instant viral hook discovery.
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowKeySettings(true)}
+                      className="px-2.5 py-1 rounded-lg bg-amber-400/20 hover:bg-amber-400/30 text-amber-200 font-semibold text-xs transition-colors shrink-0 ml-3 cursor-pointer"
+                    >
+                      Configure API Key
+                    </button>
+                  </div>
+                )}
+
                 {/* URL Input Box */}
                 <div className="flex flex-col gap-2">
                   <label className="text-xs font-bold text-gray-300 uppercase tracking-wider flex items-center justify-between">
@@ -1032,6 +1157,37 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
 
         </div>
       </main>
+
+      {/* AI Model & API Key Settings Modal */}
+      <EngineSettingsModal
+        isOpen={showKeySettings}
+        onClose={() => setShowKeySettings(false)}
+        engines={AI_ENGINES}
+        selectedEngine={selectedEngine}
+        onSelectEngine={setSelectedEngine}
+        byokMode={byokMode}
+        setByokMode={setByokMode}
+        anthropicKey={anthropicKey}
+        setAnthropicKey={setAnthropicKey}
+        higgsfieldKey={higgsfieldKey}
+        setHiggsfieldKey={setHiggsfieldKey}
+        seeDanceKey={seeDanceKey}
+        setSeeDanceKey={setSeeDanceKey}
+        openAiKey={openAiKey}
+        setOpenAiKey={setOpenAiKey}
+        geminiKey={geminiKey}
+        setGeminiKey={setGeminiKey}
+        groqKey={groqKey}
+        setGroqKey={setGroqKey}
+        deepseekKey={deepseekKey}
+        setDeepseekKey={setDeepseekKey}
+        moonlightKey={moonlightKey}
+        setMoonlightKey={setMoonlightKey}
+        qwenKey={qwenKey}
+        setQwenKey={setQwenKey}
+        customBaseUrl={customBaseUrl}
+        setCustomBaseUrl={setCustomBaseUrl}
+      />
     </div>
   );
 }
