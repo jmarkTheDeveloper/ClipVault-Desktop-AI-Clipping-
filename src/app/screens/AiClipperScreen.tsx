@@ -608,11 +608,12 @@ export const AiClipperScreen: React.FC<Props> = ({
   }, []);
 
   // Automatically fetch YouTube stream preview when user types or pastes YouTube link
-  const fetchYouTubePreview = async (urlToFetch: string) => {
+  const fetchYouTubePreview = async (urlToFetch: string, retries = 4) => {
     const videoId = extractYouTubeId(urlToFetch);
     if (!videoId) {
       setActiveVideoUrl("");
       setPreviewError("");
+      setLoadingPreview(false);
       return;
     }
 
@@ -628,22 +629,28 @@ export const AiClipperScreen: React.FC<Props> = ({
           setErrorMsg("");
         } else {
           setActiveVideoUrl("");
-          const err = data.error || `This YouTube video (v=${videoId}) is private, deleted, or unavailable. Please try another video link!`;
+          const err = data.error || `This YouTube video (v=${videoId}) is unavailable, private, or has a typo in the URL. Please verify the video link!`;
           setPreviewError(err);
           setErrorMsg(err);
         }
         if (data.duration && !isNaN(data.duration) && data.duration > 0) {
           setMediaDuration(data.duration);
         }
+        setLoadingPreview(false);
       } else {
         setActiveVideoUrl("");
         setPreviewError("Unable to fetch YouTube preview. Please verify your video link.");
+        setLoadingPreview(false);
       }
     } catch (err) {
+      // If backend is still initializing on app launch, silently auto-retry!
+      if (retries > 0) {
+        setTimeout(() => fetchYouTubePreview(urlToFetch, retries - 1), 1200);
+        return;
+      }
       console.error("YouTube preview stream note:", err);
       setActiveVideoUrl("");
-      setPreviewError("Unable to connect to streaming engine. Please ensure ClipVault engine is running.");
-    } finally {
+      setPreviewError("ClipVault engine is still initializing. Please wait a moment or click Retry Stream.");
       setLoadingPreview(false);
     }
   };
