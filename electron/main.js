@@ -358,7 +358,7 @@ function startPythonBackend() {
         // ── DEV / SOURCE: launch via system python + uvicorn ─────────────────
         engineDataDir = devBackendPath;
         pythonCmd = 'python';
-        args = ['-m', 'uvicorn', 'server:app', '--host', '127.0.0.1', '--port', '8000', '--reload', '--log-level', 'info'];
+        args = ['-m', 'uvicorn', 'server:app', '--host', '127.0.0.1', '--port', '8000', '--reload', '--timeout-graceful-shutdown', '2', '--log-level', 'info'];
         cwd = devBackendPath;
         console.log('[Electron]: Launching Python dev backend...');
       }
