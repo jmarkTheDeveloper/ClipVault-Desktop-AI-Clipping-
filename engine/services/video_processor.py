@@ -500,30 +500,30 @@ class VideoProcessor:
                 ffmpeg_params = ['-pix_fmt', 'yuv420p', '-threads', str(thread_count), '-crf', '13', '-preset', 'medium', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd']
         elif quality.lower() == '4k':
             if best_codec == 'h264_qsv':
-                ffmpeg_params = ['-pix_fmt', 'nv12', '-b:v', '75M', '-maxrate', '100M', '-global_quality', '12', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd+full_chroma_int']
+                ffmpeg_params = ['-pix_fmt', 'nv12', '-b:v', '75M', '-maxrate', '100M', '-global_quality', '12', '-preset', 'veryfast', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd+full_chroma_int']
             elif best_codec == 'h264_nvenc':
-                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '75M', '-maxrate', '100M', '-cq', '12', '-rc', 'vbr', '-preset', 'p7', '-tune', 'hq', '-spatial-aq', '1', '-temporal-aq', '1', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd+full_chroma_int']
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '75M', '-maxrate', '100M', '-cq', '12', '-rc', 'vbr', '-preset', 'p4', '-tune', 'hq', '-spatial-aq', '1', '-temporal-aq', '1', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd+full_chroma_int']
             elif best_codec == 'h264_amf':
-                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '75M', '-maxrate', '100M', '-rc', 'cqp', '-qp_i', '12', '-qp_p', '12', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd+full_chroma_int']
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '75M', '-maxrate', '100M', '-rc', 'cqp', '-qp_i', '12', '-qp_p', '12', '-quality', 'speed', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd+full_chroma_int']
             else:
                 ffmpeg_params = ['-pix_fmt', 'yuv420p', '-threads', str(thread_count), '-crf', '12', '-preset', 'ultrafast', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd+full_chroma_int']
         elif quality.lower() == '1080p':
             if best_codec == 'h264_qsv':
-                ffmpeg_params = ['-pix_fmt', 'nv12', '-b:v', '30M', '-maxrate', '45M', '-global_quality', '16', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd']
+                ffmpeg_params = ['-pix_fmt', 'nv12', '-b:v', '30M', '-maxrate', '45M', '-global_quality', '16', '-preset', 'veryfast', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd']
             elif best_codec == 'h264_nvenc':
-                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '30M', '-maxrate', '45M', '-cq', '16', '-rc', 'vbr', '-preset', 'p6', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd']
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '30M', '-maxrate', '45M', '-cq', '16', '-rc', 'vbr', '-preset', 'p4', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd']
             elif best_codec == 'h264_amf':
-                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '30M', '-maxrate', '45M', '-rc', 'cqp', '-qp_i', '16', '-qp_p', '16', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd']
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '30M', '-maxrate', '45M', '-rc', 'cqp', '-qp_i', '16', '-qp_p', '16', '-quality', 'speed', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd']
             else:
                 ffmpeg_params = ['-pix_fmt', 'yuv420p', '-threads', str(thread_count), '-crf', '15', '-preset', 'ultrafast', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd']
         else:
             # 720p standard vertical
             if best_codec == 'h264_qsv':
-                ffmpeg_params = ['-pix_fmt', 'nv12', '-b:v', '18M', '-maxrate', '25M', '-global_quality', '18', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd']
+                ffmpeg_params = ['-pix_fmt', 'nv12', '-b:v', '18M', '-maxrate', '25M', '-global_quality', '18', '-preset', 'veryfast', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd']
             elif best_codec == 'h264_nvenc':
-                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '18M', '-maxrate', '25M', '-cq', '18', '-rc', 'vbr', '-preset', 'p5', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd']
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '18M', '-maxrate', '25M', '-cq', '18', '-rc', 'vbr', '-preset', 'p4', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd']
             elif best_codec == 'h264_amf':
-                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '18M', '-maxrate', '25M', '-rc', 'cqp', '-qp_i', '18', '-qp_p', '18', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd']
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '18M', '-maxrate', '25M', '-rc', 'cqp', '-qp_i', '18', '-qp_p', '18', '-quality', 'speed', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd']
             else:
                 ffmpeg_params = ['-pix_fmt', 'yuv420p', '-threads', str(thread_count), '-crf', '18', '-preset', 'ultrafast', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd']
 
