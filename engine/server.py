@@ -1661,11 +1661,12 @@ def process_video_endpoint(
                 detail="Rejection: No background video found! For Satisfying Gameplay Split, you must import or select a gameplay video before compiling."
             )
 
-    # Cap tasks_db to prevent memory growth over long server uptime
+    # Cap tasks_db and cancellation_events to prevent memory growth over long server uptime
     if len(tasks_db) > 50:
         oldest_keys = list(tasks_db.keys())[:len(tasks_db) - 40]
         for k in oldest_keys:
             tasks_db.pop(k, None)
+            cancellation_events.pop(k, None)
 
     task_id = str(uuid.uuid4())
     cancel_event = threading.Event()
