@@ -106,7 +106,7 @@ class AISelector:
             ],
             "temperature": 0.4
         }
-        r = requests.post(f"{base_url.rstrip('/')}/chat/completions", headers=headers, json=payload, timeout=8.5)
+        r = requests.post(f"{base_url.rstrip('/')}/chat/completions", headers=headers, json=payload, timeout=60.0)
         if r.status_code != 200:
             raise RuntimeError(f"Provider API HTTP {r.status_code}: {r.text[:120]}")
         data = r.json()
@@ -124,7 +124,7 @@ class AISelector:
             "max_tokens": 4096,
             "messages": [{"role": "user", "content": prompt}]
         }
-        r = requests.post("https://api.anthropic.com/v1/messages", headers=headers, json=payload, timeout=7.0)
+        r = requests.post("https://api.anthropic.com/v1/messages", headers=headers, json=payload, timeout=60.0)
         if r.status_code != 200:
             raise RuntimeError(f"Anthropic API HTTP {r.status_code}: {r.text[:120]}")
         data = r.json()
@@ -235,7 +235,7 @@ class AISelector:
                             "responseMimeType": "application/json"
                         }
                     }
-                    r = requests.post(url, headers=headers, json=payload, timeout=45.0)
+                    r = requests.post(url, headers=headers, json=payload, timeout=60.0)
                     if r.status_code == 200:
                         res_json = r.json()
                         candidates_list = res_json.get("candidates", [])
@@ -405,33 +405,36 @@ class AISelector:
 
     def _heuristic_viral_selector(self, segments, video_duration, n, target_duration, topic=None):
         """
-        Intelligent Local NLP & Acoustic Energy Virality Scorer.
-        Evaluates speech pacing (WPM), question hooks, emotional intensity, 
-        laughter, high-stakes vocabulary, and sentence boundary snapping.
+        Intelligent Semantic Story Arc Selector.
+        Groups Whisper segments into cohesive thought-blocks and complete stories,
+        anchoring on premise/question setups and ending strictly on complete narrative closures
+        (punchlines, resolution, laughter, natural topic pauses). Never cuts mid-sentence or mid-thought.
         """
         import re
 
         if not segments:
             clips = []
-            step = max(5.0, (video_duration - target_duration) / max(1, n))
+            step = max(10.0, (video_duration - 45.0) / max(1, n))
             for i in range(n):
-                st = max(0.0, min(video_duration - target_duration, i * step))
-                et = min(video_duration, st + target_duration)
-                score = max(70, 95 - (i * 4))
+                st = max(0.0, min(video_duration - 45.0, i * step))
+                et = min(video_duration, st + 45.0)
+                score = max(70, 92 - (i * 3))
                 sub = normalize_sub_scores(None, score)
                 clips.append({
                     'start': st,
                     'end': et,
-                    'title': f'Highlight #{i+1}',
+                    'title': f'Video Story Arc #{i+1}',
                     'virality_score': score,
                     'sub_scores': sub.to_dict(),
                     'hook_type': 'Story Reveal',
-                    'reason': 'Visual energy sequence with continuous narrative',
+                    'reason': 'Self-contained conversational arc with continuous narrative',
                     'duration': et - st,
-                    'content_title': f"Highlight #{i+1}",
-                    'content_description': "Must-watch viral highlight! #shorts #viral #reels"
+                    'content_title': f"Story Arc #{i+1}",
+                    'content_description': "Must-watch viral story! #shorts #viral #reels"
                 })
-        # Normalize segment structures
+            return clips
+
+        # 1. Normalize segments
         clean_segs = []
         for s in segments:
             if isinstance(s, dict):
@@ -450,170 +453,237 @@ class AISelector:
         if not clean_segs:
             return self._heuristic_viral_selector([], video_duration, n, target_duration, topic)
 
-        # Pre-compile regex patterns
-        HOOK_REGEXES = [
-            re.compile(r"\b(why|how|what if|did you know|is it true|can you believe|who else|have you ever)\b", re.IGNORECASE),
-            re.compile(r"\b(the truth about|nobody talks about|the biggest mistake|the real reason|i never told|they lied|secret|hack)\b", re.IGNORECASE),
+        # 2. Group raw micro-segments into Sentence Thought-Blocks
+        # A true sentence accumulates words until punctuation (., !, ?) or silence pause > 0.80s
+        QUESTION_WORDS = (
+            'why', 'how', 'what', 'who', 'where', 'when', 'is it', 'can you', 'did you',
+            'do you', 'have you', 'could you', 'would you', 'tell me', 'what about', 'are you', 'was it'
+        )
+        sentences = []
+        cur_words = []
+        cur_st = clean_segs[0]['start']
+        cur_et = clean_segs[0]['end']
+
+        for idx, seg in enumerate(clean_segs):
+            txt = seg['text'].strip()
+            if not cur_words:
+                cur_st = seg['start']
+            cur_words.append(txt)
+            cur_et = seg['end']
+
+            is_end = txt.endswith(('.', '!', '?'))
+            has_pause = False
+            if idx < len(clean_segs) - 1:
+                next_st = clean_segs[idx + 1]['start']
+                if (next_st - cur_et) > 0.80:
+                    has_pause = True
+
+            # Group boundary reached: sentence terminal, breath pause, or >15 seconds of monologue
+            if is_end or has_pause or (cur_et - cur_st) > 15.0:
+                s_text = " ".join(cur_words).strip()
+                is_q = s_text.endswith('?') or any(s_text.lower().startswith(qw) for qw in QUESTION_WORDS)
+                pause_after = (clean_segs[idx + 1]['start'] - cur_et) if idx < len(clean_segs) - 1 else 1.5
+                sentences.append({
+                    'start': cur_st,
+                    'end': cur_et,
+                    'text': s_text,
+                    'is_question': is_q,
+                    'pause_after': pause_after,
+                    'ends_with_terminal': is_end
+                })
+                cur_words = []
+
+        if cur_words:
+            s_text = " ".join(cur_words).strip()
+            is_q = s_text.endswith('?') or any(s_text.lower().startswith(qw) for qw in QUESTION_WORDS)
+            sentences.append({
+                'start': cur_st,
+                'end': cur_et,
+                'text': s_text,
+                'is_question': is_q,
+                'pause_after': 2.0,
+                'ends_with_terminal': True
+            })
+
+        if not sentences:
+            return self._heuristic_viral_selector([], video_duration, n, target_duration, topic)
+
+        # 3. Regex Patterns for Story Detection
+        HOOK_PATTERNS = [
+            re.compile(r"\b(why|how|what if|did you know|is it true|can you believe|have you ever|who was|who is)\b", re.IGNORECASE),
+            re.compile(r"\b(the truth about|nobody talks about|the biggest mistake|the real reason|i never told|they lied|the secret to|this is why)\b", re.IGNORECASE),
+            re.compile(r"\b(one day|so what happened was|the craziest thing|i remember when|listen to this|look at what happened|my friend told me)\b", re.IGNORECASE),
             re.compile(r"\b(insane|crazy|unbelievable|impossible|illegal|dangerous|million dollars|police|arrested|ruined|deadly|genius|shocking)\b", re.IGNORECASE),
-            re.compile(r"\b(one day|so i was|suddenly|out of nowhere|i remember when|listen to this|look at what happened)\b", re.IGNORECASE),
-            re.compile(r"\b(the worst|the best|number one|top 3|never do this|always do this|stop doing)\b", re.IGNORECASE)
+            re.compile(r"\b(the worst|the best|number one|top 3|never do this|always do this|stop doing|the problem with)\b", re.IGNORECASE)
         ]
-        REACTION_REGEXES = [
-            re.compile(r"\b(oh my god|omg|no way|what the|holy|bro|wait wait|look at this|check this out|are you kidding)\b", re.IGNORECASE),
+        PAYOFF_PATTERNS = [
+            re.compile(r"\b(and that's why|that is why|which means|so the moral is|and that was it|in the end|and it worked|so basically that's)\b", re.IGNORECASE),
+            re.compile(r"\b(and everyone was|everybody laughed|he couldn't believe it|she couldn't believe it|and i was like|it blew my mind)\b", re.IGNORECASE),
             re.compile(r"\[laughter\]|\b(haha|hahaha|lmao|lol|giggle|giggling)\b", re.IGNORECASE),
-            re.compile(r"(\!|\?){1,}")
+            re.compile(r"\b(no way|oh my god|holy shit|what the hell|are you serious|that's crazy)\b", re.IGNORECASE)
         ]
-        BAN_REGEXES = [
+        BAN_PATTERNS = [
             re.compile(r"\b(sponsored by|sponsor|nordvpn|betterhelp|expressvpn|audible|link in the description|use code|discount code|promo code)\b", re.IGNORECASE),
             re.compile(r"\b(subscribe to my channel|subscribe to the channel|hit the bell|leave a like|comment down below|patreon\.com)\b", re.IGNORECASE),
             re.compile(r"\b(can you hear me|mic test|audio check|stream starting|be right back|brb|technical difficulties)\b", re.IGNORECASE)
         ]
-        WEAK_START_REGEXES = [re.compile(r"^(so yeah|um|uh|and then|like i said|anyways|so basically|ok so)\b", re.IGNORECASE)]
+        DANGLING_STARTERS = {'he', 'she', 'they', 'them', 'it', 'this', 'that', 'these', 'those', 'his', 'her', 'their', 'which'}
+        CONNECTIVE_STARTERS = {'and', 'so', 'but', 'because', 'then', 'also', 'meaning', 'anyway', 'or', 'well', 'actually'}
 
-        # Flexible target window (soft threshold rather than rigid hard clamp)
-        min_dur = max(6.0, float(target_duration) * 0.4)
-        max_dur = min(float(video_duration), float(target_duration) * 1.35 + 20.0)
+        # 4. Form Complete Story Candidates
+        # Adaptive duration boundaries: allow the story to breathe naturally (25s to 90s)
+        min_story_dur = 25.0
+        max_story_dur = 90.0
 
-        # Step 1: Identify high-potential candidate start indices
-        # (Sentence starts, questions, hooks, or regular anchors every ~12s to guarantee full video coverage)
-        total_segs = len(clean_segs)
-        start_indices = set()
-        last_anchor_time = -999.0
-
-        for i in range(total_segs):
-            seg = clean_segs[i]
-            st = seg['start']
-            txt = seg['text']
-
-            if (st - last_anchor_time) >= 12.0:
-                start_indices.add(i)
-                last_anchor_time = st
-                continue
-
-            is_prev_sentence_end = (i == 0 or clean_segs[i - 1]['text'].strip().endswith(('.', '!', '?')))
-            if is_prev_sentence_end:
-                start_indices.add(i)
-                continue
-
-            if txt.strip().endswith('?') or any(hp.search(txt) for hp in HOOK_REGEXES):
-                start_indices.add(i)
-
-        sorted_starts = sorted(list(start_indices))
-
-        # Step 2: For each start anchor, find best 1-2 sentence endings near target_duration
         candidates = []
-        for i in sorted_starts:
-            start_seg = clean_segs[i]
-            st = start_seg['start']
-            first_seg_txt = start_seg['text']
+        total_sents = len(sentences)
 
-            base_score = 50.0
-            base_hook_bonus = 0.0
+        for s_idx in range(total_sents):
+            first_sent = sentences[s_idx]
+            first_text = first_sent['text'].strip()
+            first_words = first_text.lower().split()
+            if not first_words:
+                continue
 
-            for hp in HOOK_REGEXES:
-                if hp.search(first_seg_txt):
-                    base_score += 35.0
-                    base_hook_bonus += 8.0
+            # Check if this sentence is a valid Story Setup Anchor
+            is_valid_anchor = False
+            anchor_bonus = 0.0
+
+            # Rule A: It's an explicit question (interviewer prompt or rhetorical hook)
+            if first_sent['is_question']:
+                is_valid_anchor = True
+                anchor_bonus += 35.0
+
+            # Rule B: Matches high-retention hook / story opening patterns
+            for hp in HOOK_PATTERNS:
+                if hp.search(first_text):
+                    is_valid_anchor = True
+                    anchor_bonus += 25.0
                     break
 
-            for ws in WEAK_START_REGEXES:
-                if ws.search(first_seg_txt):
-                    base_score -= 25.0
-                    base_hook_bonus -= 10.0
+            # Rule C: Natural paragraph start preceded by conversational pause (> 0.9s)
+            if s_idx == 0 or (s_idx > 0 and sentences[s_idx - 1]['pause_after'] > 0.9):
+                is_valid_anchor = True
+                anchor_bonus += 15.0
+
+            # Penalty for starting with unreferenced dangling pronouns or connectives
+            if first_words[0] in DANGLING_STARTERS:
+                anchor_bonus -= 30.0
+            if first_words[0] in CONNECTIVE_STARTERS:
+                anchor_bonus -= 15.0
+
+            if not is_valid_anchor and anchor_bonus <= 0:
+                continue
+
+            # Walk forward to find sentences that provide definitive narrative resolution / payoff
+            accumulated_sents = []
+            for e_idx in range(s_idx, min(total_sents, s_idx + 35)):
+                cur_s = sentences[e_idx]
+                accumulated_sents.append(cur_s)
+                dur = cur_s['end'] - first_sent['start']
+
+                if dur > max_story_dur:
                     break
 
-            if first_seg_txt.strip().endswith('?'):
-                base_score += 40.0
-                base_hook_bonus += 10.0
-            elif i > 0 and clean_segs[i - 1]['text'].strip().endswith('?'):
-                base_score += 35.0
-                base_hook_bonus += 8.0
+                if dur >= min_story_dur:
+                    # Check if cur_s is a valid narrative conclusion point
+                    end_text = cur_s['text'].strip()
+                    is_resolution = False
+                    resolution_score = 0.0
 
-            first_word = first_seg_txt.strip().lower().split()[0] if first_seg_txt.strip() else ''
-            if first_word in {'he', 'she', 'they', 'them', 'him', 'her', 'it', 'this', 'that', 'these', 'those'}:
-                base_score -= 25.0
-                base_hook_bonus -= 6.0
-
-            accumulated = []
-            best_ends_for_start = []
-            for j in range(i, min(total_segs, i + 100)):
-                end_seg = clean_segs[j]
-                cur_dur = end_seg['end'] - st
-                accumulated.append(end_seg['text'])
-
-                if cur_dur > max_dur:
-                    break
-
-                if cur_dur >= min_dur:
-                    is_end = end_seg['text'].rstrip().endswith(('.', '!', '?'))
-                    diff = abs(cur_dur - target_duration)
-                    if is_end or diff <= 3.0 or j == total_segs - 1:
-                        best_ends_for_start.append((diff, j, cur_dur, list(accumulated)))
-
-            # Keep only the top 2 closest endpoints for this start
-            best_ends_for_start.sort(key=lambda x: x[0])
-            for _, j, cur_dur, acc in best_ends_for_start[:2]:
-                full_txt = " ".join(acc)
-                hook_txt = " ".join(acc[:min(3, len(acc))])
-
-                score = base_score
-                hook_bonus = base_hook_bonus
-
-                if topic and topic.lower() in full_txt.lower():
-                    score += 40.0
-
-                if hook_bonus == 0.0:
-                    for hp in HOOK_REGEXES:
-                        if hp.search(hook_txt):
-                            score += 20.0
-                            hook_bonus += 4.0
+                    # 1. Payoff / Punchline / Moral markers
+                    for pp in PAYOFF_PATTERNS:
+                        if pp.search(end_text):
+                            is_resolution = True
+                            resolution_score += 35.0
                             break
 
-                for rp in REACTION_REGEXES:
-                    matches = len(rp.findall(full_txt))
-                    score += min(20.0, matches * 6.0)
+                    # 2. Conversational pause or topic shift immediately after sentence
+                    if cur_s['pause_after'] >= 0.85:
+                        is_resolution = True
+                        resolution_score += 25.0
 
-                words = full_txt.split()
-                wpm = (len(words) / max(1.0, cur_dur)) * 60.0
-                if 120 <= wpm <= 220:
-                    score += 15.0
-                elif wpm < 70:
-                    score -= 30.0
+                    # 3. Next sentence starts a new question (indicating current answer is finished!)
+                    if e_idx < total_sents - 1 and sentences[e_idx + 1]['is_question']:
+                        is_resolution = True
+                        resolution_score += 30.0
 
-                if full_txt.rstrip().endswith(('.', '!', '?')):
-                    score += 10.0
+                    # 4. Standard clean sentence punctuation
+                    if cur_s['ends_with_terminal']:
+                        resolution_score += 15.0
+                        if dur >= 35.0:
+                            is_resolution = True
 
-                for bp in BAN_REGEXES:
-                    if bp.search(full_txt):
-                        score -= 80.0
+                    if is_resolution:
+                        story_text = " ".join(s['text'] for s in accumulated_sents)
+                        
+                        # Score this complete story arc
+                        score = 50.0 + anchor_bonus + resolution_score
 
-                title_candidate = hook_txt.strip()[:45]
-                if len(hook_txt) > 45:
-                    title_candidate += "..."
+                        # Topic alignment bonus
+                        if topic and topic.lower() in story_text.lower():
+                            score += 40.0
 
-                comp_score = int(min(99, max(60, score)))
-                candidates.append({
-                    'start': st,
-                    'end': clean_segs[j]['end'],
-                    'duration': cur_dur,
-                    'virality_score': comp_score,
-                    'title': title_candidate,
-                    'hook_bonus': hook_bonus,
-                    'wpm': wpm,
-                    'hook_type': 'High Engagement Story',
-                    'reason': f'High speech density ({int(wpm)} WPM) with complete narrative resolution',
-                    'content_title': title_candidate,
-                    'content_description': "Must-watch viral highlight! #shorts #viral #reels #trending"
-                })
+                        # Speaking rate check
+                        words_count = len(story_text.split())
+                        wpm = (words_count / max(1.0, dur)) * 60.0
+                        if 125 <= wpm <= 190:
+                            score += 15.0
+                        elif wpm < 75:
+                            score -= 30.0
 
+                        # Penalize banned words
+                        for bp in BAN_PATTERNS:
+                            if bp.search(story_text):
+                                score -= 80.0
+
+                        # Penalize stories ending mid-sentence
+                        if not cur_s['ends_with_terminal']:
+                            score -= 40.0
+
+                        # Generate high-quality contextual viral title
+                        candidate_title = ""
+                        if first_sent['is_question']:
+                            clean_q = first_text.rstrip('?.! ')
+                            if len(clean_q) > 48:
+                                clean_q = clean_q[:45] + "..."
+                            candidate_title = clean_q
+                        else:
+                            # Extract meaningful narrative premise
+                            candidate_title = first_text[:50].rstrip('. ')
+                            if len(first_text) > 50:
+                                candidate_title += "..."
+
+                        # Extract punchy hook title (3-5 words)
+                        hook_words = [w for w in first_words if w not in {'the', 'a', 'an', 'and', 'so', 'to', 'of', 'in', 'is', 'it'}]
+                        hook_title = " ".join(hook_words[:4]).title() if hook_words else "Viral Story"
+
+                        comp_score = int(min(99, max(65, score)))
+                        candidates.append({
+                            'start': first_sent['start'],
+                            'end': cur_s['end'],
+                            'duration': dur,
+                            'virality_score': comp_score,
+                            'title': candidate_title,
+                            'hook_title': hook_title,
+                            'wpm': wpm,
+                            'hook_type': 'Complete Story Arc' if resolution_score > 20 else 'Dialogue Highlight',
+                            'reason': f'Complete self-contained story arc ({dur:.1f}s, {int(wpm)} WPM) with setup, discussion, and clear resolution.',
+                            'content_title': candidate_title,
+                            'content_description': f"{candidate_title} - Must-watch complete story! #shorts #viral #reels #clips"
+                        })
+
+        # 5. Sort candidates by virality score
         candidates.sort(key=lambda x: x['virality_score'], reverse=True)
 
+        # 6. Chronologically balanced selection
+        # Ensure selected clips do not heavily overlap (>6.0s) and provide broad coverage
         selected = []
         for cand in candidates:
             if len(selected) >= n:
                 break
 
-            # Expand only candidates being actively considered for selection
+            # Run through Deep Context Expander to lock boundaries
             exp_st, exp_et = self._expand_to_complete_context(clean_segs, cand['start'], cand['end'], video_duration, target_duration=target_duration)
 
             overlaps = False
@@ -628,37 +698,50 @@ class AISelector:
                 cand['start'] = exp_st
                 cand['end'] = exp_et
                 cand['duration'] = exp_et - exp_st
-                candidate_sub_scores = normalize_sub_scores(
-                    raw_sub_scores=None,
-                    overall_score=cand['virality_score'],
-                    hook_bonus=cand.get('hook_bonus', 0.0),
-                    wpm=cand.get('wpm', 140.0)
-                )
-                cand['sub_scores'] = candidate_sub_scores.to_dict()
+                sub = normalize_sub_scores(None, cand['virality_score'])
+                cand['sub_scores'] = sub.to_dict()
                 selected.append(cand)
 
+        # If still need more clips, extract best remaining non-overlapping sentences
         if len(selected) < n:
-            step = max(5.0, (video_duration - target_duration) / max(1, n))
-            for i in range(n):
-                if len(selected) >= n:
-                    break
-                st = max(0.0, min(video_duration - target_duration, i * step))
-                et_candidate = min(video_duration, st + target_duration)
-                exp_st, exp_et = self._expand_to_complete_context(clean_segs, st, et_candidate, video_duration, target_duration=target_duration)
-                fallback_score = max(65, 88 - (len(selected) * 4))
-                fallback_sub = normalize_sub_scores(None, fallback_score)
-                selected.append({
-                    'start': exp_st,
-                    'end': exp_et,
-                    'duration': exp_et - exp_st,
-                    'virality_score': fallback_score,
-                    'sub_scores': fallback_sub.to_dict(),
-                    'title': f'Chapter Highlight #{len(selected)+1}',
-                    'hook_type': 'Story Reveal',
-                    'reason': 'Engaging segment from video chapter',
-                    'content_title': f"Highlight #{len(selected)+1}",
-                    'content_description': "Check out this highlight! #shorts #viral"
-                })
+            remaining_needed = n - len(selected)
+            slot_size = video_duration / max(1, remaining_needed + 1)
+            for idx in range(remaining_needed):
+                target_center = (idx + 1) * slot_size
+                best_sent_idx = 0
+                min_dist = 999999.0
+                for s_i, sent in enumerate(sentences):
+                    dist = abs(sent['start'] - target_center)
+                    if dist < min_dist:
+                        min_dist = dist
+                        best_sent_idx = s_i
+                
+                s_st = sentences[best_sent_idx]['start']
+                s_et = s_st + 40.0
+                for f_i in range(best_sent_idx, min(total_sents, best_sent_idx + 15)):
+                    if (sentences[f_i]['end'] - s_st) >= 30.0 and sentences[f_i]['ends_with_terminal']:
+                        s_et = sentences[f_i]['end']
+                        break
+                
+                exp_st, exp_et = self._expand_to_complete_context(clean_segs, s_st, s_et, video_duration, target_duration=target_duration)
+                overlaps = any(max(exp_st, s['start']) < min(exp_et, s['end']) for s in selected)
+                if not overlaps and exp_et > exp_st:
+                    p_score = max(65, 85 - (len(selected) * 2))
+                    sub = normalize_sub_scores(None, p_score)
+                    title_text = sentences[best_sent_idx]['text'][:45].rstrip('. ') + "..."
+                    selected.append({
+                        'start': exp_st,
+                        'end': exp_et,
+                        'duration': exp_et - exp_st,
+                        'virality_score': p_score,
+                        'sub_scores': sub.to_dict(),
+                        'title': title_text,
+                        'hook_title': "Key Moment",
+                        'hook_type': 'Key Highlight',
+                        'reason': 'Conversational highlight with complete sentence closure.',
+                        'content_title': title_text,
+                        'content_description': "Must-watch viral moment! #shorts #viral"
+                    })
 
         selected.sort(key=lambda x: x['virality_score'], reverse=True)
         return selected[:n]
@@ -755,6 +838,121 @@ class AISelector:
             return self._heuristic_viral_selector(segments, video_duration, n, target_duration, topic=topic)
         
         topic_clause = f"Focus strictly on highlights involving '{topic}'." if topic else "Focus on the most jaw-dropping, funny, emotional, or educational viral peaks."
+
+        # Check if long video (> 15 minutes) with active API key -> Use Hierarchical Chaptering
+        has_api_key = bool(self.api_key and self.api_key not in ["YOUR_API_KEY_HERE", "demo", "null", "undefined", ""])
+        if video_duration > 900 and has_api_key and segments:
+            try:
+                print(f"[AISelector] Long video detected ({video_duration/60:.1f}m). Running Multi-Chapter Story Extraction across timeline...")
+                window_duration = 720.0  # 12-minute window
+                overlap = 60.0          # 1-minute overlap
+                step = window_duration - overlap
+                num_windows = max(2, int((video_duration - overlap) / step) + 1)
+                clips_per_window = max(2, int(round(n / num_windows)) + 1)
+
+                all_window_clips = []
+                for w_idx in range(num_windows):
+                    w_start = w_idx * step
+                    w_end = min(video_duration, w_start + window_duration)
+                    if w_start >= video_duration - 30.0:
+                        break
+
+                    # Filter segments falling into this chapter window
+                    w_segs = [s for s in segments if isinstance(s, dict) and (w_start - 5.0) <= s.get('start', 0.0) <= (w_end + 5.0)]
+                    if len(w_segs) < 10:
+                        continue
+
+                    w_transcript, _ = self.format_continuous_dialogue(w_segs)
+                    if not w_transcript:
+                        continue
+
+                    w_prompt = f"""You are an elite viral video editor for short-form video (TikTok, YouTube Shorts, Reels).
+Analyze this dialogue excerpt ({w_start/60:.1f}m - {w_end/60:.1f}m of the video) and extract the top {clips_per_window} COMPLETE self-contained viral stories.
+
+{topic_clause}
+
+CRITICAL RULES:
+1. COMPLETE STANDALONE CONTEXT: Each clip MUST make 100% sense on its own. If it starts with a question or premise, include the question! Never start mid-explanation or with dangling pronouns ("he said", "this happened").
+2. COMPLETE NARRATIVE ARC: Must contain: Setup/Hook -> Discussion -> Conclusion/Payoff. Never cut off before the punchline or moral of the story.
+3. ADAPTIVE DURATION (~{target_duration}s): Clips should naturally be between 30s and 85s so the entire thought is complete.
+4. EXACT TIMESTAMPS: Use the exact timestamps from this excerpt.
+
+EXCERPT TRANSCRIPT:
+{w_transcript}
+
+Return ONLY valid JSON format:
+{{
+  "clips": [
+    {{
+      "start": {w_start + 10.0:.1f},
+      "end": {w_start + 55.0:.1f},
+      "title": "Clear punchy title of what they are talking about",
+      "hook_title": "3-5 word on-screen text",
+      "virality_score": 94,
+      "sub_scores": {{"hook": 95, "flow": 92, "value": 94, "trend": 91}},
+      "hook_type": "Story Reveal",
+      "reason": "Complete narrative arc starting with premise and ending with full resolution"
+    }}
+  ]
+}}"""
+                    try:
+                        resp = self._generate_with_fallback(w_prompt, generation_config={"response_mime_type": "application/json"})
+                        raw_t = getattr(resp, "text", str(resp)).strip()
+                        c_text = raw_t
+                        if c_text.startswith("```"):
+                            pts = c_text.split("```")
+                            c_text = pts[1] if len(pts) >= 3 else pts[-1]
+                            if c_text.startswith("json"): c_text = c_text[4:].strip()
+                        if c_text.endswith("```"): c_text = c_text[:-3].strip()
+                        c_data = json.loads(c_text)
+                        c_list = c_data if isinstance(c_data, list) else c_data.get('clips', [])
+                        for cd in c_list:
+                            c_st = cd.get('start')
+                            c_et = cd.get('end')
+                            if c_st is not None and c_et is not None:
+                                c_st, c_et = float(c_st), float(c_et)
+                                if c_et > c_st and 0 <= c_st < video_duration:
+                                    exp_st, exp_et = self._expand_to_complete_context(segments, c_st, c_et, video_duration, target_duration=target_duration)
+                                    dur = exp_et - exp_st
+                                    score = max(60, min(99, int(cd.get('virality_score', 85))))
+                                    sub_s = normalize_sub_scores(cd.get('sub_scores'), score)
+                                    title_str = cd.get('title', 'Highlight')
+                                    all_window_clips.append({
+                                        'start': exp_st,
+                                        'end': exp_et,
+                                        'duration': dur,
+                                        'title': title_str,
+                                        'hook_title': cd.get('hook_title', 'Key Moment'),
+                                        'virality_score': score,
+                                        'sub_scores': sub_s.to_dict(),
+                                        'hook_type': cd.get('hook_type', 'Story Arc'),
+                                        'reason': cd.get('reason', 'Complete narrative arc from chapter analysis'),
+                                        'content_title': title_str,
+                                        'content_description': f"{title_str} #shorts #viral #reels"
+                                    })
+                    except Exception as ch_err:
+                        print(f"[AISelector] Chapter {w_idx+1} analysis note: {ch_err}")
+
+                if all_window_clips:
+                    all_window_clips.sort(key=lambda x: x['virality_score'], reverse=True)
+                    deduped = []
+                    for c in all_window_clips:
+                        ov = False
+                        for d in deduped:
+                            overlap_start = max(c['start'], d['start'])
+                            overlap_end = min(c['end'], d['end'])
+                            if (overlap_end - overlap_start) > 8.0:
+                                ov = True
+                                break
+                        if not ov:
+                            deduped.append(c)
+
+                    if len(deduped) >= min(4, n):
+                        print(f"[AISelector] Multi-Chapter Analysis yielded {len(deduped)} top story clips across video timeline.")
+                        return deduped[:n]
+
+            except Exception as multi_err:
+                print(f"[AISelector] Multi-Chapter Analysis note: {multi_err}. Proceeding with standard flow...")
 
         prompt = f"""You are an elite viral video editor and algorithm curator for short-form video (TikTok, YouTube Shorts, Instagram Reels).
 Analyze this continuous dialogue transcript with timestamps and select the {n} BEST viral short-form clips.
