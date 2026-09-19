@@ -780,7 +780,11 @@ class VideoProcessor:
                                     self.p_cb(f"Rendering {phase_name} {self.c_idx}/{self.total_c} ({pct}%)...", overall_pct)
 
                 my_logger = MyBarLogger(progress_callback, i, len(clip_specs), cancel_event) if progress_callback else None
-                render_fps = src_fps if src_fps > 0 else (60 if best_codec == 'h264_nvenc' else 30)
+                # Automatically cap CPU rendering to 30 FPS to double the speed (hardware encoders can keep 60 FPS)
+                render_fps = src_fps if src_fps > 0 else 30
+                if best_codec == 'libx264' and render_fps > 30:
+                    render_fps = 30
+                    render_fps = 30
 
                 if cancel_event and cancel_event.is_set():
                     print(" Processing cancelled by user.")
