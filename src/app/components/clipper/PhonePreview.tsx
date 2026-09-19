@@ -474,7 +474,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
               <p className="text-xs font-bold text-white">Connecting Video Stream...</p>
               <p className="text-[10px] text-gray-400 max-w-[200px]">Fetching stream & synchronizing preview</p>
             </div>
-          ) : previewError || (!activeVideoUrl && youtubeId) ? (
+          ) : previewError ? (
             <div className="w-full h-full relative overflow-hidden bg-black flex flex-col items-center justify-center p-6 text-center select-none">
               {posterUrl && (
                 <img
