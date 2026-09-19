@@ -506,7 +506,7 @@ class VideoProcessor:
             elif best_codec == 'h264_amf':
                 ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '75M', '-maxrate', '100M', '-rc', 'cqp', '-qp_i', '12', '-qp_p', '12', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd+full_chroma_int']
             else:
-                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-threads', str(thread_count), '-crf', '12', '-preset', 'medium', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd+full_chroma_int']
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-threads', str(thread_count), '-crf', '12', '-preset', 'ultrafast', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd+full_chroma_int']
         elif quality.lower() == '1080p':
             if best_codec == 'h264_qsv':
                 ffmpeg_params = ['-pix_fmt', 'nv12', '-b:v', '30M', '-maxrate', '45M', '-global_quality', '16', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd']
@@ -515,7 +515,7 @@ class VideoProcessor:
             elif best_codec == 'h264_amf':
                 ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '30M', '-maxrate', '45M', '-rc', 'cqp', '-qp_i', '16', '-qp_p', '16', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd']
             else:
-                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-threads', str(thread_count), '-crf', '15', '-preset', 'fast', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd']
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-threads', str(thread_count), '-crf', '15', '-preset', 'ultrafast', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd']
         else:
             # 720p standard vertical
             if best_codec == 'h264_qsv':
@@ -525,7 +525,7 @@ class VideoProcessor:
             elif best_codec == 'h264_amf':
                 ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '18M', '-maxrate', '25M', '-rc', 'cqp', '-qp_i', '18', '-qp_p', '18', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd']
             else:
-                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-threads', str(thread_count), '-crf', '18', '-preset', 'fast', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd']
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-threads', str(thread_count), '-crf', '18', '-preset', 'ultrafast', '-movflags', '+faststart', '-sws_flags', 'lanczos+accurate_rnd']
 
         print(f"\n Processing {len(clip_specs)} viral clips (Saving to: {target_dir})...")
 
