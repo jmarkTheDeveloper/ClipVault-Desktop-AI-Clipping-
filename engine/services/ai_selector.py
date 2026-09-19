@@ -400,6 +400,28 @@ class AISelector:
 
         # Give 0.25s post-roll so the final word's decay isn't abruptly cut
         new_end = min(video_duration, clean_segs[end_idx]['end'] + 0.25)
+
+        # 4. Strict Short-Form Duration Ceiling Enforcement
+        if target_duration and target_duration > 0:
+            max_dur = max(45.0, float(target_duration) * 1.30)
+            if (new_end - new_start) > max_dur:
+                cutoff_target = new_start + target_duration
+                best_end_idx = None
+                min_diff = float('inf')
+                for idx in range(start_idx, end_idx + 1):
+                    seg_dur = clean_segs[idx]['end'] - new_start
+                    if seg_dur >= max(20.0, float(target_duration) * 0.60) and seg_dur <= max_dur:
+                        txt = clean_segs[idx]['text'].strip()
+                        if txt.endswith(('.', '!', '?')):
+                            diff = abs(clean_segs[idx]['end'] - cutoff_target)
+                            if diff < min_diff:
+                                min_diff = diff
+                                best_end_idx = idx
+                if best_end_idx is not None:
+                    new_end = min(video_duration, clean_segs[best_end_idx]['end'] + 0.25)
+                else:
+                    new_end = min(video_duration, new_start + max_dur)
+
         return max(0.0, new_start), new_end
 
     def _heuristic_viral_selector(self, segments, video_duration, n, target_duration, topic=None):
@@ -847,7 +869,11 @@ class AISelector:
                 overlap = 60.0          # 1-minute overlap
                 step = window_duration - overlap
                 num_windows = max(2, int((video_duration - overlap) / step) + 1)
-                clips_per_window = max(2, int(round(n / num_windows)) + 1)
+                clips_per_window = max(3, int(round((n * 1.5) / num_windows)) + 1)
+
+                max_clip_dur = int(min(120, target_duration * 1.25 if target_duration and target_duration > 0 else 75))
+                min_clip_dur = int(max(20, target_duration * 0.60 if target_duration and target_duration > 0 else 30))
+                target_label = int(target_duration) if target_duration and target_duration > 0 else 60
 
                 all_window_clips = []
                 for w_idx in range(num_windows):
@@ -873,7 +899,7 @@ Analyze this dialogue excerpt ({w_start/60:.1f}m - {w_end/60:.1f}m of the video)
 CRITICAL RULES:
 1. COMPLETE STANDALONE CONTEXT: Each clip MUST make 100% sense on its own. If it starts with a question or premise, include the question! Never start mid-explanation or with dangling pronouns ("he said", "this happened").
 2. COMPLETE NARRATIVE ARC: Must contain: Setup/Hook -> Discussion -> Conclusion/Payoff. Never cut off before the punchline or moral of the story.
-3. ADAPTIVE DURATION (~{target_duration}s): Clips should naturally be between 30s and 85s so the entire thought is complete.
+3. STRICT SHORT-FORM DURATION (~{target_label}s): Each clip MUST be around {target_label} seconds (between {min_clip_dur}s and {max_clip_dur}s). NEVER return a clip longer than {max_clip_dur} seconds!
 4. EXACT TIMESTAMPS: Use the exact timestamps from this excerpt.
 
 EXCERPT TRANSCRIPT:
@@ -946,8 +972,15 @@ Return ONLY valid JSON format:
                         if not ov:
                             deduped.append(c)
 
-                    if len(deduped) >= min(4, n):
+                    if len(deduped) >= n:
                         print(f"[AISelector] Multi-Chapter Analysis yielded {len(deduped)} top story clips across video timeline.")
+                        return deduped[:n]
+                    elif deduped:
+                        needed = n - len(deduped)
+                        print(f"[AISelector] Multi-Chapter Analysis produced {len(deduped)} clips, padding {needed} more to guarantee exactly {n} clips...")
+                        extra = self._heuristic_viral_selector(segments, video_duration, needed, target_duration, topic=topic)
+                        for ex in extra:
+                            deduped.append(ex)
                         return deduped[:n]
 
             except Exception as multi_err:
@@ -966,7 +999,7 @@ CRITICAL RULES FOR ZERO-KNOWLEDGE STANDALONE CONTEXT (MANDATORY):
    - Part 1: The Setup / Hook (The question, mystery, premise, or situation introduction)
    - Part 2: The Core Meat (The story, argument, struggle, or insight unfolding)
    - Part 3: The Payoff / Resolution (The conclusion, punchline, takeaway, or moral of the story)
-5. TARGET DURATION GUIDELINE (~{target_duration}s): Use ~{target_duration} seconds as a flexible guide capturing the complete unbroken story arc. Do not cut early or truncate the explanation.
+5. STRICT SHORT-FORM DURATION (~{int(target_duration) if target_duration and target_duration > 0 else 60}s): Each clip MUST be around {int(target_duration) if target_duration and target_duration > 0 else 60} seconds (between {int(max(20, target_duration * 0.60 if target_duration and target_duration > 0 else 30))}s and {int(min(120, target_duration * 1.25 if target_duration and target_duration > 0 else 75))}s). NEVER return a clip longer than {int(min(120, target_duration * 1.25 if target_duration and target_duration > 0 else 75))} seconds!
 6. ZERO FILLER: Do NOT select sponsor reads, channel plugs, audio checks, or disconnected punchlines.
 7. EXACT SENTENCE BOUNDARIES: Start precisely at word 1 of the opening sentence (or question) and end cleanly on the final punctuation mark of the conclusion.
 8. EXPLAINABLE METRICS: Provide an overall virality_score (0-99) and 4 sub_scores:
