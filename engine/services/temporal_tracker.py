@@ -149,7 +149,7 @@ class TemporalTracker:
     and calculates prominence scores to select primary subjects.
     """
 
-    def __init__(self, max_age: int = 30, min_hits: int = 3, iou_threshold: float = 0.25):
+    def __init__(self, max_age: int = 30, min_hits: int = 1, iou_threshold: float = 0.25):
         self.max_age = max_age
         self.min_hits = min_hits
         self.iou_threshold = iou_threshold

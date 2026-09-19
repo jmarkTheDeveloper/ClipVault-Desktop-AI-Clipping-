@@ -192,7 +192,7 @@ class FaceTracker:
         frame = np.ascontiguousarray(frame)
 
         h, w = frame.shape[:2]
-        max_dim = 640
+        max_dim = 960
         if max(h, w) > max_dim:
             scale = max_dim / float(max(h, w))
             small_w = int(w * scale)
@@ -386,20 +386,23 @@ class FaceTracker:
         valid_faces = []
         for f in candidate_detections:
             # 1. Human faces must be in the upper/middle portion of the frame
-            if f['center_y'] > h * 0.78:
+            if f['center_y'] > h * 0.85:
                 continue
-            # Ceiling rejection: Objects with face centers in the extreme top 12% of the frame
+            # Ceiling rejection: Objects with face centers in the extreme top 10% of the frame
             # are ceiling fixtures, hanging portraits/paintings, banners, or wall art.
-            if f['center_y'] < h * 0.12 and f['height'] < h * 0.35:
+            if f['center_y'] < h * 0.10 and f['height'] < h * 0.30:
                 continue
-            # 2. Bounding box cannot take up more than 52% width or 55% height of the entire frame
-            if f['width'] > w * 0.52 or f['height'] > h * 0.55 or f['area'] > (w * h * 0.25):
+            # 2. Bounding box cannot take up more than 68% width or 75% height of the entire frame.
+            # Close-up talking-head shots can have very large face boxes — allow them through.
+            if f['width'] > w * 0.68 or f['height'] > h * 0.75 or f['area'] > (w * h * 0.45):
                 continue
             # 3. Minimum size to avoid single-pixel noise
-            if f['width'] < 14 or f['height'] < 14 or f['area'] < 200:
+            if f['width'] < 12 or f['height'] < 12 or f['area'] < 150:
                 continue
 
-            # 4. Biological human skin-tone verification to eliminate background furniture & lanterns
+            # 4. Biological human skin-tone verification to eliminate background furniture & lanterns.
+            # Note: Studio/cool lighting and dark skin tones produce lower HSV skin saturation,
+            # so thresholds are kept permissive for neural detectors which already have high precision.
             bx = f['center_x'] - f['width'] // 2
             by = f['center_y'] - f['height'] // 2
             skin_ratio = self._get_skin_ratio(frame, bx, by, f['width'], f['height'])
@@ -407,14 +410,15 @@ class FaceTracker:
 
             # Cascade and HOG detectors lack deep semantic reasoning and frequently trigger
             # false positives on bookshelves, lanterns, wallpaper, and boxes.
-            # Enforce strict biological skin-chroma threshold (>= 15%).
+            # Enforce biological skin-chroma threshold (>= 8%).
             if f['type'] in ('frontal_haar', 'profile_haar_left', 'profile_haar_right', 'hog_person'):
-                if skin_ratio < 0.15:
+                if skin_ratio < 0.08:
                     continue
             else:
-                # Neural detectors (YuNet, MediaPipe) have high semantic precision, but reject
-                # completely zero-skin inanimate objects (like lamps or shelves) if skin < 4%.
-                if skin_ratio < 0.04:
+                # Neural detectors (YuNet, MediaPipe) have high semantic precision.
+                # Only reject objects with near-zero skin signal (< 1.5%) — catches lamps, shelves.
+                # Dark skin tones and studio-lit speakers can read as low as 2-4% in the HSV range.
+                if skin_ratio < 0.015:
                     continue
 
             valid_faces.append(f)
@@ -679,7 +683,63 @@ class FaceTracker:
                 pass
 
         if not found_any_human:
-            print("    [FaceTracker] 0 human tracks detected. Engaging general-purpose SubjectTracker...")
+            # ── Skin-Tone Centroid Rescue ──
+            # Before giving up and using saliency-based SubjectTracker (which locks onto background),
+            # try to locate the human via their skin-tone column centroid across sampled frames.
+            # This handles cases where all face detectors fire but get filtered out (e.g., partial occlusion,
+            # unusual lighting, or a distant speaker whose face is below minimum pixel size).
+            print("    [FaceTracker] 0 human tracks detected. Attempting skin-tone centroid rescue before SubjectTracker...")
+            try:
+                skin_rescue_xs = []
+                rescue_sample_times = np.linspace(0.08, max(0.1, clip.duration - 0.08), min(8, max(4, int(clip.duration * 2))))
+                for rt in rescue_sample_times:
+                    try:
+                        rescue_frame = clip.get_frame(rt)
+                        if rescue_frame.dtype != np.uint8:
+                            rescue_frame = np.clip(rescue_frame, 0, 255).astype(np.uint8)
+                        rs_h, rs_w = rescue_frame.shape[:2]
+                        # Downsample for fast skin detection
+                        scale = 320.0 / max(rs_h, rs_w)
+                        small_rescue = cv2.resize(rescue_frame, (int(rs_w * scale), int(rs_h * scale)), interpolation=cv2.INTER_AREA)
+                        cx_skin = self._compute_human_presence_centroid_x(small_rescue, rs_w)
+                        if cx_skin is not None:
+                            skin_rescue_xs.append(cx_skin)
+                    except Exception:
+                        continue
+
+                if skin_rescue_xs and len(skin_rescue_xs) >= 2:
+                    # Cluster skin centroid estimates — if they cluster tightly, use the median
+                    xs_arr = np.array(skin_rescue_xs)
+                    med_x = float(np.median(xs_arr))
+                    agree = sum(1 for x in xs_arr if abs(x - med_x) < width * 0.22)
+                    if agree >= max(2, len(skin_rescue_xs) // 2):
+                        print(f"    [FaceTracker] Skin centroid rescue: locking crop to x={med_x:.0f} ({agree}/{len(skin_rescue_xs)} frames agree)")
+                        # Build a fixed static crop centered on the skin centroid
+                        crop_w = int(height * crop_ratio)
+                        if crop_w % 2 != 0: crop_w -= 1
+                        crop_w = min(width, crop_w)
+                        x1_rescue = max(0, min(width - crop_w, int(round(med_x - crop_w / 2.0))))
+                        if x1_rescue % 2 != 0: x1_rescue = max(0, x1_rescue - 1)
+
+                        final_out_w = crop_w
+                        final_out_h = height
+                        if final_out_w % 2 != 0: final_out_w -= 1
+                        if final_out_h % 2 != 0: final_out_h -= 1
+
+                        def skin_rescue_filter(get_frame, t):
+                            frame = get_frame(t)
+                            patch = frame[:, x1_rescue:x1_rescue + crop_w]
+                            if patch.shape[1] != final_out_w or patch.shape[0] != final_out_h:
+                                return cv2.resize(patch, (final_out_w, final_out_h), interpolation=cv2.INTER_LANCZOS4)
+                            return patch
+
+                        rescued_clip = clip.fl(skin_rescue_filter, apply_to=["mask"])
+                        rescued_clip.size = (final_out_w, final_out_h)
+                        return rescued_clip
+            except Exception as rescue_err:
+                print(f"    [FaceTracker] Skin rescue notice: {rescue_err}")
+
+            print("    [FaceTracker] Skin rescue insufficient. Engaging general-purpose SubjectTracker...")
             try:
                 return self.subject_tracker.track_and_crop(clip, crop_ratio=crop_ratio, camera_style=camera_style)
             except Exception as st_err:
