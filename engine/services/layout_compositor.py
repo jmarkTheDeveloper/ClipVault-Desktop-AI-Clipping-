@@ -97,28 +97,27 @@ class LayoutCompositor:
         elif layout == "landscape_blur":
             print(f"    [LayoutCompositor] Fitting landscape video with blurred background inside vertical canvas ({target_width}x{target_height})...")
             W, H = clip.size
-            scale_bg = max(target_width / W, target_height / H) * 1.15
-            bg_w = int(W * scale_bg)
-            bg_h = int(H * scale_bg)
-            if bg_w % 2 != 0: bg_w -= 1
-            if bg_h % 2 != 0: bg_h -= 1
+            target_ratio = target_width / target_height
 
-            bg = clip.resize((bg_w, bg_h))
-            clips_to_close.append(bg)
-
-            # Center crop background to exact target dimensions
-            crop_x = max(0, (bg_w - target_width) // 2)
-            crop_y = max(0, (bg_h - target_height) // 2)
-            bg_cropped = bg.crop(x1=crop_x, y1=crop_y, width=target_width, height=target_height)
+            # 1. Center crop the source video FIRST to match the target aspect ratio (Avoids 34MP allocations)
+            if (W / H) > target_ratio:
+                new_w = int(H * target_ratio)
+                crop_x = max(0, (W - new_w) // 2)
+                bg_cropped = clip.crop(x1=crop_x, y1=0, width=new_w, height=H)
+            else:
+                new_h = int(W / target_ratio)
+                crop_y = max(0, (H - new_h) // 2)
+                bg_cropped = clip.crop(x1=0, y1=crop_y, width=W, height=new_h)
             clips_to_close.append(bg_cropped)
 
-            # Fast, cinematic bokeh blur: downsample 8x, blur, dim, and upscale in one vectorized step
+            # 2. Fast, cinematic bokeh blur: downsample, blur, dim, and upscale directly to target size
             def fast_bokeh_dim(frame):
-                h, w = frame.shape[:2]
-                small = cv2.resize(frame, (max(16, w // 8), max(16, h // 8)), interpolation=cv2.INTER_AREA)
+                # Scale down aggressively for massive performance gain on blur
+                small = cv2.resize(frame, (max(16, target_width // 10), max(16, target_height // 10)), interpolation=cv2.INTER_AREA)
                 blurred = cv2.GaussianBlur(small, (15, 15), 0)
                 dimmed = (blurred * 0.60).astype(np.uint8)
-                return cv2.resize(dimmed, (w, h), interpolation=cv2.INTER_LINEAR)
+                # Scale back up to exactly the target canvas size
+                return cv2.resize(dimmed, (target_width, target_height), interpolation=cv2.INTER_LINEAR)
 
             bg_dark = bg_cropped.fl_image(fast_bokeh_dim)
             clips_to_close.append(bg_dark)
