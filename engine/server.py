@@ -281,7 +281,7 @@ class ProcessRequest(BaseModel):
     tts_rate: str = "+0%"
     custom_range: Optional[List[float]] = None
     custom_ranges: Optional[List[List[float]]] = None
-    add_bg_music: Optional[bool] = True
+    add_bg_music: Optional[bool] = False
     add_captions: Optional[bool] = True
     hook_text: Optional[str] = None
     transcription_language: Optional[str] = "auto"

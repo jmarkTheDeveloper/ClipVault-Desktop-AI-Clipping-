@@ -404,6 +404,7 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
       camera_style: "instant",
       adaptive_crop: true,
       enable_super_resolution: quality === "4k",
+      add_bg_music: false,
     };
 
     try {
@@ -523,7 +524,7 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
                     <span>Generated {generatedClips.length} Viral Clips</span>
                   </h2>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    Ranked by AI virality score, reframed for {aspectRatio}, with burned-in dynamic captions.
+                    Ranked by AI virality score, reframed for {aspectRatio}, with burned-in dynamic captions & original raw audio.
                   </p>
                 </div>
                 <button
