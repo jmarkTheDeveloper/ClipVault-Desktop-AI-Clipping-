@@ -257,7 +257,14 @@ class TemporalTracker:
                     type_weight = 3.0 if det_type in ("yunet_neural", "mediapipe", "frontal_haar", "profile_haar_left", "profile_haar_right") else 1.0
 
                     # Penalize tracks that are currently coasting (not actively detected)
-                    coasting_factor = 0.35 if trk.time_since_update > 0 else 1.0
+                    # A brief 1-3 frame miss is extremely common with neural networks (blinks, side angles)
+                    # We only severely penalize prominence after 4+ frames of continuous absence.
+                    if trk.time_since_update == 0:
+                        coasting_factor = 1.0
+                    elif trk.time_since_update <= 3:
+                        coasting_factor = 0.95
+                    else:
+                        coasting_factor = max(0.20, 1.0 - (trk.time_since_update * 0.15))
 
                     dist_eye = abs(cy - frame_h * 0.38) / (frame_h * 0.45)
                     eye_penalty = max(0.20, 1.0 - dist_eye ** 2)
