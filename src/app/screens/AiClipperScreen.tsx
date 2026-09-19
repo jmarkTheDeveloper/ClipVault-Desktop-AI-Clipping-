@@ -909,21 +909,31 @@ export const AiClipperScreen: React.FC<Props> = ({
     }
   };
 
-  const cancelClipper = async () => {
+  const cancelClipper = () => {
     if (pollIntervalRef.current) {
       clearInterval(pollIntervalRef.current);
       pollIntervalRef.current = null;
     }
-    const taskId = currentTaskIdRef.current;
-    try {
-      await fetch(`http://127.0.0.1:8000/api/cancel/${taskId || ""}`, { method: "POST" });
-    } catch (err) {
-      console.error("Failed to cancel clipping task:", err);
-    }
+    // Instantly update UI so user is never locked or frozen
     setRunning(false);
     setStatusText("Processing cancelled by user.");
     setProgress(0);
-    loadVaultClips();
+
+    const taskId = currentTaskIdRef.current;
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 2500);
+      fetch(`http://127.0.0.1:8000/api/cancel`, { method: "POST", signal: controller.signal })
+        .catch(() => {})
+        .finally(() => clearTimeout(timeout));
+      if (taskId) {
+        fetch(`http://127.0.0.1:8000/api/cancel/${taskId}`, { method: "POST" }).catch(() => {});
+      }
+    } catch (err) {
+      console.error("Failed to cancel clipping task:", err);
+    }
+    // Load vault silently without locking the UI with a full-screen spinner
+    loadVaultClips(true);
   };
 
   const openOutputFolder = async (specificFolder?: string) => {

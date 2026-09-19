@@ -543,14 +543,18 @@ def purge_ghost_files():
                         if p.name.startswith(".trash") or p.name.endswith(".trash") or ".trash" in p.name:
                             try: p.unlink()
                             except Exception: pass
-                        elif p.suffix.lower() == ".mp4" and (
-                            p.stat().st_size == 0
-                            or p.name.lower() in DELETED_CLIPS_TOMBSTONES
-                            or p_norm in DELETED_CLIPS_TOMBSTONES
-                            or p.stem.lower() in DELETED_CLIPS_TOMBSTONES
-                        ):
-                            try: p.unlink()
-                            except Exception: pass
+                        elif p.suffix.lower() == ".mp4":
+                            # Never touch or unlink an actively rendering file!
+                            if (time.time() - p.stat().st_mtime) < 20.0:
+                                continue
+                            if (
+                                p.stat().st_size == 0
+                                or p.name.lower() in DELETED_CLIPS_TOMBSTONES
+                                or p_norm in DELETED_CLIPS_TOMBSTONES
+                                or p.stem.lower() in DELETED_CLIPS_TOMBSTONES
+                            ):
+                                try: p.unlink()
+                                except Exception: pass
                 except Exception:
                     pass
 
@@ -559,6 +563,8 @@ def purge_ghost_files():
             clips_by_name = {}
             for p in OUTPUT_DIR.rglob("*.mp4"):
                 if not p.name.startswith(".") and not p.name.startswith(".trash") and p.stat().st_size > 0:
+                    if (time.time() - p.stat().st_mtime) < 20.0:
+                        continue
                     clips_by_name.setdefault(p.name.lower(), []).append(p)
 
             # For each clip with multiple copies, keep the NEWEST copy and purge all older stale copies!
@@ -581,7 +587,7 @@ def purge_ghost_files():
         print(f"Error in purge_ghost_files: {e}")
 
 @app.get("/api/saved_clips")
-def get_saved_clips():
+async def get_saved_clips():
     """
     Scans the output directory (and all subfolders) to return all generated video clips, metadata, and folders.
     """
@@ -1686,24 +1692,18 @@ def process_video_endpoint(
 
 @app.post("/api/cancel/{task_id}")
 @app.post("/api/cancel")
-def cancel_clipping_task(task_id: Optional[str] = None):
+async def cancel_clipping_task(task_id: Optional[str] = None):
     """Cancels the active clipping job and stops all sub-processes."""
-    if task_id and task_id in cancellation_events:
-        cancellation_events[task_id].set()
-        if task_id in tasks_db:
-            tasks_db[task_id]["status"] = "cancelled"
-            tasks_db[task_id]["message"] = "Processing stopped by user."
-    else:
-        for tid, evt in cancellation_events.items():
-            evt.set()
-            if tid in tasks_db:
-                tasks_db[tid]["status"] = "cancelled"
-                tasks_db[tid]["message"] = "Processing stopped by user."
+    for tid, evt in list(cancellation_events.items()):
+        evt.set()
+        if tid in tasks_db:
+            tasks_db[tid]["status"] = "cancelled"
+            tasks_db[tid]["message"] = "Processing stopped by user."
     return {"success": True, "message": "Cancellation signal sent."}
 
 @app.get("/api/progress/{task_id}")
 @app.get("/api/status/{task_id}")
-def get_task_status(task_id: str):
+async def get_task_status(task_id: str):
     """
     Retrieves the execution status and progress of a background clipping task.
     """
