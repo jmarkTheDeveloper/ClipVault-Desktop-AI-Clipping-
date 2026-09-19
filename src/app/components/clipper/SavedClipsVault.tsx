@@ -37,6 +37,7 @@ interface SavedClipsVaultProps {
   vaultClips: ClipMetadata[];
   vaultFolders: string[];
   vaultLoading: boolean;
+  vaultError?: string | null;
   vaultSearch: string;
   setVaultSearch: (val: string) => void;
   vaultSelectedFolder: string;
@@ -553,6 +554,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
   vaultClips,
   vaultFolders,
   vaultLoading,
+  vaultError,
   vaultSearch,
   setVaultSearch,
   vaultSelectedFolder,
@@ -1700,6 +1702,21 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
           <div className="flex-1 flex flex-col items-center justify-center py-20">
             <Loader2 className="w-10 h-10 text-amber-400 animate-spin mb-3" />
             <p className="text-sm font-bold text-gray-400">Loading your Saved Clips Vault...</p>
+          </div>
+        ) : vaultError ? (
+          <div className="flex-1 flex flex-col items-center justify-center py-20 text-center">
+            <div className="w-14 h-14 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-4">
+              <AlertTriangle className="w-7 h-7 text-red-400" />
+            </div>
+            <h3 className="text-sm font-bold text-white mb-1">Engine Not Running</h3>
+            <p className="text-xs text-gray-500 max-w-xs mb-4">{vaultError}</p>
+            <button
+              onClick={() => onRefresh?.()}
+              className="px-4 py-2 rounded-xl bg-amber-400/10 border border-amber-400/20 text-amber-400 text-xs font-bold hover:bg-amber-400/20 transition-all flex items-center gap-2"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              Retry Connection
+            </button>
           </div>
         ) : filteredClips.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center py-16 text-center bg-[#121212]/50 border border-dashed border-white/5 rounded-3xl">

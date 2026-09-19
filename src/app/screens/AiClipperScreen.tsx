@@ -464,6 +464,7 @@ export const AiClipperScreen: React.FC<Props> = ({
   const [vaultClips, setVaultClips] = useState<ClipMetadata[]>([]);
   const [vaultFolders, setVaultFolders] = useState<string[]>(["Main Library"]);
   const [vaultLoading, setVaultLoading] = useState(false);
+  const [vaultError, setVaultError] = useState<string | null>(null);
   const [vaultSearch, setVaultSearch] = useState("");
   const [vaultSelectedFolder, setVaultSelectedFolder] = useState("all");
   const [selectedClipPaths, setSelectedClipPaths] = useState<string[]>([]);
@@ -504,14 +505,18 @@ export const AiClipperScreen: React.FC<Props> = ({
 
   // Load Saved Clips Vault with automatic startup retry poller
   const loadVaultClips = async (silent = false, retries = 6) => {
-    if (!silent) setVaultLoading(true);
+    if (!silent) { setVaultLoading(true); setVaultError(null); }
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/saved_clips");
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s max wait
+      const res = await fetch("http://127.0.0.1:8000/api/saved_clips", { signal: controller.signal });
+      clearTimeout(timeoutId);
       if (res.ok) {
         const data = await res.json();
         setVaultClips(data.clips || []);
         setVaultFolders(data.folders || ["Main Library"]);
         if (data.storage_dir || data.output_dir) setLastOutputFolder(data.storage_dir || data.output_dir);
+        setVaultError(null);
         setVaultLoading(false);
         return;
       }
@@ -521,6 +526,9 @@ export const AiClipperScreen: React.FC<Props> = ({
         setTimeout(() => loadVaultClips(silent, retries - 1), 1000);
       } else {
         setVaultLoading(false);
+        if (!silent) {
+          setVaultError("Cannot connect to ClipVault engine. Make sure the backend is running.");
+        }
       }
     }
   };
@@ -1696,6 +1704,7 @@ export const AiClipperScreen: React.FC<Props> = ({
             vaultClips={vaultClips}
             vaultFolders={vaultFolders}
             vaultLoading={vaultLoading}
+            vaultError={vaultError}
             vaultSearch={vaultSearch}
             setVaultSearch={setVaultSearch}
             vaultSelectedFolder={vaultSelectedFolder}
