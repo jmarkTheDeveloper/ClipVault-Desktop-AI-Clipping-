@@ -73,6 +73,41 @@ from services.super_resolution import SuperResolutionEngine
 from utils.helpers import cleanup_temp_files
 
 
+# ==============================================================================
+# BUGFIX: MoviePy Windows Subprocess Deadlock Patch
+# When ffmpeg writes to stderr (e.g. warnings, logs), and the Windows OS pipe 
+# buffer (64KB) fills up, ffmpeg will freeze. MoviePy's proc.wait() then hangs forever.
+# We fix this by monkey-patching the init methods to drain stderr in the background.
+# ==============================================================================
+import threading
+from moviepy.video.io.ffmpeg_writer import FFMPEG_VideoWriter
+_old_video_init = FFMPEG_VideoWriter.__init__
+
+def _patched_video_init(self, *args, **kwargs):
+    _old_video_init(self, *args, **kwargs)
+    if hasattr(self, 'proc') and self.proc and self.proc.stderr:
+        def drain():
+            try:
+                for _ in self.proc.stderr: pass
+            except Exception: pass
+        threading.Thread(target=drain, daemon=True).start()
+
+FFMPEG_VideoWriter.__init__ = _patched_video_init
+
+# Also patch the audio writer function to prevent audio pipe deadlocks
+import moviepy.audio.io.ffmpeg_audiowriter as moviepy_audio_writer
+_old_audio_writer = moviepy_audio_writer.ffmpeg_audiowriter
+
+def _patched_audio_writer(*args, **kwargs):
+    # If the user has verbose=False, or didn't specify, we override logger to None
+    # which makes moviepy pass stdout/stderr to DEVNULL, avoiding the pipe completely.
+    kwargs['logger'] = None
+    return _old_audio_writer(*args, **kwargs)
+
+moviepy_audio_writer.ffmpeg_audiowriter = _patched_audio_writer
+# ==============================================================================
+
+
 class VideoProcessor:
     """
     Master video processing pipeline that orchestrates AI clipping from end to end.
@@ -716,19 +751,33 @@ class VideoProcessor:
                         self.total_c = total_c
                         self.cancel_evt = cancel_evt
                         self.last_pct = -100
+                        self.current_bar_title = None
+
                     def bars_callback(self, bar, attr, value, old_value=None):
                         if self.cancel_evt and self.cancel_evt.is_set():
                             raise InterruptedError("Rendering stopped by user")
                         if attr == 'index' and self.p_cb:
+                            bar_title = self.bars[bar].get('title', '')
+                            # When MoviePy moves from video to audio, it changes the bar title
+                            if self.current_bar_title != bar_title:
+                                self.current_bar_title = bar_title
+                                self.last_pct = -100  # Reset for new phase
+
                             total = self.bars[bar].get('total', 1)
                             if total > 0:
                                 pct = int((value / total) * 100)
                                 if pct - self.last_pct >= 3 or pct == 100:
                                     self.last_pct = pct
+                                    
+                                    # Visual scaling: 0-80% for video, 80-99% for audio
+                                    is_audio = 'chunk' in bar_title.lower() or 'audio' in bar_title.lower()
+                                    sub_pct = 80 + (pct * 0.19) if is_audio else (pct * 0.8)
+                                    phase_name = "Audio" if is_audio else "Video"
+
                                     clip_budget = 39.0 / max(1, self.total_c)
                                     base = 60.0 + (self.c_idx - 1) * clip_budget
-                                    overall_pct = min(99, int(base + (pct / 100.0) * clip_budget))
-                                    self.p_cb(f"Rendering Clip {self.c_idx}/{self.total_c} ({pct}%)...", overall_pct)
+                                    overall_pct = min(99, int(base + (sub_pct / 100.0) * clip_budget))
+                                    self.p_cb(f"Rendering {phase_name} {self.c_idx}/{self.total_c} ({pct}%)...", overall_pct)
 
                 my_logger = MyBarLogger(progress_callback, i, len(clip_specs), cancel_event) if progress_callback else None
                 render_fps = src_fps if src_fps > 0 else (60 if best_codec == 'h264_nvenc' else 30)
