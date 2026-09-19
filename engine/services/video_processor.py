@@ -96,7 +96,7 @@ FFMPEG_VideoWriter.__init__ = _patched_video_init
 
 # Also patch the audio writer function to prevent audio pipe deadlocks
 import moviepy.audio.io.ffmpeg_audiowriter as moviepy_audio_writer
-_old_audio_writer = moviepy_audio_writer.ffmpeg_audiowriter
+_old_audio_writer = moviepy_audio_writer.ffmpeg_audiowrite
 
 def _patched_audio_writer(*args, **kwargs):
     # If the user has verbose=False, or didn't specify, we override logger to None
@@ -104,7 +104,7 @@ def _patched_audio_writer(*args, **kwargs):
     kwargs['logger'] = None
     return _old_audio_writer(*args, **kwargs)
 
-moviepy_audio_writer.ffmpeg_audiowriter = _patched_audio_writer
+moviepy_audio_writer.ffmpeg_audiowrite = _patched_audio_writer
 # ==============================================================================
 
 
