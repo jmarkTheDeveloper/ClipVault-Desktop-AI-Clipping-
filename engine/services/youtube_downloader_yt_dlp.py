@@ -479,8 +479,9 @@ class YouTubeDownloader:
                     str(temp_slice)
                 ])
 
-                print("    [YouTubeDownloader] Running direct HTTP range slice with ffmpeg...")
-                proc = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, timeout=45)
+                print(f"    [YouTubeDownloader] Running direct HTTP range slice with ffmpeg ({duration_sec:.1f}s)...")
+                slice_timeout = max(90, int(duration_sec * 2.5))
+                proc = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, timeout=slice_timeout)
                 if proc.returncode == 0 and temp_slice.exists() and temp_slice.stat().st_size > 10240:
                     if output_path.exists():
                         try: output_path.unlink()

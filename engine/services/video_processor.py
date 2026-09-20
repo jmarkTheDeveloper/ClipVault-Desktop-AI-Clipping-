@@ -228,6 +228,7 @@ class VideoProcessor:
             pass
 
         active_range = None if (custom_ranges and len(custom_ranges) > 1) else (custom_range if custom_range else custom_range_filter)
+        active_range_offset = 0.0
         use_smart_slicing = False
         video_path = None
         audio_path = None
@@ -249,8 +250,16 @@ class VideoProcessor:
                     url, quality=quality, custom_range=active_range
                 )
                 r_start, r_end = active_range
-                if custom_range: custom_range = [0.0, r_end - r_start]
-                if custom_range_filter: custom_range_filter = [0.0, r_end - r_start]
+                active_range_offset = float(r_start)
+                if custom_range:
+                    custom_range = [0.0, max(1.0, float(r_end) - float(r_start))]
+                if custom_range_filter:
+                    custom_range_filter = [0.0, max(1.0, float(r_end) - float(r_start))]
+                if custom_ranges:
+                    custom_ranges = [
+                        [max(0.0, float(cr[0]) - float(r_start)), max(1.0, min(float(r_end) - float(r_start), float(cr[1]) - float(r_start)))]
+                        for cr in custom_ranges if cr and len(cr) >= 2
+                    ]
             else:
                 if progress_callback: progress_callback("Analyzing stream metadata...", 5)
                 info = self.downloader.get_video_info(url)
@@ -322,34 +331,55 @@ class VideoProcessor:
                     continue
                 start_t = max(0.0, float(cr[0]))
                 end_t = min(duration, float(cr[1])) if float(cr[1]) > 0 else duration
+                if end_t <= start_t and duration > start_t:
+                    end_t = duration
                 if end_t > start_t:
-                    start_min = int(start_t // 60)
-                    start_sec_rem = int(start_t % 60)
-                    end_min = int(end_t // 60)
-                    end_sec_rem = int(end_t % 60)
+                    orig_start = start_t + active_range_offset
+                    orig_end = end_t + active_range_offset
+                    start_min = int(orig_start // 60)
+                    start_sec_rem = int(orig_start % 60)
+                    end_min = int(orig_end // 60)
+                    end_sec_rem = int(orig_end % 60)
                     time_label = f"{start_min}:{start_sec_rem:02d} - {end_min}:{end_sec_rem:02d}"
                     clip_specs.append({
                         'start': start_t,
                         'end': end_t,
+                        'source_start': orig_start,
+                        'source_end': orig_end,
                         'title': f'{title} - Clip {idx + 1} ({time_label})',
                         'virality_score': 100,
                         'content_title': f"{title} - Part {idx + 1} ",
                         'content_description': f"Part {idx + 1} ({time_label}) from '{title}'! #viral #shorts #clips"
                     })
         elif custom_range is not None:
-            start_t, end_t = max(0.0, custom_range[0]), min(duration, custom_range[1])
-            clip_specs = [{
-                'start': start_t,
-                'end': end_t,
-                'title': f'Custom Highlight ({start_t:.1f}s - {end_t:.1f}s)',
-                'virality_score': 100,
-                'content_title': f"{title} Highlight",
-                'content_description': f"Highlight clip from '{title}'! #viral #clips"
-            }]
+            start_t = max(0.0, float(custom_range[0]))
+            end_t = min(duration, float(custom_range[1])) if float(custom_range[1]) > 0 else duration
+            if end_t <= start_t and duration > start_t:
+                end_t = duration
+            if end_t > start_t:
+                orig_start = start_t + active_range_offset
+                orig_end = end_t + active_range_offset
+                start_min = int(orig_start // 60)
+                start_sec_rem = int(orig_start % 60)
+                end_min = int(orig_end // 60)
+                end_sec_rem = int(orig_end % 60)
+                time_label = f"{start_min}:{start_sec_rem:02d} - {end_min}:{end_sec_rem:02d}"
+                clip_specs = [{
+                    'start': start_t,
+                    'end': end_t,
+                    'source_start': orig_start,
+                    'source_end': orig_end,
+                    'title': f'{title} Highlight ({time_label})',
+                    'virality_score': 100,
+                    'content_title': f"{title} Highlight",
+                    'content_description': f"Highlight clip ({time_label}) from '{title}'! #viral #clips"
+                }]
         elif target_duration == -1:
             clip_specs = [{
                 'start': 0.0,
                 'end': duration,
+                'source_start': active_range_offset,
+                'source_end': duration + active_range_offset,
                 'title': 'Full Story Highlight',
                 'virality_score': 100,
                 'content_title': f"{title} Highlight",
@@ -885,8 +915,8 @@ class VideoProcessor:
                         "hook_type": hook_type,
                         "reason": curation_reason,
                         "transcription_confidence": int(trans_conf),
-                        "start": float(start),
-                        "end": float(end),
+                        "start": float(clip_info.get('source_start', start)),
+                        "end": float(clip_info.get('source_end', end)),
                         "duration": round(float(clip.duration), 2),
                         "source_title": title,
                         "source_url": url if not os.path.isfile(url) else "",
