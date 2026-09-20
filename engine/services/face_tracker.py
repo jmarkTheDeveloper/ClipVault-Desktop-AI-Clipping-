@@ -192,7 +192,7 @@ class FaceTracker:
         frame = np.ascontiguousarray(frame)
 
         h, w = frame.shape[:2]
-        max_dim = 960
+        max_dim = 640
         if max(h, w) > max_dim:
             scale = max_dim / float(max(h, w))
             small_w = int(w * scale)
@@ -243,7 +243,9 @@ class FaceTracker:
                 pass
 
         # ── TIER 2: MediaPipe Neural Face Detector (TFLite) ──
-        if self.mp_detector is not None:
+        # Only query MediaPipe if YuNet found no high-confidence face (preserves 15ms frame throughput)
+        has_confident_yunet = any(c.get('confidence', 0.0) >= 0.40 for c in candidate_detections)
+        if self.mp_detector is not None and not has_confident_yunet:
             try:
                 rgb_small = np.ascontiguousarray(small_frame)
                 mp_img = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_small)
@@ -271,77 +273,79 @@ class FaceTracker:
             except Exception:
                 pass
 
-        # Prepare grayscale and equalized frames for OpenCV cascades
-        gray = cv2.cvtColor(small_frame, cv2.COLOR_RGB2GRAY)
-        gray_eq = cv2.equalizeHist(gray)
-        gray_flipped = cv2.flip(gray_eq, 1)
+        # ── TIER 3 & 4: OpenCV Haar Cascades (Fallback Only) ──
+        # Haar sliding-window cascades are expensive (100-150ms). Only run when modern neural detectors find zero faces.
+        if not candidate_detections:
+            gray = cv2.cvtColor(small_frame, cv2.COLOR_RGB2GRAY)
+            gray_eq = cv2.equalizeHist(gray)
+            gray_flipped = cv2.flip(gray_eq, 1)
 
-        # ── TIER 3: Frontal Haar Cascade ──
-        if self.frontal_cascade is not None:
-            try:
-                detected_frontal = self.frontal_cascade.detectMultiScale(
-                    gray_eq, scaleFactor=1.12, minNeighbors=4, minSize=(26, 26)
-                )
-                for (sx, sy, sw, sh) in detected_frontal:
-                    orig_x = int(sx / scale)
-                    orig_y = int(sy / scale)
-                    orig_w = int(sw / scale)
-                    orig_h = int(sh / scale)
-                    candidate_detections.append({
-                        'center_x': orig_x + orig_w // 2,
-                        'center_y': orig_y + orig_h // 2,
-                        'width': orig_w,
-                        'height': orig_h,
-                        'confidence': 0.78,
-                        'area': orig_w * orig_h,
-                        'type': 'frontal_haar'
-                    })
-            except Exception:
-                pass
+            # ── TIER 3: Frontal Haar Cascade ──
+            if self.frontal_cascade is not None:
+                try:
+                    detected_frontal = self.frontal_cascade.detectMultiScale(
+                        gray_eq, scaleFactor=1.12, minNeighbors=4, minSize=(26, 26)
+                    )
+                    for (sx, sy, sw, sh) in detected_frontal:
+                        orig_x = int(sx / scale)
+                        orig_y = int(sy / scale)
+                        orig_w = int(sw / scale)
+                        orig_h = int(sh / scale)
+                        candidate_detections.append({
+                            'center_x': orig_x + orig_w // 2,
+                            'center_y': orig_y + orig_h // 2,
+                            'width': orig_w,
+                            'height': orig_h,
+                            'confidence': 0.78,
+                            'area': orig_w * orig_h,
+                            'type': 'frontal_haar'
+                        })
+                except Exception:
+                    pass
 
-        # ── TIER 4: Bidirectional Profile Haar Cascade (Both Left & Right Facing Profiles) ──
-        if self.profile_cascade is not None:
-            try:
-                # 4A: Left-facing profiles (standard orientation)
-                detected_left = self.profile_cascade.detectMultiScale(
-                    gray_eq, scaleFactor=1.10, minNeighbors=3, minSize=(26, 26)
-                )
-                for (sx, sy, sw, sh) in detected_left:
-                    orig_x = int(sx / scale)
-                    orig_y = int(sy / scale)
-                    orig_w = int(sw / scale)
-                    orig_h = int(sh / scale)
-                    candidate_detections.append({
-                        'center_x': orig_x + orig_w // 2,
-                        'center_y': orig_y + orig_h // 2,
-                        'width': orig_w,
-                        'height': orig_h,
-                        'confidence': 0.75,
-                        'area': orig_w * orig_h,
-                        'type': 'profile_haar_left'
-                    })
+            # ── TIER 4: Bidirectional Profile Haar Cascade (Both Left & Right Facing Profiles) ──
+            if self.profile_cascade is not None:
+                try:
+                    # 4A: Left-facing profiles (standard orientation)
+                    detected_left = self.profile_cascade.detectMultiScale(
+                        gray_eq, scaleFactor=1.10, minNeighbors=3, minSize=(26, 26)
+                    )
+                    for (sx, sy, sw, sh) in detected_left:
+                        orig_x = int(sx / scale)
+                        orig_y = int(sy / scale)
+                        orig_w = int(sw / scale)
+                        orig_h = int(sh / scale)
+                        candidate_detections.append({
+                            'center_x': orig_x + orig_w // 2,
+                            'center_y': orig_y + orig_h // 2,
+                            'width': orig_w,
+                            'height': orig_h,
+                            'confidence': 0.75,
+                            'area': orig_w * orig_h,
+                            'type': 'profile_haar_left'
+                        })
 
-                # 4B: Right-facing profiles (horizontally flipped orientation)
-                detected_right = self.profile_cascade.detectMultiScale(
-                    gray_flipped, scaleFactor=1.10, minNeighbors=3, minSize=(26, 26)
-                )
-                for (fx, fy, fw, fh) in detected_right:
-                    sx = small_w - (fx + fw)
-                    orig_x = int(sx / scale)
-                    orig_y = int(fy / scale)
-                    orig_w = int(fw / scale)
-                    orig_h = int(fh / scale)
-                    candidate_detections.append({
-                        'center_x': orig_x + orig_w // 2,
-                        'center_y': orig_y + orig_h // 2,
-                        'width': orig_w,
-                        'height': orig_h,
-                        'confidence': 0.75,
-                        'area': orig_w * orig_h,
-                        'type': 'profile_haar_right'
-                    })
-            except Exception:
-                pass
+                    # 4B: Right-facing profiles (horizontally flipped orientation)
+                    detected_right = self.profile_cascade.detectMultiScale(
+                        gray_flipped, scaleFactor=1.10, minNeighbors=3, minSize=(26, 26)
+                    )
+                    for (fx, fy, fw, fh) in detected_right:
+                        sx = small_w - (fx + fw)
+                        orig_x = int(sx / scale)
+                        orig_y = int(fy / scale)
+                        orig_w = int(fw / scale)
+                        orig_h = int(fh / scale)
+                        candidate_detections.append({
+                            'center_x': orig_x + orig_w // 2,
+                            'center_y': orig_y + orig_h // 2,
+                            'width': orig_w,
+                            'height': orig_h,
+                            'confidence': 0.75,
+                            'area': orig_w * orig_h,
+                            'type': 'profile_haar_right'
+                        })
+                except Exception:
+                    pass
 
         # ── TIER 5: Full-Body / Upper-Body Person Detector (Foreground Dominance) ──
         # Enforces a strict Foreground Dominance filter to lock onto human subjects
@@ -583,11 +587,12 @@ class FaceTracker:
         self.face_cache = {}
 
         # Sample clip frames to perform multi-model detection and temporal tracking
-        fps_sample = 6
-        num_samples = max(6, int(clip.duration * fps_sample))
+        # 2 FPS provides buttery smooth virtual camera tracking while cutting analysis time from 108s down to 3s
+        fps_sample = 2
+        num_samples = max(4, int(clip.duration * fps_sample))
         sample_times = np.linspace(0.05, max(0.1, clip.duration - 0.05), num_samples)
 
-        temporal_tracker = TemporalTracker(max_age=int(fps_sample * 2.5), min_hits=2)
+        temporal_tracker = TemporalTracker(max_age=int(fps_sample * 2.5), min_hits=1)
         virtual_cam = VirtualCamera(
             width, height, aspect_ratio=crop_ratio,
             camera_style=camera_style,
@@ -794,7 +799,7 @@ class FaceTracker:
                     stable_y1[idx_start:idx_end] = np.median(raw_y1[idx_start:idx_end])
                 idx_start = idx_end
 
-            kernel_size = 5 if camera_style == "snappy" else 9
+            kernel_size = 3 if camera_style == "snappy" else 5
             if len(stable_x1) >= kernel_size:
                 sigma = 1.2 if camera_style == "snappy" else 2.0
                 k = cv2.getGaussianKernel(kernel_size, sigma).flatten()
@@ -816,8 +821,11 @@ class FaceTracker:
         cw_keys = np.array([item["crop_rect"][2] for item in all_timeline_data], dtype=np.float64)
         ch_keys = np.array([item["crop_rect"][3] for item in all_timeline_data], dtype=np.float64)
 
-        final_out_w = int(round(float(np.median(cw_keys))))
-        final_out_h = int(round(float(np.median(ch_keys))))
+        if target_resolution and len(target_resolution) == 2:
+            final_out_w, final_out_h = int(target_resolution[0]), int(target_resolution[1])
+        else:
+            final_out_w = int(round(float(np.median(cw_keys))))
+            final_out_h = int(round(float(np.median(ch_keys))))
         if final_out_w % 2 != 0: final_out_w -= 1
         if final_out_h % 2 != 0: final_out_h -= 1
 

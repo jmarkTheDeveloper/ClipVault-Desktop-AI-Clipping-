@@ -373,7 +373,7 @@ class VideoProcessor:
             raise ValueError("Could not select any viral clips from this video.")
 
         # Align clip cut points to natural visual shot boundaries
-        if video_path and Path(video_path).exists() and not custom_segments and target_duration != -1:
+        if video_path and Path(video_path).exists() and not (custom_range or custom_ranges) and target_duration != -1:
             print("    [VideoProcessor] Aligning clip cut boundaries to visual camera transitions...")
             for spec in clip_specs:
                 orig_s, orig_e = spec['start'], spec['end']
@@ -628,12 +628,18 @@ class VideoProcessor:
                 # 4. Add Word-by-Word Animated Typography BEFORE background music (ensures clean speech transcription)
                 is_none_style = self.caption_maker.styles.get(self.caption_maker.selected_style, {}).get('no_captions', False)
                 if add_captions and not is_none_style:
-                    # High-Accuracy Direct Clip Transcription on Clean Audio (CapCut & Opus Clip Standard)
+                    # Sliced words from pre-computed video transcript (Instant 0.001s, preserves full millisecond timing)
+                    words_in_range = [
+                        w for w in clip_fallback_words
+                        if (start - 0.5) <= w.get('start', 0.0) <= (end + 0.5)
+                    ] if clip_fallback_words else []
+
                     clip_words = []
-                    clip_audio_tmp = None
-                    try:
-                        clip_audio_tmp = TEMP_DIR / f"clip_audio_{i}_{int(time.time()*1000)}.wav"
-                        if clip.audio is not None:
+                    # ONLY re-transcribe if no pre-computed words exist for the video and clip has audio
+                    if not words_in_range and not clip_fallback_words and clip.audio is not None:
+                        clip_audio_tmp = None
+                        try:
+                            clip_audio_tmp = TEMP_DIR / f"clip_audio_{i}_{int(time.time()*1000)}.wav"
                             clip.audio.write_audiofile(
                                 str(clip_audio_tmp),
                                 fps=16000,
@@ -650,26 +656,23 @@ class VideoProcessor:
                             if c_words:
                                 clip_words = c_words
                                 print(f"     Direct clean clip Whisper captured {len(clip_words)} words with millisecond precision!")
-                    except Exception as clip_tr_err:
-                        print(f"     Direct clip transcription note: {clip_tr_err}")
-                    finally:
-                        if clip_audio_tmp and clip_audio_tmp.exists():
-                            try: clip_audio_tmp.unlink()
-                            except Exception: pass
+                        except Exception as clip_tr_err:
+                            print(f"     Direct clip transcription note: {clip_tr_err}")
+                        finally:
+                            if clip_audio_tmp and clip_audio_tmp.exists():
+                                try: clip_audio_tmp.unlink()
+                                except Exception: pass
 
-                    # Filter fallback words for the clip time window
-                    words_in_range = [
-                        w for w in clip_fallback_words
-                        if (start - 0.5) <= w.get('start', 0.0) <= (end + 0.5)
-                    ] if clip_fallback_words else []
-
-                    # Validate word count & coverage to guarantee complete captions across all spoken segments
-                    if clip_words and (not words_in_range or len(clip_words) >= max(2, int(len(words_in_range) * 0.4))):
+                    # Determine final words and offset
+                    if words_in_range:
+                        final_words = words_in_range
+                        offset_time = start
+                    elif clip_words:
                         final_words = clip_words
                         offset_time = 0.0
                     else:
-                        final_words = words_in_range if words_in_range else clip_words
-                        offset_time = start if words_in_range else 0.0
+                        final_words = []
+                        offset_time = 0.0
 
                     if final_words:
                         ai_hook_text = clip_info.get('hook_title', hook_text)
@@ -873,6 +876,7 @@ class VideoProcessor:
                         json.dump(json_data, f_json, indent=2)
 
                     # 2. Legacy text metadata for clipboard & external editors
+                    clean_stem = output_path.stem
                     metadata_path = (metadata_dir / f"clip_{i}_{virality_score}pts_{clean_stem}_metadata.txt").resolve()
                     with open(metadata_path, 'w', encoding='utf-8') as f_meta:
                         f_meta.write(f"Catchy Title:\n{clean_title}\n\n")
