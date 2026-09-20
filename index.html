@@ -15,21 +15,91 @@
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
       <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
       <style>
+        *, *::before, *::after {
+          -webkit-user-select: none;
+          -moz-user-select: none;
+          -ms-user-select: none;
+          user-select: none;
+          -webkit-user-drag: none;
+        }
+        ::selection {
+          background: transparent;
+          color: inherit;
+        }
         html, body { 
           height: 100%; 
           margin: 0; 
           font-family: 'Geist', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           letter-spacing: -0.015em;
+          -webkit-user-select: none;
+          user-select: none;
         } 
-        #root { height: 100%; }
-        input, textarea, select {
+        #root { 
+          height: 100%; 
+          -webkit-user-select: none; 
+          user-select: none; 
+        }
+        input, textarea, select, [contenteditable="true"], .selectable-text {
           -webkit-user-select: text !important;
           user-select: text !important;
           pointer-events: auto !important;
         }
+        input::selection, textarea::selection, select::selection, [contenteditable="true"]::selection, .selectable-text::selection {
+          background: rgba(0, 230, 118, 0.35) !important;
+          color: inherit !important;
+        }
       </style>
       <script>
         window.process = { env: { NODE_ENV: 'development' } };
+        
+        // Security Hardening: Prevent web-like text selection, Ctrl+A scraping, and ghost dragging
+        document.addEventListener('selectstart', function (e) {
+          var target = e.target;
+          var isInput = target && (
+            target.tagName === 'INPUT' || 
+            target.tagName === 'TEXTAREA' || 
+            target.isContentEditable || 
+            (target.classList && target.classList.contains('selectable-text'))
+          );
+          if (!isInput) {
+            e.preventDefault();
+          }
+        }, false);
+
+        document.addEventListener('dragstart', function (e) {
+          var target = e.target;
+          var isAllowed = target && target.classList && target.classList.contains('allow-drag');
+          if (!isAllowed) {
+            e.preventDefault();
+          }
+        }, false);
+
+        document.addEventListener('keydown', function (e) {
+          if ((e.ctrlKey || e.metaKey) && e.key && e.key.toLowerCase() === 'a') {
+            var active = document.activeElement;
+            var isInput = active && (
+              active.tagName === 'INPUT' || 
+              active.tagName === 'TEXTAREA' || 
+              active.isContentEditable || 
+              (active.classList && active.classList.contains('selectable-text'))
+            );
+            if (!isInput) {
+              e.preventDefault();
+            }
+          }
+        }, true);
+
+        document.addEventListener('contextmenu', function (e) {
+          var target = e.target;
+          var isInput = target && (
+            target.tagName === 'INPUT' || 
+            target.tagName === 'TEXTAREA' || 
+            target.isContentEditable
+          );
+          if (!isInput) {
+            e.preventDefault();
+          }
+        }, false);
       </script>
       
     </head>

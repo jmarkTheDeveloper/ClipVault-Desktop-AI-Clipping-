@@ -234,6 +234,13 @@ function createWindow() {
     }
   });
 
+  // Security Guard: Disable browser context menu across non-editable elements (prevents inspect, text scraping)
+  mainWindow.webContents.on('context-menu', (event, params) => {
+    if (!params.isEditable) {
+      event.preventDefault();
+    }
+  });
+
   const distPath = path.join(__dirname, '../dist/index.html');
 
   let loadAttempts = 0;

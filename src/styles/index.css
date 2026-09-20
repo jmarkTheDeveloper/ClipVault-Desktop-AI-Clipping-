@@ -31,15 +31,38 @@
   background: rgba(251, 191, 36, 0.5);
 }
 
+/* Global Desktop App Lockdown: Prevent web-like text selection and ghost dragging */
+*, *::before, *::after {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+::selection {
+  background: transparent;
+  color: inherit;
+}
+
 html, body, #root {
   margin: 0;
   padding: 0;
   width: 100%;
   height: 100%;
   overflow: hidden;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
-input, textarea, [contenteditable="true"] {
+/* Allow text selection ONLY in genuine interactive input fields */
+input, textarea, select, [contenteditable="true"], .selectable-text {
   user-select: text !important;
   -webkit-user-select: text !important;
+  pointer-events: auto !important;
+}
+
+input::selection, textarea::selection, select::selection, [contenteditable="true"]::selection, .selectable-text::selection {
+  background: rgba(0, 230, 118, 0.35) !important;
+  color: inherit !important;
 }
