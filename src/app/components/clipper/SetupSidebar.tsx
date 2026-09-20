@@ -32,6 +32,8 @@ import {
   Sliders,
   Maximize2,
   Activity,
+  Play,
+  Pause,
 } from "lucide-react";
 import type { CustomSegment } from "./types";
 
@@ -187,6 +189,9 @@ interface SetupSidebarProps {
   setAdaptiveCrop?: (a: boolean) => void;
   enableSuperResolution?: boolean;
   setEnableSuperResolution?: (sr: boolean) => void;
+  onPlaySegment?: (seg: CustomSegment) => void;
+  isPlaying?: boolean;
+  onTogglePlay?: () => void;
 }
 
 export const SetupSidebar: React.FC<SetupSidebarProps> = ({
@@ -278,6 +283,9 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
   setAdaptiveCrop,
   enableSuperResolution = false,
   setEnableSuperResolution,
+  onPlaySegment,
+  isPlaying = false,
+  onTogglePlay,
 }) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
 
@@ -770,6 +778,9 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                               key={seg.id}
                               onClick={() => {
                                 if (setActiveSegmentId) setActiveSegmentId(seg.id);
+                                if (onPlaySegment) {
+                                  onPlaySegment(seg);
+                                }
                               }}
                               className={`p-3 rounded-xl border transition-all cursor-pointer ${
                                 isActive
@@ -797,27 +808,60 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                                   )}
                                 </div>
 
-                                {customSegments.length > 1 && (
+                                <div className="flex items-center gap-1.5">
+                                  {/* Play / Preview Segment Button */}
                                   <button
                                     type="button"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      if (setCustomSegments) {
-                                        setCustomSegments((prev) => {
-                                          const filtered = prev.filter((s) => s.id !== seg.id);
-                                           if (activeSegmentId === seg.id && filtered.length > 0 && setActiveSegmentId) {
-                                             setActiveSegmentId(filtered[0]?.id || "");
-                                           }
-                                          return filtered;
-                                        });
+                                      if (isActive && isPlaying) {
+                                        if (onTogglePlay) onTogglePlay();
+                                      } else {
+                                        if (onPlaySegment) onPlaySegment(seg);
                                       }
                                     }}
-                                    className="text-gray-500 hover:text-red-400 p-1 rounded transition-colors cursor-pointer"
-                                    title="Remove this segment"
+                                    className={`px-2 py-0.5 rounded-lg text-[10px] font-extrabold flex items-center gap-1 transition-all shadow-sm cursor-pointer ${
+                                      isActive && isPlaying
+                                        ? "bg-amber-400 text-black shadow-[0_0_12px_rgba(251,191,36,0.35)]"
+                                        : "bg-amber-400/15 hover:bg-amber-400 text-amber-400 hover:text-black border border-amber-400/30"
+                                    }`}
+                                    title={isActive && isPlaying ? "Pause preview playback" : "Play this clip in video player"}
                                   >
-                                    <Trash2 className="w-3.5 h-3.5" />
+                                    {isActive && isPlaying ? (
+                                      <>
+                                        <Pause className="w-3 h-3 fill-current" />
+                                        <span>Playing</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Play className="w-3 h-3 fill-current" />
+                                        <span>Play Clip</span>
+                                      </>
+                                    )}
                                   </button>
-                                )}
+
+                                  {customSegments.length > 1 && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (setCustomSegments) {
+                                          setCustomSegments((prev) => {
+                                            const filtered = prev.filter((s) => s.id !== seg.id);
+                                            if (activeSegmentId === seg.id && filtered.length > 0 && setActiveSegmentId) {
+                                              setActiveSegmentId(filtered[0]?.id || "");
+                                            }
+                                            return filtered;
+                                          });
+                                        }
+                                      }}
+                                      className="text-gray-500 hover:text-red-400 p-1 rounded transition-colors cursor-pointer"
+                                      title="Remove this segment"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+                                </div>
                               </div>
 
                               <div className="grid grid-cols-2 gap-2.5">
@@ -828,6 +872,13 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                                   <input
                                     type="text"
                                     value={seg.start}
+                                    onClick={(e) => e.stopPropagation()}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") {
+                                        e.currentTarget.blur();
+                                        if (onPlaySegment) onPlaySegment({ ...seg, start: e.currentTarget.value });
+                                      }
+                                    }}
                                     onChange={(e) => {
                                       const val = e.target.value;
                                       if (setCustomSegments) {
@@ -849,6 +900,13 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                                   <input
                                     type="text"
                                     value={seg.end}
+                                    onClick={(e) => e.stopPropagation()}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") {
+                                        e.currentTarget.blur();
+                                        if (onPlaySegment) onPlaySegment({ ...seg, end: e.currentTarget.value });
+                                      }
+                                    }}
                                     onChange={(e) => {
                                       const val = e.target.value;
                                       if (setCustomSegments) {

@@ -15,9 +15,10 @@ import {
   Flag,
   XCircle,
   AlertCircle,
+  Repeat,
 } from "lucide-react";
 import type { CropBox, CustomSegment } from "./types";
-import { extractYouTubeId } from "./types";
+import { extractYouTubeId, parseTimestampToSec } from "./types";
 
 interface PhonePreviewProps {
   activeVideoUrl: string;
@@ -56,6 +57,7 @@ interface PhonePreviewProps {
   isCropEditorOpen?: boolean;
   onCancel?: () => void;
   gameplayBgVideo?: string;
+  onPlaySegment?: (seg: CustomSegment) => void;
 }
 
 function formatTime(seconds: number): string {
@@ -266,6 +268,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
   isCropEditorOpen = false,
   onCancel,
   gameplayBgVideo = "",
+  onPlaySegment,
 }) => {
   const youtubeId = extractYouTubeId(ytUrl);
   const posterUrl = youtubeId ? `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg` : "";
@@ -279,6 +282,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
   const [internalCurrentTime, setInternalCurrentTime] = useState(0);
   const [isBuffering, setIsBuffering] = useState(false);
   const [streamError, setStreamError] = useState(false);
+  const [loopSegment, setLoopSegment] = useState(true);
 
   // Reset stream error when URL changes
   useEffect(() => {
@@ -409,6 +413,57 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
     togglePlayAll();
   };
 
+  // Listen to global seek & play events (e.g. triggered when clicking a segment in SetupSidebar)
+  useEffect(() => {
+    const handleSeekAndPlay = (e: any) => {
+      const detail = e.detail;
+      if (detail && typeof detail.time === "number") {
+        commitSeek(detail.time);
+        if (detail.autoPlay) {
+          setIsPlaying(true);
+          const allVideos = containerRef.current?.querySelectorAll("video") || document.querySelectorAll("video");
+          allVideos.forEach((vid) => {
+            try {
+              vid.currentTime = detail.time;
+              vid.play().catch(() => {});
+            } catch {}
+          });
+        }
+      }
+    };
+
+    window.addEventListener("clipvault-seek-and-play", handleSeekAndPlay);
+    return () => {
+      window.removeEventListener("clipvault-seek-and-play", handleSeekAndPlay);
+    };
+  }, [duration, mediaDuration]);
+
+  const handlePlayActiveSegment = (seg?: CustomSegment) => {
+    const targetSeg =
+      seg ||
+      customSegments?.find((s) => s.id === activeSegmentId) || {
+        id: activeSegmentId || "1",
+        start: startTs || "0:00",
+        end: endTs || "",
+      };
+    if (setActiveSegmentId && targetSeg.id) {
+      setActiveSegmentId(targetSeg.id);
+    }
+    const startSec = parseTimestampToSec(targetSeg.start || "0:00");
+    commitSeek(startSec);
+    setIsPlaying(true);
+    const allVideos = containerRef.current?.querySelectorAll("video") || document.querySelectorAll("video");
+    allVideos.forEach((vid) => {
+      try {
+        vid.currentTime = startSec;
+        vid.play().catch(() => {});
+      } catch {}
+    });
+    if (onPlaySegment) {
+      onPlaySegment(targetSeg);
+    }
+  };
+
   const seekRelative = (deltaSeconds: number) => {
     commitSeek(currentTime + deltaSeconds);
   };
@@ -422,6 +477,27 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
         setDuration(v.duration);
       }
     }
+
+    // Segment preview looping if custom duration mode and loopSegment is active
+    if (durationMode === "custom" && loopSegment) {
+      const activeSeg = customSegments?.find((s) => s.id === activeSegmentId);
+      if (activeSeg && activeSeg.start && activeSeg.end) {
+        const startSec = parseTimestampToSec(activeSeg.start);
+        const endSec = parseTimestampToSec(activeSeg.end);
+        if (endSec > startSec && v.currentTime >= endSec) {
+          commitSeek(startSec);
+          const allVideos = containerRef.current?.querySelectorAll("video") || document.querySelectorAll("video");
+          allVideos.forEach((vid) => {
+            try {
+              vid.currentTime = startSec;
+              vid.play().catch(() => {});
+            } catch {}
+          });
+          return;
+        }
+      }
+    }
+
     const now = Date.now();
     if (now - lastUpdateTimeRef.current > 120) {
       lastUpdateTimeRef.current = now;
@@ -940,6 +1016,23 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                 >
                   +1m
                 </button>
+
+                <div className="w-px h-4 bg-white/15 mx-0.5 shrink-0" />
+
+                {/* Segment Looping Toggle */}
+                <button
+                  type="button"
+                  onClick={() => setLoopSegment(!loopSegment)}
+                  className={`h-7 px-2 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors cursor-pointer shrink-0 ${
+                    loopSegment
+                      ? "bg-amber-400/20 text-amber-300 border border-amber-400/40"
+                      : "bg-white/5 text-gray-400 hover:text-white"
+                  }`}
+                  title={loopSegment ? "Segment Looping: ON (auto-replays from start when reaching end time)" : "Segment Looping: OFF"}
+                >
+                  <Repeat className="w-3 h-3" />
+                  <span className="hidden sm:inline">Loop</span>
+                </button>
               </div>
 
               {/* Quick Mark Start / End Timestamps with Active Segment Pinning & Multi-Segment Tabs */}
@@ -954,22 +1047,33 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                         </span>
                       )}
                     </div>
-                    {(startTs || endTs || customSegments.some((s) => s.start || s.end)) && (
+                    <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        onClick={() => {
-                          if (setStartTs) setStartTs("");
-                          if (setEndTs) setEndTs("");
-                          if (setCustomSegments) {
-                            setCustomSegments([{ id: "1", start: "0:00", end: "" }]);
-                          }
-                          if (setActiveSegmentId) setActiveSegmentId("1");
-                        }}
-                        className="text-[9px] text-red-400 hover:text-red-300 font-bold transition-colors cursor-pointer"
+                        onClick={() => handlePlayActiveSegment()}
+                        className="text-[9.5px] text-amber-400 hover:text-amber-300 font-extrabold flex items-center gap-1 bg-amber-400/15 hover:bg-amber-400/25 px-2 py-0.5 rounded-md border border-amber-400/30 transition-all cursor-pointer shadow-sm"
+                        title="Play active segment from start in preview"
                       >
-                        Clear Bounds
+                        <Play className="w-2.5 h-2.5 fill-amber-400" />
+                        <span>Play Segment</span>
                       </button>
-                    )}
+                      {(startTs || endTs || customSegments.some((s) => s.start || s.end)) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (setStartTs) setStartTs("");
+                            if (setEndTs) setEndTs("");
+                            if (setCustomSegments) {
+                              setCustomSegments([{ id: "1", start: "0:00", end: "" }]);
+                            }
+                            if (setActiveSegmentId) setActiveSegmentId("1");
+                          }}
+                          className="text-[9px] text-red-400 hover:text-red-300 font-bold transition-colors cursor-pointer"
+                        >
+                          Clear Bounds
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   {/* Multi-Segment Chips Switcher if > 1 segment exists */}
@@ -982,15 +1086,16 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                             key={seg.id}
                             type="button"
                             onClick={() => {
-                              if (setActiveSegmentId) setActiveSegmentId(seg.id);
+                              handlePlayActiveSegment(seg);
                             }}
-                            className={`px-2 py-0.5 rounded-lg text-[9.5px] font-black border transition-all cursor-pointer shrink-0 ${
+                            className={`px-2 py-0.5 rounded-lg text-[9.5px] font-black border transition-all cursor-pointer shrink-0 flex items-center gap-1 ${
                               isSel
                                 ? "bg-amber-400 text-black border-amber-400 shadow-sm"
                                 : "bg-white/5 text-gray-400 border-white/10 hover:text-white"
                             }`}
                           >
-                            Clip #{idx + 1} {seg.start ? `(${seg.start}${seg.end ? `-${seg.end}` : ""})` : ""}
+                            <Play className={`w-2 h-2 ${isSel ? "fill-black text-black" : "fill-gray-400 text-gray-400"}`} />
+                            <span>Clip #{idx + 1} {seg.start ? `(${seg.start}${seg.end ? `-${seg.end}` : ""})` : ""}</span>
                           </button>
                         );
                       })}

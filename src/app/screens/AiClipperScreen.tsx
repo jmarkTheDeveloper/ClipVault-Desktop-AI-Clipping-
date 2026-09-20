@@ -8,7 +8,7 @@ import { PhonePreview } from "../components/clipper/PhonePreview";
 import { SavedClipsVault } from "../components/clipper/SavedClipsVault";
 import { GalleryView } from "../components/clipper/GalleryView";
 import { ClipDetailsModal } from "../components/clipper/ClipDetailsModal";
-import { extractYouTubeId } from "../components/clipper/types";
+import { extractYouTubeId, parseTimestampToSec } from "../components/clipper/types";
 import type { ViewMode, ClipMetadata, CropBox, EngineOption, CustomSegment } from "../components/clipper/types";
 
 interface Props {
@@ -442,6 +442,30 @@ export const AiClipperScreen: React.FC<Props> = ({
   const [isMuted, setIsMuted] = useState(true);
   const [isDraggingCaption, setIsDraggingCaption] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  // Play selected timestamp segment in the video player
+  const handlePlaySegment = (seg: CustomSegment) => {
+    setActiveSegmentId(seg.id);
+    const startSec = parseTimestampToSec(seg.start || "0:00");
+    setCurrentTime(startSec);
+    setIsPlaying(true);
+
+    // Broadcast synchronized seek & play event for PhonePreview
+    window.dispatchEvent(
+      new CustomEvent("clipvault-seek-and-play", {
+        detail: { time: startSec, autoPlay: true, segmentId: seg.id },
+      })
+    );
+
+    // Direct DOM seek & play fallback
+    const allVideos = document.querySelectorAll("video");
+    allVideos.forEach((vid) => {
+      try {
+        vid.currentTime = startSec;
+        vid.play().catch(() => {});
+      } catch {}
+    });
+  };
 
   // Broadcast background clipping progress across entire application
   useEffect(() => {
@@ -1644,6 +1668,9 @@ export const AiClipperScreen: React.FC<Props> = ({
                 activeEngineName={activeEngineName}
                 onOpenEngineSettings={() => setShowKeySettings(true)}
                 onClearError={() => setErrorMsg("")}
+                onPlaySegment={handlePlaySegment}
+                isPlaying={isPlaying}
+                onTogglePlay={() => setIsPlaying((prev) => !prev)}
               />
             )}
 
@@ -1684,6 +1711,7 @@ export const AiClipperScreen: React.FC<Props> = ({
               isCropEditorOpen={cropModalOpen !== "none"}
               onCancel={cancelClipper}
               gameplayBgVideo={gameplayBgVideo}
+              onPlaySegment={handlePlaySegment}
             />
           </>
         )}

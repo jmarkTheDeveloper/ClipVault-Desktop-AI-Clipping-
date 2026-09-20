@@ -68,3 +68,28 @@ export function extractYouTubeId(url: string): string | null {
   return match && match[1] ? match[1] : null;
 }
 
+export function parseTimestampToSec(ts: string): number {
+  if (!ts) return 0;
+  const parts = ts.trim().split(":").map(Number);
+  if (parts.some(isNaN)) return 0;
+  const p0 = parts[0] ?? 0;
+  const p1 = parts[1] ?? 0;
+  const p2 = parts[2] ?? 0;
+  if (parts.length === 3) return p0 * 3600 + p1 * 60 + p2;
+  if (parts.length === 2) return p0 * 60 + p1;
+  if (parts.length === 1) return p0;
+  return 0;
+}
+
+export function formatTime(seconds: number): string {
+  if (isNaN(seconds) || seconds < 0) return "00:00";
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  if (h > 0) {
+    return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  }
+  return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+}
+
+
