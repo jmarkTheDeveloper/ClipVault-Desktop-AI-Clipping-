@@ -769,9 +769,11 @@ def get_clip_thumbnail(path: str):
 
     # Fast on-demand extraction of 1 frame using FFmpeg
     try:
+        import imageio_ffmpeg
+        ffmpeg_bin = imageio_ffmpeg.get_ffmpeg_exe()
         out_thumb = p.parent / f"{p.stem}_thumbnail.jpg"
         cmd = [
-            FFMPEG_PATH, "-y",
+            ffmpeg_bin, "-y",
             "-ss", "0.5",
             "-i", str(p),
             "-vframes", "1",

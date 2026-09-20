@@ -67,7 +67,7 @@ class YouTubeDownloader:
         if 'youtube.com' in url:
             return parse_qs(urlparse(url).query).get('v', [None])[0]
         return None
-    def download(self, url, quality="720p", custom_range=None):
+    def download(self, url, quality="720p", custom_range=None, progress_callback=None, **kwargs):
         """
         Downloads a YouTube video from the given URL using high-quality yt-dlp.
         """
@@ -84,7 +84,7 @@ class YouTubeDownloader:
             print("🚀 Using high-resolution yt-dlp downloader engine...")
             from services.youtube_downloader_yt_dlp import YouTubeDownloader as YtDlpDownloader
             downloader = YtDlpDownloader(temp_dir=self.temp_dir)
-            video_path, title, duration = downloader.download(url, quality=quality, custom_range=custom_range)
+            video_path, _, title, duration = downloader.download(url, quality=quality, custom_range=custom_range, progress_callback=progress_callback)
             print(f"✅ Download completed successfully in native resolution ({title})!")
             return Path(video_path), None, title, duration
         except Exception as yt_err:

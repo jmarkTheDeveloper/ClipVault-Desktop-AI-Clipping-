@@ -298,6 +298,11 @@ class YouTubeDownloader:
             slice_name = f"slice_{video_id}_{int(start_sec)}_{int(end_sec)}.mp4"
             output_path = self.temp_dir / slice_name
 
+        temp_slice = self.temp_dir / f"tmp_{output_path.name}"
+        if temp_slice.exists():
+            try: temp_slice.unlink()
+            except Exception: pass
+
         print(f"    [YouTubeDownloader] Fast-slicing stream ({start_sec:.1f}s - {end_sec:.1f}s, Quality: {quality})...")
         if progress_callback:
             progress_callback("Connecting to HD/4K stream...", 18)
@@ -308,9 +313,11 @@ class YouTubeDownloader:
             cached_stream = self._stream_cache.get(cache_key)
             video_url = None
             audio_url = None
+            video_headers = None
+            audio_headers = None
 
             if cached_stream:
-                video_url, audio_url = cached_stream
+                video_url, audio_url, video_headers, audio_headers = cached_stream
                 print(f"    [YouTubeDownloader] Reusing cached stream CDN URLs for {video_id}")
             else:
                 opts = self._get_base_opts()
@@ -339,10 +346,20 @@ class YouTubeDownloader:
                     shorter_dim = min(h, w) if (h > 0 and w > 0) else (h or w)
                     return shorter_dim <= (target_h + 120)
 
+                def is_direct_http(f):
+                    proto = str(f.get("protocol") or "").lower()
+                    u = str(f.get("url") or "").lower()
+                    return "m3u8" not in proto and "m3u8" not in u
+
                 video_candidates = [
                     f for f in formats 
-                    if f.get("vcodec") != "none" and f.get("url") and is_within_target(f)
+                    if f.get("vcodec") != "none" and f.get("url") and is_within_target(f) and is_direct_http(f)
                 ]
+                if not video_candidates:
+                    video_candidates = [
+                        f for f in formats 
+                        if f.get("vcodec") != "none" and f.get("url") and is_within_target(f)
+                    ]
                 if not video_candidates:
                     video_candidates = [f for f in formats if f.get("vcodec") != "none" and f.get("url")]
 
@@ -357,14 +374,21 @@ class YouTubeDownloader:
                     )
                     best_vid = video_candidates[0]
                     video_url = best_vid.get("url")
+                    video_headers = best_vid.get("http_headers") or {}
                     if best_vid.get("acodec") and best_vid.get("acodec") != "none":
                         audio_url = video_url
+                        audio_headers = video_headers
 
                 # 2. Look for best dedicated audio format
                 audio_candidates = [
                     f for f in formats 
-                    if f.get("acodec") and f.get("acodec") != "none" and f.get("url")
+                    if f.get("acodec") and f.get("acodec") != "none" and f.get("url") and is_direct_http(f)
                 ]
+                if not audio_candidates:
+                    audio_candidates = [
+                        f for f in formats 
+                        if f.get("acodec") and f.get("acodec") != "none" and f.get("url")
+                    ]
                 if audio_candidates:
                     audio_candidates.sort(
                         key=lambda f: (
@@ -373,7 +397,9 @@ class YouTubeDownloader:
                         ),
                         reverse=True
                     )
-                    audio_url = audio_candidates[0].get("url")
+                    best_aud = audio_candidates[0]
+                    audio_url = best_aud.get("url")
+                    audio_headers = best_aud.get("http_headers") or {}
 
                 # Fallback to combined format
                 if not video_url:
@@ -381,17 +407,28 @@ class YouTubeDownloader:
                         if fmt.get("url") and fmt.get("vcodec") != "none":
                             video_url = fmt.get("url")
                             audio_url = fmt.get("url")
+                            video_headers = fmt.get("http_headers") or {}
+                            audio_headers = video_headers
                             break
 
                 if video_url:
-                    self._stream_cache[cache_key] = (video_url, audio_url)
+                    self._stream_cache[cache_key] = (video_url, audio_url, video_headers, audio_headers)
 
             if video_url:
                 ffmpeg_bin = imageio_ffmpeg.get_ffmpeg_exe()
                 duration_sec = max(1.0, end_sec - start_sec)
-                user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+                default_ua = YOUTUBE_USER_AGENT or "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+
+                def _fmt_headers(hdrs):
+                    h = dict(hdrs or {})
+                    if "User-Agent" not in h and "user-agent" not in h:
+                        h["User-Agent"] = default_ua
+                    return "".join(f"{k}: {v}\r\n" for k, v in h.items())
+
+                v_hdrs = _fmt_headers(video_headers)
+                a_hdrs = _fmt_headers(audio_headers)
+
                 http_options = [
-                    "-headers", f"User-Agent: {user_agent}\r\n",
                     "-reconnect", "1",
                     "-reconnect_at_eof", "1",
                     "-reconnect_streamed", "1",
@@ -403,12 +440,14 @@ class YouTubeDownloader:
                     "-y",
                     "-loglevel", "error",
                     *http_options,
+                    "-headers", v_hdrs,
                     "-ss", str(max(0.0, start_sec)),
                     "-i", video_url,
                 ]
                 if audio_url and audio_url != video_url:
                     cmd.extend([
                         *http_options,
+                        "-headers", a_hdrs,
                         "-ss", str(max(0.0, start_sec)),
                         "-i", audio_url,
                         "-t", str(duration_sec),
@@ -503,21 +542,32 @@ class YouTubeDownloader:
         with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
             fut = executor.submit(_exec_slice_download)
             try:
-                fut.result(timeout=60)
+                fut.result(timeout=180)
             except Exception as dl_timeout_err:
                 print(f"    [YouTubeDownloader] Standard yt-dlp slice download notice: {dl_timeout_err}")
+                raise RuntimeError(f"Targeted slice download timed out or failed: {dl_timeout_err}")
 
-        if not output_path.exists():
-            candidates = list(self.temp_dir.glob(f"{output_path.stem}.*"))
+        def _is_valid_video_file(p: Path) -> bool:
+            if not p.exists() or p.stat().st_size < 10240:
+                return False
+            try:
+                from moviepy.video.io.ffmpeg_reader import ffmpeg_parse_infos
+                infos = ffmpeg_parse_infos(str(p))
+                return bool(infos.get('video_found') or infos.get('video_fps'))
+            except Exception:
+                return False
+
+        if not _is_valid_video_file(output_path):
+            candidates = [c for c in self.temp_dir.glob(f"{output_path.stem}.*") if _is_valid_video_file(c)]
             if candidates:
                 output_path = candidates[0]
             else:
-                raise FileNotFoundError(f"Failed to extract slice from {start_sec}s to {end_sec}s")
+                raise FileNotFoundError(f"Failed to extract valid video slice from {start_sec}s to {end_sec}s")
 
         print(f" Slice downloaded: {output_path.name} ({round(output_path.stat().st_size / (1024*1024), 2)} MB)")
         return output_path
 
-    def download(self, url: str, quality: str = "720p", custom_range: Optional[List[float]] = None) -> Tuple[Path, Optional[Path], str, float]:
+    def download(self, url: str, quality: str = "720p", custom_range: Optional[List[float]] = None, progress_callback: Optional[Any] = None, **kwargs) -> Tuple[Path, Optional[Path], str, float]:
         """
         Full-video or fast custom-range stream downloader.
         """
@@ -528,7 +578,7 @@ class YouTubeDownloader:
         if custom_range:
             start_sec, end_sec = custom_range
             print(f" Fast direct slice download for range [{start_sec}s - {end_sec}s]...")
-            slice_path = self.download_slice(url, start_sec, end_sec, quality=quality)
+            slice_path = self.download_slice(url, start_sec, end_sec, quality=quality, progress_callback=progress_callback)
             info = self.get_video_info(url)
             return slice_path, None, info.get('title', 'YouTube Video'), max(1.0, end_sec - start_sec)
 
@@ -541,11 +591,25 @@ class YouTubeDownloader:
         else:
             format_str = 'bestvideo[height<=720]+bestaudio/best[height<=720]/best'
 
+        def ytdl_dl_progress(d):
+            if d.get('status') == 'downloading' and progress_callback:
+                downloaded = d.get('downloaded_bytes', 0)
+                total = d.get('total_bytes') or d.get('total_bytes_estimate', 0)
+                if total > 0:
+                    pct = int((downloaded / total) * 100)
+                    mapped_pct = min(40, 20 + int(pct * 0.20))
+                    speed = d.get('speed')
+                    speed_str = f"({speed / 1048576:.1f} MB/s)" if speed else ""
+                    progress_callback(f"Downloading source video {pct}% {speed_str}...", mapped_pct)
+                else:
+                    progress_callback("Downloading source video...", 25)
+
         opts = self._get_base_opts()
         opts.update({
             'format': format_str,
             'outtmpl': (self.temp_dir / f'{video_id}.%(ext)s').as_posix(),
             'merge_output_format': 'mp4',
+            'progress_hooks': [ytdl_dl_progress] if progress_callback else [],
         })
 
         for old_file in self.temp_dir.glob(f'{video_id}.*'):

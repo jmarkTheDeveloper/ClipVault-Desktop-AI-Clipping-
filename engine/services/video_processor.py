@@ -545,11 +545,22 @@ class VideoProcessor:
                     except Exception as slice_err:
                         print(f"     Smart slice download note ({slice_err}). Falling back to full video subclip for clip {i}...")
                         if not video_path or not Path(video_path).exists():
-                            main_vid_path, _, _, _ = self.downloader.download(url, quality=quality, progress_callback=progress_callback)
+                            main_vid_path, full_audio_path, _, _ = self.downloader.download(url, quality=quality, progress_callback=progress_callback)
                             video_path = main_vid_path
+                            if full_audio_path:
+                                audio_path = full_audio_path
                         video = VideoFileClip(str(video_path))
                         clips_to_close.append(video)
-                        clip = video.subclip(start, end)
+                        if audio_path and video.audio is None:
+                            try:
+                                a_clip = AudioFileClip(str(audio_path))
+                                video = video.set_audio(a_clip)
+                                clips_to_close.append(a_clip)
+                            except Exception:
+                                pass
+                        start_bound = max(0.0, min(video.duration, start))
+                        end_bound = max(start_bound, min(video.duration, end))
+                        clip = video.subclip(start_bound, end_bound)
                 else:
                     video = VideoFileClip(str(video_path))
                     clips_to_close.append(video)
