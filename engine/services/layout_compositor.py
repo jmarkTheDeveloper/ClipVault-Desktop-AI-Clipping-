@@ -133,6 +133,86 @@ class LayoutCompositor:
             clips_to_close.append(composed)
             return composed
 
+        elif layout in ("square_blur", "expanded_blur", "portrait_blur", "1:1_blur"):
+            print(f"    [LayoutCompositor] Applying Square Focus + Blurred Canvas layout ({target_width}x{target_height}, Shorts/Pawn Stars style)...")
+            W, H = clip.size
+            target_ratio = target_width / float(target_height)
+
+            # 1. Background: Cinematic bokeh blurred 9:16 canvas
+            if (W / float(H)) > target_ratio:
+                new_w = int(H * target_ratio)
+                crop_x = max(0, (W - new_w) // 2)
+                bg_cropped = clip.crop(x1=crop_x, y1=0, width=new_w, height=H)
+            else:
+                new_h = int(W / target_ratio)
+                crop_y = max(0, (H - new_h) // 2)
+                bg_cropped = clip.crop(x1=0, y1=crop_y, width=W, height=new_h)
+            clips_to_close.append(bg_cropped)
+
+            def fast_bokeh_dim(frame):
+                small = cv2.resize(frame, (max(16, target_width // 10), max(16, target_height // 10)), interpolation=cv2.INTER_AREA)
+                blurred = cv2.GaussianBlur(small, (21, 21), 0)
+                dimmed = (blurred * 0.60).astype(np.uint8)
+                return cv2.resize(dimmed, (target_width, target_height), interpolation=cv2.INTER_LINEAR)
+
+            bg_dark = bg_cropped.fl_image(fast_bokeh_dim)
+            clips_to_close.append(bg_dark)
+
+            # 2. Foreground: 1:1 to 4:5 expanded focus frame (58% of vertical screen)
+            fg_w = target_width
+            fg_h = int(target_width * 1.10)  # 1188px on 1080x1920 (exact 0.9 aspect ratio matching YouTube Shorts / Pawn Stars)
+            if fg_h % 2 != 0: fg_h -= 1
+            fg_ratio = float(fg_w) / float(fg_h)
+
+            fg_sharp = None
+            if self.face_tracker:
+                try:
+                    print("    [LayoutCompositor] Centering active speaker inside Square Focus frame...")
+                    tracked_fg = self.face_tracker.track_and_crop(
+                        clip,
+                        crop_ratio=fg_ratio,
+                        camera_style=camera_style,
+                        adaptive_crop=adaptive_crop,
+                        max_digital_zoom=max_digital_zoom,
+                        min_crop_margin=min_crop_margin,
+                        diagnostic_mode=diagnostic_mode,
+                        scene_cut_times=scene_cut_times,
+                        target_resolution=(fg_w, fg_h)
+                    )
+                    if tracked_fg.size != (fg_w, fg_h):
+                        tracked_fg = self.high_quality_resize(tracked_fg, fg_w, fg_h)
+                    fg_sharp = tracked_fg
+                    clips_to_close.append(fg_sharp)
+                except Exception as fe:
+                    print(f"    [LayoutCompositor] Speaker tracking fallback in square blur: {fe}")
+                    fg_sharp = None
+
+            if fg_sharp is None:
+                if (W / float(H)) > fg_ratio:
+                    cw = int(H * fg_ratio)
+                    cx = (W - cw) // 2
+                    fg_c = clip.crop(x1=cx, y1=0, width=cw, height=H).resize((fg_w, fg_h))
+                else:
+                    ch = int(W / fg_ratio)
+                    cy = (H - ch) // 2
+                    fg_c = clip.crop(x1=0, y1=cy, width=W, height=ch).resize((fg_w, fg_h))
+                fg_sharp = fg_c
+                clips_to_close.append(fg_sharp)
+
+            # Position slightly above center (18% from top) to guarantee bottom 30% is clear for YouTube Shorts / TikTok UI
+            fg_y = int(target_height * 0.18)
+            if fg_y + fg_h > target_height:
+                fg_y = max(0, (target_height - fg_h) // 2)
+
+            composed = CompositeVideoClip([
+                bg_dark,
+                fg_sharp.set_position((0, fg_y))
+            ], size=(target_width, target_height))
+            if clip.audio is not None:
+                composed = composed.set_audio(clip.audio)
+            clips_to_close.append(composed)
+            return composed
+
         elif layout == "landscape_fit":
             print(f"    [LayoutCompositor] Fitting landscape video inside vertical canvas ({target_width}x{target_height})...")
             fg = clip.resize(width=target_width)

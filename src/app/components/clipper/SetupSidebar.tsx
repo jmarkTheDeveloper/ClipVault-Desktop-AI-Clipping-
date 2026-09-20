@@ -86,6 +86,7 @@ const ASPECT_RATIOS = [
 
 const LAYOUTS = [
   { id: "vertical_crop", label: "Auto Face-Tracking (9:16)", desc: "Zooms & tracks active speaker (Fills full 9:16 screen)" },
+  { id: "square_blur", label: "Square Focus + Blurred Canvas", desc: "1:1 / 4:5 centered speaker frame with blurred 9:16 background (Pawn Stars / Shorts style)" },
   { id: "landscape_blur", label: "Landscape + Blurred Canvas", desc: "Full 16:9 video centered with soft blur background" },
   { id: "landscape_fit", label: "Landscape Fit (Letterbox)", desc: "Full 16:9 video centered with black letterbox bars" },
   { id: "custom_split", label: "Custom Split-Screen (2 Boxes)", desc: "Visual multi-box crop editor" },
@@ -550,12 +551,12 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
         </div>
 
         {/* Camera Tracking Style */}
-        <div className={layout !== "vertical_crop" ? "opacity-35 pointer-events-none transition-opacity" : "transition-opacity"}>
+        <div className={layout !== "vertical_crop" && layout !== "square_blur" ? "opacity-35 pointer-events-none transition-opacity" : "transition-opacity"}>
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-xs font-bold text-amber-400 uppercase tracking-wider">Camera Tracking Style</h3>
-            {layout !== "vertical_crop" && (
+            {layout !== "vertical_crop" && layout !== "square_blur" && (
               <span className="text-[9px] font-bold text-gray-400 bg-white/5 px-2 py-0.5 rounded border border-white/10">
-                (Auto Face-Tracking Only)
+                (Face-Tracking Layouts Only)
               </span>
             )}
           </div>

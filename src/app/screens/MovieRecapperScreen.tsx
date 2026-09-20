@@ -38,6 +38,7 @@ const SPEAKING_SPEEDS = [
 
 const LAYOUTS = [
   { id: "vertical_crop",    label: "Vertical Crop (9:16)",        desc: "Fills the entire vertical screen" },
+  { id: "square_blur",      label: "Square Focus + Blur (9:16)",   desc: "1:1 focus frame with blurred 9:16 background" },
   { id: "landscape_fit",    label: "Landscape Fit (9:16)",        desc: "Original width with black bars" },
   { id: "native_widescreen",label: "Native Widescreen (16:9)",    desc: "Best for Facebook / YouTube long-form" },
   { id: "landscape_blur",   label: "Blurred Background Fit (9:16)", desc: "Full width with blurred background" },

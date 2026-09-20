@@ -676,9 +676,12 @@ class VideoProcessor:
 
                     if final_words:
                         ai_hook_text = clip_info.get('hook_title', hook_text)
+                        active_cap_y = caption_y_pct
+                        if layout in ("square_blur", "expanded_blur", "portrait_blur", "1:1_blur") and (active_cap_y is None or active_cap_y >= 0.65):
+                            active_cap_y = 0.58
                         clip = self.caption_maker.add_captions(
                             clip, final_words, offset_time, layout=layout,
-                            hook_text=ai_hook_text, auto_sfx=auto_sfx, caption_y_pct=caption_y_pct
+                            hook_text=ai_hook_text, auto_sfx=auto_sfx, caption_y_pct=active_cap_y
                         )
                         clips_to_close.append(clip)
 

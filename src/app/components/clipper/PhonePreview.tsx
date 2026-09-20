@@ -601,6 +601,50 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                     )}
                   </div>
                 </div>
+              ) : layout === "square_blur" ? (
+                /* Square Focus + Blurred Canvas (Shorts / Pawn Stars Style) */
+                <div className="w-full h-full relative overflow-hidden bg-black flex flex-col items-center justify-center pointer-events-none">
+                  <video
+                    src={activeVideoUrl}
+                    className="absolute inset-0 w-full h-full object-cover filter blur-2xl scale-125 opacity-65 pointer-events-none"
+                    autoPlay
+                    loop
+                    muted={true}
+                    playsInline
+                  />
+                  {/* Elevated Square Focus Frame (58% height, matching Pawn Stars / YouTube Shorts style) */}
+                  <div className="relative z-10 w-full aspect-[1/1.1] max-h-[60%] overflow-hidden shadow-[0_12px_40px_rgba(0,0,0,0.85)] border-y border-white/10 flex items-center justify-center">
+                    <video
+                      ref={videoRef}
+                      src={activeVideoUrl}
+                      poster={posterUrl || undefined}
+                      className="w-full h-full object-cover pointer-events-none"
+                      autoPlay
+                      loop
+                      muted={isMuted}
+                      playsInline
+                      onTimeUpdate={handleTimeUpdate}
+                      onLoadedMetadata={handleLoadedMetadata}
+                      onWaiting={() => setIsBuffering(true)}
+                      onPlaying={() => {
+                        setIsBuffering(false);
+                        setStreamError(false);
+                      }}
+                      onCanPlay={(e) => {
+                        setIsBuffering(false);
+                        if (isPlaying) e.currentTarget.play().catch(() => {});
+                      }}
+                      onError={() => {
+                        setIsBuffering(false);
+                        setStreamError(true);
+                      }}
+                    />
+                  </div>
+                  <div className="absolute top-10 left-3 z-20 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-emerald-500/40 text-[9px] font-bold text-emerald-400 flex items-center gap-1 shadow-lg">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    Square Focus + Blur (Shorts)
+                  </div>
+                </div>
               ) : layout === "landscape_blur" ? (
                 /* Landscape + Blurred Canvas (9:16) */
                 <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center pointer-events-none">

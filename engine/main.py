@@ -324,17 +324,19 @@ def main(url=None):
                 else:
                     print("📺 Select Video Layout:")
                     print("1. Vertical Crop (9:16) - Fills the entire vertical screen (Best for TikTok/Reels/Shorts)")
-                    print("2. Landscape Fit (9:16) - Keeps full original width with black bars on top/bottom")
-                    print("3. Blurred Background Fit (9:16) - Keeps full width centered with a blurred, zoomed background")
-                    print("4. Streamer Facecam Split-Screen (9:16) - Facecam on top, gameplay on bottom (CaseOh style!)")
-                    print("5. Podcast/Interview Split-Screen (9:16) - Left speaker on top, right speaker on bottom (Clipzi style!)")
-                    layout_choice = input("Select layout (1-5) [1]: ").strip() or "1"
+                    print("2. Square Focus + Blurred Canvas (9:16) - 1:1 speaker focus frame with blurred background (Shorts/Pawn Stars)")
+                    print("3. Landscape Fit (9:16) - Keeps full original width with black bars on top/bottom")
+                    print("4. Blurred Background Fit (9:16) - Keeps full width centered with a blurred, zoomed background")
+                    print("5. Streamer Facecam Split-Screen (9:16) - Facecam on top, gameplay on bottom (CaseOh style!)")
+                    print("6. Podcast/Interview Split-Screen (9:16) - Left speaker on top, right speaker on bottom (Clipzi style!)")
+                    layout_choice = input("Select layout (1-6) [1]: ").strip() or "1"
                     layout_map = {
                         "1": "vertical_crop",
-                        "2": "landscape_fit",
-                        "3": "landscape_blur",
-                        "4": "streamer_cam",
-                        "5": "podcast_split"
+                        "2": "square_blur",
+                        "3": "landscape_fit",
+                        "4": "landscape_blur",
+                        "5": "streamer_cam",
+                        "6": "podcast_split"
                     }
                     layout = layout_map.get(layout_choice, "vertical_crop")
                     
