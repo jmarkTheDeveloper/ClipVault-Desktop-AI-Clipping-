@@ -372,6 +372,9 @@ class VideoProcessor:
         if not clip_specs:
             raise ValueError("Could not select any viral clips from this video.")
 
+        # Always guarantee clips are strictly ordered chronologically by video timeline
+        clip_specs.sort(key=lambda x: x.get('start', 0.0))
+
         # Align clip cut points to natural visual shot boundaries
         if video_path and Path(video_path).exists() and not (custom_range or custom_ranges) and target_duration != -1:
             print("    [VideoProcessor] Aligning clip cut boundaries to visual camera transitions...")
@@ -884,7 +887,12 @@ class VideoProcessor:
                         "transcription_confidence": int(trans_conf),
                         "start": float(start),
                         "end": float(end),
-                        "duration": round(float(clip.duration), 2)
+                        "duration": round(float(clip.duration), 2),
+                        "source_title": title,
+                        "source_url": url if not os.path.isfile(url) else "",
+                        "clip_index": i,
+                        "total_clips": len(clip_specs),
+                        "created_at": time.time()
                     }
                     with open(json_meta_path, 'w', encoding='utf-8') as f_json:
                         json.dump(json_data, f_json, indent=2)

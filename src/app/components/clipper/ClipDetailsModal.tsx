@@ -150,6 +150,12 @@ export const ClipDetailsModal: React.FC<ClipDetailsModalProps> = ({
               <span className="text-xs bg-amber-400/20 text-amber-400 border border-amber-400/30 px-2.5 py-0.5 rounded-full font-bold">
                 Score: {clip.virality_score || 99} pts
               </span>
+              {clip.start !== undefined && clip.end !== undefined && (
+                <span className="text-xs bg-amber-400/10 text-amber-300 border border-amber-400/30 px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1">
+                  ⏱️ Timeline: {Math.floor(clip.start / 60)}:{(Math.floor(clip.start % 60) < 10 ? "0" : "") + Math.floor(clip.start % 60)} - {Math.floor(clip.end / 60)}:{(Math.floor(clip.end % 60) < 10 ? "0" : "") + Math.floor(clip.end % 60)}
+                  {clip.duration ? ` (${Math.round(clip.duration)}s)` : ""}
+                </span>
+              )}
               {clip.transcription_confidence !== undefined && clip.transcription_confidence !== null && (
                 <span className="text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-0.5 rounded-full font-bold">
                   Clarity: {clip.transcription_confidence}%

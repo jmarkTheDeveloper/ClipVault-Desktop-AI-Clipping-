@@ -21,6 +21,12 @@ export interface ClipMetadata {
   created_at: number;
   size_mb: number;
   folder: string;
+  start?: number;
+  end?: number;
+  duration?: number;
+  source_title?: string;
+  source_url?: string;
+  clip_index?: number;
 }
 
 export interface EngineOption {

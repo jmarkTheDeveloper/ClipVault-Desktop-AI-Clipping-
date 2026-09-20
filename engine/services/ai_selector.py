@@ -764,8 +764,11 @@ class AISelector:
                         'content_description': "Must-watch viral moment! #shorts #viral"
                     })
 
-        selected.sort(key=lambda x: x['virality_score'], reverse=True)
-        return selected[:n]
+        # Select top n by virality score
+        selected = selected[:n]
+        # Always return clips sorted chronologically by start timestamp along the video timeline!
+        selected.sort(key=lambda x: x.get('start', 0.0))
+        return selected
 
     @staticmethod
     def format_continuous_dialogue(segments: list) -> tuple[str, list]:
@@ -974,14 +977,18 @@ Return ONLY valid JSON format:
 
                     if len(deduped) >= n:
                         print(f"[AISelector] Multi-Chapter Analysis yielded {len(deduped)} top story clips across video timeline.")
-                        return deduped[:n]
+                        top_n = deduped[:n]
+                        top_n.sort(key=lambda x: x.get('start', 0.0))
+                        return top_n
                     elif deduped:
                         needed = n - len(deduped)
                         print(f"[AISelector] Multi-Chapter Analysis produced {len(deduped)} clips, padding {needed} more to guarantee exactly {n} clips...")
                         extra = self._heuristic_viral_selector(segments, video_duration, needed, target_duration, topic=topic)
                         for ex in extra:
                             deduped.append(ex)
-                        return deduped[:n]
+                        top_n = deduped[:n]
+                        top_n.sort(key=lambda x: x.get('start', 0.0))
+                        return top_n
 
             except Exception as multi_err:
                 print(f"[AISelector] Multi-Chapter Analysis note: {multi_err}. Proceeding with standard flow...")
@@ -1118,11 +1125,15 @@ Return ONLY valid JSON format:
                 for ex in extra:
                     validated_clips.append(ex)
 
-            print(f"[AISelector] Selected top {n} complete narrative clips:")
-            for i, clip in enumerate(validated_clips[:n], 1):
-                print(f"  {i}. {clip['title']} (Score: {clip['virality_score']}pts, Duration: {clip['duration']:.1f}s)")
+            top_n = validated_clips[:n]
+            # Ensure clips are strictly ordered chronologically along the video timeline
+            top_n.sort(key=lambda x: x.get('start', 0.0))
+
+            print(f"[AISelector] Selected top {len(top_n)} complete narrative clips (ordered by video timeline):")
+            for i, clip in enumerate(top_n, 1):
+                print(f"  Clip #{i}: {clip['title']} (Score: {clip['virality_score']}pts, Timeline: {clip['start']:.1f}s-{clip['end']:.1f}s, Duration: {clip['duration']:.1f}s)")
             
-            return validated_clips[:n]
+            return top_n
             
         except Exception as e:
             print(f"[AISelector] AI selection notice: {e}. Executing Intelligent NLP Virality Scorer...")

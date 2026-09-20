@@ -165,6 +165,13 @@ const GalleryClipCard: React.FC<{
           </button>
         )}
 
+        {clip.start !== undefined && clip.end !== undefined && (
+          <div className="absolute top-2 left-11 bg-black/85 backdrop-blur-md px-2 py-0.5 rounded-md text-[10px] font-bold text-amber-300 border border-amber-400/30 flex items-center gap-1 shadow-md pointer-events-none z-10">
+            <span>⏱️</span>
+            <span>{Math.floor(clip.start / 60)}:{(Math.floor(clip.start % 60) < 10 ? "0" : "") + Math.floor(clip.start % 60)} - {Math.floor(clip.end / 60)}:{(Math.floor(clip.end % 60) < 10 ? "0" : "") + Math.floor(clip.end % 60)}</span>
+          </div>
+        )}
+
         <div className="absolute top-2 right-2 group-hover:opacity-0 transition-opacity bg-black/80 backdrop-blur-md px-2 py-1 rounded-md text-[10px] font-bold text-white border border-white/10">
           9:16
         </div>

@@ -500,6 +500,14 @@ const VaultClipCard: React.FC<{
           <Trash2 className="w-4 h-4 text-white pointer-events-none" />
         </button>
 
+        {/* Exact Video Timeline Range Badge */}
+        {clip.start !== undefined && clip.end !== undefined && (
+          <div className="absolute top-2 left-11 bg-black/85 backdrop-blur-md px-2 py-0.5 rounded-md text-[10px] font-bold text-amber-300 border border-amber-400/30 flex items-center gap-1 shadow-md pointer-events-none z-10">
+            <span>⏱️</span>
+            <span>{Math.floor(clip.start / 60)}:{(Math.floor(clip.start % 60) < 10 ? "0" : "") + Math.floor(clip.start % 60)} - {Math.floor(clip.end / 60)}:{(Math.floor(clip.end % 60) < 10 ? "0" : "") + Math.floor(clip.end % 60)}</span>
+          </div>
+        )}
+
         <div className="absolute top-2 right-2 group-hover:opacity-0 transition-opacity bg-black/80 backdrop-blur-md px-2 py-1 rounded-md text-[10px] font-bold text-white border border-white/10 pointer-events-none">
           9:16
         </div>
@@ -532,8 +540,15 @@ const VaultClipCard: React.FC<{
         </div>
 
         <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between text-[10px] text-gray-500">
-          <span className="truncate max-w-[110px]">{clip.folder || "Main Library"}</span>
+          <span className="truncate max-w-[95px]" title={clip.source_title || clip.folder || "Main Library"}>
+            {clip.source_title ? (clip.source_title.length > 15 ? `${clip.source_title.slice(0, 13)}...` : clip.source_title) : (clip.folder || "Main Library")}
+          </span>
           <div className="flex items-center gap-1.5 shrink-0">
+            {clip.start !== undefined && clip.end !== undefined && (
+              <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-400/10 text-amber-300 font-bold border border-amber-400/20" title={`Timeline: ${Math.floor(clip.start / 60)}:${(Math.floor(clip.start % 60) < 10 ? "0" : "") + Math.floor(clip.start % 60)} - ${Math.floor(clip.end / 60)}:${(Math.floor(clip.end % 60) < 10 ? "0" : "") + Math.floor(clip.end % 60)}`}>
+                ⏱️ {Math.floor(clip.start / 60)}:{(Math.floor(clip.start % 60) < 10 ? "0" : "") + Math.floor(clip.start % 60)} - {Math.floor(clip.end / 60)}:{(Math.floor(clip.end % 60) < 10 ? "0" : "") + Math.floor(clip.end % 60)}
+              </span>
+            )}
             {clip.transcription_confidence !== undefined && clip.transcription_confidence !== null && (
               <span className="text-[9px] px-1 py-0.2 rounded bg-emerald-500/10 text-emerald-400 font-bold border border-emerald-500/20">
                 {clip.transcription_confidence}% clarity
@@ -590,7 +605,8 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
   const [dragOverFolder, setDragOverFolder] = useState<string | null>(null);
   const [dragOverBreadcrumb, setDragOverBreadcrumb] = useState<string | null>(null);
   const [isWindowFileDragging, setIsWindowFileDragging] = useState(false);
-  const [sortBy, setSortBy] = useState<"virality" | "newest" | "oldest" | "alpha">("virality");
+  const [sortBy, setSortBy] = useState<"timeline" | "newest" | "virality" | "oldest" | "alpha">("timeline");
+  const [selectedSource, setSelectedSource] = useState<string>("all");
   const [renameModalState, setRenameModalState] = useState<{ isOpen: boolean; oldFolder: string; newName: string }>({
     isOpen: false,
     oldFolder: "",
@@ -610,6 +626,18 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [cacheSizeMb, setCacheSizeMb] = useState<number | null>(null);
   const [isCleaningCache, setIsCleaningCache] = useState(false);
+
+  // Discover distinct source video projects across vault clips
+  const sourceVideos = React.useMemo(() => {
+    const map = new Map<string, number>();
+    vaultClips.forEach((c) => {
+      const src = c.source_title?.trim() || "";
+      if (src) {
+        map.set(src, (map.get(src) || 0) + 1);
+      }
+    });
+    return Array.from(map.entries()).map(([name, count]) => ({ name, count }));
+  }, [vaultClips]);
 
   useEffect(() => {
     if (containerRef.current) {
@@ -707,7 +735,16 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
         const matchesReason = clip.reason && clip.reason.toLowerCase().includes(searchLower);
         const matchesHook = clip.hook_type && clip.hook_type.toLowerCase().includes(searchLower);
         const matchesFolder = clip.folder && clip.folder.toLowerCase().includes(searchLower);
-        return Boolean(matchesTitle || matchesFilename || matchesDesc || matchesReason || matchesHook || matchesFolder);
+        const matchesSource = clip.source_title && clip.source_title.toLowerCase().includes(searchLower);
+        return Boolean(matchesTitle || matchesFilename || matchesDesc || matchesReason || matchesHook || matchesFolder || matchesSource);
+      }
+
+      // Filter by source video project chip if selected
+      if (selectedSource !== "all") {
+        const cSource = clip.source_title?.trim() || "";
+        if (cSource !== selectedSource) {
+          return false;
+        }
       }
 
       const isClipInRoot = clip.folder === "Main Library" || clip.folder === "root" || !clip.folder || clip.folder === ".";
@@ -715,10 +752,23 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
       return matchesFolder;
     })
     .sort((a, b) => {
-      if (sortBy === "virality") {
-        return (b.virality_score || 0) - (a.virality_score || 0);
+      if (sortBy === "timeline") {
+        // Chronological timeline order: group by source video first (newest video batches first), then strictly order by start timestamp!
+        const aSource = a.source_title || a.folder || "";
+        const bSource = b.source_title || b.folder || "";
+        if (aSource !== bSource) {
+          return (b.created_at || 0) - (a.created_at || 0);
+        }
+        return (a.start ?? 0) - (b.start ?? 0);
       } else if (sortBy === "newest") {
-        return (b.created_at || 0) - (a.created_at || 0);
+        const timeDiff = (b.created_at || 0) - (a.created_at || 0);
+        // If created within the same batch (within 60s), maintain chronological timeline order!
+        if (Math.abs(timeDiff) < 60) {
+          return (a.start ?? 0) - (b.start ?? 0);
+        }
+        return timeDiff;
+      } else if (sortBy === "virality") {
+        return (b.virality_score || 0) - (a.virality_score || 0);
       } else if (sortBy === "oldest") {
         return (a.created_at || 0) - (b.created_at || 0);
       } else if (sortBy === "alpha") {
@@ -1404,11 +1454,14 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
             onChange={(e) => setSortBy(e.target.value as any)}
             className="w-full bg-transparent text-xs text-white outline-none cursor-pointer"
           >
-            <option value="virality" className="bg-[#111] text-white">
-              Highest Virality Score
+            <option value="timeline" className="bg-[#111] text-white">
+              Timeline (Video Order)
             </option>
             <option value="newest" className="bg-[#111] text-white">
               Newest First
+            </option>
+            <option value="virality" className="bg-[#111] text-white">
+              Highest Virality Score
             </option>
             <option value="oldest" className="bg-[#111] text-white">
               Oldest First
@@ -1697,6 +1750,46 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
             </div>
           )}
         </div>
+
+        {/* Source Video Project Filter Chips */}
+        {sourceVideos.length > 0 && !isSearchActive && (
+          <div className="flex items-center gap-2 overflow-x-auto pb-2.5 mb-3 scrollbar-thin">
+            <span className="text-[10px] text-gray-500 font-extrabold uppercase shrink-0 mr-1 flex items-center gap-1">
+              <span>🎬</span> Source Video:
+            </span>
+            <button
+              type="button"
+              onClick={() => setSelectedSource("all")}
+              className={`px-3 py-1 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                selectedSource === "all"
+                  ? "bg-amber-400 text-black shadow-md font-extrabold"
+                  : "bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/5"
+              }`}
+            >
+              All Videos ({vaultClips.length})
+            </button>
+            {sourceVideos.map((sv) => (
+              <button
+                key={sv.name}
+                type="button"
+                onClick={() => setSelectedSource(sv.name)}
+                className={`px-3 py-1 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${
+                  selectedSource === sv.name
+                    ? "bg-amber-400 text-black shadow-md font-extrabold"
+                    : "bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/5"
+                }`}
+                title={sv.name}
+              >
+                <span className="truncate max-w-[240px]">{sv.name}</span>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                  selectedSource === sv.name ? "bg-black/30 text-black font-bold" : "bg-white/10 text-gray-400"
+                }`}>
+                  {sv.count}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
 
         {vaultLoading && filteredClips.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center py-20">
