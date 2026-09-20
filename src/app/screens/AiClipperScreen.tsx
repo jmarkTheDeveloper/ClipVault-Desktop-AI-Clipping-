@@ -1379,7 +1379,7 @@ export const AiClipperScreen: React.FC<Props> = ({
               type="button"
               onClick={() => {
                 setViewMode("vault");
-                loadVaultClips(false);
+                loadVaultClips(true);
               }}
               className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                 viewMode === "vault"

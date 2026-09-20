@@ -308,23 +308,40 @@ function createWindow() {
       }
     }
 
-    // 2. Clean backend reboot and UI reload
+    // 2. Clean UI reload (Ctrl+R / F5) & Full Reboot (Ctrl+Shift+R)
     if (
       input.type === 'keyDown' &&
       ((input.control && input.key.toLowerCase() === 'r') || input.key === 'F5')
     ) {
       event.preventDefault();
-      if (isReloading) return;
-      isReloading = true;
-      console.log('[Electron]: Ctrl+R detected. Rebooting Python backend and UI cleanly...');
-      killPythonBackend();
-      setTimeout(() => {
-        startPythonBackend();
+      if (input.control && input.shift) {
+        if (isReloading) return;
+        isReloading = true;
+        console.log('[Electron]: Ctrl+Shift+R detected. Rebooting Python backend and UI cleanly...');
+        killPythonBackend();
         setTimeout(() => {
-          mainWindow.webContents.reloadIgnoringCache();
-          isReloading = false;
-        }, 400);
-      }, 150);
+          startPythonBackend();
+          const checkReady = (retries = 25) => {
+            fetch('http://127.0.0.1:8000/api/health')
+              .then(() => {
+                mainWindow.webContents.reloadIgnoringCache();
+                isReloading = false;
+              })
+              .catch(() => {
+                if (retries > 0) setTimeout(() => checkReady(retries - 1), 200);
+                else {
+                  mainWindow.webContents.reloadIgnoringCache();
+                  isReloading = false;
+                }
+              });
+          };
+          setTimeout(checkReady, 600);
+        }, 300);
+      } else {
+        // Standard Ctrl+R: reload renderer immediately in 100ms
+        console.log('[Electron]: Ctrl+R detected. Reloading UI renderer...');
+        mainWindow.webContents.reloadIgnoringCache();
+      }
     }
   });
 }

@@ -1698,12 +1698,12 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
           )}
         </div>
 
-        {vaultLoading ? (
+        {vaultLoading && filteredClips.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center py-20">
             <Loader2 className="w-10 h-10 text-amber-400 animate-spin mb-3" />
             <p className="text-sm font-bold text-gray-400">Loading your Saved Clips Vault...</p>
           </div>
-        ) : vaultError ? (
+        ) : vaultError && filteredClips.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center py-20 text-center">
             <div className="w-14 h-14 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-4">
               <AlertTriangle className="w-7 h-7 text-red-400" />
