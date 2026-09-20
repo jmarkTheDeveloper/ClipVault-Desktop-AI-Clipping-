@@ -268,9 +268,10 @@ class YouTubeDownloader:
         if not video_id:
             raise ValueError("Invalid YouTube URL provided.")
 
+        audio_spec = 'bestaudio[language_preference>=0][ext=m4a]/bestaudio[language_preference>=0]/bestaudio[format_note*=original]/bestaudio[language=en]/bestaudio[ext=m4a]/bestaudio/best'
         opts = self._get_base_opts()
         opts.update({
-            'format': 'bestaudio[ext=m4a]/bestaudio/best',
+            'format': audio_spec,
             'outtmpl': (self.temp_dir / f'audio_{video_id}.%(ext)s').as_posix(),
         })
 
@@ -379,7 +380,21 @@ class YouTubeDownloader:
                         audio_url = video_url
                         audio_headers = video_headers
 
-                # 2. Look for best dedicated audio format
+                # 2. Look for best dedicated audio format (prioritize original/default language over dubbed tracks)
+                def _audio_score(f):
+                    lang = str(f.get("language") or "").lower()
+                    note = str(f.get("format_note") or "").lower()
+                    url_str = str(f.get("url") or "").lower()
+                    lang_pref = f.get("language_preference")
+                    if lang_pref is None:
+                        lang_pref = 0
+                    is_original = 1 if (lang_pref > 0 or "original" in note or "default" in note) else 0
+                    is_not_dubbed = 1 if ("dubbed" not in note and "dubbed" not in url_str) else 0
+                    is_english = 1 if (lang in ("en", "eng", "en-us", "en-gb") or "english" in note) else 0
+                    is_audio_only = 1 if f.get("vcodec") == "none" else 0
+                    bitrate = f.get("abr") or f.get("tbr") or 0
+                    return (is_original, is_not_dubbed, lang_pref, is_english, is_audio_only, bitrate)
+
                 audio_candidates = [
                     f for f in formats 
                     if f.get("acodec") and f.get("acodec") != "none" and f.get("url") and is_direct_http(f)
@@ -390,13 +405,7 @@ class YouTubeDownloader:
                         if f.get("acodec") and f.get("acodec") != "none" and f.get("url")
                     ]
                 if audio_candidates:
-                    audio_candidates.sort(
-                        key=lambda f: (
-                            1 if f.get("vcodec") == "none" else 0,
-                            f.get("abr") or f.get("tbr") or 0
-                        ),
-                        reverse=True
-                    )
+                    audio_candidates.sort(key=_audio_score, reverse=True)
                     best_aud = audio_candidates[0]
                     audio_url = best_aud.get("url")
                     audio_headers = best_aud.get("http_headers") or {}
@@ -496,14 +505,15 @@ class YouTubeDownloader:
             print(f"    [YouTubeDownloader] Direct fast slicing note: {fast_err}. Falling back to standard slice downloader...")
 
         # Fallback to standard yt-dlp downloader if direct range stream extraction was blocked
+        audio_spec = 'bestaudio[language_preference>=0]/bestaudio[format_note*=original]/bestaudio[language=en]/bestaudio'
         if quality.lower() == "8k":
-            format_str = 'bestvideo[height<=4320]+bestaudio/bestvideo+bestaudio/best'
+            format_str = f'bestvideo[height<=4320]+{audio_spec}/bestvideo+bestaudio/best'
         elif quality.lower() == "4k":
-            format_str = 'bestvideo[height<=2160]+bestaudio/bestvideo+bestaudio/best'
+            format_str = f'bestvideo[height<=2160]+{audio_spec}/bestvideo+bestaudio/best'
         elif quality.lower() == "1080p":
-            format_str = 'bestvideo[height<=1080]+bestaudio/bestvideo+bestaudio/best'
+            format_str = f'bestvideo[height<=1080]+{audio_spec}/bestvideo+bestaudio/best'
         else:
-            format_str = 'bestvideo[height<=720]+bestaudio/bestvideo+bestaudio/best'
+            format_str = f'bestvideo[height<=720]+{audio_spec}/bestvideo+bestaudio/best'
 
         def ytdl_progress(d):
             if d.get('status') == 'downloading' and progress_callback:
@@ -583,14 +593,15 @@ class YouTubeDownloader:
             info = self.get_video_info(url)
             return slice_path, None, info.get('title', 'YouTube Video'), max(1.0, end_sec - start_sec)
 
+        audio_spec = 'bestaudio[language_preference>=0]/bestaudio[format_note*=original]/bestaudio[language=en]/bestaudio'
         if quality.lower() == "8k":
-            format_str = 'bestvideo[height<=4320]+bestaudio/best[height<=4320]/best'
+            format_str = f'bestvideo[height<=4320]+{audio_spec}/best[height<=4320]/best'
         elif quality.lower() == "4k":
-            format_str = 'bestvideo[height<=2160]+bestaudio/best[height<=2160]/best'
+            format_str = f'bestvideo[height<=2160]+{audio_spec}/best[height<=2160]/best'
         elif quality.lower() == "1080p":
-            format_str = 'bestvideo[height<=1080]+bestaudio/best[height<=1080]/best'
+            format_str = f'bestvideo[height<=1080]+{audio_spec}/best[height<=1080]/best'
         else:
-            format_str = 'bestvideo[height<=720]+bestaudio/best[height<=720]/best'
+            format_str = f'bestvideo[height<=720]+{audio_spec}/best[height<=720]/best'
 
         def ytdl_dl_progress(d):
             if d.get('status') == 'downloading' and progress_callback:
