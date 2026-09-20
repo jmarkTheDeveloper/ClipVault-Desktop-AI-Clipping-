@@ -47,7 +47,23 @@ def _safe_system_print(*args, **kwargs):
         except Exception:
             pass
 builtins.print = _safe_system_print
-print(" Background engine priority set to 'Normal High-Speed Priority'.")
+import logging
+
+class CleanConsoleLogFilter(logging.Filter):
+    """
+    Suppresses noisy, high-frequency streaming byte chunks, repetitive progress polling,
+    and static thumbnail requests from cluttering the developer console.
+    """
+    def filter(self, record: logging.LogRecord) -> bool:
+        msg = record.getMessage()
+        return not any(noisy in msg for noisy in ("/stream", "/api/progress", "/api/thumbnail", "/clips/"))
+
+_clean_filter = CleanConsoleLogFilter()
+for _log_name in ("uvicorn", "uvicorn.access", "uvicorn.error"):
+    _logger = logging.getLogger(_log_name)
+    _logger.addFilter(_clean_filter)
+    for _handler in _logger.handlers:
+        _handler.addFilter(_clean_filter)
 
 # Add project root to path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -80,6 +96,11 @@ app = FastAPI(
 @app.on_event("startup")
 async def startup_event():
     try:
+        for _log_name in ("uvicorn", "uvicorn.access", "uvicorn.error"):
+            _logger = logging.getLogger(_log_name)
+            _logger.addFilter(_clean_filter)
+            for _handler in _logger.handlers:
+                _handler.addFilter(_clean_filter)
         from services.system_guard import SystemGuard
         SystemGuard.purge_temp_dir()
         from services.youtube_downloader_yt_dlp import YouTubeDownloader

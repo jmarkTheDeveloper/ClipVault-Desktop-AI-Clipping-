@@ -402,12 +402,38 @@ function startPythonBackend() {
         console.error('[Electron]: Failed to start backend process:', err);
       });
 
+      const isNoisyLog = (str) => {
+        if (!str) return false;
+        return (
+          str.includes('/stream?') ||
+          str.includes('/stream ') ||
+          str.includes('/api/progress') ||
+          str.includes('/api/thumbnail') ||
+          str.includes('/clips/')
+        );
+      };
+
       pythonProcess.stdout?.on('data', (data) => {
-        console.log(`[Backend]: ${data}`);
+        const text = data.toString().trim();
+        if (!text || isNoisyLog(text)) return;
+        console.log(`[Backend]: ${text}`);
       });
 
       pythonProcess.stderr?.on('data', (data) => {
-        console.error(`[Backend Error]: ${data}`);
+        const text = data.toString().trim();
+        if (!text || isNoisyLog(text)) return;
+        // Don't label standard Python/Uvicorn INFO or startup notices as errors
+        if (
+          text.startsWith('INFO:') ||
+          text.includes('Started server process') ||
+          text.includes('Waiting for application startup') ||
+          text.includes('Application startup complete') ||
+          text.includes('Will watch for changes')
+        ) {
+          console.log(`[Backend]: ${text}`);
+        } else {
+          console.error(`[Backend Error]: ${text}`);
+        }
       });
     } catch (err) {
       console.error('[Electron]: Exception while spawning backend:', err);
