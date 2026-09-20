@@ -109,7 +109,7 @@ class YouTubeDownloader:
         if img_dir not in os.environ.get('PATH', ''):
             os.environ['PATH'] = img_dir + os.pathsep + os.environ.get('PATH', '')
 
-        user_agent = YOUTUBE_USER_AGENT or 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+        user_agent = YOUTUBE_USER_AGENT or 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
 
         opts = {
             'geo_bypass': True,
@@ -119,12 +119,6 @@ class YouTubeDownloader:
             'no_warnings': True,
             'retries': 20,
             'extractor_retries': 20,
-            'extractor_args': {
-                'youtube': {
-                    'player_client': ['mweb', 'web_creator', 'tv', 'web', 'android', 'ios'],
-                    'player_skip': ['configs'],
-                }
-            },
             'user_agent': user_agent,
             'http_chunk_size': 10485760, # 10MB chunk streaming
             'concurrent_fragment_downloads': 16, # 16 parallel connections

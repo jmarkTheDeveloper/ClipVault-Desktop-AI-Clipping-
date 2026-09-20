@@ -68,9 +68,9 @@ const Section = ({ title, children, accent = "text-amber-400" }: { title: string
 );
 
 const QUALITIES = [
+  { id: "1080p", label: "1080p FHD", desc: "Native Shorts • Ultra Fast" },
+  { id: "720p", label: "720p HD", desc: "Fast rendering • Light storage" },
   { id: "source", label: "Source Native", desc: "Match source resolution" },
-  { id: "720p", label: "720p HD", desc: "Fast rendering • Optimal" },
-  { id: "1080p", label: "1080p FHD", desc: "Crisp detail • Recommended" },
   { id: "1440p", label: "1440p QHD", desc: "2K Quad HD • High detail" },
   { id: "4k", label: "4K Master", desc: "Ultra HD master export" },
   { id: "8k", label: "8K Cinema", desc: "Maximum bitrate" },

@@ -730,7 +730,8 @@ class FaceTracker:
                             frame = get_frame(t)
                             patch = frame[:, x1_rescue:x1_rescue + crop_w]
                             if patch.shape[1] != final_out_w or patch.shape[0] != final_out_h:
-                                return cv2.resize(patch, (final_out_w, final_out_h), interpolation=cv2.INTER_LANCZOS4)
+                                interp = cv2.INTER_AREA if (final_out_w < patch.shape[1] or final_out_h < patch.shape[0]) else cv2.INTER_LINEAR
+                                return cv2.resize(patch, (final_out_w, final_out_h), interpolation=interp)
                             return patch
 
                         rescued_clip = clip.fl(skin_rescue_filter, apply_to=["mask"])
@@ -850,7 +851,8 @@ class FaceTracker:
             cropped_patch = frame[y1:y1 + ch, x1:x1 + cw]
 
             if cropped_patch.shape[0] != final_out_h or cropped_patch.shape[1] != final_out_w:
-                return cv2.resize(cropped_patch, (final_out_w, final_out_h), interpolation=cv2.INTER_LANCZOS4)
+                interp = cv2.INTER_AREA if (final_out_w < cropped_patch.shape[1] or final_out_h < cropped_patch.shape[0]) else cv2.INTER_LINEAR
+                return cv2.resize(cropped_patch, (final_out_w, final_out_h), interpolation=interp)
             return cropped_patch
 
         cropped_clip = clip.fl(virtual_camera_filter, apply_to=["mask"])

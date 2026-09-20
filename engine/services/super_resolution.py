@@ -72,8 +72,9 @@ class SuperResolutionEngine:
         if w == target_w and h == target_h:
             return frame
 
-        # High-order Lanczos interpolation
-        resized = cv2.resize(frame, (target_w, target_h), interpolation=cv2.INTER_LANCZOS4)
+        # Ultra-fast SIMD interpolation with edge restoration
+        interp = cv2.INTER_AREA if (target_w < w or target_h < h) else cv2.INTER_LINEAR
+        resized = cv2.resize(frame, (target_w, target_h), interpolation=interp)
 
         # Subtle unsharp mask to restore edge micro-contrast without haloing
         scale = max(target_w / float(w), target_h / float(h))
