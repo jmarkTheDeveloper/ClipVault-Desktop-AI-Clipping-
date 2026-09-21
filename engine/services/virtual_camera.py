@@ -58,6 +58,12 @@ class VirtualCamera:
         # State flags
         self.initialized = False
 
+        # Subject Framing Memory & Coasting (Holds position when face is temporarily not seen)
+        self.last_valid_cx: Optional[float] = None
+        self.last_valid_cy: Optional[float] = None
+        self.last_valid_w: Optional[float] = None
+        self.last_valid_h: Optional[float] = None
+
     def reset_to_center(self):
         """Resets the virtual camera to default centered composition."""
         self.cx = float(self.frame_w / 2.0)
@@ -68,6 +74,10 @@ class VirtualCamera:
         self.vy = 0.0
         self.vw = 0.0
         self.vh = 0.0
+        self.last_valid_cx = None
+        self.last_valid_cy = None
+        self.last_valid_w = None
+        self.last_valid_h = None
         self.initialized = True
 
     def snap_to(self, target_cx: float, target_cy: float, target_w: float, target_h: float):
@@ -96,6 +106,12 @@ class VirtualCamera:
         In horizontal/square framing, frames multiple prominent subjects if feasible.
         """
         if not primary_track:
+            # Subject Framing Memory & Coasting:
+            # If the subject is temporarily lost (e.g. looking down, turning, blinking, occluded),
+            # NEVER jump or swing the camera to the center of the video!
+            # Hold the camera rock-solid on the last known subject framing.
+            if self.last_valid_cx is not None and self.last_valid_w is not None:
+                return self.last_valid_cx, self.last_valid_cy, self.last_valid_w, self.last_valid_h
             return float(self.frame_w / 2.0), float(self.frame_h / 2.0), self.base_crop_w, self.base_crop_h
 
         # Multi-person bounding envelope handling:
@@ -121,6 +137,10 @@ class VirtualCamera:
                 if req_w <= float(self.frame_w) and req_h <= float(self.frame_h):
                     req_w = max(self.base_crop_w / max_digital_zoom, req_w)
                     req_h = req_w / self.aspect_ratio
+                    self.last_valid_cx = group_cx
+                    self.last_valid_cy = group_cy
+                    self.last_valid_w = req_w
+                    self.last_valid_h = req_h
                     return group_cx, group_cy, req_w, req_h
         else:
             # Vertical 9:16 viewports (aspect_ratio < 1.0):
@@ -144,6 +164,10 @@ class VirtualCamera:
                     group_cx = (min_x + max_x) / 2.0
                     avg_cy = (min_y + max_y) / 2.0
                     target_cy = avg_cy + (self.base_crop_h * 0.10)
+                    self.last_valid_cx = group_cx
+                    self.last_valid_cy = target_cy
+                    self.last_valid_w = self.base_crop_w
+                    self.last_valid_h = self.base_crop_h
                     return group_cx, target_cy, self.base_crop_w, self.base_crop_h
 
         # Single Primary Subject Framing
@@ -170,6 +194,12 @@ class VirtualCamera:
         target_cy = s_cy + (target_crop_h * 0.12)
         target_cx = s_cx
 
+        # Update last valid crop memory
+        self.last_valid_cx = target_cx
+        self.last_valid_cy = target_cy
+        self.last_valid_w = target_crop_w
+        self.last_valid_h = target_crop_h
+
         return target_cx, target_cy, target_crop_w, target_crop_h
 
     def update(
@@ -190,21 +220,17 @@ class VirtualCamera:
 
         if self.camera_style == "instant":
             # True broadcast instant cut behavior:
-            # Instant snap is reserved for confirmed speaker switches or scene cuts.
-            # For micro-movements of the same subject, apply gentle deadzone drift rather than jumping.
+            # Instant snap is strictly reserved for confirmed speaker switches or scene cuts.
+            # In an ongoing continuous shot, do NOT teleport or hard-snap on micro-shifts.
             diff_x = target_cx - self.cx
             diff_y = target_cy - self.cy
             diff_w = target_w - self.w
 
-            switch_threshold_x = self.w * 0.28
-
-            if abs(diff_x) > switch_threshold_x:
-                self.snap_to(target_cx, target_cy, target_w, target_h)
-            elif abs(diff_x) > (self.w * self.deadzone_ratio):
-                # Responsive continuous follow for natural movement of the same speaker
-                self.cx += (diff_x * 0.30)
-                self.cy += (diff_y * 0.30)
-                self.w += (diff_w * 0.30)
+            # Responsive continuous follow for natural movement within deadzone bounds
+            if abs(diff_x) > (self.w * self.deadzone_ratio):
+                self.cx += (diff_x * 0.20)
+                self.cy += (diff_y * 0.20)
+                self.w += (diff_w * 0.20)
                 self.h = self.w / self.aspect_ratio
                 self._clamp_bounds()
 

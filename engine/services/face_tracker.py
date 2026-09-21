@@ -605,6 +605,7 @@ class FaceTracker:
         prev_faces = []
         found_any_human = False
         prev_primary_id = None
+        prev_primary_cx = None
 
         prev_sample_hist = None
         for t in sample_times:
@@ -619,7 +620,7 @@ class FaceTracker:
                     cv2.normalize(hist, hist, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX)
                     if prev_sample_hist is not None:
                         hist_diff = cv2.compareHist(prev_sample_hist, hist, cv2.HISTCMP_BHATTACHARYYA)
-                        if hist_diff > 0.40:
+                        if hist_diff > 0.68:
                             is_visual_cut = True
                     prev_sample_hist = hist
                 except Exception:
@@ -645,16 +646,25 @@ class FaceTracker:
 
                 tracks = temporal_tracker.update(detected, width, height)
                 primary_track = tracks[0] if tracks else None
-                if primary_track:
-                    found_any_human = True
 
                 # Determine if a visual scene cut, scene boundary, or confirmed speaker switch occurred
                 is_scene_boundary = is_visual_cut or bool(scene_cut_times and any(abs(t - ct) < (0.5 / fps_sample) for ct in scene_cut_times))
-                is_speaker_switch = bool(prev_primary_id is not None and primary_track and primary_track["track_id"] != prev_primary_id)
-                is_cut = is_scene_boundary or (is_speaker_switch and camera_style == "instant")
 
+                is_speaker_switch = False
                 if primary_track:
+                    found_any_human = True
+                    curr_cx = primary_track["center_x"]
+                    if prev_primary_id is not None and prev_primary_cx is not None:
+                        # Genuine speaker switch requires BOTH:
+                        # 1. A different track ID
+                        # 2. A distinct spatial separation (at least 20% of video width)
+                        # This prevents false cuts when the same speaker is re-detected after turning their head
+                        if primary_track["track_id"] != prev_primary_id and abs(curr_cx - prev_primary_cx) > (width * 0.20):
+                            is_speaker_switch = True
                     prev_primary_id = primary_track["track_id"]
+                    prev_primary_cx = curr_cx
+
+                is_cut = is_scene_boundary or (is_speaker_switch and camera_style == "instant")
 
                 # Calculate target crop
                 tcx, tcy, tcw, tch = virtual_cam.calculate_target_crop(
@@ -756,15 +766,33 @@ class FaceTracker:
 
         # ── Shot Segment Post-Processing & Tripod Stabilization ──
         # Group timeline keyframes into stable broadcast shot segments
-        segments = []
+        raw_segments = []
         current_seg = []
         for item in all_timeline_data:
             if current_seg and item.get("is_cut", False):
-                segments.append(current_seg)
+                raw_segments.append(current_seg)
                 current_seg = []
             current_seg.append(item)
         if current_seg:
-            segments.append(current_seg)
+            raw_segments.append(current_seg)
+
+        # Merge micro-segments: In broadcast editing, shots must have a minimum dwell duration
+        # (at least ~1.5 - 2.0 seconds, or 3-4 keyframes at 2 FPS). Micro-segments shorter than min_seg_len
+        # or segments whose median centers are virtually identical (< 15% width) are merged into the
+        # dominant adjacent shot to completely eliminate jittery jump-cutting.
+        min_seg_len = max(3, int(fps_sample * 1.5))
+        segments = []
+        for seg in raw_segments:
+            if not segments:
+                segments.append(seg)
+                continue
+            prev_seg = segments[-1]
+            prev_med_x = float(np.median([it["crop_rect"][0] for it in prev_seg]))
+            curr_med_x = float(np.median([it["crop_rect"][0] for it in seg]))
+            if len(seg) < min_seg_len or abs(curr_med_x - prev_med_x) < (width * 0.15):
+                prev_seg.extend(seg)
+            else:
+                segments.append(seg)
 
         if camera_style == "instant":
             # True Broadcast Multi-Camera Studio Behavior:
