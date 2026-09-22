@@ -139,6 +139,57 @@ CAPTION_STYLES = {
         'max_words': 2,
         'stroke_factor': 0.12,
         'name': 'Cinematic Subtitles (Bold Yellow Pop)'
+    },
+    'glitch_purple': {
+        'text_color': (255, 255, 255, 255),
+        'highlight_color': (217, 70, 239, 255),  # Vibrant Neon Violet / Magenta (#D946EF)
+        'font_type': 'montserrat_black',
+        'uppercase': True,
+        'phrase_mode': True,
+        'max_words': 2,
+        'karaoke': True,
+        'glow': True,
+        'ambient_shadow': True,
+        'highlight_style': 'neon_glow',
+        'name': 'Cyber Violet (Neon Magenta Glow)'
+    },
+    'fire_orange': {
+        'text_color': (255, 255, 255, 255),
+        'highlight_color': (255, 87, 34, 255),  # Fiery Sunset Orange (#FF5722)
+        'font_type': 'montserrat_black',
+        'uppercase': True,
+        'phrase_mode': True,
+        'max_words': 2,
+        'karaoke': True,
+        'glow': True,
+        'ambient_shadow': True,
+        'highlight_style': 'neon_glow',
+        'name': 'Flame Punch (Fiery Orange Glow)'
+    },
+    'ocean_blue': {
+        'text_color': (255, 255, 255, 255),
+        'highlight_color': (0, 163, 255, 255),  # Aquatic Ocean Blue (#00A3FF)
+        'font_type': 'montserrat_black',
+        'uppercase': True,
+        'phrase_mode': True,
+        'max_words': 2,
+        'karaoke': True,
+        'glow': True,
+        'ambient_shadow': True,
+        'highlight_style': 'neon_glow',
+        'name': 'Ocean Wave (Aquatic Blue Glow)'
+    },
+    'beast_yellow': {
+        'text_color': (255, 222, 0, 255),  # Explosive Beast Yellow (#FFDE00)
+        'highlight_color': (255, 255, 255, 255),
+        'font_type': 'montserrat_black',
+        'uppercase': True,
+        'phrase_mode': True,
+        'max_words': 2,
+        'karaoke': True,
+        'stroke_factor': 0.18,
+        'highlight_style': 'outline',
+        'name': 'Thunder Beast (Bold Yellow Chunk)'
     }
 }
 

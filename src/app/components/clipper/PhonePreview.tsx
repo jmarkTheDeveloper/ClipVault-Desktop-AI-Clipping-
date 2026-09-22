@@ -58,6 +58,8 @@ interface PhonePreviewProps {
   onCancel?: () => void;
   gameplayBgVideo?: string;
   onPlaySegment?: (seg: CustomSegment) => void;
+  isPreviewingEffect?: boolean;
+  hoveredEffectName?: string;
 }
 
 function formatTime(seconds: number): string {
@@ -171,27 +173,55 @@ const DraggableCaptionOverlay: React.FC<{
   selectedEffectId: string;
   isDraggingCaption?: boolean;
   startCaptionDrag: (e: React.MouseEvent) => void;
-}> = ({ addCaptions, captionYPct, selectedEffectId, isDraggingCaption, startCaptionDrag }) => {
+  isPreviewingEffect?: boolean;
+  hoveredEffectName?: string;
+}> = ({
+  addCaptions,
+  captionYPct,
+  selectedEffectId,
+  isDraggingCaption,
+  startCaptionDrag,
+  isPreviewingEffect = false,
+  hoveredEffectName = "",
+}) => {
   if (!addCaptions) return null;
+
+  const [animStep, setAnimStep] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setAnimStep((prev) => (prev + 1) % 3);
+    }, 650);
+    return () => clearInterval(interval);
+  }, []);
+
+  const fontSans = { fontFamily: "'Montserrat', sans-serif" };
+  const fontAnton = { fontFamily: "'Anton', 'Impact', sans-serif" };
 
   const renderPresetPreview = () => {
     switch (selectedEffectId) {
       case "opus_green":
       case "emerald_green":
         return (
-          <div className="flex items-center gap-2 pointer-events-none tracking-wide uppercase font-black text-sm">
+          <div className="flex items-center gap-1.5 pointer-events-none tracking-wide uppercase font-black text-sm" style={fontSans}>
             <span
-              className="text-white px-1"
+              className={`transition-all duration-200 px-0.5 ${animStep === 0 ? "scale-110 text-[#00FF66]" : "text-white"}`}
               style={{
-                textShadow: "0 0 8px rgba(255,255,255,0.8), 0 0 16px rgba(255,255,255,0.5)",
+                textShadow:
+                  animStep === 0
+                    ? "0 0 10px #00FF66, 0 0 20px rgba(0,255,102,0.9)"
+                    : "0 0 8px rgba(255,255,255,0.8), 0 0 16px rgba(255,255,255,0.5)",
               }}
             >
               THE
             </span>
             <span
-              className="text-[#00FF66] px-1"
+              className={`transition-all duration-200 px-0.5 ${animStep === 1 ? "scale-115 text-white" : "text-[#00FF66]"}`}
               style={{
-                textShadow: "0 0 10px #00FF66, 0 0 22px rgba(0,255,102,0.8)",
+                textShadow:
+                  animStep === 1
+                    ? "0 0 12px #fff, 0 0 24px rgba(255,255,255,0.9)"
+                    : "0 0 10px #00FF66, 0 0 22px rgba(0,255,102,0.85)",
               }}
             >
               QUICK
@@ -200,10 +230,10 @@ const DraggableCaptionOverlay: React.FC<{
         );
       case "capcut_neon_red":
         return (
-          <div className="flex flex-col items-center pointer-events-none tracking-wide uppercase font-black text-sm">
-            <span className="text-base leading-none mb-0.5 animate-bounce">🤩</span>
+          <div className="flex flex-col items-center pointer-events-none tracking-wide uppercase font-black text-sm" style={fontSans}>
+            <span className={`text-base leading-none mb-0.5 transition-transform duration-200 ${animStep === 0 ? "scale-125 animate-bounce" : "scale-100"}`}>🤩</span>
             <span
-              className="text-[#FF3C30] px-1.5"
+              className={`text-[#FF3C30] px-1.5 transition-transform duration-200 ${animStep === 1 ? "scale-110" : ""}`}
               style={{
                 textShadow: "0 0 10px #FF3C30, 0 0 24px rgba(255,60,48,0.85)",
               }}
@@ -214,19 +244,25 @@ const DraggableCaptionOverlay: React.FC<{
         );
       case "capcut_yellow":
         return (
-          <div className="flex flex-col items-center pointer-events-none tracking-wide uppercase font-black text-xs leading-tight">
+          <div className="flex flex-col items-center pointer-events-none tracking-wide uppercase font-black text-xs leading-tight" style={fontSans}>
             <span
-              className="text-[#FFE600]"
+              className={`transition-all duration-200 ${animStep === 0 ? "scale-115 text-white" : "text-[#FFE600]"}`}
               style={{
-                textShadow: "0 0 8px #FFE600, 0 0 18px rgba(255,230,0,0.8)",
+                textShadow:
+                  animStep === 0
+                    ? "0 0 10px #fff, 0 0 20px rgba(255,255,255,0.9)"
+                    : "0 0 8px #FFE600, 0 0 18px rgba(255,230,0,0.8)",
               }}
             >
               THE
             </span>
             <span
-              className="text-white"
+              className={`transition-all duration-200 ${animStep === 1 ? "scale-115 text-[#FFE600]" : "text-white"}`}
               style={{
-                textShadow: "0 0 8px rgba(255,255,255,0.8), 0 0 16px rgba(255,255,255,0.5)",
+                textShadow:
+                  animStep === 1
+                    ? "0 0 10px #FFE600, 0 0 20px rgba(255,230,0,0.8)"
+                    : "0 0 8px rgba(255,255,255,0.8), 0 0 16px rgba(255,255,255,0.5)",
               }}
             >
               QUICK
@@ -235,10 +271,11 @@ const DraggableCaptionOverlay: React.FC<{
         );
       case "capcut_bold_green":
         return (
-          <div className="flex items-center pointer-events-none font-black text-sm lowercase tracking-tight">
+          <div className="flex items-center pointer-events-none font-black text-sm lowercase tracking-tight" style={fontSans}>
             <span
-              className="text-[#00FF66]"
+              className={`text-[#00FF66] transition-transform duration-200 ${animStep === 0 ? "scale-110" : ""}`}
               style={{
+                WebkitTextStroke: "1.5px #000000",
                 textShadow: "-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000, 0 3px 6px rgba(0,0,0,0.9)",
               }}
             >
@@ -248,19 +285,25 @@ const DraggableCaptionOverlay: React.FC<{
         );
       case "neon_cyan":
         return (
-          <div className="flex items-center gap-1.5 pointer-events-none tracking-wide uppercase font-black text-sm">
+          <div className="flex items-center gap-1.5 pointer-events-none tracking-wide uppercase font-black text-sm" style={fontSans}>
             <span
-              className="text-[#00F0FF] px-1"
+              className={`px-1 transition-all duration-200 ${animStep === 0 ? "scale-115 text-white" : "text-[#00F0FF]"}`}
               style={{
-                textShadow: "0 0 10px #00F0FF, 0 0 22px rgba(0,240,255,0.8)",
+                textShadow:
+                  animStep === 0
+                    ? "0 0 10px #fff, 0 0 20px rgba(255,255,255,0.9)"
+                    : "0 0 10px #00F0FF, 0 0 22px rgba(0,240,255,0.8)",
               }}
             >
               ELECTRIC
             </span>
             <span
-              className="text-white px-1"
+              className={`px-1 transition-all duration-200 ${animStep === 1 ? "scale-115 text-[#00F0FF]" : "text-white"}`}
               style={{
-                textShadow: "0 0 8px rgba(255,255,255,0.8)",
+                textShadow:
+                  animStep === 1
+                    ? "0 0 10px #00F0FF, 0 0 22px rgba(0,240,255,0.8)"
+                    : "0 0 8px rgba(255,255,255,0.8)",
               }}
             >
               CYAN
@@ -269,26 +312,161 @@ const DraggableCaptionOverlay: React.FC<{
         );
       case "hormozi_bold":
         return (
-          <div className="flex items-center gap-1 pointer-events-none tracking-wider uppercase font-black text-sm">
+          <div className="flex items-center gap-1 pointer-events-none tracking-wider uppercase font-black text-sm" style={fontAnton}>
             <span
-              className="text-[#FFD700] px-1"
+              className={`px-1 transition-all duration-200 ${animStep === 0 ? "scale-115 text-white" : "text-[#FFD700]"}`}
               style={{
+                WebkitTextStroke: "1.2px #000000",
                 textShadow: "-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000",
               }}
             >
               HORMOZI
             </span>
             <span
-              className="text-white px-1"
+              className={`px-1 transition-all duration-200 ${animStep === 1 ? "scale-115 text-[#FFD700]" : "text-white"}`}
               style={{
+                WebkitTextStroke: "1px #000000",
                 textShadow: "-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000",
               }}
             >
-              BOLD
+              PUNCH
             </span>
           </div>
         );
       case "clean_white":
+        return (
+          <div className="flex items-center gap-1 pointer-events-none tracking-wider uppercase font-black text-sm" style={fontSans}>
+            <span
+              className={`text-white px-1 transition-all duration-200 ${animStep === 0 ? "scale-105 text-emerald-300" : ""}`}
+              style={{
+                textShadow: animStep === 0
+                  ? "0 0 12px rgba(0,230,118,0.8), -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000"
+                  : "-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000",
+              }}
+            >
+              CLEAN WHITE
+            </span>
+          </div>
+        );
+      case "capcut_banner":
+        return (
+          <div className="flex items-center gap-1 pointer-events-none px-2 py-0.5 rounded-lg bg-black/85 border border-white/20 shadow-md select-none" style={fontAnton}>
+            <span
+              className={`text-white px-1 text-xs font-black transition-all duration-200 ${animStep === 0 ? "scale-110 text-yellow-300" : ""}`}
+            >
+              DARK
+            </span>
+            <span
+              className={`px-1.5 py-0.5 rounded text-xs font-black transition-all duration-200 ${animStep === 1 ? "bg-white text-black scale-110" : "bg-[#FFE600] text-black"}`}
+            >
+              BANNER
+            </span>
+          </div>
+        );
+      case "glitch_purple":
+        return (
+          <div className="flex items-center gap-1.5 pointer-events-none tracking-wide uppercase font-black text-sm" style={fontSans}>
+            <span
+              className={`px-1 transition-all duration-200 ${animStep === 0 ? "scale-115 text-[#D946EF]" : "text-white"}`}
+              style={{
+                textShadow:
+                  animStep === 0
+                    ? "0 0 10px #D946EF, 0 0 22px rgba(217,70,239,0.85)"
+                    : "0 0 8px rgba(255,255,255,0.7)",
+              }}
+            >
+              CYBER
+            </span>
+            <span
+              className={`px-1 transition-all duration-200 ${animStep === 1 ? "scale-115 text-white" : "text-[#D946EF]"}`}
+              style={{
+                textShadow:
+                  animStep === 1
+                    ? "0 0 10px #fff, 0 0 20px rgba(255,255,255,0.9)"
+                    : "0 0 10px #D946EF, 0 0 24px rgba(217,70,239,0.9)",
+              }}
+            >
+              VIOLET
+            </span>
+          </div>
+        );
+      case "fire_orange":
+        return (
+          <div className="flex items-center gap-1.5 pointer-events-none tracking-wide uppercase font-black text-sm" style={fontSans}>
+            <span
+              className={`px-1 transition-all duration-200 ${animStep === 0 ? "scale-115 text-white" : "text-[#FFE600]"}`}
+              style={{
+                textShadow:
+                  animStep === 0
+                    ? "0 0 10px #fff, 0 0 20px rgba(255,255,255,0.9)"
+                    : "0 0 10px #FFE600, 0 0 20px rgba(255,230,0,0.8)",
+              }}
+            >
+              FLAME
+            </span>
+            <span
+              className={`px-1 transition-all duration-200 ${animStep === 1 ? "scale-115 text-[#FFE600]" : "text-[#FF5722]"}`}
+              style={{
+                textShadow:
+                  animStep === 1
+                    ? "0 0 10px #FFE600, 0 0 20px rgba(255,230,0,0.8)"
+                    : "0 0 12px #FF5722, 0 0 24px rgba(255,87,34,0.9)",
+              }}
+            >
+              PUNCH
+            </span>
+          </div>
+        );
+      case "ocean_blue":
+        return (
+          <div className="flex items-center gap-1.5 pointer-events-none tracking-wide uppercase font-black text-sm" style={fontSans}>
+            <span
+              className={`px-1 transition-all duration-200 ${animStep === 0 ? "scale-115 text-[#00A3FF]" : "text-white"}`}
+              style={{
+                textShadow:
+                  animStep === 0
+                    ? "0 0 10px #00A3FF, 0 0 22px rgba(0,163,255,0.85)"
+                    : "0 0 8px rgba(255,255,255,0.7)",
+              }}
+            >
+              OCEAN
+            </span>
+            <span
+              className={`px-1 transition-all duration-200 ${animStep === 1 ? "scale-115 text-white" : "text-[#00A3FF]"}`}
+              style={{
+                textShadow:
+                  animStep === 1
+                    ? "0 0 10px #fff, 0 0 20px rgba(255,255,255,0.9)"
+                    : "0 0 10px #00A3FF, 0 0 24px rgba(0,163,255,0.9)",
+              }}
+            >
+              WAVE
+            </span>
+          </div>
+        );
+      case "beast_yellow":
+        return (
+          <div className="flex items-center gap-1 pointer-events-none tracking-tight uppercase font-black text-sm" style={fontSans}>
+            <span
+              className={`px-1 transition-all duration-200 ${animStep === 0 ? "scale-115 text-[#FFDE00]" : "text-white"}`}
+              style={{
+                WebkitTextStroke: "1.2px #000000",
+                textShadow: "-1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000, 1.5px 1.5px 0 #000",
+              }}
+            >
+              THUNDER
+            </span>
+            <span
+              className={`px-1 transition-all duration-200 ${animStep === 1 ? "scale-115 text-white" : "text-[#FFDE00]"}`}
+              style={{
+                WebkitTextStroke: "1.5px #000000",
+                textShadow: "-1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000, 1.5px 1.5px 0 #000, 0 4px 8px rgba(0,0,0,0.9)",
+              }}
+            >
+              BEAST
+            </span>
+          </div>
+        );
       default:
         return (
           <div className="flex items-center gap-1 pointer-events-none tracking-wider uppercase font-black text-sm">
@@ -298,7 +476,7 @@ const DraggableCaptionOverlay: React.FC<{
                 textShadow: "-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000",
               }}
             >
-              CLEAN WHITE
+              CAPTION
             </span>
           </div>
         );
@@ -317,12 +495,20 @@ const DraggableCaptionOverlay: React.FC<{
           startCaptionDrag(e);
         }}
         title="Click & Drag to reposition captions on screen"
-        className={`pointer-events-auto px-4 py-2 rounded-2xl bg-black/85 backdrop-blur-md border transition-all cursor-grab active:cursor-grabbing shadow-[0_8px_32px_rgba(0,0,0,0.8)] flex items-center gap-2 group ${
+        className={`pointer-events-auto px-4 py-2 rounded-2xl bg-black/85 backdrop-blur-md border transition-all cursor-grab active:cursor-grabbing shadow-[0_8px_32px_rgba(0,0,0,0.8)] flex items-center gap-2 group relative ${
           isDraggingCaption
             ? "border-amber-400 ring-2 ring-amber-400/60 scale-105"
+            : isPreviewingEffect
+            ? "border-emerald-400 ring-2 ring-emerald-400/80 scale-110 bg-black/95 shadow-[0_0_30px_rgba(0,255,102,0.45)]"
             : "border-white/20 hover:border-amber-400/80 hover:bg-black/95 hover:scale-102"
         }`}
       >
+        {isPreviewingEffect && (
+          <div className="absolute -top-7 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500 text-black text-[10px] font-black tracking-wider uppercase shadow-xl border border-emerald-300 pointer-events-none animate-bounce whitespace-nowrap z-40">
+            <span>✨ LIVE PREVIEW</span>
+            {hoveredEffectName && <span className="opacity-90">• {hoveredEffectName}</span>}
+          </div>
+        )}
         <Move className="w-3.5 h-3.5 text-gray-500 group-hover:text-amber-400 transition-colors pointer-events-none shrink-0" />
         {renderPresetPreview()}
       </div>
@@ -368,6 +554,8 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
   onCancel,
   gameplayBgVideo = "",
   onPlaySegment,
+  isPreviewingEffect = false,
+  hoveredEffectName = "",
 }) => {
   const youtubeId = extractYouTubeId(ytUrl);
   const posterUrl = youtubeId ? `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg` : "";
@@ -1086,6 +1274,8 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                 selectedEffectId={selectedEffectId}
                 isDraggingCaption={isDraggingCaption}
                 startCaptionDrag={startCaptionDrag}
+                isPreviewingEffect={isPreviewingEffect}
+                hoveredEffectName={hoveredEffectName}
               />
             </div>
           )}

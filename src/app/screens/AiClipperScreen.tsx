@@ -5,6 +5,7 @@ import type { ByokMode } from "../components/clipper/EngineSettingsModal";
 import { CropEditorModal } from "../components/clipper/CropEditorModal";
 import { SetupSidebar } from "../components/clipper/SetupSidebar";
 import { PhonePreview } from "../components/clipper/PhonePreview";
+import { SUBTITLE_PRESETS } from "../components/clipper/SubtitleStyleCard";
 import { SavedClipsVault } from "../components/clipper/SavedClipsVault";
 import { GalleryView } from "../components/clipper/GalleryView";
 import { ClipDetailsModal } from "../components/clipper/ClipDetailsModal";
@@ -398,6 +399,7 @@ export const AiClipperScreen: React.FC<Props> = ({
   const [addCaptions, setAddCaptions] = useState(true);
   const [captionYPct, setCaptionYPct] = useState(70);
   const [selectedEffectId, setSelectedEffectId] = useState("capcut_yellow");
+  const [hoveredEffectId, setHoveredEffectId] = useState<string | null>(null);
   const [avoidCopyright, setAvoidCopyright] = useState(false);
   const [startTs, setStartTs] = useState("");
   const [endTs, setEndTs] = useState("");
@@ -1637,6 +1639,7 @@ export const AiClipperScreen: React.FC<Props> = ({
                 setCaptionYPct={setCaptionYPct}
                 selectedEffectId={selectedEffectId}
                 setSelectedEffectId={setSelectedEffectId}
+                onHoverEffectId={setHoveredEffectId}
                 avoidCopyright={avoidCopyright}
                 setAvoidCopyright={setAvoidCopyright}
                 customSegments={customSegments}
@@ -1690,7 +1693,11 @@ export const AiClipperScreen: React.FC<Props> = ({
               captionYPct={captionYPct}
               isDraggingCaption={isDraggingCaption}
               startCaptionDrag={startCaptionDrag}
-              selectedEffectId={selectedEffectId}
+              selectedEffectId={hoveredEffectId || selectedEffectId}
+              isPreviewingEffect={Boolean(hoveredEffectId)}
+              hoveredEffectName={
+                SUBTITLE_PRESETS.find((p) => p.id === (hoveredEffectId || selectedEffectId))?.name || ""
+              }
               cropTop={cropTop}
               cropBottom={cropBottom}
               mediaDuration={mediaDuration}

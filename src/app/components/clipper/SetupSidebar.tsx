@@ -150,6 +150,7 @@ interface SetupSidebarProps {
   setCaptionYPct: (y: number) => void;
   selectedEffectId: string;
   setSelectedEffectId: (id: string) => void;
+  onHoverEffectId?: (id: string | null) => void;
   avoidCopyright: boolean;
   setAvoidCopyright: (a: boolean) => void;
   mediaDuration?: number;
@@ -250,6 +251,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
   setCaptionYPct,
   selectedEffectId,
   setSelectedEffectId,
+  onHoverEffectId,
   avoidCopyright,
   setAvoidCopyright,
   customSegments = [{ id: "1", start: "0:00", end: "" }],
@@ -1416,6 +1418,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                           preset={preset}
                           isSelected={selectedEffectId === preset.id}
                           onSelect={(id) => setSelectedEffectId(id)}
+                          onHover={onHoverEffectId}
                           compact={true}
                         />
                       ))}
