@@ -13,7 +13,6 @@ import {
   Cpu,
   Globe,
   Key,
-  FileCheck,
   ExternalLink,
   CheckCircle2,
   ArrowDown,
@@ -180,147 +179,6 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
           }}>
             V1.0
           </span>
-        </div>
-
-        {/* Status pills, Guided Tour, Settings & Privacy Button */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {onStartTour && (
-            <button
-              type="button"
-              onClick={onStartTour}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 5,
-                padding: "4px 9px",
-                borderRadius: 6,
-                background: "rgba(0,230,118,0.08)",
-                border: "1px solid rgba(0,230,118,0.3)",
-                color: G,
-                fontFamily: "'Geist Mono', 'JetBrains Mono', monospace",
-                fontSize: 9.5,
-                fontWeight: 700,
-                cursor: "pointer",
-                transition: "all 0.2s",
-                boxShadow: "0 0 12px rgba(0,230,118,0.15)",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = "#fff";
-                e.currentTarget.style.borderColor = G;
-                e.currentTarget.style.background = "rgba(0,230,118,0.2)";
-                e.currentTarget.style.transform = "translateY(-1px)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = G;
-                e.currentTarget.style.borderColor = "rgba(0,230,118,0.3)";
-                e.currentTarget.style.background = "rgba(0,230,118,0.08)";
-                e.currentTarget.style.transform = "none";
-              }}
-            >
-              <Sparkles style={{ width: 11, height: 11, color: G }} />
-              <span>Guided Tour</span>
-            </button>
-          )}
-
-          {/* Settings Button */}
-          <button
-            type="button"
-            onClick={() => {
-              setSettingsTab("general");
-              setShowSettingsModal(true);
-            }}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 5,
-              padding: "4px 10px",
-              borderRadius: 6,
-              background: "rgba(255,255,255,0.04)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              color: "rgba(255,255,255,0.8)",
-              fontFamily: "'Geist Mono', 'JetBrains Mono', monospace",
-              fontSize: 9.5,
-              fontWeight: 700,
-              cursor: "pointer",
-              transition: "all 0.2s",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = "#fff";
-              e.currentTarget.style.borderColor = "rgba(0,230,118,0.4)";
-              e.currentTarget.style.background = "rgba(0,230,118,0.12)";
-              e.currentTarget.style.transform = "translateY(-1px)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = "rgba(255,255,255,0.8)";
-              e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)";
-              e.currentTarget.style.background = "rgba(255,255,255,0.04)";
-              e.currentTarget.style.transform = "none";
-            }}
-          >
-            <Settings style={{ width: 11, height: 11, color: G }} />
-            <span>Settings</span>
-          </button>
-
-          {/* Privacy & Compliance Button */}
-          <button
-            type="button"
-            onClick={() => {
-              setSettingsTab("privacy");
-              setShowSettingsModal(true);
-            }}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 5,
-              padding: "4px 9px",
-              borderRadius: 6,
-              background: complianceAccepted ? "rgba(0,230,118,0.06)" : "rgba(255,255,255,0.03)",
-              border: complianceAccepted ? "1px solid rgba(0,230,118,0.25)" : "1px solid rgba(255,255,255,0.08)",
-              color: complianceAccepted ? G : "rgba(255,255,255,0.55)",
-              fontFamily: "'Geist Mono', 'JetBrains Mono', monospace",
-              fontSize: 9.5,
-              cursor: "pointer",
-              transition: "all 0.2s",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = "#fff";
-              e.currentTarget.style.borderColor = "rgba(0,230,118,0.35)";
-              e.currentTarget.style.background = "rgba(0,230,118,0.1)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = complianceAccepted ? G : "rgba(255,255,255,0.55)";
-              e.currentTarget.style.borderColor = complianceAccepted ? "1px solid rgba(0,230,118,0.25)" : "rgba(255,255,255,0.08)";
-              e.currentTarget.style.background = complianceAccepted ? "rgba(0,230,118,0.06)" : "rgba(255,255,255,0.03)";
-            }}
-          >
-            <ShieldCheck style={{ width: 11, height: 11, color: G }} />
-            <span>{complianceAccepted ? "Privacy & BYOK Active" : "Privacy & BYOK Security"}</span>
-          </button>
-
-          <div style={{
-            display: "flex", alignItems: "center", gap: 6, padding: "4px 9px",
-            borderRadius: 6, background: "rgba(255,255,255,0.03)",
-            border: "1px solid rgba(255,255,255,0.06)",
-          }}>
-            <div style={{
-              width: 5, height: 5, borderRadius: "50%",
-              background: engineOnline ? G : "#ef4444",
-              boxShadow: engineOnline ? `0 0 6px ${G}` : "0 0 6px #ef4444",
-              animationName: "wfDotPulse", animationDuration: "2s",
-              animationTimingFunction: "ease-in-out", animationIterationCount: "infinite",
-            }} />
-            <span style={{ color: "rgba(255,255,255,0.5)", fontFamily: "'Geist Mono', monospace", fontSize: 9.5 }}>
-              {engineOnline ? "Local Engine Online (127.0.0.1:8000)" : "Engine Offline"}
-            </span>
-          </div>
-          <div style={{
-            display: "flex", alignItems: "center", gap: 5, padding: "4px 9px",
-            borderRadius: 6, background: "rgba(255,255,255,0.03)",
-            border: "1px solid rgba(255,255,255,0.06)",
-            color: "rgba(255,255,255,0.5)", fontFamily: "'Geist Mono', monospace", fontSize: 9.5,
-          }}>
-            ⚡ Hardware Accelerated
-          </div>
         </div>
       </header>
 
@@ -774,22 +632,6 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
               <button
                 type="button"
                 onClick={() => {
-                  setSettingsTab("licenses");
-                  setShowSettingsModal(true);
-                }}
-                style={{
-                  fontSize: 11.5, color: "rgba(255,255,255,0.5)",
-                  background: "none", border: "none", cursor: "pointer", transition: "color 0.2s"
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = G; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.5)"; }}
-              >
-                Open Source
-              </button>
-              <span style={{ color: "rgba(255,255,255,0.15)" }}>•</span>
-              <button
-                type="button"
-                onClick={() => {
                   setSettingsTab("about");
                   setShowSettingsModal(true);
                 }}
@@ -970,7 +812,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
                         </span>
                       </div>
                       <p style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", margin: 0 }}>
-                        Local-First Studio Preferences • Essential Agreements • Master EULA • Third-Party Licenses
+                        Local-First Studio Preferences • Essential Agreements • Master EULA • Privacy Policy
                       </p>
                     </div>
                   </div>
@@ -1125,7 +967,6 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
                         { id: "eula", label: "01. EULA (Master License)", icon: Scale },
                         { id: "terms", label: "02. Terms & Conditions", icon: FileText },
                         { id: "privacy", label: "03. Privacy Policy (Zero-Data)", icon: ShieldCheck },
-                        { id: "licenses", label: "04. Third-Party Licenses", icon: FileCheck },
                       ].map((item) => {
                         const IconComponent = item.icon;
                         const isActive = settingsTab === item.id;
@@ -1686,43 +1527,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
                       </div>
                     )}
 
-                    {/* TAB 6: Third-Party Open-Source Licenses */}
-                    {settingsTab === "licenses" && (
-                      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid rgba(255,255,255,0.08)", paddingBottom: 14 }}>
-                          <div>
-                            <h3 style={{ fontSize: 18, fontWeight: 800, color: "#fff", margin: "0 0 4px", fontFamily: "'Space Grotesk', 'Geist', sans-serif" }}>
-                              Third-Party Open-Source Licenses &amp; Attributions
-                            </h3>
-                            <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)" }}>
-                              Notices and attribution for external libraries, frameworks, and engine dependencies.
-                            </div>
-                          </div>
-                        </div>
-
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 12 }}>
-                          {[
-                            { name: "FFmpeg Engine", license: "LGPL v2.1 / GPL v3", desc: "Used for high-speed media decoding, stream slicing, and hardware-accelerated H.264/HEVC encoding. Source code available at ffmpeg.org." },
-                            { name: "OpenCV (Open Source Computer Vision)", license: "Apache License 2.0", desc: "Used for spatial face bounding boxes, coordinate transformations, and frame manipulation. Copyright OpenCV Authors." },
-                            { name: "Google MediaPipe", license: "Apache License 2.0", desc: "Used for multi-person neural face detection and dual-speaker tracking. Copyright 2026 Google LLC." },
-                            { name: "faster-whisper & CTranslate2", license: "MIT License", desc: "High-speed offline speech-to-text inference with word-level timestamps. Copyright Guillaume Klein, OpenNMT." },
-                            { name: "yt-dlp Media Ingestion", license: "The Unlicense (Public Domain)", desc: "Stream metadata extraction and video slice download engine. Copyright yt-dlp contributors." },
-                            { name: "React, Vite, Tailwind CSS & Lucide", license: "MIT License", desc: "Frontend reactive architecture, styling system, and interface iconography." },
-                            { name: "Montserrat Typeface", license: "SIL Open Font License 1.1", desc: "Authentic Montserrat-Black & Bold typography bundled in engine assets. Copyright Julieta Ulanovsky." },
-                          ].map((item) => (
-                            <div key={item.name} style={{ padding: 14, borderRadius: 10, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
-                              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-                                <span style={{ fontWeight: 700, color: "#fff", fontSize: 12.5 }}>{item.name}</span>
-                                <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 4, background: "rgba(0,230,118,0.1)", color: G, fontFamily: "'Geist Mono', monospace" }}>{item.license}</span>
-                              </div>
-                              <p style={{ margin: 0, fontSize: 11.5, color: "rgba(255,255,255,0.6)" }}>{item.desc}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* TAB 7: About ClipVault Studio & Student Developer Manifesto */}
+                    {/* TAB: About ClipVault Studio & Student Developer Manifesto */}
                     {settingsTab === "about" && (
                       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
                         <div style={{ borderBottom: "1px solid rgba(255,255,255,0.08)", paddingBottom: 14 }}>
