@@ -24,29 +24,36 @@ export const TOUR_STEPS: TourStepInfo[] = [
   {
     step: 1,
     title: "Choose Studio Mode",
-    subtitle: "Step 1 of 5 • Project Selector",
-    description: "Select your creation workflow to begin:",
+    subtitle: "Step 1 of 13 • Project Selection",
+    description: "ClipVault provides high-speed autonomous pipelines and pro creative studios tailored for viral short-form content:",
     options: [
       {
-        label: "AI Video Clipper Studio",
-        desc: "Convert podcasts, gaming streams, and long horizontal videos into viral 9:16 Shorts with MediaPipe face tracking.",
-        badge: "Core Engine",
+        label: "1-Click Auto Clipper (Opus Style)",
+        desc: "Autonomous viral hook discovery, automatic B-roll injection & 1-click batch export with zero manual slicing.",
+        badge: "Autonomous",
         badgeColor: "#00e676",
       },
+      {
+        label: "Pro Manual Clipper Studio",
+        desc: "Complete creative control over crop boxes, layout, kinetic captions, camera styles & timelines.",
+        badge: "Pro Studio",
+        badgeColor: "#38bdf8",
+      },
     ],
+    tipNotice: "💡 Click '1-Click Auto Clipper' or Next Step to enter the video studio and configure your video.",
     targetId: "tour-step-1-clipper-card",
     position: "bottom",
   },
   {
     step: 2,
     title: "Ingest Video or Stream",
-    subtitle: "Step 2 of 5 • Stream Slicing",
-    description: "Choose how you want to provide your video footage:",
+    subtitle: "Step 2 of 13 • Video Input",
+    description: "Provide your footage via online streaming URL or private local files:",
     options: [
       {
-        label: "YouTube / Stream Link",
-        desc: "Paste any YouTube, Twitch, or web URL. ClipVault automatically extracts high-bitrate video and indexes peak moments.",
-        badge: "Online Stream",
+        label: "YouTube / Web Stream Link",
+        desc: "Paste any YouTube, Twitch, or web URL. ClipVault streams lossless high-bitrate video and indexes peak moments without downloading gigabytes.",
+        badge: "Stream Ingest",
         badgeColor: "#ef4444",
       },
       {
@@ -62,43 +69,66 @@ export const TOUR_STEPS: TourStepInfo[] = [
   {
     step: 3,
     title: "Select Multi-Model AI Engine",
-    subtitle: "Step 3 of 5 • AI Brain",
-    description: "Choose the intelligence model that will detect your viral hooks:",
+    subtitle: "Step 3 of 13 • AI Intelligence & BYOK",
+    description: "Choose the intelligence model that will detect your viral hooks and transcribe dialogue:",
     options: [
       {
-        label: "Cloud AI (Groq, Gemini, OpenAI)",
-        desc: "Requires API Key. Slicing quality and viral intelligence depend directly on your chosen model.",
-        badge: "API Required",
+        label: "Cloud AI (Groq, Gemini, OpenAI, Claude)",
+        desc: "Requires API Key. Ultra-fast 500+ tok/s processing with Groq or deep viral hook analysis with Gemini 2.5 and GPT-4o.",
+        badge: "Cloud API",
         badgeColor: "#fbbf24",
       },
       {
-        label: "Local GPU / QSV Engine",
-        desc: "100% Free & Offline. Dedicated GPU (NVIDIA / AMD / Intel Arc) is strongly recommended.",
-        badge: "GPU Recommended",
-        badgeColor: "#38bdf8",
+        label: "Free Local GPU / Intel Arc QSV Engine",
+        desc: "100% Free & Offline. Powered by on-device Intel OpenVINO, AMD ROCm, or NVIDIA CUDA acceleration.",
+        badge: "Free & Offline",
+        badgeColor: "#00e676",
       },
     ],
-    warningNotice: "⚠️ AI clipping will not process without an API key for cloud models. Slicing quality and viral hook accuracy depend directly on what model you choose. For Local mode, a dedicated GPU is strongly recommended.",
-    tipNotice: "💡 You can configure or change your API keys later anytime before clipping by clicking the Engine button in the top right.",
+    warningNotice: "⚠️ Cloud AI models require an API key in Vault Keys. Local mode runs entirely offline on your GPU/NPU with zero subscription costs.",
+    tipNotice: "💡 You can configure or change your API keys anytime by clicking the Engine button in the top bar.",
     targetId: "tour-step-3-engine",
     position: "right",
   },
   {
     step: 4,
-    title: "AI Face Tracking & Auto-Reframe",
-    subtitle: "Step 4 of 5 • Computer Vision",
-    description: "Smart cropping configurations for mobile platforms:",
+    title: "Timeline Slicing & Interactive Segments",
+    subtitle: "Step 4 of 13 • Timeline Ranges",
+    description: "Define how ClipVault discovers moments or manually slice exact timestamp bounds:",
+    options: [
+      {
+        label: "Auto Viral Moments",
+        desc: "AI scans the entire video, calculating hook strength and engagement retention to extract the best moments.",
+        badge: "AI Auto-Scan",
+        badgeColor: "#a855f7",
+      },
+      {
+        label: "Interactive Custom Segments",
+        desc: "Pin start and end timestamps, create multi-clip batches, and click any segment card or 'Play Clip' to instantly preview that scene.",
+        badge: "Interactive",
+        badgeColor: "#00e676",
+      },
+    ],
+    tipNotice: "💡 In Custom mode, click 'Play Clip' on any segment card or mark Start/End bounds directly from the player dock!",
+    targetId: "tour-step-timeline",
+    position: "right",
+  },
+  {
+    step: 5,
+    title: "AI Face Tracking & Video Layout",
+    subtitle: "Step 5 of 13 • Computer Vision",
+    description: "Smart cropping configurations optimized for vertical mobile platforms (Shorts, Reels, TikTok):",
     options: [
       {
         label: "Auto Face-Tracking (9:16)",
-        desc: "MediaPipe computer vision tracks the active speaker smoothly across horizontal video frames.",
+        desc: "MediaPipe computer vision tracks the active speaker smoothly across horizontal video frames with zero dead zones.",
         badge: "AI Vision",
         badgeColor: "#00e676",
       },
       {
-        label: "Dual-Layer Split (Speaker + B-Roll)",
-        desc: "Stacks speaker on top with secondary B-roll footage, product visuals, or contextual media on the bottom.",
-        badge: "Split-Screen",
+        label: "Dual-Layer Split & Square Blur",
+        desc: "Stacks speaker on top with secondary gameplay or B-roll on bottom, or centers speaker with soft aesthetic background blur.",
+        badge: "Split & Blur",
         badgeColor: "#38bdf8",
       },
     ],
@@ -106,25 +136,184 @@ export const TOUR_STEPS: TourStepInfo[] = [
     position: "right",
   },
   {
-    step: 5,
-    title: "Viral Captions & Hardware Export",
-    subtitle: "Step 5 of 5 • Final Export",
-    description: "Finalize dynamic typography and render your short-form master:",
+    step: 6,
+    title: "Virtual Camera Director Styles",
+    subtitle: "Step 6 of 13 • Virtual Camera Director",
+    description: "Choose how the virtual camera navigates and cuts between speakers during conversations:",
+    options: [
+      {
+        label: "Instant Cut (Hard Tripod Lock)",
+        desc: "Jump-cuts instantly to the active speaker with zero sliding motion. Perfect for podcasts and professional multi-guest interviews.",
+        badge: "Pro Studio",
+        badgeColor: "#fbbf24",
+      },
+      {
+        label: "Snappy vs. Smooth Glide",
+        desc: "Snappy delivers reactive agile camera pans, while Smooth provides graceful cinematic easing for relaxed stage presentations.",
+        badge: "Motion Easing",
+        badgeColor: "#38bdf8",
+      },
+    ],
+    tipNotice: "💡 Expand 'Advanced Camera & Quality Controls' below to enable Adaptive Quality Framing and AI Neural Upscaling.",
+    targetId: "tour-step-camera",
+    position: "right",
+  },
+  {
+    step: 7,
+    title: "Viral Captions, Emojis & Audio",
+    subtitle: "Step 7 of 13 • Viral Polish & Audio",
+    description: "Equip your clips with high-retention audio-visual effects:",
     options: [
       {
         label: "Dynamic Kinetic Subtitles",
-        desc: "Word-by-word highlighted text with sound effects and animated emojis.",
+        desc: "Word-by-word highlighted text with viral font styles (Viral Yellow, Neon Emerald, Clean White, Electric Cyan).",
         badge: "High Retention",
         badgeColor: "#fbbf24",
       },
       {
-        label: "Hardware-Accelerated Render",
-        desc: "Intel QSV & GPU acceleration exports clean MP4s straight to your hard drive.",
-        badge: "Lossless Export",
+        label: "Auto-Ducked Soundtrack & SFX",
+        desc: "Balanced background music that automatically dips when speakers speak, plus pop sound effects and animated emojis.",
+        badge: "Auto-Ducking",
         badgeColor: "#00e676",
       },
     ],
+    tipNotice: "💡 Toggle 'Anti-Duplicate Filter' to flip footage and subtly shift tempo for fresh algorithmic ranking on TikTok and YouTube.",
+    targetId: "tour-step-effects",
+    position: "right",
+  },
+  {
+    step: 8,
+    title: "Live Phone Preview & Transport Dock",
+    subtitle: "Step 8 of 13 • Mobile Canvas & Transport",
+    description: "Full 9:16 mobile canvas simulation with responsive playback controls:",
+    options: [
+      {
+        label: "9:16 Mobile Viewport",
+        desc: "Live interactive preview with draggable kinetic captions, aspect ratio framing, and real-time speaker tracking.",
+        badge: "Live Canvas",
+        badgeColor: "#00e676",
+      },
+      {
+        label: "Transport Dock & Segment Looping",
+        desc: "Scrub through video, jump +15s/+1m, mark start/end bounds, or turn on Loop to repeat the active segment continuously.",
+        badge: "Dock Transport",
+        badgeColor: "#38bdf8",
+      },
+    ],
+    tipNotice: "💡 You can drag the caption text directly on the phone preview to reposition subtitles anywhere on screen!",
+    targetId: "tour-step-phone-preview",
+    position: "bottom",
+  },
+  {
+    step: 9,
+    title: "Hardware-Accelerated Render & Export",
+    subtitle: "Step 9 of 13 • Render Pipeline",
+    description: "Finalize export settings and compile your master short-form videos:",
+    options: [
+      {
+        label: "Lossless GPU / QSV Pipeline",
+        desc: "Intel QuickSync, NVIDIA NVENC, and AMD AMF hardware acceleration render pristine MP4 master files at lightning speeds.",
+        badge: "Hardware Render",
+        badgeColor: "#00e676",
+      },
+      {
+        label: "Folder Assignment & Custom Output",
+        desc: "Select your PC destination folder or assign clips to custom project folders before rendering.",
+        badge: "Batch Folder",
+        badgeColor: "#fbbf24",
+      },
+    ],
+    tipNotice: "💡 Next, we'll visit the Saved Clips Vault where all your rendered masters and project folders are organized!",
     targetId: "tour-step-5-export",
+    position: "top",
+  },
+  {
+    step: 10,
+    title: "Saved Clips Vault & Physical Explorer Access",
+    subtitle: "Step 10 of 13 • Local Storage Management",
+    description: "Access and manage where your saved clips live on your computer:",
+    options: [
+      {
+        label: "Open in Windows Explorer",
+        desc: "Instantly launch native Windows File Explorer directly into your current project folder with one click.",
+        badge: "Direct Access",
+        badgeColor: "#fbbf24",
+      },
+      {
+        label: "Dedicated 100% Local Storage",
+        desc: "All master MP4 videos and viral hook metadata remain safely on your hard drive with zero cloud locks.",
+        badge: "100% Private",
+        badgeColor: "#38bdf8",
+      },
+    ],
+    targetId: "vault-tour-step-1-storage",
+    position: "bottom",
+  },
+  {
+    step: 11,
+    title: "Project Folders & Navigation",
+    subtitle: "Step 11 of 13 • Project Organization",
+    description: "Organize your short-form library with custom multi-level project folders:",
+    options: [
+      {
+        label: "Project Category Folders",
+        desc: "Create, nest, and rename folders for Gaming, Podcasts, Highlights, or Client Deliverables.",
+        badge: "Categories",
+        badgeColor: "#00e676",
+      },
+      {
+        label: "Folder Breadcrumbs",
+        desc: "Click breadcrumbs to traverse parent directories or drag clips onto breadcrumbs to return them to the Main Library.",
+        badge: "Navigation",
+        badgeColor: "#a855f7",
+      },
+    ],
+    targetId: "vault-tour-step-2-breadcrumbs",
+    position: "bottom",
+  },
+  {
+    step: 12,
+    title: "Search, Filter & Virality Scoring",
+    subtitle: "Step 12 of 13 • Discovery & Ranking",
+    description: "Locate and rank your highest-performing moments effortlessly:",
+    options: [
+      {
+        label: "Instant Search & Folder Filter",
+        desc: "Search across all clips by title, hook keywords, or filename with real-time filtering.",
+        badge: "Instant Search",
+        badgeColor: "#38bdf8",
+      },
+      {
+        label: "Virality Score Ranking",
+        desc: "Sort clips by AI Virality Score (90+), creation date, or duration to identify viral hits immediately.",
+        badge: "Virality Rank",
+        badgeColor: "#fbbf24",
+      },
+    ],
+    targetId: "vault-tour-step-3-search",
+    position: "bottom",
+  },
+  {
+    step: 13,
+    title: "Desktop Drag & Drop & Direct Export",
+    subtitle: "Step 13 of 13 • Native Desktop Integration",
+    description: "Full desktop-native drag-and-drop workflow:",
+    options: [
+      {
+        label: "Folder Drag & Drop",
+        desc: "Drag clips directly between project folders, or drop external MP4 files from Windows into ClipVault.",
+        badge: "Drag & Drop",
+        badgeColor: "#00e676",
+      },
+      {
+        label: "Drag Out to Desktop / Editors",
+        desc: "Drag clips straight out onto your Windows desktop, Premiere Pro, DaVinci Resolve, or CapCut for publishing.",
+        badge: "Direct Export",
+        badgeColor: "#fbbf24",
+      },
+    ],
+    tipNotice: "🎉 You've mastered ClipVault! Click Finish Tour to start creating viral short-form content.",
+    targetId: "vault-tour-step-4-drag",
     position: "top",
   },
 ];
@@ -313,7 +502,14 @@ export const InteractiveTour: React.FC<Props> = ({
 
   const isLastStep = currentStep === steps.length;
   // Adaptive HUD Placement: if target element is near the bottom, position HUD at the top so it never covers the button
-  const shouldPlaceAtTop = stepInfo.position === "top" || (targetRect ? targetRect.bottom > (typeof window !== "undefined" ? window.innerHeight - 280 : 600) : false);
+  const shouldPlaceAtTop =
+    stepInfo.position === "top"
+      ? true
+      : stepInfo.position === "bottom"
+      ? false
+      : targetRect
+      ? targetRect.bottom > (typeof window !== "undefined" ? window.innerHeight - 260 : 600) && targetRect.top > 200
+      : false;
 
   return (
     <div

@@ -236,13 +236,19 @@ export default function App() {
         setClipperViewMode("setup");
         setScreen("ai-clipper");
         setTourStep(2);
-      } else if (tourStep < 5) {
+      } else if (tourStep === 9) {
+        // Step 9 is Hardware Export. Next step is Saved Clips Vault!
+        setClipperViewMode("vault");
+        setScreen("ai-clipper");
+        setTourStep(10);
+      } else if (tourStep < 13) {
         setTourStep((prev) => prev + 1);
       } else {
-        // Completed Tour
+        // Completed Full 13-Step Master Tour
         setTourActive(false);
         try {
           localStorage.setItem("clipvault_tutorial_completed", "true");
+          localStorage.setItem("clipvault_vault_tour_completed", "true");
         } catch {}
       }
     } else if (tourType === "vault") {
@@ -262,6 +268,11 @@ export default function App() {
       if (tourStep === 2) {
         setScreen("project-select");
         setTourStep(1);
+      } else if (tourStep === 10) {
+        // Step back from Vault to Clipper Setup
+        setClipperViewMode("setup");
+        setScreen("ai-clipper");
+        setTourStep(9);
       } else if (tourStep > 1) {
         setTourStep((prev) => prev - 1);
       }
@@ -277,6 +288,7 @@ export default function App() {
     try {
       if (tourType === "clipper") {
         localStorage.setItem("clipvault_tutorial_completed", "true");
+        localStorage.setItem("clipvault_vault_tour_completed", "true");
       } else {
         localStorage.setItem("clipvault_vault_tour_completed", "true");
       }

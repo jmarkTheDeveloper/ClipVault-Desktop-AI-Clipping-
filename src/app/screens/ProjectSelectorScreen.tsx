@@ -197,6 +197,44 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
 
         {/* Status pills & Privacy Button (safely positioned away from Windows window buttons) */}
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {onStartTour && (
+            <button
+              type="button"
+              onClick={onStartTour}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 5,
+                padding: "4px 9px",
+                borderRadius: 6,
+                background: "rgba(0,230,118,0.08)",
+                border: "1px solid rgba(0,230,118,0.3)",
+                color: G,
+                fontFamily: "'Geist Mono', 'JetBrains Mono', monospace",
+                fontSize: 9.5,
+                fontWeight: 700,
+                cursor: "pointer",
+                transition: "all 0.2s",
+                boxShadow: "0 0 12px rgba(0,230,118,0.15)",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "#fff";
+                e.currentTarget.style.borderColor = G;
+                e.currentTarget.style.background = "rgba(0,230,118,0.2)";
+                e.currentTarget.style.transform = "translateY(-1px)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = G;
+                e.currentTarget.style.borderColor = "rgba(0,230,118,0.3)";
+                e.currentTarget.style.background = "rgba(0,230,118,0.08)";
+                e.currentTarget.style.transform = "none";
+              }}
+            >
+              <Sparkles style={{ width: 11, height: 11, color: G }} />
+              <span>Guided Tour</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={() => setShowPrivacyModal(true)}

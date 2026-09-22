@@ -559,7 +559,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
         </div>
 
         {/* Camera Tracking Style */}
-        <div className={layout !== "vertical_crop" && layout !== "square_blur" ? "opacity-35 pointer-events-none transition-opacity" : "transition-opacity"}>
+        <div id="tour-step-camera" className={layout !== "vertical_crop" && layout !== "square_blur" ? "opacity-35 pointer-events-none transition-opacity" : "transition-opacity"}>
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-xs font-bold text-amber-400 uppercase tracking-wider">Camera Tracking Style</h3>
             {layout !== "vertical_crop" && layout !== "square_blur" && (
@@ -718,6 +718,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
 
         {/* Duration Mode & AI Settings */}
         <Section title="Clip Duration & AI Settings">
+          <div id="tour-step-timeline" className="space-y-3">
           <div className="space-y-2 mb-3">
             {DURATION_MODES.map((d, i) => (
               <div key={d.id} className="space-y-2">
@@ -1026,6 +1027,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
             </div>
           </div>
         )}
+        </div>
 
         {/* Output Directory & Batch Folder Settings */}
             <div className="space-y-2 mt-3 p-3 rounded-xl bg-white/[0.03] border border-white/10">
@@ -1253,7 +1255,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
               </div>
             </div>
 
-          <div className="space-y-3">
+          <div id="tour-step-effects" className="space-y-3">
             {/* Background Music Toggle */}
             <div className={`flex flex-col gap-2 p-3.5 rounded-xl bg-white/5 border border-white/5 transition-colors ${
               !addBgMusic ? "cursor-pointer hover:bg-white/10 hover:border-white/10" : ""

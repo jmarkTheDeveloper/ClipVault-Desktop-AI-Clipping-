@@ -518,7 +518,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
       <div className="absolute w-[500px] h-[500px] bg-amber-400/5 rounded-full blur-3xl pointer-events-none" />
 
       {/* 9:16 Smartphone Mockup */}
-      <div className="relative w-[400px] h-[780px] max-h-[88vh] bg-black rounded-[54px] p-3.5 shadow-[0_0_90px_rgba(0,0,0,0.9)] border-[8px] border-[#222] ring-1 ring-white/15 flex flex-col z-10">
+      <div id="tour-step-phone-preview" className="relative w-[400px] h-[780px] max-h-[88vh] bg-black rounded-[54px] p-3.5 shadow-[0_0_90px_rgba(0,0,0,0.9)] border-[8px] border-[#222] ring-1 ring-white/15 flex flex-col z-10">
         {/* Dynamic Island / Speaker Pill */}
         <div className="absolute top-6 left-1/2 -translate-x-1/2 w-24 h-4 bg-[#111] rounded-full z-40 flex items-center justify-center shadow-inner border border-white/5 pointer-events-none">
           <div className="w-2.5 h-2.5 rounded-full bg-[#1c1c1e] mr-2" />
