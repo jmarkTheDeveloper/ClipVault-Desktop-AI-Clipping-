@@ -16,13 +16,13 @@
 [![License: Proprietary Commercial](https://img.shields.io/badge/License-Proprietary%20Commercial-red.svg)](./LICENSE)
 
 <p align="center">
-  <b>ClipVault</b> transforms full-length YouTube videos, podcasts, and local files into ultra-engaging, high-retention 9:16 vertical Shorts, TikToks, and Reels with CapCut-style animated subtitles, active face tracking, and smart stream slicing.
+  <b>ClipVault</b> transforms full-length YouTube videos, podcasts, and local files into ultra-engaging, high-retention 9:16 vertical Shorts, TikToks, and Reels with dynamic kinetic animated subtitles, active face tracking, and smart stream slicing.
 </p>
 
 [Key Features](#-key-features) •
 [Architecture](#-architecture) •
 [Installation & Quick Start](#-installation--quick-start) •
-[Video Layouts & CapCut Typography](#-video-layouts--capcut-typography) •
+[Video Layouts & Kinetic Typography](#-video-layouts--dynamic-framing) •
 [Quality Assurance](#-quality-assurance--testing) •
 [Changelog](#-changelog--release-notes)
 
@@ -48,18 +48,18 @@
 ### ✂️ Smart Partial Stream Slicing (`yt-dlp` + FFmpeg)
 - Rather than downloading massive 4-hour livestreams, ClipVault resolves the live audio/video streams and slices **only the exact timestamp chunks** directly over HTTP in seconds.
 
-### 🎨 CapCut-Identical Animated Subtitles & Typography
+### 🎨 Kinetic Animated Subtitles & Typography
 - Word-by-word karaoke typography with genuine SIL OFL / Google Open Fonts:
   - **Montserrat**, **Anton**, **Bebas Neue**, **Bangers**, **Luckiest Guy**, **Rubik**, **Plus Jakarta Sans**, and **Outfit**.
 - Pre-configured viral caption styles:
-  - 🟡 **CapCut Iconic Yellow** (Bold black outline + energetic word highlight)
+  - 🟡 **Viral Iconic Yellow** (Bold black outline + energetic word highlight)
   - 🟢 **Neon Toxic Lime** (Cyberpunk aesthetic with glowing drop shadows)
   - 🔵 **Ocean Blue Wave** (Clean podcast captioning)
   - 🔴 **Hot Crimson Punch** (High-intensity creator edits)
-  - ⚪ **TikTok Clean Minimal**
+  - ⚪ **Clean Minimal White**
 - Automatic pop sound effects (**SFX**) and context-aware **animated emojis** placed at keyword punchlines.
 
-### 📐 Video Layouts & CapCut Typography
+### 📐 Video Layouts & Dynamic Framing
 1. **Auto Face-Tracking (9:16)**: OpenCV-driven computer vision actively tracks speaker faces to keep them centered.
 2. **Satisfying Gameplay Split**: Top-half speaker video combined with satisfying gameplay (Subway Surfers, GTA 5, Minecraft Parkour, ASMR) with custom background import support.
 3. **Landscape + Blurred Canvas**: Fits horizontal video inside a 9:16 frame with a 40% dimmed Gaussian-blurred background.

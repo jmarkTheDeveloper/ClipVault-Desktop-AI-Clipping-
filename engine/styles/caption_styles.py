@@ -8,13 +8,17 @@ CAPTION_STYLES = {
     'capcut_yellow': {
         'text_color': (255, 255, 255, 255),
         'highlight_color': (255, 230, 0, 255),  # Radiant Viral Gold Yellow
-        'font_type': 'anton',  # Ultra bold commercial typeface
+        'font_type': 'montserrat_black',
         'uppercase': True,
         'phrase_mode': True,
         'max_words': 2,
         'karaoke': True,
-        'stroke_factor': 0.14,
-        'name': 'Viral Yellow (Ultra-Bold Active Pop)'
+        'glow': True,
+        'stacked': True,
+        'highlight_first_line': True,
+        'ambient_shadow': True,
+        'highlight_style': 'neon_glow',
+        'name': 'Golden Stack (THE QUICK Stacked)'
     },
     'hormozi_bold': {
         'text_color': (255, 255, 255, 255),
@@ -25,39 +29,71 @@ CAPTION_STYLES = {
         'max_words': 2,
         'karaoke': True,
         'stroke_factor': 0.16,
-        'name': 'Hormozi Style (Bold Anton, Yellow Highlight, Heavy Outline)'
+        'name': 'Hormozi Punch (Bold Anton, Yellow Highlight, Heavy Outline)'
     },
     'opus_green': {
         'text_color': (255, 255, 255, 255),
-        'highlight_color': (0, 255, 102, 255),  # Signature Neon Emerald Green
-        'font_type': 'anton',
+        'highlight_color': (0, 255, 102, 255),  # Signature Radiant Neon Lime Green (#00FF66)
+        'font_type': 'montserrat_black',
         'uppercase': True,
         'phrase_mode': True,
         'max_words': 2,
         'karaoke': True,
-        'stroke_factor': 0.14,
-        'name': 'Neon Emerald (Active Word Pop)'
+        'glow': True,
+        'ambient_shadow': True,
+        'highlight_style': 'neon_glow',
+        'name': 'Viral Neon (THE QUICK Glow)'
+    },
+    'capcut_neon_red': {
+        'text_color': (255, 255, 255, 255),
+        'highlight_color': (255, 60, 48, 255),  # Radiant Coral / Neon Red
+        'font_type': 'montserrat_black',
+        'uppercase': True,
+        'phrase_mode': True,
+        'max_words': 2,
+        'karaoke': True,
+        'glow': True,
+        'ambient_shadow': True,
+        'highlight_style': 'neon_glow',
+        'emoji_position': 'top',
+        'name': 'Pop Emoji (Floating Emoji 🤩)'
+    },
+    'capcut_bold_green': {
+        'text_color': (0, 255, 102, 255),
+        'highlight_color': (0, 255, 102, 255),  # Bright Lime Green
+        'font_type': 'montserrat_black',
+        'uppercase': True,
+        'phrase_mode': True,
+        'max_words': 2,
+        'karaoke': True,
+        'stroke_factor': 0.18,
+        'highlight_style': 'outline',
+        'name': 'Bold Outline (Heavy Outline)'
     },
     'neon_cyan': {
         'text_color': (255, 255, 255, 255),
         'highlight_color': (0, 240, 255, 255),  # Electric Neon Cyan
-        'font_type': 'anton',
+        'font_type': 'montserrat_black',
         'uppercase': True,
         'phrase_mode': True,
         'max_words': 2,
         'karaoke': True,
-        'stroke_factor': 0.14,
-        'name': 'Electric Cyan (White Text + Cyan Highlight)'
+        'glow': True,
+        'ambient_shadow': True,
+        'highlight_style': 'neon_glow',
+        'name': 'Electric Cyan (Neon Cyan Glow)'
     },
     'fire_red': {
         'text_color': (255, 255, 255, 255),
-        'highlight_color': (255, 60, 60, 255),   # High Voltage Red
-        'font_type': 'anton',
+        'highlight_color': (255, 60, 48, 255),   # High Voltage Red
+        'font_type': 'montserrat_black',
         'uppercase': True,
         'phrase_mode': True,
         'max_words': 2,
         'karaoke': True,
-        'stroke_factor': 0.14,
+        'glow': True,
+        'ambient_shadow': True,
+        'highlight_style': 'neon_glow',
         'name': 'Fire Red (White Text + Red Highlight)'
     },
     'sigma_pink': {
@@ -91,7 +127,7 @@ CAPTION_STYLES = {
         'max_words': 3,
         'no_stroke': True,
         'bg_box_color': (0, 0, 0, 190),
-        'name': 'CapCut Banner (Black Box Behind Text)'
+        'name': 'Dark Banner (Black Box Behind Text)'
     },
     'cinematic_sub': {
         'text_color': (255, 255, 255, 255),

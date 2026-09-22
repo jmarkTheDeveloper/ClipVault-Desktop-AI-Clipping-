@@ -310,41 +310,76 @@ class LayoutCompositor:
                 print(f"    [LayoutCompositor] Failed to load gameplay background: {bg_err}")
                 raise bg_err
 
-        elif layout in ("podcast_split", "split_podcast"):
-            print("    [LayoutCompositor] Applying Auto Dual-Speaker Podcast Split (Speaker A Top, Speaker B Bottom)...")
+        elif layout in ("podcast_split", "split_podcast", "auto_split", "auto_podcast"):
+            print("    [LayoutCompositor] Applying Dual-Speaker Stacked Podcast Split (Speaker A Top, Speaker B Bottom)...")
             try:
                 W, H = clip.size
                 target_half_w = target_width
                 target_half_h = target_height // 2
                 target_ar = float(target_half_w) / float(target_half_h)
 
-                # Query FaceTracker for speaker anchors
-                left_x, right_x = None, None
+                # Query FaceTracker for detailed speaker anchors
+                left_s = None
+                right_s = None
                 if self.face_tracker:
-                    left_x, right_x = self.face_tracker.get_speaker_anchors(clip)
+                    if hasattr(self.face_tracker, 'get_speaker_anchors_detailed'):
+                        left_s, right_s = self.face_tracker.get_speaker_anchors_detailed(clip)
+                    else:
+                        lx, rx = self.face_tracker.get_speaker_anchors(clip)
+                        if lx is not None:
+                            left_s = {'x': lx, 'y': H * 0.38, 'face_h': H * 0.22}
+                        if rx is not None:
+                            right_s = {'x': rx, 'y': H * 0.38, 'face_h': H * 0.22}
 
-                if left_x is None:
-                    left_x = W * 0.28
-                if right_x is None:
-                    right_x = W * 0.72
+                # If layout is auto_split and no 2 distinct speakers exist, gracefully fall back to active face tracking
+                if layout in ("auto_split", "auto_podcast") and (not left_s or not right_s or abs(right_s['x'] - left_s['x']) < W * 0.22):
+                    print("    [LayoutCompositor] Auto-detect found single speaker; falling back to 9:16 solo face tracking...")
+                    layout = "vertical_crop"
+                    raise ValueError("Single speaker detected for auto_split fallback")
 
-                crop_w = int(H * target_ar)
-                if crop_w % 2 != 0:
-                    crop_w -= 1
-                crop_w = min(W, crop_w)
+                # Fallback anchors if none detected
+                if not left_s:
+                    left_s = {'x': W * 0.28, 'y': H * 0.38, 'face_h': H * 0.22}
+                if not right_s:
+                    right_s = {'x': W * 0.72, 'y': H * 0.38, 'face_h': H * 0.22}
 
-                def crop_speaker_half(cx):
+                # Compute head-and-shoulders zoom crop to ensure speakers fill their 9:8 frame (Opus style)
+                def crop_speaker_half(speaker_info):
+                    fh = speaker_info.get('face_h', H * 0.22)
+                    cx = speaker_info.get('x', W * 0.50)
+                    cy = speaker_info.get('y', H * 0.38)
+
+                    # Dynamic zoom: zoom in so subject's head and shoulders cleanly fill the 9:8 box
+                    crop_h = int(min(H * 0.76, max(H * 0.58, fh * 2.9)))
+                    if crop_h % 2 != 0:
+                        crop_h -= 1
+                    crop_w = int(crop_h * target_ar)
+                    if crop_w % 2 != 0:
+                        crop_w -= 1
+                    if crop_w > W:
+                        crop_w = W
+                        crop_h = int(W / target_ar)
+                        if crop_h % 2 != 0:
+                            crop_h -= 1
+
                     sx1 = max(0, min(W - crop_w, int(round(cx - crop_w / 2.0))))
-                    half_c = clip.crop(x1=sx1, y1=0, width=crop_w, height=H).resize((target_half_w, target_half_h))
+                    sy1 = max(0, min(H - crop_h, int(round(cy - crop_h * 0.40))))
+
+                    half_c = clip.crop(x1=sx1, y1=sy1, width=crop_w, height=crop_h).resize((target_half_w, target_half_h))
                     clips_to_close.append(half_c)
                     return half_c
 
-                top_speaker = crop_speaker_half(left_x)
-                bot_speaker = crop_speaker_half(right_x)
+                top_speaker = crop_speaker_half(left_s)
+                bot_speaker = crop_speaker_half(right_s)
+
+                # Clean horizontal divider seam (4px dark slate border between top & bottom)
+                divider = ColorClip(size=(target_width, 4), color=(18, 18, 24), duration=clip.duration)
+                clips_to_close.append(divider)
 
                 composed = CompositeVideoClip([
                     top_speaker.set_position((0, 0)),
-                    bot_speaker.set_position((0, target_half_h))
+                    bot_speaker.set_position((0, target_half_h)),
+                    divider.set_position((0, target_half_h - 2))
                 ], size=(target_width, target_height))
 
                 if clip.audio is not None:

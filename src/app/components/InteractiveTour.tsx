@@ -307,7 +307,7 @@ export const TOUR_STEPS: TourStepInfo[] = [
       },
       {
         label: "Drag Out to Desktop / Editors",
-        desc: "Drag clips straight out onto your Windows desktop, Premiere Pro, DaVinci Resolve, or CapCut for publishing.",
+        desc: "Drag clips straight out onto your Windows desktop, Premiere Pro, DaVinci Resolve, or any external video editor for publishing.",
         badge: "Direct Export",
         badgeColor: "#fbbf24",
       },

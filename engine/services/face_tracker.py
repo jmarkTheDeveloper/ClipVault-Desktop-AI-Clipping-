@@ -471,14 +471,15 @@ class FaceTracker:
             self.face_cache[frame_time] = result
         return result
 
-    def get_speaker_anchors(self, clip, max_samples: int = 20) -> Tuple[Optional[float], Optional[float]]:
+    def get_speaker_anchors_detailed(self, clip, max_samples: int = 20) -> Tuple[Optional[Dict[str, float]], Optional[Dict[str, float]]]:
         """
-        Scans clip sample frames to identify primary and secondary horizontal speaker anchors.
-        Returns (speaker_left_x, speaker_right_x) if 2 distinct speakers exist, or (speaker_x, None) if solo.
+        Scans clip sample frames to identify primary and secondary speakers with full spatial details:
+        returns (speaker_left_dict, speaker_right_dict) where each dict has:
+        {'x': center_x, 'y': center_y, 'face_h': face_height}.
         """
         width, height = clip.size
         sample_times = np.linspace(0.1, max(0.2, clip.duration - 0.1), max(5, min(max_samples, int(clip.duration * 2))))
-        all_face_xs = []
+        all_detections = []
 
         for t in sample_times:
             try:
@@ -488,15 +489,21 @@ class FaceTracker:
                     dist = abs(d['center_y'] - height * 0.38) / (height * 0.45)
                     eye_penalty = max(0.15, 1.0 - dist ** 2)
                     area_ratio = d['area'] / float(width * height)
-                    all_face_xs.append((d['center_x'], d['confidence'] * (area_ratio ** 0.65) * eye_penalty))
+                    wgt = d['confidence'] * (area_ratio ** 0.65) * eye_penalty
+                    all_detections.append({
+                        'x': float(d['center_x']),
+                        'y': float(d['center_y']),
+                        'face_h': float(d.get('height', height * 0.22)),
+                        'weight': float(wgt)
+                    })
             except Exception:
                 continue
 
-        if not all_face_xs:
+        if not all_detections:
             return None, None
 
-        xs = np.array([x for x, wgt in all_face_xs], dtype=np.float64)
-        weights = np.array([wgt for x, wgt in all_face_xs], dtype=np.float64)
+        xs = np.array([d['x'] for d in all_detections], dtype=np.float64)
+        weights = np.array([d['weight'] for d in all_detections], dtype=np.float64)
 
         nbins = max(8, int(width // 80))
         hist, bin_edges = np.histogram(xs, bins=nbins, weights=weights, range=(0, width))
@@ -508,21 +515,45 @@ class FaceTracker:
             if hist[idx] >= total_mass * 0.18:
                 approx_peak = (bin_edges[idx] + bin_edges[idx + 1]) / 2.0
                 in_mask = np.abs(xs - approx_peak) < (width * 0.20)
-                if np.any(in_mask):
-                    true_center = float(np.average(xs[in_mask], weights=weights[in_mask]))
-                else:
-                    true_center = approx_peak
 
-                if not any(abs(true_center - c) < width * 0.22 for c in clusters):
-                    clusters.append(true_center)
+                matched_indices = np.where(in_mask)[0]
+                if len(matched_indices) > 0:
+                    c_weights = weights[matched_indices]
+                    c_xs = xs[matched_indices]
+                    c_ys = np.array([all_detections[i]['y'] for i in matched_indices])
+                    c_hs = np.array([all_detections[i]['face_h'] for i in matched_indices])
+
+                    sum_w = np.sum(c_weights) if np.sum(c_weights) > 0 else 1.0
+                    true_x = float(np.sum(c_xs * c_weights) / sum_w)
+                    true_y = float(np.sum(c_ys * c_weights) / sum_w)
+                    true_h = float(np.sum(c_hs * c_weights) / sum_w)
+                else:
+                    true_x = approx_peak
+                    true_y = height * 0.38
+                    true_h = height * 0.22
+
+                if not any(abs(true_x - c['x']) < width * 0.22 for c in clusters):
+                    clusters.append({'x': true_x, 'y': true_y, 'face_h': true_h})
                     if len(clusters) >= 2:
                         break
 
         if len(clusters) >= 2:
-            return min(clusters[0], clusters[1]), max(clusters[0], clusters[1])
+            left_s = min(clusters[0], clusters[1], key=lambda c: c['x'])
+            right_s = max(clusters[0], clusters[1], key=lambda c: c['x'])
+            return left_s, right_s
         elif len(clusters) == 1:
             return clusters[0], None
         return None, None
+
+    def get_speaker_anchors(self, clip, max_samples: int = 20) -> Tuple[Optional[float], Optional[float]]:
+        """
+        Scans clip sample frames to identify primary and secondary horizontal speaker anchors.
+        Returns (speaker_left_x, speaker_right_x) if 2 distinct speakers exist, or (speaker_x, None) if solo.
+        """
+        left_s, right_s = self.get_speaker_anchors_detailed(clip, max_samples=max_samples)
+        left_x = left_s['x'] if left_s else None
+        right_x = right_s['x'] if right_s else None
+        return left_x, right_x
 
     @staticmethod
     def render_wide_zoom_frame(frame: np.ndarray, target_w: int, target_h: int) -> np.ndarray:

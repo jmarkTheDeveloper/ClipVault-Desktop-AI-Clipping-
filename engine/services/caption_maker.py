@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
 from styles.caption_styles import CAPTION_STYLES, HIGHLIGHT_KEYWORDS, EMOJI_MAP
 
@@ -37,7 +37,13 @@ class CaptionMaker:
         base_fonts = Path(__file__).resolve().parent.parent / "assets" / "fonts"
         
         font_collections = {
+            'montserrat_black': [
+                str(base_fonts / "Montserrat-Black.ttf"),
+                str(Path("./assets/fonts/Montserrat-Black.ttf").resolve()),
+                str(base_fonts / "Montserrat-Bold.ttf"),
+            ],
             'montserrat': [
+                str(base_fonts / "Montserrat-Black.ttf"),
                 str(base_fonts / "Montserrat-Bold.ttf"),
                 str(Path("./assets/fonts/Montserrat-Bold.ttf").resolve()),
             ],
@@ -309,14 +315,24 @@ class CaptionMaker:
 
     def create_phrase_image(self, words_in_phrase, font_size, active_idx=None, style_config=None):
         """
-        Renders a full multi-word phrase with commercial-grade outer drop shadow,
-        vibrant glowing active word pill-badge highlighting, and contextual color emojis.
+        Renders a full multi-word phrase matching modern CapCut & Opus viral standards:
+        - Multi-radius Gaussian bloom glow with soft dark ambient vignette
+        - Top floating contextual/custom emojis centered directly above active words
+        - Stacked 2-line layout option
+        - Chunky smooth rounded outlines
+        - Classic pill badge or clean drop shadow fallback
         """
         if style_config is None:
             style_config = self.styles.get(self.selected_style, self.styles.get('capcut_yellow', {}))
 
-        font_type = style_config.get('font_type', 'anton')
+        font_type = style_config.get('font_type', 'montserrat_black')
         font = self.get_font(font_type, font_size)
+
+        is_neon_glow = style_config.get('glow', False) or (style_config.get('highlight_style') == 'neon_glow')
+        is_stacked = style_config.get('stacked', False) and len(words_in_phrase) >= 2
+        emoji_pos = style_config.get('emoji_position', 'inline')  # 'inline' or 'top'
+        highlight_mode = style_config.get('highlight_style', 'text_color')
+        is_outline = (highlight_mode == 'outline')
 
         space_bbox = font.getbbox(' ')
         space_w = max(14, space_bbox[2] - space_bbox[0])
@@ -324,9 +340,6 @@ class CaptionMaker:
         word_bboxes = [font.getbbox(w['word']) for w in words_in_phrase]
         word_widths = [max(1, b[2] - b[0]) for b in word_bboxes]
         word_heights = [max(1, b[3] - b[1]) for b in word_bboxes]
-
-        line_w = sum(word_widths) + space_w * max(0, len(words_in_phrase) - 1)
-        line_h = max(word_heights) if word_heights else font_size
 
         # Check for contextual emoji matching in any word of the phrase
         active_emoji = None
@@ -336,94 +349,222 @@ class CaptionMaker:
                 active_emoji = self.emoji_map[clean_key]
                 break
 
+        # Fallback default emoji for capcut_neon_red or explicit emoji templates if no keyword match
+        if not active_emoji and emoji_pos == 'top':
+            active_emoji = "🤩"
+
         emoji_font = None
         emoji_w = 0
+        emoji_h = 0
         if active_emoji and self.emoji_font_path:
             try:
-                emoji_font = ImageFont.truetype(self.emoji_font_path, int(font_size * 0.90))
+                emoji_font = ImageFont.truetype(self.emoji_font_path, int(font_size * 0.85))
                 e_bbox = emoji_font.getbbox(active_emoji)
-                emoji_w = (e_bbox[2] - e_bbox[0]) if e_bbox else int(font_size * 0.90)
-                emoji_w += 18
+                if e_bbox:
+                    emoji_w = max(1, e_bbox[2] - e_bbox[0])
+                    emoji_h = max(1, e_bbox[3] - e_bbox[1])
+                else:
+                    emoji_w = int(font_size * 0.85)
+                    emoji_h = int(font_size * 0.85)
             except Exception:
                 emoji_font = None
                 emoji_w = 0
+                emoji_h = 0
 
-        total_content_w = line_w + emoji_w
+        pad_x = 45
+        pad_y = 45 + (emoji_h + 14 if (emoji_pos == 'top' and active_emoji and emoji_font) else 0)
 
-        pad_x = 35
-        pad_y = 35
-        img_w = total_content_w + pad_x * 2
-        img_h = line_h + pad_y * 2
+        if is_stacked:
+            line_spacing = int(font_size * 0.16)
+            content_w = max(word_widths)
+            content_h = sum(word_heights) + line_spacing * (len(words_in_phrase) - 1)
+        else:
+            content_w = sum(word_widths) + space_w * max(0, len(words_in_phrase) - 1)
+            content_h = max(word_heights) if word_heights else font_size
+
+        if emoji_pos == 'inline' and active_emoji and emoji_font:
+            content_w += emoji_w + 18
+
+        img_w = content_w + pad_x * 2
+        img_h = content_h + pad_y * 2
 
         img = Image.new('RGBA', (img_w, img_h), (0, 0, 0, 0))
-        draw = ImageDraw.Draw(img)
 
-        # Draw rounded translucent background banner if configured
-        if 'bg_box_color' in style_config:
-            radius = max(10, int(font_size * 0.20))
-            draw.rounded_rectangle(
-                [(4, 4), (img_w - 5, img_h - 5)],
-                radius=radius,
-                fill=style_config['bg_box_color']
-            )
+        # Calculate word positions
+        positions = []
+        if is_stacked:
+            line_spacing = int(font_size * 0.16)
+            cur_y = pad_y
+            for idx in range(len(words_in_phrase)):
+                cur_x = (img_w - word_widths[idx]) // 2
+                positions.append((cur_x, cur_y - word_bboxes[idx][1]))
+                cur_y += word_heights[idx] + line_spacing
+        else:
+            cur_x = pad_x
+            base_y = pad_y
+            for idx in range(len(words_in_phrase)):
+                positions.append((cur_x, base_y - word_bboxes[idx][1]))
+                cur_x += word_widths[idx] + space_w
 
         base_color = style_config.get('text_color', (255, 255, 255, 255))
-        highlight_color = style_config.get('highlight_color', (255, 230, 0, 255))
+        highlight_color = style_config.get('highlight_color', (0, 255, 102, 255))
 
-        # 1. Outer Deep Shadow & 3D Contour Halo on all inactive words
-        d = max(2, int(font_size * 0.05))
-        shadow_offsets = [
-            (-d, -d), (d, -d), (-d, d), (d, d),
-            (0, -d), (0, d), (-d, 0), (d, 0),
-            (-d-1, -d-1), (d+1, -d-1), (-d-1, d+1), (d+1, d+1),
-            (0, d+2), (0, d+4)
-        ]
-        shadow_color = (0, 0, 0, 255)
-
-        # 2. Draw Active Spoken Word Highlight (Vibrant Glowing Pill Badge or Golden Pop)
-        cur_x = pad_x
-        for i, w_obj in enumerate(words_in_phrase):
-            w_text = w_obj['word']
-            is_active = (i == active_idx)
-            y_pos = pad_y - word_bboxes[i][1]
-
-            if is_active:
-                # Draw black contour shadow/border around pill badge for ultra-crisp 3D contrast
-                pill_x1 = cur_x - 12
-                pill_y1 = pad_y - 6
-                pill_x2 = cur_x + word_widths[i] + 12
-                pill_y2 = pad_y + line_h + 6
-                radius = max(8, int(font_size * 0.18))
-                
-                # Outer black border
-                draw.rounded_rectangle(
-                    [(pill_x1 - 3, pill_y1 - 3), (pill_x2 + 3, pill_y2 + 3)],
-                    radius=radius + 2,
-                    fill=(0, 0, 0, 255)
+        # --- A. NEON GLOW BRANCH (True CapCut Gaussian Bloom) ---
+        if is_neon_glow:
+            # 1. Soft dark ambient vignette backing
+            if style_config.get('ambient_shadow', True):
+                amb = Image.new('RGBA', (img_w, img_h), (0, 0, 0, 0))
+                adraw = ImageDraw.Draw(amb)
+                adraw.rounded_rectangle(
+                    [(pad_x - 14, pad_y - 12), (img_w - pad_x + 14, img_h - pad_y + 12)],
+                    radius=int(font_size * 0.35),
+                    fill=(0, 0, 0, 195)
                 )
-                # Inner radiant highlight box
+                amb = amb.filter(ImageFilter.GaussianBlur(radius=int(font_size * 0.28)))
+                img.alpha_composite(amb)
+
+            # 2. Multi-stage Gaussian bloom glow
+            glow_wide = Image.new('RGBA', (img_w, img_h), (0, 0, 0, 0))
+            gwide_draw = ImageDraw.Draw(glow_wide)
+            glow_mid = Image.new('RGBA', (img_w, img_h), (0, 0, 0, 0))
+            gmid_draw = ImageDraw.Draw(glow_mid)
+            glow_tight = Image.new('RGBA', (img_w, img_h), (0, 0, 0, 0))
+            gtight_draw = ImageDraw.Draw(glow_tight)
+
+            for idx, (pos, w_obj) in enumerate(zip(positions, words_in_phrase)):
+                w_text = w_obj['word']
+                is_active = (idx == active_idx)
+                if is_stacked and style_config.get('highlight_first_line', False):
+                    g_col = highlight_color if idx == 0 else (255, 255, 255, 220)
+                else:
+                    g_col = highlight_color if is_active else (255, 255, 255, 210)
+
+                for d in (gwide_draw, gmid_draw, gtight_draw):
+                    d.text(pos, w_text, font=font, fill=g_col)
+
+            glow_wide = glow_wide.filter(ImageFilter.GaussianBlur(radius=int(font_size * 0.22)))
+            glow_mid = glow_mid.filter(ImageFilter.GaussianBlur(radius=int(font_size * 0.10)))
+            glow_tight = glow_tight.filter(ImageFilter.GaussianBlur(radius=int(font_size * 0.04)))
+
+            img.alpha_composite(glow_wide)
+            img.alpha_composite(glow_mid)
+            img.alpha_composite(glow_tight)
+
+            # 3. Razor-sharp solid foreground text with 1px micro-edge
+            fg_draw = ImageDraw.Draw(img)
+            for idx, (pos, w_obj) in enumerate(zip(positions, words_in_phrase)):
+                w_text = w_obj['word']
+                is_active = (idx == active_idx)
+                if is_stacked and style_config.get('highlight_first_line', False):
+                    fg_col = highlight_color if idx == 0 else (255, 255, 255, 255)
+                else:
+                    fg_col = highlight_color if is_active else (255, 255, 255, 255)
+
+                for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                    fg_draw.text((pos[0] + dx, pos[1] + dy), w_text, font=font, fill=(0, 0, 0, 160))
+                fg_draw.text(pos, w_text, font=font, fill=fg_col)
+
+        # --- B. CHUNKY OUTLINE BRANCH (CapCut Bold Green 'brown' style) ---
+        elif is_outline:
+            import cv2
+            stroke_factor = style_config.get('stroke_factor', 0.18)
+            stroke_width = max(4, int(font_size * stroke_factor))
+            stroke_color = style_config.get('stroke_color', (0, 0, 0, 255))
+
+            text_img = Image.new('RGBA', (img_w, img_h), (0, 0, 0, 0))
+            tdraw = ImageDraw.Draw(text_img)
+            for idx, (pos, w_obj) in enumerate(zip(positions, words_in_phrase)):
+                w_text = w_obj['word']
+                is_active = (idx == active_idx)
+                col = highlight_color if (is_active or active_idx is None) else base_color
+                tdraw.text(pos, w_text, font=font, fill=col)
+
+            img_np = np.array(text_img)
+            alpha = img_np[:, :, 3]
+
+            # Perfectly circular morphological dilation for smooth, rounded outline
+            k_size = stroke_width * 2 + 1
+            kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k_size, k_size))
+            dilated_alpha = cv2.dilate(alpha, kernel, iterations=1)
+
+            stroke_img = np.zeros_like(img_np)
+            stroke_img[:, :, 0] = stroke_color[0]
+            stroke_img[:, :, 1] = stroke_color[1]
+            stroke_img[:, :, 2] = stroke_color[2]
+            stroke_img[:, :, 3] = dilated_alpha
+
+            alpha_fg = (alpha / 255.0)[..., np.newaxis]
+            composed_outline = stroke_img.copy()
+            composed_outline[:, :, :3] = (img_np[:, :, :3] * alpha_fg + stroke_img[:, :, :3] * (1.0 - alpha_fg)).astype(np.uint8)
+            composed_outline[:, :, 3] = dilated_alpha
+            img = Image.fromarray(composed_outline)
+
+        # --- C. STANDARD / PILL / BANNER BRANCH ---
+        else:
+            draw = ImageDraw.Draw(img)
+            if 'bg_box_color' in style_config:
+                radius = max(10, int(font_size * 0.20))
                 draw.rounded_rectangle(
-                    [(pill_x1, pill_y1), (pill_x2, pill_y2)],
+                    [(4, 4), (img_w - 5, img_h - 5)],
                     radius=radius,
-                    fill=highlight_color
+                    fill=style_config['bg_box_color']
                 )
-                
-                # Draw active word in solid, ultra-bold black inside the radiant pill badge
-                draw.text((cur_x, y_pos), w_text, font=font, fill=(0, 0, 0, 255))
-            else:
-                # Inactive word: draw outer 3D shadow + crisp white text
-                for dx, dy in shadow_offsets:
-                    draw.text((cur_x + dx, y_pos + dy), w_text, font=font, fill=shadow_color)
-                draw.text((cur_x, y_pos), w_text, font=font, fill=base_color)
 
-            cur_x += word_widths[i] + space_w
+            d = max(2, int(font_size * 0.05))
+            shadow_offsets = [
+                (-d, -d), (d, -d), (-d, d), (d, d),
+                (0, -d), (0, d), (-d, 0), (d, 0),
+                (-d-1, -d-1), (d+1, -d-1), (-d-1, d+1), (d+1, d+1),
+                (0, d+2), (0, d+4)
+            ]
+            shadow_color = (0, 0, 0, 255)
+            use_pill = (highlight_mode == 'pill')
 
-        # 3. Draw Full-Color Contextual Emoji
+            for i, (pos, w_obj) in enumerate(zip(positions, words_in_phrase)):
+                w_text = w_obj['word']
+                is_active = (i == active_idx)
+                if is_active:
+                    if use_pill:
+                        pill_x1 = pos[0] - 12
+                        pill_y1 = pad_y - 6
+                        pill_x2 = pos[0] + word_widths[i] + 12
+                        pill_y2 = pad_y + content_h + 6
+                        radius = max(8, int(font_size * 0.18))
+                        draw.rounded_rectangle(
+                            [(pill_x1 - 3, pill_y1 - 3), (pill_x2 + 3, pill_y2 + 3)],
+                            radius=radius + 2,
+                            fill=(0, 0, 0, 255)
+                        )
+                        draw.rounded_rectangle(
+                            [(pill_x1, pill_y1), (pill_x2, pill_y2)],
+                            radius=radius,
+                            fill=highlight_color
+                        )
+                        draw.text(pos, w_text, font=font, fill=(0, 0, 0, 255))
+                    else:
+                        for dx, dy in shadow_offsets:
+                            draw.text((pos[0] + dx, pos[1] + dy), w_text, font=font, fill=shadow_color)
+                        draw.text(pos, w_text, font=font, fill=highlight_color)
+                else:
+                    for dx, dy in shadow_offsets:
+                        draw.text((pos[0] + dx, pos[1] + dy), w_text, font=font, fill=shadow_color)
+                    draw.text(pos, w_text, font=font, fill=base_color)
+
+        # --- EMOJI RENDERING ---
         if active_emoji and emoji_font:
+            draw_emoji = ImageDraw.Draw(img)
             try:
-                emoji_x = cur_x + 8
-                emoji_y = pad_y - 10
-                draw.text((emoji_x, emoji_y), active_emoji, font=emoji_font, embedded_color=True)
+                if emoji_pos == 'top' and positions:
+                    target_i = active_idx if (active_idx is not None and active_idx < len(positions)) else 0
+                    target_pos = positions[target_i]
+                    target_w = word_widths[target_i]
+                    em_x = target_pos[0] + (target_w - emoji_w) // 2
+                    em_y = target_pos[1] - emoji_h - 10
+                    draw_emoji.text((em_x, em_y), active_emoji, font=emoji_font, embedded_color=True)
+                elif emoji_pos == 'inline' and positions:
+                    em_x = positions[-1][0] + word_widths[-1] + 12
+                    em_y = pad_y - 6
+                    draw_emoji.text((em_x, em_y), active_emoji, font=emoji_font, embedded_color=True)
             except Exception:
                 pass
 
@@ -472,6 +613,73 @@ class CaptionMaker:
                 
         return phrases
 
+    def create_opus_hook_card(self, hook_text, video_width, video_height):
+        """
+        Renders an OpusClip-signature white rounded top headline card.
+        Clean white badge with bold dark typography at the top of the vertical frame (y ≈ 5.5%).
+        """
+        import textwrap
+        clean_text = str(hook_text).strip()
+        if not clean_text:
+            return None
+
+        # Strip any formatting brackets and format in clean uppercase
+        clean_text = clean_text.strip("[]").strip().upper()
+        if not clean_text:
+            return None
+
+        card_font_size = max(22, int(min(video_width, video_height) * 0.036))
+        card_font = self.get_font('montserrat', card_font_size)
+
+        lines = textwrap.wrap(clean_text, width=26)
+        if not lines:
+            lines = [clean_text]
+
+        # Measure text
+        line_bboxes = [card_font.getbbox(l) for l in lines]
+        line_widths = [max(1, b[2] - b[0]) for b in line_bboxes]
+        line_heights = [max(1, b[3] - b[1]) for b in line_bboxes]
+
+        text_w = max(line_widths)
+        line_spacing = int(card_font_size * 0.22)
+        text_h = sum(line_heights) + line_spacing * max(0, len(lines) - 1)
+
+        pad_x = int(card_font_size * 0.95)
+        pad_y = int(card_font_size * 0.45)
+        card_w = text_w + pad_x * 2
+        card_h = text_h + pad_y * 2
+        radius = int(card_h * 0.35)
+
+        # Transparent canvas with drop shadow padding
+        margin = 12
+        canvas_w = card_w + margin * 2
+        canvas_h = card_h + margin * 2
+        img = Image.new('RGBA', (canvas_w, canvas_h), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(img)
+
+        # Soft subtle drop shadow
+        draw.rounded_rectangle(
+            [(margin - 1, margin + 2), (margin + card_w + 1, margin + card_h + 3)],
+            radius=radius + 2,
+            fill=(0, 0, 0, 90)
+        )
+        # Solid white rounded card
+        draw.rounded_rectangle(
+            [(margin, margin), (margin + card_w, margin + card_h)],
+            radius=radius,
+            fill=(255, 255, 255, 250)
+        )
+
+        # Render dark bold text
+        cur_y = margin + pad_y
+        for idx, line in enumerate(lines):
+            lw = line_widths[idx]
+            lx = margin + (card_w - lw) // 2
+            draw.text((lx, cur_y - line_bboxes[idx][1]), line, font=card_font, fill=(15, 23, 42, 255))
+            cur_y += line_heights[idx] + line_spacing
+
+        return np.array(img)
+
     def add_captions(self, clip, words, clip_start_time, layout="vertical_crop", movie_recap=False, hook_text=None, auto_sfx=False, caption_y_pct=0.63):
         """
         Adds word-by-word captions and an optional static video hook banner to a video clip.
@@ -479,6 +687,9 @@ class CaptionMaker:
         """
         if not words:
             return clip
+
+        if layout in ("podcast_split", "split_podcast") and (caption_y_pct is None or caption_y_pct >= 0.58 or caption_y_pct <= 0.42):
+            caption_y_pct = 0.50
 
         style_config = self.styles.get(self.selected_style, self.styles.get('capcut_yellow', {}))
         force_uppercase = style_config.get('uppercase', True)
@@ -550,35 +761,26 @@ class CaptionMaker:
             except Exception:
                 pass
         
-        # Pre-render static video hook banner if provided
+        # Pre-render static video hook banner if provided (OpusClip signature white rounded top card)
         hook_data = None
         if hook_text:
             try:
-                import textwrap
-                wrapped_hook = "\n".join(textwrap.wrap(hook_text, width=28))
-                hook_font_size = max(24, int(min(video_width, video_height) * 0.052))
-                
-                prev_style = self.selected_style
-                if self.selected_style not in ['capcut_banner', 'tiktok_banner']:
-                    self.selected_style = 'capcut_banner'
+                hook_img = self.create_opus_hook_card(hook_text, video_width, video_height)
+                if hook_img is not None:
+                    h_h, h_w, _ = hook_img.shape
+                    h_x = (video_width - h_w) // 2
+                    h_y = int(video_height * 0.055)
                     
-                hook_img = self.create_word_image(wrapped_hook, hook_font_size, is_highlighted=False)
-                self.selected_style = prev_style
-                
-                h_h, h_w, _ = hook_img.shape
-                h_x = (video_width - h_w) // 2
-                h_y = int(video_height * 0.22)
-                
-                hook_data = {
-                    'fg_rgb': hook_img[:, :, :3].astype(np.float32),
-                    'fg_alpha': hook_img[:, :, 3:4].astype(np.float32) / 255.0,
-                    'w': h_w,
-                    'h': h_h,
-                    'x': h_x,
-                    'y': h_y
-                }
-            except Exception:
-                pass
+                    hook_data = {
+                        'fg_rgb': hook_img[:, :, :3].astype(np.float32),
+                        'fg_alpha': hook_img[:, :, 3:4].astype(np.float32) / 255.0,
+                        'w': h_w,
+                        'h': h_h,
+                        'x': h_x,
+                        'y': h_y
+                    }
+            except Exception as he:
+                print(f"    [CaptionMaker] Hook card notice: {he}")
         
         # High-impact, large viral typography (scales from 85px on 1080p to 175px on 4K)
         target_font_size = max(52, int(min(video_width, video_height) * 0.082))

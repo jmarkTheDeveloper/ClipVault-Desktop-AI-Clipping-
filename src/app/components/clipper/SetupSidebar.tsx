@@ -36,6 +36,7 @@ import {
   Pause,
 } from "lucide-react";
 import type { CustomSegment } from "./types";
+import { SUBTITLE_PRESETS, SubtitleStyleCard } from "./SubtitleStyleCard";
 
 function parseTimestampToSec(ts: string): number {
   if (!ts) return 0;
@@ -87,6 +88,8 @@ const ASPECT_RATIOS = [
 ];
 
 const LAYOUTS = [
+  { id: "auto_split", label: "Auto Detect & Split (AI Auto)", desc: "Auto-detects 2-person dialogues or solo speaker" },
+  { id: "podcast_split", label: "Dual-Speaker Split (2 Persons Stacked)", desc: "Host on top & guest on bottom with center subtitle divider (OpusClip style)" },
   { id: "vertical_crop", label: "Auto Face-Tracking (9:16)", desc: "Zooms & tracks active speaker (Fills full 9:16 screen)" },
   { id: "square_blur", label: "Square Focus + Blurred Canvas", desc: "1:1 / 4:5 centered speaker frame with blurred 9:16 background (Pawn Stars / Shorts style)" },
   { id: "landscape_blur", label: "Landscape + Blurred Canvas", desc: "Full 16:9 video centered with soft blur background" },
@@ -440,7 +443,12 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
               {LAYOUTS.map((l, i) => (
                 <div key={l.id} className="flex flex-col gap-1">
                   <button
-                    onClick={() => setLayout(l.id)}
+                    onClick={() => {
+                      setLayout(l.id);
+                      if ((l.id === "podcast_split" || l.id === "auto_split") && setCaptionYPct) {
+                        setCaptionYPct(50);
+                      }
+                    }}
                     className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-left border transition-all cursor-pointer ${
                       layout === l.id
                         ? "bg-amber-400/10 border-amber-400/50 shadow-[0_0_12px_rgba(251,191,36,0.15)]"
@@ -1392,29 +1400,24 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
 
               {addCaptions && (
                 <div className="space-y-3 pt-2 border-t border-white/5 animate-fadeIn">
-                  <div className="space-y-1.5 pt-1">
-                    <label className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">Subtitle Style</label>
-                    <div className="grid grid-cols-3 gap-1.5">
-                      {[
-                        { id: "capcut_yellow", name: "⚡ Viral Yellow", bg: "bg-yellow-400/20 text-yellow-300 border-yellow-400/40" },
-                        { id: "opus_green", name: "🟢 Neon Emerald", bg: "bg-emerald-400/20 text-emerald-300 border-emerald-400/40" },
-                        { id: "clean_white", name: "✨ Clean White", bg: "bg-white/10 text-white border-white/20" },
-                        { id: "neon_cyan", name: "💎 Electric Cyan", bg: "bg-cyan-400/20 text-cyan-300 border-cyan-400/40" },
-                        { id: "fire_red", name: "🔥 Fire Red", bg: "bg-red-400/20 text-red-300 border-red-400/40" },
-                        { id: "hormozi_bold", name: "💪 Impact Bold", bg: "bg-amber-400/20 text-amber-300 border-amber-400/40" },
-                      ].map((s) => (
-                        <button
-                          key={s.id}
-                          type="button"
-                          onClick={() => setSelectedEffectId(s.id)}
-                          className={`py-1.5 px-2 rounded-lg text-[10px] font-bold border truncate transition-all cursor-pointer ${
-                            selectedEffectId === s.id
-                              ? "bg-amber-400 text-black border-amber-400 shadow-md font-extrabold"
-                              : `${s.bg} hover:brightness-125`
-                          }`}
-                        >
-                          {s.name}
-                        </button>
+                  <div className="space-y-2 pt-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                        Subtitle Style
+                      </label>
+                      <span className="text-[9px] text-[#00e676] font-mono font-bold">
+                        Visual Templates
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {SUBTITLE_PRESETS.map((preset) => (
+                        <SubtitleStyleCard
+                          key={preset.id}
+                          preset={preset}
+                          isSelected={selectedEffectId === preset.id}
+                          onSelect={(id) => setSelectedEffectId(id)}
+                          compact={true}
+                        />
                       ))}
                     </div>
                   </div>

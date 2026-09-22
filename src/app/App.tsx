@@ -403,7 +403,7 @@ export default function App() {
               </p>
               <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden mt-2">
                 <div
-                  className="bg-gradient-to-r from-[#00e676] to-[#00b0ff] h-full rounded-full transition-all duration-300"
+                  className="bg-gradient-to-r from-[#00e676] to-[#00C853] h-full rounded-full transition-all duration-300"
                   style={{ width: `${Math.max(5, taskState.progress)}%` }}
                 />
               </div>
@@ -504,7 +504,7 @@ export default function App() {
                 </div>
                 <div className="w-full bg-white/10 h-2 rounded-full overflow-hidden">
                   <div
-                    className="bg-gradient-to-r from-[#00e676] to-[#00b0ff] h-full rounded-full transition-all duration-300"
+                    className="bg-gradient-to-r from-[#00e676] to-[#00C853] h-full rounded-full transition-all duration-300"
                     style={{ width: `${Math.max(5, taskState.progress)}%` }}
                   />
                 </div>

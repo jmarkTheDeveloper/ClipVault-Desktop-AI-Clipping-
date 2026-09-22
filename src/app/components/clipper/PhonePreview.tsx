@@ -174,28 +174,136 @@ const DraggableCaptionOverlay: React.FC<{
 }> = ({ addCaptions, captionYPct, selectedEffectId, isDraggingCaption, startCaptionDrag }) => {
   if (!addCaptions) return null;
 
-  const getHighlightConfig = () => {
+  const renderPresetPreview = () => {
     switch (selectedEffectId) {
       case "opus_green":
       case "emerald_green":
-        return { bg: "bg-[#00FF66]", text: "text-black", border: "border-black" };
-      case "neon_cyan":
-        return { bg: "bg-[#00F0FF]", text: "text-black", border: "border-black" };
-      case "fire_red":
-        return { bg: "bg-[#FF3C3C]", text: "text-white", border: "border-black" };
-      case "sigma_pink":
-        return { bg: "bg-[#FF4D94]", text: "text-white", border: "border-black" };
-      case "clean_white":
-        return { bg: "bg-white", text: "text-black", border: "border-black" };
-      case "hormozi_bold":
-        return { bg: "bg-[#FFD700]", text: "text-black", border: "border-black" };
+        return (
+          <div className="flex items-center gap-2 pointer-events-none tracking-wide uppercase font-black text-sm">
+            <span
+              className="text-white px-1"
+              style={{
+                textShadow: "0 0 8px rgba(255,255,255,0.8), 0 0 16px rgba(255,255,255,0.5)",
+              }}
+            >
+              THE
+            </span>
+            <span
+              className="text-[#00FF66] px-1"
+              style={{
+                textShadow: "0 0 10px #00FF66, 0 0 22px rgba(0,255,102,0.8)",
+              }}
+            >
+              QUICK
+            </span>
+          </div>
+        );
+      case "capcut_neon_red":
+        return (
+          <div className="flex flex-col items-center pointer-events-none tracking-wide uppercase font-black text-sm">
+            <span className="text-base leading-none mb-0.5 animate-bounce">🤩</span>
+            <span
+              className="text-[#FF3C30] px-1.5"
+              style={{
+                textShadow: "0 0 10px #FF3C30, 0 0 24px rgba(255,60,48,0.85)",
+              }}
+            >
+              EMOJI
+            </span>
+          </div>
+        );
       case "capcut_yellow":
+        return (
+          <div className="flex flex-col items-center pointer-events-none tracking-wide uppercase font-black text-xs leading-tight">
+            <span
+              className="text-[#FFE600]"
+              style={{
+                textShadow: "0 0 8px #FFE600, 0 0 18px rgba(255,230,0,0.8)",
+              }}
+            >
+              THE
+            </span>
+            <span
+              className="text-white"
+              style={{
+                textShadow: "0 0 8px rgba(255,255,255,0.8), 0 0 16px rgba(255,255,255,0.5)",
+              }}
+            >
+              QUICK
+            </span>
+          </div>
+        );
+      case "capcut_bold_green":
+        return (
+          <div className="flex items-center pointer-events-none font-black text-sm lowercase tracking-tight">
+            <span
+              className="text-[#00FF66]"
+              style={{
+                textShadow: "-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000, 0 3px 6px rgba(0,0,0,0.9)",
+              }}
+            >
+              brown
+            </span>
+          </div>
+        );
+      case "neon_cyan":
+        return (
+          <div className="flex items-center gap-1.5 pointer-events-none tracking-wide uppercase font-black text-sm">
+            <span
+              className="text-[#00F0FF] px-1"
+              style={{
+                textShadow: "0 0 10px #00F0FF, 0 0 22px rgba(0,240,255,0.8)",
+              }}
+            >
+              ELECTRIC
+            </span>
+            <span
+              className="text-white px-1"
+              style={{
+                textShadow: "0 0 8px rgba(255,255,255,0.8)",
+              }}
+            >
+              CYAN
+            </span>
+          </div>
+        );
+      case "hormozi_bold":
+        return (
+          <div className="flex items-center gap-1 pointer-events-none tracking-wider uppercase font-black text-sm">
+            <span
+              className="text-[#FFD700] px-1"
+              style={{
+                textShadow: "-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000",
+              }}
+            >
+              HORMOZI
+            </span>
+            <span
+              className="text-white px-1"
+              style={{
+                textShadow: "-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000",
+              }}
+            >
+              BOLD
+            </span>
+          </div>
+        );
+      case "clean_white":
       default:
-        return { bg: "bg-[#FFE600]", text: "text-black", border: "border-black" };
+        return (
+          <div className="flex items-center gap-1 pointer-events-none tracking-wider uppercase font-black text-sm">
+            <span
+              className="text-white px-1"
+              style={{
+                textShadow: "-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000",
+              }}
+            >
+              CLEAN WHITE
+            </span>
+          </div>
+        );
     }
   };
-
-  const hl = getHighlightConfig();
 
   return (
     <div
@@ -209,23 +317,14 @@ const DraggableCaptionOverlay: React.FC<{
           startCaptionDrag(e);
         }}
         title="Click & Drag to reposition captions on screen"
-        className={`pointer-events-auto px-3.5 py-2 rounded-2xl bg-black/85 backdrop-blur-md border transition-all cursor-grab active:cursor-grabbing shadow-[0_8px_32px_rgba(0,0,0,0.8)] flex items-center gap-2 group ${
+        className={`pointer-events-auto px-4 py-2 rounded-2xl bg-black/85 backdrop-blur-md border transition-all cursor-grab active:cursor-grabbing shadow-[0_8px_32px_rgba(0,0,0,0.8)] flex items-center gap-2 group ${
           isDraggingCaption
             ? "border-amber-400 ring-2 ring-amber-400/60 scale-105"
             : "border-white/20 hover:border-amber-400/80 hover:bg-black/95 hover:scale-102"
         }`}
       >
         <Move className="w-3.5 h-3.5 text-gray-500 group-hover:text-amber-400 transition-colors pointer-events-none shrink-0" />
-        
-        {/* Visual Live Highlight Preview matching rendered output */}
-        <div className="flex items-center gap-1.5 pointer-events-none tracking-wider uppercase font-black text-sm">
-          <span className={`px-2 py-0.5 rounded-lg ${hl.bg} ${hl.text} border-2 ${hl.border} shadow-[0_2px_8px_rgba(0,0,0,0.6)] font-black`}>
-            VIRAL
-          </span>
-          <span className="text-white px-1 py-0.5 drop-shadow-[0_2px_4px_rgba(0,0,0,1)] [text-shadow:_0_0_3px_#000,_0_0_6px_#000] font-black">
-            VIDEO
-          </span>
-        </div>
+        {renderPresetPreview()}
       </div>
     </div>
   );
@@ -595,7 +694,75 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
               onClick={handleVideoAreaClick}
               className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center select-none cursor-pointer"
             >
-              {layout === "custom_split" ? (
+              {layout === "podcast_split" || layout === "auto_split" ? (
+                /* Dual-Speaker Split (Speaker 1 Top, Speaker 2 Bottom) */
+                <div className="w-full h-full flex flex-col relative select-none bg-black pointer-events-none">
+                  <div className="absolute top-10 left-3 z-30 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-[#00FF66]/40 text-[9px] font-bold text-[#00FF66] flex items-center gap-1 shadow-lg">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#00FF66] animate-pulse" />
+                    {layout === "auto_split" ? "Auto-Detect Dual Speaker (9:16)" : "Dual-Speaker Split (9:16)"}
+                  </div>
+
+                  {/* Top Speaker: Host (left-biased framing) */}
+                  <div className="w-full h-1/2 relative overflow-hidden bg-black">
+                    <video
+                      ref={videoRef}
+                      src={activeVideoUrl}
+                      autoPlay
+                      loop
+                      muted={isMuted}
+                      playsInline
+                      onTimeUpdate={handleTimeUpdate}
+                      onLoadedMetadata={handleLoadedMetadata}
+                      onWaiting={() => setIsBuffering(true)}
+                      onPlaying={() => {
+                        setIsBuffering(false);
+                        setStreamError(false);
+                      }}
+                      onCanPlay={(e) => {
+                        setIsBuffering(false);
+                        if (isPlaying) e.currentTarget.play().catch(() => {});
+                      }}
+                      onError={() => {
+                        setIsBuffering(false);
+                        setStreamError(true);
+                      }}
+                      className="w-full h-full object-cover pointer-events-none"
+                      style={{ objectPosition: "28% 38%" }}
+                    />
+                    <div className="absolute bottom-2 left-2 z-20 px-1.5 py-0.5 rounded bg-black/75 backdrop-blur-sm text-[8px] font-bold text-gray-300 border border-white/10">
+                      Speaker 1 (Host)
+                    </div>
+                  </div>
+
+                  {/* Horizontal Divider Seam (Opus style) */}
+                  <div className="w-full h-1 bg-[#121218] border-y border-white/10 relative z-20 shrink-0" />
+
+                  {/* Bottom Speaker: Guest (right-biased framing) */}
+                  <div className="w-full h-1/2 relative overflow-hidden bg-black">
+                    <video
+                      src={activeVideoUrl}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      className="w-full h-full object-cover pointer-events-none"
+                      style={{ objectPosition: "72% 38%" }}
+                      ref={(el) => {
+                        if (el && videoRef.current) {
+                          if (Math.abs(el.currentTime - videoRef.current.currentTime) > 0.25) {
+                            el.currentTime = videoRef.current.currentTime;
+                          }
+                          if (videoRef.current.paused && !el.paused) el.pause();
+                          else if (!videoRef.current.paused && el.paused) el.play().catch(() => {});
+                        }
+                      }}
+                    />
+                    <div className="absolute bottom-2 left-2 z-20 px-1.5 py-0.5 rounded bg-black/75 backdrop-blur-sm text-[8px] font-bold text-gray-300 border border-white/10">
+                      Speaker 2 (Guest)
+                    </div>
+                  </div>
+                </div>
+              ) : layout === "custom_split" ? (
                 /* Custom Split Screen Preview (Top & Bottom Crop Boxes) */
                 <div className="w-full h-full flex flex-col relative select-none bg-black pointer-events-none">
                   <div className="absolute top-10 left-3 z-30 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-amber-400/40 text-[9px] font-bold text-amber-400 flex items-center gap-1 shadow-lg">

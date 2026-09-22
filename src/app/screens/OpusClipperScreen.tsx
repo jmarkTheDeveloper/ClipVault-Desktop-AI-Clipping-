@@ -25,73 +25,17 @@ import {
   Clock,
   FileVideo,
   X,
-  ChevronDown
+  ChevronDown,
+  Move
 } from "lucide-react";
 import { EngineSettingsModal } from "../components/clipper/EngineSettingsModal";
 import type { ByokMode } from "../components/clipper/EngineSettingsModal";
 import { AI_ENGINES } from "./AiClipperScreen";
+import { SUBTITLE_PRESETS, SubtitleStyleCard } from "../components/clipper/SubtitleStyleCard";
 
 const G = "#00e676";
 
-interface CaptionStyleOption {
-  id: string;
-  name: string;
-  badge: string;
-  color: string;
-  desc: string;
-}
 
-const CAPTION_STYLE_OPTIONS: CaptionStyleOption[] = [
-  {
-    id: "capcut_yellow",
-    name: "CapCut Viral Yellow",
-    badge: "VIRAL",
-    color: "#FFE600",
-    desc: "Ultra-bold dynamic pop with gold glow",
-  },
-  {
-    id: "opus_green",
-    name: "Opus Neon Emerald",
-    badge: "SIGNATURE",
-    color: "#00FF66",
-    desc: "Signature Opus active word green highlight",
-  },
-  {
-    id: "hormozi_bold",
-    name: "Hormozi Heavy Punch",
-    badge: "HIGH-HOOK",
-    color: "#FFB800",
-    desc: "Bold Anton with heavy outline and punch",
-  },
-  {
-    id: "neon_cyan",
-    name: "Electric Cyan",
-    badge: "CYBER",
-    color: "#00F0FF",
-    desc: "High-contrast glowing cyan word tracking",
-  },
-  {
-    id: "fire_red",
-    name: "High Voltage Red",
-    badge: "RETENTION",
-    color: "#FF3C3C",
-    desc: "Aggressive red active pop for fast retention",
-  },
-  {
-    id: "sigma_pink",
-    name: "Sigma Hot Pink",
-    badge: "TREND",
-    color: "#FF4D94",
-    desc: "Modern aesthetic hot pink highlighted words",
-  },
-  {
-    id: "clean_white",
-    name: "Clean Minimal White",
-    badge: "MINIMAL",
-    color: "#FFFFFF",
-    desc: "Crisp white Anton font with bold black stroke",
-  },
-];
 
 interface Props {
   onBack: () => void;
@@ -128,13 +72,15 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
   const [resolvingInfo, setResolvingInfo] = useState(false);
   const [videoInfo, setVideoInfo] = useState<VideoInfo | null>(null);
   const [infoError, setInfoError] = useState<string | null>(null);
+  const [sourceTab, setSourceTab] = useState<"url" | "local">("url");
 
   // The 3 Minimalist Controls (Opus Style)
   const [captionsEnabled, setCaptionsEnabled] = useState(true);
-  const [captionStyle, setCaptionStyle] = useState("capcut_yellow");
+  const [captionStyle, setCaptionStyle] = useState("opus_green");
   const [captionPlacement, setCaptionPlacement] = useState<"bottom" | "middle" | "top">("bottom");
   const [styleDropdownOpen, setStyleDropdownOpen] = useState(false);
   const styleDropdownRef = useRef<HTMLDivElement>(null);
+  const [layoutMode, setLayoutMode] = useState<"auto_split" | "podcast_split" | "vertical_crop" | "square_blur">("auto_split");
   const [aspectRatio, setAspectRatio] = useState<"9:16" | "1:1" | "16:9">("9:16");
   const [quality, setQuality] = useState<"1080p" | "4k" | "720p">("1080p");
   const [clipYield, setClipYield] = useState<"auto" | "max" | "top10">("auto");
@@ -364,6 +310,7 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
       if (file) {
         const filePath = file.path || file.name;
         setUrl(filePath);
+        setSourceTab("local");
         setVideoInfo({
           title: file.name.replace(/\.[^/.]+$/, ""),
           duration: 0,
@@ -385,8 +332,9 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
     setProgressStatus("Submitting 1-Click task to AI clipping engine...");
     setGeneratedClips([]);
 
-    // Translate caption placement to Y percentage
-    const yPct = captionPlacement === "top" ? 0.20 : captionPlacement === "middle" ? 0.50 : 0.70;
+    // Translate caption placement to Y percentage (Podcast split and Auto split default to 0.50 across center seam)
+    const effectiveCapPlacement = (layoutMode === "podcast_split" || layoutMode === "auto_split") ? "middle" : captionPlacement;
+    const yPct = effectiveCapPlacement === "top" ? 0.20 : effectiveCapPlacement === "middle" ? 0.50 : 0.70;
 
     const payload = {
       url: url.trim(),
@@ -394,7 +342,7 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
       ai_engine: selectedEngine,
       num_clips: getEffectiveNumClips(),
       target_duration: -1,
-      layout: aspectRatio === "16:9" ? "landscape" : "vertical_crop",
+      layout: aspectRatio === "16:9" ? "landscape" : layoutMode,
       aspect_ratio: aspectRatio,
       quality: quality === "4k" ? "1080p" : quality, // Hardware optimal
       export_resolution: quality === "4k" ? "2160p" : quality === "1080p" ? "1080p" : "720p",
@@ -511,8 +459,8 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto p-6 md:p-8 flex flex-col items-center">
-        <div className="w-full max-w-4xl flex flex-col gap-6">
+      <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 flex flex-col items-center">
+        <div className="w-full max-w-7xl xl:max-w-[1440px] flex flex-col gap-6">
 
           {generatedClips.length > 0 ? (
             /* RESULTS DASHBOARD (Opus Style) */
@@ -726,23 +674,26 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
             <div className="flex flex-col gap-6">
 
               {/* Header Title Hero */}
-              <div className="text-center max-w-xl mx-auto space-y-2">
-                <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white flex items-center justify-center gap-2">
-                  <span>1-Click Viral Clipping</span>
-                  <Sparkles className="w-6 h-6 text-[#00e676]" />
+              <div className="text-center max-w-2xl mx-auto space-y-2.5">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#00e676]/10 border border-[#00e676]/25 text-[#00e676] text-[11px] font-bold tracking-wide uppercase shadow-sm">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Next-Gen Autonomous Video Intelligence</span>
+                </div>
+                <h1 className="text-2xl md:text-4xl font-black tracking-tight text-white">
+                  1-Click Viral Clipping
                 </h1>
-                <p className="text-xs md:text-sm text-gray-400">
-                  Paste any video link. Choose your captions, size, and quality. AI handles transcription, face tracking, and viral hook detection automatically.
+                <p className="text-xs md:text-sm text-gray-400 max-w-lg mx-auto leading-relaxed">
+                  Autonomous AI curation, face tracking, dynamic kinetic subtitles, and split-screen generation in one click.
                 </p>
               </div>
 
               {/* Main Input Card */}
-              <div className="bg-[#111115] border border-white/[0.08] rounded-2xl p-6 shadow-2xl flex flex-col gap-5">
+              <div className="bg-[#101116] border border-white/[0.08] rounded-3xl p-6 sm:p-8 lg:p-9 shadow-2xl flex flex-col gap-7">
                 
                 {/* AI API Key Setup Notice if not configured */}
                 {!activeEngineKey && activeEngineObj?.providerType !== "local" && (
-                  <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-between text-xs text-amber-300">
-                    <div className="flex items-center gap-2 min-w-0">
+                  <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-between text-xs text-amber-300">
+                    <div className="flex items-center gap-2.5 min-w-0">
                       <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
                       <span className="truncate">
                         AI API Key not set: Click to add your free Google Gemini API key for instant viral hook discovery.
@@ -751,123 +702,278 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
                     <button
                       type="button"
                       onClick={() => setShowKeySettings(true)}
-                      className="px-2.5 py-1 rounded-lg bg-amber-400/20 hover:bg-amber-400/30 text-amber-200 font-semibold text-xs transition-colors shrink-0 ml-3 cursor-pointer"
+                      className="px-3 py-1 rounded-lg bg-amber-400/20 hover:bg-amber-400/30 text-amber-200 font-bold text-xs transition-colors shrink-0 ml-3 cursor-pointer"
                     >
-                      Configure API Key
+                      Configure Key
                     </button>
                   </div>
                 )}
 
-                {/* URL Input Box */}
-                <div className="flex flex-col gap-2">
-                  <label className="text-xs font-bold text-gray-300 uppercase tracking-wider flex items-center justify-between">
-                    <span>Source Video Link</span>
-                    <span className="text-[11px] text-gray-500 font-normal lowercase">YouTube, Rumble, or local file</span>
-                  </label>
-
-                  <div className="relative flex items-center">
-                    <div className="absolute left-3.5 text-gray-500 pointer-events-none">
-                      <Link2 className="w-4 h-4" />
-                    </div>
-                    <input
-                      type="text"
-                      value={url}
-                      onChange={(e) => setUrl(e.target.value)}
-                      placeholder="Paste YouTube link (e.g. https://youtube.com/watch?v=...)"
-                      disabled={isGenerating}
-                      className="w-full bg-white/[0.04] border border-white/[0.12] rounded-xl pl-10 pr-24 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#00e676] transition-all disabled:opacity-50"
-                    />
-                    <div className="absolute right-2 flex items-center gap-1.5">
-                      {url && (
-                        <button
-                          type="button"
-                          onClick={() => setUrl("")}
-                          disabled={isGenerating}
-                          className="p-1.5 text-gray-400 hover:text-white rounded-md transition-all cursor-pointer"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      )}
+                {/* Hero Source Video Input Module */}
+                <div className="flex flex-col gap-3">
+                  {/* Segmented Tab Switcher: URL vs Local File */}
+                  <div className="flex items-center justify-between">
+                    <div className="inline-flex p-1 rounded-xl bg-white/[0.03] border border-white/[0.08] gap-1">
                       <button
                         type="button"
-                        onClick={handlePaste}
-                        disabled={isGenerating}
-                        className="px-2.5 py-1 rounded-lg bg-white/[0.08] hover:bg-white/[0.16] text-xs font-semibold text-gray-200 transition-all cursor-pointer"
+                        onClick={() => setSourceTab("url")}
+                        className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                          sourceTab === "url"
+                            ? "bg-[#00e676] text-black shadow-md"
+                            : "text-gray-400 hover:text-white"
+                        }`}
                       >
-                        Paste
+                        <Link2 className="w-3.5 h-3.5" />
+                        <span>Public Video Link</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSourceTab("local")}
+                        className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                          sourceTab === "local"
+                            ? "bg-[#00e676] text-black shadow-md"
+                            : "text-gray-400 hover:text-white"
+                        }`}
+                      >
+                        <UploadCloud className="w-3.5 h-3.5" />
+                        <span>Local Video File</span>
                       </button>
                     </div>
+
+                    <span className="text-[11px] text-gray-500 hidden sm:inline">
+                      {sourceTab === "url" ? "YouTube, Rumble, or Twitch URL" : "MP4, MOV, WEBM, MKV supported"}
+                    </span>
                   </div>
 
-                  {/* Or upload local file */}
-                  <div className="flex items-center justify-center gap-2 pt-1">
-                    <span className="text-[11px] text-gray-500">or</span>
-                    <button
-                      type="button"
-                      onClick={handleSelectLocalFile}
-                      disabled={isGenerating}
-                      className="text-[11px] font-semibold text-[#00e676] hover:underline flex items-center gap-1 cursor-pointer"
-                    >
-                      <UploadCloud className="w-3.5 h-3.5" />
-                      <span>Choose local video file</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Live Video Info Card Preview */}
-                {resolvingInfo && (
-                  <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] flex items-center gap-3 animate-pulse">
-                    <Loader2 className="w-4 h-4 text-[#00e676] animate-spin" />
-                    <span className="text-xs text-gray-400">Resolving video details and duration...</span>
-                  </div>
-                )}
-
-                {infoError && (
-                  <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/25 flex items-center gap-2.5 text-xs text-rose-300">
-                    <AlertCircle className="w-4 h-4 text-rose-400 flex-shrink-0" />
-                    <span>{infoError}</span>
-                  </div>
-                )}
-
-                {videoInfo && !resolvingInfo && (
-                  <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.08] flex items-center gap-3.5">
-                    {videoInfo.thumbnail ? (
-                      <img
-                        src={videoInfo.thumbnail}
-                        alt="Thumbnail"
-                        className="w-20 h-12 object-cover rounded-lg flex-shrink-0 bg-black"
-                      />
-                    ) : (
-                      <div className="w-20 h-12 rounded-lg bg-white/5 flex items-center justify-center flex-shrink-0">
-                        <FileVideo className="w-5 h-5 text-gray-400" />
+                  {/* Input View 1: Public Web URL */}
+                  {sourceTab === "url" ? (
+                    <div className="relative flex items-center">
+                      <div className="absolute left-3.5 text-gray-500 pointer-events-none">
+                        <Link2 className="w-4 h-4" />
                       </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-xs font-bold text-white truncate">{videoInfo.title}</h4>
-                      <p className="text-[11px] text-gray-400 flex items-center gap-2 mt-0.5">
-                        {videoInfo.uploader && <span>{videoInfo.uploader}</span>}
-                        {videoInfo.duration > 0 && (
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {Math.floor(videoInfo.duration / 60)}m {Math.floor(videoInfo.duration % 60)}s
-                          </span>
+                      <input
+                        type="text"
+                        value={url}
+                        onChange={(e) => setUrl(e.target.value)}
+                        placeholder="Paste public video URL (e.g. https://youtube.com/watch?v=...)"
+                        disabled={isGenerating}
+                        className="w-full bg-white/[0.03] border border-white/[0.12] rounded-xl pl-10 pr-24 py-3.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#00e676] focus:ring-1 focus:ring-[#00e676]/40 transition-all disabled:opacity-50"
+                      />
+                      <div className="absolute right-2.5 flex items-center gap-1.5">
+                        {url && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setUrl("");
+                              setVideoInfo(null);
+                            }}
+                            disabled={isGenerating}
+                            className="p-1.5 text-gray-400 hover:text-white rounded-md transition-all cursor-pointer"
+                            title="Clear input"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
                         )}
-                      </p>
+                        <button
+                          type="button"
+                          onClick={handlePaste}
+                          disabled={isGenerating}
+                          className="px-3 py-1.5 rounded-lg bg-white/[0.08] hover:bg-white/[0.16] text-xs font-bold text-gray-200 transition-all cursor-pointer"
+                        >
+                          Paste
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    /* Input View 2: Local Video File Browse Card */
+                    <div
+                      onClick={handleSelectLocalFile}
+                      className="border-2 border-dashed border-white/[0.12] hover:border-[#00e676]/60 rounded-xl p-5 bg-white/[0.02] hover:bg-white/[0.04] transition-all cursor-pointer flex flex-col items-center justify-center gap-2 text-center group"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-white/[0.05] group-hover:bg-[#00e676]/10 flex items-center justify-center text-gray-400 group-hover:text-[#00e676] transition-colors">
+                        <UploadCloud className="w-5 h-5" />
+                      </div>
+                      <div className="text-xs font-bold text-gray-200 group-hover:text-white">
+                        {url && videoInfo?.uploader === "Local Video File" ? (
+                          <span className="text-[#00e676]">Selected: {videoInfo.title}</span>
+                        ) : (
+                          <span>Click to browse video file from your computer</span>
+                        )}
+                      </div>
+                      <span className="text-[10.5px] text-gray-500">Fast local NVENC / Intel QSV hardware accelerated processing</span>
+                    </div>
+                  )}
+
+                  {/* Live Video Info Card Preview */}
+                  {resolvingInfo && (
+                    <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] flex items-center gap-3 animate-pulse">
+                      <Loader2 className="w-4 h-4 text-[#00e676] animate-spin" />
+                      <span className="text-xs text-gray-400">Resolving video title, duration, and stream metadata...</span>
+                    </div>
+                  )}
+
+                  {infoError && (
+                    <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/25 flex items-center gap-2.5 text-xs text-rose-300">
+                      <AlertCircle className="w-4 h-4 text-rose-400 flex-shrink-0" />
+                      <span>{infoError}</span>
+                    </div>
+                  )}
+
+                  {videoInfo && !resolvingInfo && (
+                    <div className="p-3.5 rounded-xl bg-[#00e676]/[0.04] border border-[#00e676]/30 flex items-center justify-between gap-3.5">
+                      <div className="flex items-center gap-3.5 min-w-0">
+                        {videoInfo.thumbnail ? (
+                          <img
+                            src={videoInfo.thumbnail}
+                            alt="Thumbnail"
+                            className="w-20 h-12 object-cover rounded-lg flex-shrink-0 bg-black"
+                          />
+                        ) : (
+                          <div className="w-20 h-12 rounded-lg bg-white/5 flex items-center justify-center flex-shrink-0">
+                            <FileVideo className="w-5 h-5 text-gray-400" />
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <h4 className="text-xs font-bold text-white truncate">{videoInfo.title}</h4>
+                          <p className="text-[11px] text-gray-400 flex items-center gap-2 mt-0.5">
+                            {videoInfo.uploader && <span>{videoInfo.uploader}</span>}
+                            {videoInfo.duration > 0 && (
+                              <span className="flex items-center gap-1 text-[#00e676] font-semibold">
+                                <Clock className="w-3 h-3" />
+                                {Math.floor(videoInfo.duration / 60)}m {Math.floor(videoInfo.duration % 60)}s
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setUrl("");
+                          setVideoInfo(null);
+                        }}
+                        className="text-xs text-gray-400 hover:text-rose-400 font-semibold transition-colors shrink-0 px-2 py-1"
+                      >
+                        Change
+                      </button>
+                    </div>
+                  )}
+                </div>
 
                 <div className="h-px bg-white/[0.06]" />
 
-                {/* THE 4 MINIMALIST CONTROLS */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4.5">
+                {/* THE 3-COLUMN MODULAR STUDIO DECK */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 xl:gap-7 items-stretch">
 
-                  {/* 1. AI CAPTIONS */}
-                  <div className="flex flex-col gap-2.5 p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] relative z-20">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                        <Subtitles className="w-3.5 h-3.5 text-[#00e676]" />
-                        <span>AI Captions</span>
+                  {/* COLUMN 1: VIDEO FRAMING & RATIO */}
+                  <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.06] flex flex-col gap-4.5 shadow-sm">
+                    <div className="flex items-center justify-between pb-1 border-b border-white/[0.06]">
+                      <span className="text-xs font-bold text-white flex items-center gap-2">
+                        <Layers className="w-4 h-4 text-[#00e676]" />
+                        <span>Framing & Video Size</span>
+                      </span>
+                      <span className="text-[10px] text-gray-500 font-medium">Core Visuals</span>
+                    </div>
+
+                    {/* Canvas Ratio Pills */}
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Canvas Ratio</span>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { id: "9:16", label: "9:16", badge: "VIRAL", sub: "Shorts · Reels" },
+                          { id: "1:1", label: "1:1", badge: "FEED", sub: "Instagram" },
+                          { id: "16:9", label: "16:9", badge: "DESK", sub: "YouTube" },
+                        ].map((ar) => (
+                          <button
+                            key={ar.id}
+                            type="button"
+                            onClick={() => setAspectRatio(ar.id as any)}
+                            className={`py-2.5 px-2 rounded-xl text-center border transition-all cursor-pointer ${
+                              aspectRatio === ar.id
+                                ? "bg-[#00e676]/15 border-[#00e676] text-white shadow-sm font-bold"
+                                : "bg-white/[0.02] border-white/[0.06] text-gray-400 hover:text-white hover:bg-white/[0.04]"
+                            }`}
+                          >
+                            <div className="text-xs font-black">{ar.label}</div>
+                            <div className="text-[10px] text-gray-400 mt-0.5">{ar.sub}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Subject Reframing Layouts */}
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Subject Reframing</span>
+                      <div className="flex flex-col gap-2">
+                        {[
+                          {
+                            id: "auto_split",
+                            label: "Auto Detect & Split",
+                            badge: "AI AUTO",
+                            sub: "Auto-detects 2-person dialogues or solo speaker",
+                          },
+                          {
+                            id: "podcast_split",
+                            label: "Dual-Speaker Split",
+                            badge: "STACKED",
+                            sub: "Host top & guest bottom with split line subtitle",
+                          },
+                          {
+                            id: "vertical_crop",
+                            label: "Solo Face-Tracking",
+                            badge: "9:16 SOLO",
+                            sub: "Full vertical crop locked on active speaker",
+                          },
+                          {
+                            id: "square_blur",
+                            label: "Square Focus + Blur",
+                            badge: "CANVAS",
+                            sub: "Centered 1:1 frame with bokeh blurred background",
+                          },
+                        ].map((item) => (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => {
+                              setLayoutMode(item.id as any);
+                              if (item.id === "podcast_split" || item.id === "auto_split") {
+                                setCaptionPlacement("middle");
+                              }
+                            }}
+                            className={`p-3 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer group ${
+                              layoutMode === item.id
+                                ? "bg-[#00e676]/10 border-[#00e676] text-white shadow-[0_0_14px_rgba(0,230,118,0.12)]"
+                                : "bg-white/[0.02] border-white/[0.06] text-gray-400 hover:text-white hover:bg-white/[0.04] hover:border-white/[0.12]"
+                            }`}
+                          >
+                            <div className="min-w-0 pr-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-white group-hover:text-white">{item.label}</span>
+                                <span
+                                  className={`text-[8.5px] px-1.5 py-0.5 rounded font-mono font-bold border transition-colors ${
+                                    layoutMode === item.id
+                                      ? "bg-[#00e676]/20 text-[#00e676] border-[#00e676]/40"
+                                      : "bg-white/[0.04] text-gray-400 border-white/[0.08]"
+                                  }`}
+                                >
+                                  {item.badge}
+                                </span>
+                              </div>
+                              <div className="text-[10.5px] text-gray-400 mt-0.5 leading-tight">{item.sub}</div>
+                            </div>
+                            {layoutMode === item.id && <Check className="w-4 h-4 text-[#00e676] shrink-0" />}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* COLUMN 2: SUBTITLES & PRESETS */}
+                  <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.06] flex flex-col gap-4.5 shadow-sm relative z-20">
+                    <div className="flex items-center justify-between pb-1 border-b border-white/[0.06]">
+                      <span className="text-xs font-bold text-white flex items-center gap-2">
+                        <Subtitles className="w-4 h-4 text-[#00e676]" />
+                        <span>AI Captions & Styles</span>
                       </span>
                       <button
                         type="button"
@@ -875,6 +981,7 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
                         className={`w-9 h-5 rounded-full p-0.5 transition-colors cursor-pointer flex items-center ${
                           captionsEnabled ? "bg-[#00e676]" : "bg-white/20"
                         }`}
+                        title={captionsEnabled ? "Captions enabled" : "Captions disabled"}
                       >
                         <div
                           className={`w-4 h-4 rounded-full bg-black shadow-md transition-transform ${
@@ -885,284 +992,192 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
                     </div>
 
                     {captionsEnabled ? (
-                      <div className="flex flex-col gap-2 pt-1">
-                        {/* Style Presets */}
-                        <div className="flex flex-col gap-1 relative" ref={styleDropdownRef}>
-                          <span className="text-[10px] text-gray-400 font-semibold uppercase">Style</span>
+                      <div className="flex flex-col gap-3.5">
+                        {/* Style Presets Visual Gallery */}
+                        <div className="flex flex-col gap-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
+                              Subtitle Style Preset
+                            </span>
+                            <span className="text-[9.5px] text-[#00e676] font-mono font-bold">
+                              Kinetic Visuals
+                            </span>
+                          </div>
 
-                          {(() => {
-                            const activeStyle =
-                              CAPTION_STYLE_OPTIONS.find((s) => s.id === captionStyle) || CAPTION_STYLE_OPTIONS[0];
-                            return (
-                              <>
-                                <button
-                                  type="button"
-                                  onClick={() => setStyleDropdownOpen(!styleDropdownOpen)}
-                                  className="w-full bg-[#101015] hover:bg-[#15151c] border border-white/10 hover:border-white/20 rounded-lg px-2.5 py-1.5 text-xs text-left text-white flex items-center justify-between transition-all cursor-pointer shadow-sm"
-                                >
-                                  <div className="flex items-center gap-2 min-w-0">
-                                    <span
-                                      className="w-2.5 h-2.5 rounded-full shrink-0"
-                                      style={{
-                                        backgroundColor: activeStyle.color,
-                                        boxShadow: `0 0 8px ${activeStyle.color}80`,
-                                      }}
-                                    />
-                                    <span className="font-semibold text-xs text-white truncate">{activeStyle.name}</span>
-                                    <span className="text-[9px] px-1.5 py-0.5 rounded font-mono font-bold bg-white/5 border border-white/10 text-gray-300 shrink-0">
-                                      {activeStyle.badge}
-                                    </span>
-                                  </div>
-                                  <ChevronDown
-                                    className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 shrink-0 ml-1.5 ${
-                                      styleDropdownOpen ? "rotate-180 text-white" : ""
-                                    }`}
-                                  />
-                                </button>
-
-                                {/* Custom Dark Menu Popover */}
-                                {styleDropdownOpen && (
-                                  <div className="absolute top-full left-0 right-0 mt-1.5 z-50 bg-[#121218] border border-white/15 rounded-xl shadow-2xl shadow-black/90 p-1.5 flex flex-col gap-1 backdrop-blur-2xl max-h-60 overflow-y-auto">
-                                    {CAPTION_STYLE_OPTIONS.map((opt) => {
-                                      const isSelected = opt.id === captionStyle;
-                                      return (
-                                        <button
-                                          key={opt.id}
-                                          type="button"
-                                          onClick={() => {
-                                            setCaptionStyle(opt.id);
-                                            setStyleDropdownOpen(false);
-                                          }}
-                                          className={`w-full text-left px-2.5 py-2 rounded-lg text-xs flex items-center justify-between transition-all cursor-pointer ${
-                                            isSelected
-                                              ? "bg-white/[0.08] text-white shadow-sm"
-                                              : "text-gray-300 hover:bg-white/[0.04] hover:text-white"
-                                          }`}
-                                        >
-                                          <div className="flex items-center gap-2.5 min-w-0">
-                                            <span
-                                              className="w-2.5 h-2.5 rounded-full shrink-0"
-                                              style={{
-                                                backgroundColor: opt.color,
-                                                boxShadow: isSelected ? `0 0 10px ${opt.color}` : "none",
-                                              }}
-                                            />
-                                            <div className="flex flex-col min-w-0">
-                                              <div className="flex items-center gap-1.5">
-                                                <span className="font-semibold text-xs truncate text-white">
-                                                  {opt.name}
-                                                </span>
-                                                <span className="text-[8px] px-1 py-0.2 rounded font-mono font-bold bg-white/10 border border-white/10 text-gray-300 shrink-0">
-                                                  {opt.badge}
-                                                </span>
-                                              </div>
-                                              <span className="text-[10px] text-gray-400 truncate">{opt.desc}</span>
-                                            </div>
-                                          </div>
-                                          {isSelected && (
-                                            <Check className="w-3.5 h-3.5 text-[#00e676] shrink-0 ml-2" />
-                                          )}
-                                        </button>
-                                      );
-                                    })}
-                                  </div>
-                                )}
-                              </>
-                            );
-                          })()}
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            {SUBTITLE_PRESETS.map((preset) => (
+                              <SubtitleStyleCard
+                                key={preset.id}
+                                preset={preset}
+                                isSelected={captionStyle === preset.id}
+                                onSelect={(id) => setCaptionStyle(id)}
+                                compact={false}
+                              />
+                            ))}
+                          </div>
                         </div>
 
-                        {/* Placement */}
-                        <div className="flex flex-col gap-1">
-                          <span className="text-[10px] text-gray-400 font-semibold uppercase">Position</span>
-                          <div className="grid grid-cols-3 gap-1">
-                            {(["bottom", "middle", "top"] as const).map((pos) => (
+                        {/* Active Style Details Callout */}
+                        {(() => {
+                          const activePreset =
+                            SUBTITLE_PRESETS.find((p) => p.id === captionStyle) || SUBTITLE_PRESETS[0];
+                          return (
+                            <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.06] flex items-center justify-between text-xs">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span
+                                  className="w-2.5 h-2.5 rounded-full shrink-0"
+                                  style={{
+                                    backgroundColor: activePreset.color,
+                                    boxShadow: `0 0 8px ${activePreset.color}`,
+                                  }}
+                                />
+                                <span className="font-bold text-white text-xs truncate">
+                                  {activePreset.name}
+                                </span>
+                                <span className="text-gray-400 text-[11px] truncate hidden sm:inline">
+                                  • {activePreset.desc}
+                                </span>
+                              </div>
+                              <span className="text-[8.5px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#00e676]/15 text-[#00e676] border border-[#00e676]/30 shrink-0">
+                                {activePreset.badge}
+                              </span>
+                            </div>
+                          );
+                        })()}
+
+                        {/* Subtitle Vertical Placement */}
+                        <div className="flex flex-col gap-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Position</span>
+                            {(layoutMode === "podcast_split" || layoutMode === "auto_split") && (
+                              <span className="text-[9.5px] text-[#00e676] font-medium">Split Seam (Middle)</span>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            {[
+                              { id: "bottom", label: "Bottom" },
+                              { id: "middle", label: "Center Seam" },
+                              { id: "top", label: "Top" },
+                            ].map((pos) => (
                               <button
-                                key={pos}
+                                key={pos.id}
                                 type="button"
-                                onClick={() => setCaptionPlacement(pos)}
-                                className={`py-1 text-[11px] font-semibold rounded-md border capitalize transition-all cursor-pointer ${
-                                  captionPlacement === pos
-                                    ? "bg-[#00e676]/15 border-[#00e676] text-[#00e676]"
-                                    : "bg-white/[0.03] border-white/[0.08] text-gray-400 hover:text-white"
+                                onClick={() => setCaptionPlacement(pos.id as any)}
+                                className={`py-2.5 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
+                                  captionPlacement === pos.id
+                                    ? "bg-[#00e676]/15 border-[#00e676] text-white shadow-sm"
+                                    : "bg-white/[0.02] border-white/[0.06] text-gray-400 hover:text-white hover:bg-white/[0.04]"
                                 }`}
                               >
-                                {pos}
+                                {pos.label}
                               </button>
                             ))}
                           </div>
                         </div>
+
+                        <div className="p-2.5 rounded-xl bg-black/40 border border-white/[0.06] text-[10.5px] text-gray-400 flex items-center gap-2">
+                          <Sparkles className="w-3.5 h-3.5 text-[#00e676] shrink-0" />
+                          <span>Pre-rendered with multi-stage Gaussian bloom & genuine Montserrat-Black.</span>
+                        </div>
                       </div>
                     ) : (
-                      <span className="text-[11px] text-gray-500 italic pt-2">Captions disabled</span>
+                      <div className="h-44 flex flex-col items-center justify-center text-center p-4 rounded-xl bg-white/[0.01] border border-white/[0.04] text-gray-500 text-xs">
+                        <Subtitles className="w-6 h-6 text-gray-600 mb-2" />
+                        <span className="font-semibold text-gray-400">Captions Disabled</span>
+                        <span className="text-[11px] text-gray-500 mt-1">Export clean video without animated typography</span>
+                      </div>
                     )}
                   </div>
 
-                  {/* 2. VIDEO SIZE / ASPECT RATIO */}
-                  <div className="flex flex-col gap-2.5 p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">
-                    <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                      <Layers className="w-3.5 h-3.5 text-sky-400" />
-                      <span>Video Size</span>
-                    </span>
-
-                    <div className="flex flex-col gap-1.5 pt-1">
-                      {[
-                        {
-                          id: "9:16",
-                          label: "9:16 Portrait",
-                          badge: "VIRAL",
-                          badgeStyle: "bg-sky-400/10 text-sky-300 border-sky-400/30",
-                          sub: "TikTok, Shorts, Reels",
-                        },
-                        {
-                          id: "1:1",
-                          label: "1:1 Square",
-                          badge: "FEED",
-                          badgeStyle: "bg-amber-400/10 text-amber-300 border-amber-400/30",
-                          sub: "Instagram, LinkedIn",
-                        },
-                        {
-                          id: "16:9",
-                          label: "16:9 Landscape",
-                          badge: "DESKTOP",
-                          badgeStyle: "bg-purple-400/10 text-purple-300 border-purple-400/30",
-                          sub: "YouTube, Twitter/X",
-                        },
-                      ].map((item) => (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => setAspectRatio(item.id as any)}
-                          className={`p-2 rounded-lg border text-left flex items-center justify-between transition-all cursor-pointer ${
-                            aspectRatio === item.id
-                              ? "bg-sky-400/15 border-sky-400 text-white shadow-sm"
-                              : "bg-white/[0.03] border-white/[0.08] text-gray-400 hover:text-white hover:bg-white/[0.05]"
-                          }`}
-                        >
-                          <div className="min-w-0 pr-1">
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-xs font-bold text-white">{item.label}</span>
-                              <span className={`text-[8px] px-1 py-0.2 rounded font-mono font-bold border ${item.badgeStyle}`}>
-                                {item.badge}
-                              </span>
-                            </div>
-                            <div className="text-[10px] text-gray-400 mt-0.5 truncate">{item.sub}</div>
-                          </div>
-                          {aspectRatio === item.id && <Check className="w-3.5 h-3.5 text-sky-400 shrink-0 ml-1" />}
-                        </button>
-                      ))}
+                  {/* COLUMN 3: VIRAL INTELLIGENCE & OUTPUT */}
+                  <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.06] flex flex-col gap-4.5 shadow-sm">
+                    <div className="flex items-center justify-between pb-1 border-b border-white/[0.06]">
+                      <span className="text-xs font-bold text-white flex items-center gap-2">
+                        <TrendingUp className="w-4 h-4 text-[#00e676]" />
+                        <span>Viral Intelligence & Output</span>
+                      </span>
+                      <span className="text-[10px] text-gray-500 font-medium">Export Master</span>
                     </div>
-                  </div>
 
-                  {/* 3. QUALITY */}
-                  <div className="flex flex-col gap-2.5 p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">
-                    <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                      <Film className="w-3.5 h-3.5 text-purple-400" />
-                      <span>Quality</span>
-                    </span>
-
-                    <div className="flex flex-col gap-1.5 pt-1">
-                      {[
-                        {
-                          id: "4k",
-                          label: "4K Ultra HD",
-                          badge: "2160p PRO",
-                          badgeStyle: "bg-purple-400/10 text-purple-300 border-purple-400/30",
-                          sub: "AI Super-Resolution · Master Quality",
-                        },
-                        {
-                          id: "1080p",
-                          label: "1080p Full HD",
-                          badge: "RECOMMENDED",
-                          badgeStyle: "bg-[#00e676]/10 text-[#00e676] border-[#00e676]/30",
-                          sub: "60fps · Optimal for Social Media",
-                        },
-                        {
-                          id: "720p",
-                          label: "720p Fast HD",
-                          badge: "RAPID",
-                          badgeStyle: "bg-sky-400/10 text-sky-300 border-sky-400/30",
-                          sub: "Rapid Generation · Fast Preview",
-                        },
-                      ].map((item) => (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => setQuality(item.id as any)}
-                          className={`p-2 rounded-lg border text-left flex items-center justify-between transition-all cursor-pointer ${
-                            quality === item.id
-                              ? "bg-purple-400/15 border-purple-400 text-white shadow-sm"
-                              : "bg-white/[0.03] border-white/[0.08] text-gray-400 hover:text-white hover:bg-white/[0.05]"
-                          }`}
-                        >
-                          <div className="min-w-0 pr-1">
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-xs font-bold text-white">{item.label}</span>
-                              <span className={`text-[8px] px-1 py-0.2 rounded font-mono font-bold border ${item.badgeStyle}`}>
-                                {item.badge}
-                              </span>
+                    {/* Viral Moments Selection */}
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Viral Moments Curation</span>
+                      <div className="flex flex-col gap-2">
+                        {[
+                          {
+                            id: "auto",
+                            label: "Auto Discovery",
+                            badge: dynamicAutoClips ? `~${dynamicAutoClips} CLIPS` : "SMART",
+                            sub: durationMin ? `Full ${durationMin}m video coverage` : "Proportional to duration",
+                          },
+                          {
+                            id: "max",
+                            label: "Deep Sweep",
+                            badge: "18-25 CLIPS",
+                            sub: "Maximum viral yield across entire timeline",
+                          },
+                          {
+                            id: "top10",
+                            label: "Curated Top 10",
+                            badge: "TOP 10",
+                            sub: "Peak virality score hooks only",
+                          },
+                        ].map((item) => (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => setClipYield(item.id as any)}
+                            className={`p-3.5 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer group ${
+                              clipYield === item.id
+                                ? "bg-[#00e676]/10 border-[#00e676] text-white shadow-[0_0_14px_rgba(0,230,118,0.12)]"
+                                : "bg-white/[0.02] border-white/[0.06] text-gray-400 hover:text-white hover:bg-white/[0.04] hover:border-white/[0.12]"
+                            }`}
+                          >
+                            <div className="min-w-0 pr-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-white">{item.label}</span>
+                                <span
+                                  className={`text-[8.5px] px-1.5 py-0.5 rounded font-mono font-bold border ${
+                                    clipYield === item.id
+                                      ? "bg-[#00e676]/20 text-[#00e676] border-[#00e676]/40"
+                                      : "bg-white/[0.04] text-gray-400 border-white/[0.08]"
+                                  }`}
+                                >
+                                  {item.badge}
+                                </span>
+                              </div>
+                              <div className="text-[10.5px] text-gray-400 mt-0.5 leading-tight">{item.sub}</div>
                             </div>
-                            <div className="text-[10px] text-gray-400 mt-0.5 truncate">{item.sub}</div>
-                          </div>
-                          {quality === item.id && <Check className="w-3.5 h-3.5 text-purple-400 shrink-0 ml-1" />}
-                        </button>
-                      ))}
+                            {clipYield === item.id && <Check className="w-4 h-4 text-[#00e676] shrink-0" />}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
 
-                  {/* 4. VIRAL MOMENTS */}
-                  <div className="flex flex-col gap-2.5 p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">
-                    <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                      <TrendingUp className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Viral Moments</span>
-                    </span>
-
-                    <div className="flex flex-col gap-1.5 pt-1">
-                      {[
-                        {
-                          id: "auto",
-                          label: "Auto Discovery",
-                          badge: dynamicAutoClips ? `~${dynamicAutoClips} CLIPS` : "SMART",
-                          badgeStyle: "bg-amber-400/10 text-amber-300 border-amber-400/30",
-                          sub: durationMin ? `Full ${durationMin}m video coverage` : "Proportional to duration",
-                        },
-                        {
-                          id: "max",
-                          label: "Deep Sweep",
-                          badge: "18-25 CLIPS",
-                          badgeStyle: "bg-emerald-400/10 text-emerald-300 border-emerald-400/30",
-                          sub: "Maximum viral yield across timeline",
-                        },
-                        {
-                          id: "top10",
-                          label: "Curated Top 10",
-                          badge: "BALANCED",
-                          badgeStyle: "bg-sky-400/10 text-sky-300 border-sky-400/30",
-                          sub: "Top 10 highest viral score peaks",
-                        },
-                      ].map((item) => (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => setClipYield(item.id as any)}
-                          className={`p-2 rounded-lg border text-left flex items-center justify-between transition-all cursor-pointer ${
-                            clipYield === item.id
-                              ? "bg-amber-400/15 border-amber-400 text-white shadow-sm"
-                              : "bg-white/[0.03] border-white/[0.08] text-gray-400 hover:text-white hover:bg-white/[0.05]"
-                          }`}
-                        >
-                          <div className="min-w-0 pr-1">
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-xs font-bold text-white">{item.label}</span>
-                              <span className={`text-[8px] px-1 py-0.2 rounded font-mono font-bold border ${item.badgeStyle}`}>
-                                {item.badge}
-                              </span>
-                            </div>
-                            <div className="text-[10px] text-gray-400 mt-0.5 truncate">{item.sub}</div>
-                          </div>
-                          {clipYield === item.id && <Check className="w-3.5 h-3.5 text-amber-400 shrink-0 ml-1" />}
-                        </button>
-                      ))}
+                    {/* Quality Selection */}
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Export Resolution</span>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { id: "1080p", label: "1080p", badge: "REC", sub: "Full HD 60fps" },
+                          { id: "4k", label: "4K PRO", badge: "UHD", sub: "Super-Resolution" },
+                          { id: "720p", label: "720p", badge: "FAST", sub: "Rapid Preview" },
+                        ].map((q) => (
+                          <button
+                            key={q.id}
+                            type="button"
+                            onClick={() => setQuality(q.id as any)}
+                            className={`py-2.5 px-2 rounded-xl text-center border transition-all cursor-pointer ${
+                              quality === q.id
+                                ? "bg-[#00e676]/15 border-[#00e676] text-white shadow-sm font-bold"
+                                : "bg-white/[0.02] border-white/[0.06] text-gray-400 hover:text-white hover:bg-white/[0.04]"
+                            }`}
+                          >
+                            <div className="text-xs font-black">{q.label}</div>
+                            <div className="text-[10px] text-gray-400 mt-0.5">{q.sub}</div>
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
 
@@ -1170,7 +1185,7 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
 
                 {/* Error Banner */}
                 {errorMsg && (
-                  <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/25 flex items-center gap-2.5 text-xs text-rose-300">
+                  <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/25 flex items-center gap-2.5 text-xs text-rose-300">
                     <AlertCircle className="w-4 h-4 text-rose-400 flex-shrink-0" />
                     <span>{errorMsg}</span>
                   </div>
@@ -1178,9 +1193,9 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
 
                 {/* Progress Bar (Active Rendering) */}
                 {isGenerating && (
-                  <div className="p-4 rounded-xl bg-[#00e676]/5 border border-[#00e676]/20 flex flex-col gap-2.5">
+                  <div className="p-4 rounded-2xl bg-[#00e676]/5 border border-[#00e676]/20 flex flex-col gap-2.5">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="font-semibold text-white flex items-center gap-2">
+                      <span className="font-bold text-white flex items-center gap-2">
                         <Loader2 className="w-4 h-4 text-[#00e676] animate-spin" />
                         {progressStatus}
                       </span>
@@ -1201,7 +1216,7 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
                       <button
                         type="button"
                         onClick={handleCancel}
-                        className="text-xs font-semibold text-rose-400 hover:underline cursor-pointer"
+                        className="text-xs font-bold text-rose-400 hover:underline cursor-pointer"
                       >
                         Cancel
                       </button>
@@ -1211,19 +1226,26 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
 
                 {/* Action CTA Button */}
                 {!isGenerating && (
-                  <button
-                    type="button"
-                    onClick={handleGenerate}
-                    disabled={!url.trim() || resolvingInfo}
-                    className={`w-full py-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xl ${
-                      !url.trim() || resolvingInfo
-                        ? "bg-white/10 text-gray-500 cursor-not-allowed"
-                        : "bg-[#00e676] text-black hover:brightness-110 shadow-[#00e676]/25 hover:shadow-[#00e676]/40 hover:-translate-y-0.5"
-                    }`}
-                  >
-                    <Sparkles className="w-4 h-4" />
-                    <span>Get Clips in 1 Click</span>
-                  </button>
+                  <div className="flex flex-col gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={handleGenerate}
+                      disabled={!url.trim() || resolvingInfo}
+                      className={`w-full py-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2.5 transition-all cursor-pointer shadow-xl ${
+                        !url.trim() || resolvingInfo
+                          ? "bg-white/[0.05] text-gray-500 border border-white/[0.08] cursor-not-allowed"
+                          : "bg-gradient-to-r from-[#00E676] via-[#00DF6D] to-[#00C853] text-black hover:brightness-110 shadow-[0_4px_24px_rgba(0,230,118,0.30)] hover:shadow-[0_6px_32px_rgba(0,230,118,0.45)] hover:-translate-y-0.5 active:translate-y-0"
+                      }`}
+                    >
+                      <Sparkles className="w-4 h-4 fill-black" />
+                      <span>Generate Viral Clips in 1 Click</span>
+                    </button>
+                    {!url.trim() && (
+                      <span className="text-[11px] text-gray-500 text-center font-medium">
+                        Paste a public video link or choose a local file above to activate 1-click clipping
+                      </span>
+                    )}
+                  </div>
                 )}
 
               </div>

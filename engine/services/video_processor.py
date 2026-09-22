@@ -721,7 +721,9 @@ class VideoProcessor:
                     if final_words:
                         ai_hook_text = clip_info.get('hook_title', hook_text)
                         active_cap_y = caption_y_pct
-                        if layout in ("square_blur", "expanded_blur", "portrait_blur", "1:1_blur") and (active_cap_y is None or active_cap_y >= 0.65):
+                        if layout in ("podcast_split", "split_podcast") and (active_cap_y is None or active_cap_y >= 0.58 or active_cap_y <= 0.42):
+                            active_cap_y = 0.50
+                        elif layout in ("square_blur", "expanded_blur", "portrait_blur", "1:1_blur") and (active_cap_y is None or active_cap_y >= 0.65):
                             active_cap_y = 0.58
                         clip = self.caption_maker.add_captions(
                             clip, final_words, offset_time, layout=layout,
