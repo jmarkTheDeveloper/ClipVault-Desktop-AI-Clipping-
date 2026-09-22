@@ -35,6 +35,11 @@ import {
   Info,
   Radio,
   Terminal,
+  Maximize2,
+  Minimize2,
+  Flame,
+  Film,
+  Clock,
 } from "lucide-react";
 import { Logo } from "../components/Logo";
 
@@ -69,6 +74,67 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
   const [showScrollPrompt, setShowScrollPrompt] = useState<boolean>(false);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const documentPaneRef = useRef<HTMLDivElement>(null);
+
+  // 3-Second Hover Widescreen Expansion Animation State
+  const [hoveredCard, setHoveredCard] = useState<"opus" | "pro" | null>(null);
+  const [hoverProgress, setHoverProgress] = useState<number>(0);
+  const [expandedStudio, setExpandedStudio] = useState<"opus" | "pro" | null>(null);
+  const hoverStartTimeRef = useRef<number | null>(null);
+  const hoverAnimFrameRef = useRef<number | null>(null);
+
+  const startHoverCountdown = (card: "opus" | "pro") => {
+    if (expandedStudio === card) return;
+    setHoveredCard(card);
+    hoverStartTimeRef.current = Date.now();
+    setHoverProgress(0);
+
+    if (hoverAnimFrameRef.current) cancelAnimationFrame(hoverAnimFrameRef.current);
+
+    const checkHover = () => {
+      if (!hoverStartTimeRef.current) return;
+      const elapsed = Date.now() - hoverStartTimeRef.current;
+      const pct = Math.min(100, (elapsed / 3000) * 100);
+      setHoverProgress(pct);
+
+      if (elapsed >= 3000) {
+        setExpandedStudio(card);
+        setHoveredCard(null);
+        setHoverProgress(0);
+        hoverStartTimeRef.current = null;
+      } else {
+        hoverAnimFrameRef.current = requestAnimationFrame(checkHover);
+      }
+    };
+
+    hoverAnimFrameRef.current = requestAnimationFrame(checkHover);
+  };
+
+  const cancelHoverCountdown = () => {
+    setHoveredCard(null);
+    setHoverProgress(0);
+    hoverStartTimeRef.current = null;
+    if (hoverAnimFrameRef.current) {
+      cancelAnimationFrame(hoverAnimFrameRef.current);
+      hoverAnimFrameRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setExpandedStudio(null);
+        cancelHoverCountdown();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (hoverAnimFrameRef.current) cancelAnimationFrame(hoverAnimFrameRef.current);
+    };
+  }, []);
 
   // General Preferences State
   const [defaultRes, setDefaultRes] = useState(() => localStorage.getItem("clipvault_def_res") || "1080p");
@@ -155,6 +221,10 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
         @keyframes wfBouncePrompt {
           0%, 100% { transform: translateY(0); }
           50%       { transform: translateY(6px); }
+        }
+        @keyframes expandIn {
+          from { opacity: 0; transform: translateY(-8px) scaleY(0.95); }
+          to   { opacity: 1; transform: translateY(0) scaleY(1); }
         }
       `}</style>
 
@@ -257,29 +327,72 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
               id="tour-step-1-clipper-card"
               style={{
                 position: "relative", overflow: "hidden",
-                background: "linear-gradient(160deg, rgba(255,255,255,0.035) 0%, rgba(255,255,255,0.01) 100%)",
+                background: expandedStudio === "opus"
+                  ? "linear-gradient(160deg, rgba(0,230,118,0.07) 0%, rgba(0,230,118,0.02) 100%)"
+                  : "linear-gradient(160deg, rgba(255,255,255,0.035) 0%, rgba(255,255,255,0.01) 100%)",
                 borderRadius: 22, padding: "30px 28px",
-                border: "1px solid rgba(0,230,118,0.22)",
+                border: expandedStudio === "opus"
+                  ? "1px solid rgba(0,230,118,0.45)"
+                  : hoveredCard === "opus"
+                    ? "1px solid rgba(0,230,118,0.35)"
+                    : "1px solid rgba(0,230,118,0.22)",
                 display: "flex", flexDirection: "column", justifyContent: "space-between",
-                boxShadow: "0 20px 60px rgba(0,0,0,0.5), 0 0 35px rgba(0,230,118,0.06)",
-                transition: "all 0.25s ease",
+                boxShadow: expandedStudio === "opus"
+                  ? "0 25px 80px rgba(0,0,0,0.65), 0 0 60px rgba(0,230,118,0.18)"
+                  : "0 20px 60px rgba(0,0,0,0.5), 0 0 35px rgba(0,230,118,0.06)",
+                transition: "all 0.3s ease",
+                transform: hoveredCard === "opus" ? "translateY(-2px)" : "none",
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = "rgba(0,230,118,0.45)";
-                e.currentTarget.style.transform = "translateY(-2px)";
-                e.currentTarget.style.boxShadow = "0 25px 70px rgba(0,0,0,0.6), 0 0 45px rgba(0,230,118,0.12)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = "rgba(0,230,118,0.22)";
-                e.currentTarget.style.transform = "none";
-                e.currentTarget.style.boxShadow = "0 20px 60px rgba(0,0,0,0.5), 0 0 35px rgba(0,230,118,0.06)";
-              }}
+              onMouseEnter={() => startHoverCountdown("opus")}
+              onMouseLeave={() => cancelHoverCountdown()}
             >
               {/* Top ambient highlight line */}
               <div style={{
                 position: "absolute", top: 0, left: 0, right: 0, height: 1, pointerEvents: "none",
                 background: "linear-gradient(90deg, transparent, rgba(0,230,118,0.6), transparent)",
               }} />
+
+              {/* Hover progress beam (3-second countdown) */}
+              {hoveredCard === "opus" && (
+                <div style={{
+                  position: "absolute", bottom: 0, left: 0, height: 2, pointerEvents: "none",
+                  width: `${hoverProgress}%`,
+                  background: `linear-gradient(90deg, rgba(0,230,118,0.4), ${G}, rgba(0,230,118,0.8))`,
+                  boxShadow: `0 0 8px ${G}`,
+                  transition: "width 0.05s linear",
+                  borderRadius: "0 2px 0 0",
+                }} />
+              )}
+              {hoveredCard === "opus" && (
+                <div style={{
+                  position: "absolute", bottom: 4, right: 12, pointerEvents: "none",
+                  fontSize: 9.5, fontFamily: "'Geist Mono', monospace", color: G, fontWeight: 700, opacity: 0.7,
+                  display: "flex", alignItems: "center", gap: 4,
+                }}>
+                  <Clock style={{ width: 9, height: 9 }} />
+                  Hold to expand…
+                </div>
+              )}
+
+              {/* Instant expand button (top-right corner) */}
+              <button
+                type="button"
+                onClick={() => setExpandedStudio(expandedStudio === "opus" ? null : "opus")}
+                style={{
+                  position: "absolute", top: 12, right: 12,
+                  display: "flex", alignItems: "center", gap: 5,
+                  padding: "4px 9px", borderRadius: 6, border: "1px solid rgba(0,230,118,0.25)",
+                  background: expandedStudio === "opus" ? "rgba(0,230,118,0.15)" : "rgba(0,0,0,0.35)",
+                  color: expandedStudio === "opus" ? G : "rgba(255,255,255,0.5)",
+                  fontSize: 10, cursor: "pointer", backdropFilter: "blur(4px)",
+                  transition: "all 0.2s",
+                }}
+              >
+                {expandedStudio === "opus"
+                  ? <><Minimize2 style={{ width: 10, height: 10 }} /><span>Collapse</span></>
+                  : <><Maximize2 style={{ width: 10, height: 10 }} /><span>Expand</span></>
+                }
+              </button>
 
               <div>
                 {/* Header row */}
@@ -340,6 +453,43 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
                     </div>
                   ))}
                 </div>
+
+                {/* Expanded widescreen showcase */}
+                {expandedStudio === "opus" && (
+                  <div style={{
+                    marginBottom: 20, padding: 18, borderRadius: 14,
+                    background: "rgba(0,230,118,0.04)", border: "1px solid rgba(0,230,118,0.15)",
+                    display: "flex", flexDirection: "column", gap: 14,
+                    animation: "expandIn 0.35s cubic-bezier(0.23, 1, 0.32, 1)",
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                      <Film style={{ width: 14, height: 14, color: G }} />
+                      <span style={{ fontSize: 12, fontWeight: 800, color: G, letterSpacing: "0.06em", textTransform: "uppercase" }}>How It Works</span>
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+                      {[
+                        { step: "01", title: "Drop Video", desc: "Import any long-form podcast, lecture, or stream" },
+                        { step: "02", title: "AI Scans", desc: "Gemini Flash detects viral hooks, emotion peaks & quotable moments" },
+                        { step: "03", title: "Clips Export", desc: "9:16 shorts with captions, face-track & custom branding — ready to post" },
+                      ].map(({ step, title, desc }) => (
+                        <div key={step} style={{ padding: 12, borderRadius: 10, background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                          <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: 10, color: G, marginBottom: 4 }}>{step}</div>
+                          <div style={{ fontWeight: 700, fontSize: 12.5, color: "#fff", marginBottom: 3 }}>{title}</div>
+                          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", lineHeight: 1.4 }}>{desc}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      {["Zero Manual Editing", "Face Auto-Track", "Word-by-Word Captions", "Multi-Platform Export", "Gemini AI Powered"].map((tag) => (
+                        <span key={tag} style={{
+                          padding: "3px 10px", borderRadius: 999,
+                          background: "rgba(0,230,118,0.08)", border: "1px solid rgba(0,230,118,0.2)",
+                          fontSize: 10.5, color: G, fontWeight: 600,
+                        }}>{tag}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Action Button */}
@@ -383,33 +533,76 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
               </button>
             </div>
 
+
             {/* CARD 2: Pro Manual Studio (Senior High-Contrast Precision Secondary) */}
             <div
               style={{
                 position: "relative", overflow: "hidden",
-                background: "linear-gradient(160deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.008) 100%)",
+                background: expandedStudio === "pro"
+                  ? "linear-gradient(160deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)"
+                  : "linear-gradient(160deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.008) 100%)",
                 borderRadius: 22, padding: "30px 28px",
-                border: "1px solid rgba(255,255,255,0.09)",
+                border: expandedStudio === "pro"
+                  ? "1px solid rgba(0,230,118,0.35)"
+                  : hoveredCard === "pro"
+                    ? "1px solid rgba(255,255,255,0.18)"
+                    : "1px solid rgba(255,255,255,0.09)",
                 display: "flex", flexDirection: "column", justifyContent: "space-between",
-                boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
-                transition: "all 0.25s ease",
+                boxShadow: expandedStudio === "pro"
+                  ? "0 25px 80px rgba(0,0,0,0.65), 0 0 40px rgba(0,230,118,0.1)"
+                  : "0 20px 60px rgba(0,0,0,0.5)",
+                transition: "all 0.3s ease",
+                transform: hoveredCard === "pro" ? "translateY(-2px)" : "none",
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = "rgba(0,230,118,0.35)";
-                e.currentTarget.style.transform = "translateY(-2px)";
-                e.currentTarget.style.boxShadow = "0 25px 70px rgba(0,0,0,0.6), 0 0 35px rgba(0,230,118,0.06)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = "rgba(255,255,255,0.09)";
-                e.currentTarget.style.transform = "none";
-                e.currentTarget.style.boxShadow = "0 20px 60px rgba(0,0,0,0.5)";
-              }}
+              onMouseEnter={() => startHoverCountdown("pro")}
+              onMouseLeave={() => cancelHoverCountdown()}
             >
               {/* Top ambient subtle highlight line */}
               <div style={{
                 position: "absolute", top: 0, left: 0, right: 0, height: 1, pointerEvents: "none",
                 background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent)",
               }} />
+
+              {/* Hover progress beam (3-second countdown) */}
+              {hoveredCard === "pro" && (
+                <div style={{
+                  position: "absolute", bottom: 0, left: 0, height: 2, pointerEvents: "none",
+                  width: `${hoverProgress}%`,
+                  background: "linear-gradient(90deg, rgba(255,255,255,0.2), rgba(255,255,255,0.6), rgba(255,255,255,0.3))",
+                  transition: "width 0.05s linear",
+                  borderRadius: "0 2px 0 0",
+                }} />
+              )}
+              {hoveredCard === "pro" && (
+                <div style={{
+                  position: "absolute", bottom: 4, right: 12, pointerEvents: "none",
+                  fontSize: 9.5, fontFamily: "'Geist Mono', monospace", color: "rgba(255,255,255,0.5)", fontWeight: 700,
+                  display: "flex", alignItems: "center", gap: 4,
+                }}>
+                  <Clock style={{ width: 9, height: 9 }} />
+                  Hold to expand…
+                </div>
+              )}
+
+              {/* Instant expand button (top-right corner) */}
+              <button
+                type="button"
+                onClick={() => setExpandedStudio(expandedStudio === "pro" ? null : "pro")}
+                style={{
+                  position: "absolute", top: 12, right: 12,
+                  display: "flex", alignItems: "center", gap: 5,
+                  padding: "4px 9px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.12)",
+                  background: expandedStudio === "pro" ? "rgba(0,230,118,0.1)" : "rgba(0,0,0,0.35)",
+                  color: expandedStudio === "pro" ? G : "rgba(255,255,255,0.5)",
+                  fontSize: 10, cursor: "pointer", backdropFilter: "blur(4px)",
+                  transition: "all 0.2s",
+                }}
+              >
+                {expandedStudio === "pro"
+                  ? <><Minimize2 style={{ width: 10, height: 10 }} /><span>Collapse</span></>
+                  : <><Maximize2 style={{ width: 10, height: 10 }} /><span>Expand</span></>
+                }
+              </button>
 
               <div>
                 {/* Header row */}
@@ -470,6 +663,43 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
                     </div>
                   ))}
                 </div>
+
+                {/* Expanded widescreen showcase */}
+                {expandedStudio === "pro" && (
+                  <div style={{
+                    marginBottom: 20, padding: 18, borderRadius: 14,
+                    background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.08)",
+                    display: "flex", flexDirection: "column", gap: 14,
+                    animation: "expandIn 0.35s cubic-bezier(0.23, 1, 0.32, 1)",
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                      <Flame style={{ width: 14, height: 14, color: G }} />
+                      <span style={{ fontSize: 12, fontWeight: 800, color: "rgba(255,255,255,0.9)", letterSpacing: "0.06em", textTransform: "uppercase" }}>Pro Workflow</span>
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+                      {[
+                        { step: "01", title: "Pick Segments", desc: "Drag & select precise in/out points on a frame-accurate visual timeline" },
+                        { step: "02", title: "Style & Caption", desc: "Apply 12 animated subtitle presets, custom branding & transitions" },
+                        { step: "03", title: "Batch Export", desc: "Export multiple clips simultaneously in 9:16, 16:9, or 1:1 formats" },
+                      ].map(({ step, title, desc }) => (
+                        <div key={step} style={{ padding: 12, borderRadius: 10, background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                          <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: 10, color: "rgba(255,255,255,0.4)", marginBottom: 4 }}>{step}</div>
+                          <div style={{ fontWeight: 700, fontSize: 12.5, color: "#fff", marginBottom: 3 }}>{title}</div>
+                          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", lineHeight: 1.4 }}>{desc}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      {["Frame-Accurate Cuts", "12 Caption Styles", "Multi-Clip Batch", "Timeline Editor", "Dual Speaker Track"].map((tag) => (
+                        <span key={tag} style={{
+                          padding: "3px 10px", borderRadius: 999,
+                          background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)",
+                          fontSize: 10.5, color: "rgba(255,255,255,0.7)", fontWeight: 600,
+                        }}>{tag}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Action Button: High-End Senior Secondary Ghost/Elevated Studio Button */}
@@ -510,6 +740,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
                   <span>Open Pro Studio</span>
                 </div>
                 <div style={{
+
                   width: 24, height: 24, borderRadius: "50%",
                   display: "flex", alignItems: "center", justifyContent: "center",
                   background: "rgba(255,255,255,0.08)"
@@ -967,6 +1198,11 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
                         { id: "eula", label: "01. EULA (Master License)", icon: Scale },
                         { id: "terms", label: "02. Terms & Conditions", icon: FileText },
                         { id: "privacy", label: "03. Privacy Policy (Zero-Data)", icon: ShieldCheck },
+                        { id: "platform", label: "04. Platform Usage Policy", icon: Globe },
+                        { id: "ai-ethics", label: "05. AI & Content Ethics", icon: Bot },
+                        { id: "hardware", label: "06. Hardware & System Policy", icon: HardDrive },
+                        { id: "trademark", label: "07. Trademark & Branding", icon: Shield },
+                        { id: "liability", label: "08. Limitation of Liability", icon: AlertTriangle },
                       ].map((item) => {
                         const IconComponent = item.icon;
                         const isActive = settingsTab === item.id;
@@ -1528,7 +1764,162 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
                     )}
 
                     {/* TAB: About ClipVault Studio & Student Developer Manifesto */}
+
+                    {/* TAB: Platform Usage Policy */}
+                    {settingsTab === "platform" && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid rgba(255,255,255,0.08)", paddingBottom: 14 }}>
+                          <div>
+                            <h3 style={{ fontSize: 18, fontWeight: 800, color: "#fff", margin: "0 0 4px", fontFamily: "'Space Grotesk', 'Geist', sans-serif" }}>
+                              Platform Usage Policy
+                            </h3>
+                            <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)" }}>
+                              Governs permissible platform targets, distribution channels, and regional compliance obligations.
+                            </div>
+                          </div>
+                          <button type="button" onClick={() => copyToClipboard("CLIPVAULT PLATFORM USAGE POLICY\n\n1. Approved Platforms: ClipVault outputs are approved for publication on YouTube, TikTok, Instagram Reels, Facebook Reels, LinkedIn Video, Twitter/X, Snapchat Spotlight, Pinterest Idea Pins, and client video deliverables.\n\n2. Regional Compliance: You are responsible for complying with regional platform rules for your jurisdiction.\n\n3. Prohibited Distribution Channels: ClipVault outputs may not be used to create deepfakes, non-consensual intimate imagery, or content violating COPPA, GDPR Articles 5–9, or local broadcasting law.\n\n4. Content ID & Copyright: ClipVault does not circumvent or disable platform Content ID systems. Users must ensure ingested third-party footage is lawfully licensed.", "platform")} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 6, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: 11.5, cursor: "pointer" }}>
+                            {copiedText === "platform" ? <CheckCheck style={{ width: 13, height: 13, color: G }} /> : <Copy style={{ width: 13, height: 13 }} />}
+                            <span>{copiedText === "platform" ? "Copied" : "Copy Policy"}</span>
+                          </button>
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                          <div><strong>1. Approved Platforms:</strong> ClipVault outputs are approved for publication on YouTube, TikTok, Instagram Reels, Facebook Reels, LinkedIn Video, Twitter/X, Snapchat Spotlight, Pinterest Idea Pins, and commercial client video deliverables.</div>
+                          <div><strong>2. Regional Compliance:</strong> You are solely responsible for complying with platform-specific rules, regional broadcasting laws, and local content regulations applicable to your jurisdiction.</div>
+                          <div><strong>3. Prohibited Channels:</strong> ClipVault outputs may not be used to produce deepfakes, NCII (non-consensual intimate imagery), political disinformation, or content violating COPPA, GDPR Articles 5–9, or applicable local law.</div>
+                          <div><strong>4. Content ID & Copyright:</strong> ClipVault does not circumvent or disable platform Content ID systems. Users must ensure all ingested third-party footage is lawfully licensed or falls within fair use (17 U.S.C. § 107).</div>
+                          <div><strong>5. Commercial Client Work:</strong> Producing clips for paying clients is permitted under the standard commercial license. Agency-scale redistribution requires a multi-seat enterprise agreement.</div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* TAB: AI & Content Ethics */}
+                    {settingsTab === "ai-ethics" && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid rgba(255,255,255,0.08)", paddingBottom: 14 }}>
+                          <div>
+                            <h3 style={{ fontSize: 18, fontWeight: 800, color: "#fff", margin: "0 0 4px", fontFamily: "'Space Grotesk', 'Geist', sans-serif" }}>
+                              AI & Content Ethics Policy
+                            </h3>
+                            <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)" }}>
+                              Responsible AI use, model data handling, and ethical content generation standards.
+                            </div>
+                          </div>
+                          <button type="button" onClick={() => copyToClipboard("CLIPVAULT AI & CONTENT ETHICS POLICY\n\n1. On-Device AI: All local AI models (Whisper, YOLO, segmentation) execute fully on your hardware. No video is transmitted to any AI cloud without your explicit BYOK configuration.\n\n2. BYOK Cloud AI: When you configure a personal API key, your audio transcripts and prompt data are sent to the respective AI provider (Google, OpenAI, Groq) under their terms.\n\n3. No Synthetic Persons: ClipVault must not be used to generate synthetic identity videos of real individuals without documented consent.\n\n4. Bias Disclosure: AI-generated clip recommendations reflect statistical patterns in training data and should be reviewed by a human editor before publication.", "ai-ethics")} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 6, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: 11.5, cursor: "pointer" }}>
+                            {copiedText === "ai-ethics" ? <CheckCheck style={{ width: 13, height: 13, color: G }} /> : <Copy style={{ width: 13, height: 13 }} />}
+                            <span>{copiedText === "ai-ethics" ? "Copied" : "Copy Policy"}</span>
+                          </button>
+                        </div>
+                        <div style={{ padding: 14, borderRadius: 10, background: "rgba(0,230,118,0.04)", border: "1px solid rgba(0,230,118,0.2)" }}>
+                          <div style={{ fontWeight: 700, color: "#fff", fontSize: 12.5, marginBottom: 4 }}>Responsible AI Commitment</div>
+                          <p style={{ margin: 0, fontSize: 11.5, color: "rgba(255,255,255,0.7)", lineHeight: 1.5 }}>ClipVault is engineered to keep all AI processing local by default. Cloud AI is only invoked when you explicitly configure your own API key (BYOK), and your data is transmitted directly from your device to the official endpoint — never through a ClipVault proxy.</p>
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                          <div><strong>1. On-Device Models:</strong> Whisper speech-to-text, YOLO face detection, and video segmentation models run 100% locally on your CPU/GPU. Zero video data is transmitted externally during local processing.</div>
+                          <div><strong>2. BYOK Cloud AI:</strong> When you provide a personal API key, audio transcripts and prompt payloads travel from your IP directly to Google, OpenAI, or Groq under their respective terms of service.</div>
+                          <div><strong>3. Synthetic Identity Prohibition:</strong> ClipVault may not be used to create AI-generated videos impersonating real persons, creating synthetic personas for fraud, or generating non-consensual synthetic media.</div>
+                          <div><strong>4. AI Bias Disclaimer:</strong> Automated clip scoring reflects statistical patterns. Human review is recommended before final publication of any AI-selected clip.</div>
+                          <div><strong>5. Model Attribution:</strong> ClipVault uses open-source models (Whisper by OpenAI, YOLO by Ultralytics). Their respective licenses are available in the project repository.</div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* TAB: Hardware & System Policy */}
+                    {settingsTab === "hardware" && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid rgba(255,255,255,0.08)", paddingBottom: 14 }}>
+                          <div>
+                            <h3 style={{ fontSize: 18, fontWeight: 800, color: "#fff", margin: "0 0 4px", fontFamily: "'Space Grotesk', 'Geist', sans-serif" }}>
+                              Hardware & System Policy
+                            </h3>
+                            <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)" }}>
+                              Minimum requirements, GPU acceleration terms, and hardware liability limitations.
+                            </div>
+                          </div>
+                          <button type="button" onClick={() => copyToClipboard("CLIPVAULT HARDWARE & SYSTEM POLICY\n\n1. Minimum Requirements: Windows 10/11 (64-bit), 8GB RAM, 4-core CPU, 4GB disk space.\n\n2. Recommended Specs: 16GB+ RAM, NVIDIA RTX GPU with CUDA 11.8+, 50GB SSD.\n\n3. GPU Acceleration: CUDA and DirectML hardware acceleration are used when available. ClipVault is not liable for hardware degradation from intensive workloads.\n\n4. Driver Compatibility: ClipVault requires up-to-date GPU drivers. Outdated or beta drivers may cause instability.\n\n5. Hardware Liability: ClipVault Studio LLC bears no responsibility for hardware failures, thermal damage, or data loss resulting from use of this software.", "hardware")} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 6, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: 11.5, cursor: "pointer" }}>
+                            {copiedText === "hardware" ? <CheckCheck style={{ width: 13, height: 13, color: G }} /> : <Copy style={{ width: 13, height: 13 }} />}
+                            <span>{copiedText === "hardware" ? "Copied" : "Copy Policy"}</span>
+                          </button>
+                        </div>
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
+                          <div style={{ padding: 14, borderRadius: 10, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                            <div style={{ fontWeight: 700, color: "rgba(255,255,255,0.6)", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Minimum Requirements</div>
+                            {["Windows 10/11 (64-bit)", "8 GB RAM", "4-core CPU (2.0 GHz+)", "4 GB Free Disk Space", "Python 3.10+ runtime"].map(r => <div key={r} style={{ fontSize: 11.5, color: "rgba(255,255,255,0.65)", marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}><Check style={{ width: 10, height: 10, color: G, flexShrink: 0 }} />{r}</div>)}
+                          </div>
+                          <div style={{ padding: 14, borderRadius: 10, background: "rgba(0,230,118,0.04)", border: "1px solid rgba(0,230,118,0.15)" }}>
+                            <div style={{ fontWeight: 700, color: G, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Recommended Specs</div>
+                            {["Windows 11 (latest)", "16 GB+ RAM", "NVIDIA RTX GPU (CUDA 11.8+)", "50 GB NVMe SSD", "8-core CPU"].map(r => <div key={r} style={{ fontSize: 11.5, color: "rgba(255,255,255,0.65)", marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}><Check style={{ width: 10, height: 10, color: G, flexShrink: 0 }} />{r}</div>)}
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                          <div><strong>3. GPU Acceleration:</strong> CUDA and DirectML hardware acceleration are used when available. The software gracefully falls back to CPU when no compatible GPU is detected.</div>
+                          <div><strong>4. Driver Compatibility:</strong> ClipVault requires up-to-date GPU drivers from NVIDIA, AMD, or Intel. ClipVault Studio LLC is not responsible for instability caused by beta, outdated, or third-party drivers.</div>
+                          <div><strong>5. Hardware Liability:</strong> ClipVault Studio LLC bears no responsibility for hardware failures, thermal damage, or data loss resulting from normal or intensive use of this software.</div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* TAB: Trademark & Branding */}
+                    {settingsTab === "trademark" && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid rgba(255,255,255,0.08)", paddingBottom: 14 }}>
+                          <div>
+                            <h3 style={{ fontSize: 18, fontWeight: 800, color: "#fff", margin: "0 0 4px", fontFamily: "'Space Grotesk', 'Geist', sans-serif" }}>
+                              Trademark & Branding Policy
+                            </h3>
+                            <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)" }}>
+                              Rules for using the ClipVault name, logo, and visual identity in third-party contexts.
+                            </div>
+                          </div>
+                          <button type="button" onClick={() => copyToClipboard("CLIPVAULT TRADEMARK & BRANDING POLICY\n\n\"ClipVault\", the ClipVault logo, and \"ClipVault Studio\" are proprietary trademarks of ClipVault Studio LLC.\n\nPermitted Uses: Editorial references in reviews, blog posts, or tutorials with clear attribution.\n\nProhibited Uses: Using ClipVault branding to create competing products, forks, or derivative services. Using the name or logo on merchandise, services, or media without explicit written permission.\n\nCommunity Portals: Approved fan content, tutorials, and community forums may display the ClipVault name in non-commercial educational contexts with a visible attribution.", "trademark")} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 6, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: 11.5, cursor: "pointer" }}>
+                            {copiedText === "trademark" ? <CheckCheck style={{ width: 13, height: 13, color: G }} /> : <Copy style={{ width: 13, height: 13 }} />}
+                            <span>{copiedText === "trademark" ? "Copied" : "Copy Policy"}</span>
+                          </button>
+                        </div>
+                        <div style={{ padding: 16, background: "rgba(255,255,255,0.02)", borderLeft: `3px solid ${G}`, borderRadius: "0 10px 10px 0" }}>
+                          <p style={{ margin: 0, fontSize: 12.5, color: "rgba(255,255,255,0.8)", lineHeight: 1.6 }}>"ClipVault", the ClipVault logo mark, and "ClipVault Studio" are proprietary trademarks of <strong>ClipVault Studio LLC</strong>. Unauthorized use in competing products or commercial services is strictly prohibited.</p>
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                          <div><strong>Permitted Uses:</strong> Editorial references in reviews, written tutorials, or community blog posts with clear attribution ("Powered by ClipVault" or "Made with ClipVault") are allowed.</div>
+                          <div><strong>Prohibited Uses:</strong> Using ClipVault branding to create competing products, unauthorized forks, or derivative SaaS services. Using the name or logo on merchandise, services, or commercial media without explicit written permission from ClipVault Studio LLC.</div>
+                          <div><strong>Community Content:</strong> Approved fan tutorials, YouTube reviews, and community forums may display the ClipVault name in non-commercial, educational contexts with visible attribution.</div>
+                          <div><strong>Reporting Misuse:</strong> If you encounter unauthorized use of ClipVault trademarks, report it to <a href="mailto:clipvault-support@gmail.com" style={{ color: G }}>clipvault-support@gmail.com</a>.</div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* TAB: Limitation of Liability */}
+                    {settingsTab === "liability" && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid rgba(255,255,255,0.08)", paddingBottom: 14 }}>
+                          <div>
+                            <h3 style={{ fontSize: 18, fontWeight: 800, color: "#fff", margin: "0 0 4px", fontFamily: "'Space Grotesk', 'Geist', sans-serif" }}>
+                              Limitation of Liability
+                            </h3>
+                            <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)" }}>
+                              Maximum liability caps, indemnification terms, and dispute resolution procedures.
+                            </div>
+                          </div>
+                          <button type="button" onClick={() => copyToClipboard('CLIPVAULT LIMITATION OF LIABILITY\n\nTO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, CLIPVAULT STUDIO LLC SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, PUNITIVE, OR EXEMPLARY DAMAGES.\n\nIN NO EVENT SHALL THE TOTAL LIABILITY OF CLIPVAULT STUDIO LLC EXCEED THE AMOUNT PAID BY YOU FOR THE SOFTWARE IN THE TWELVE (12) MONTHS PRECEDING THE CLAIM.\n\nIndemnification: You agree to indemnify and hold harmless ClipVault Studio LLC, its officers, employees, and agents from any claims, damages, or expenses arising from your violation of these Terms.\n\nDispute Resolution: Any dispute shall be resolved by binding arbitration under the rules of the American Arbitration Association (AAA), conducted in the State of [Your State].', "liability")} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 6, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: 11.5, cursor: "pointer" }}>
+                            {copiedText === "liability" ? <CheckCheck style={{ width: 13, height: 13, color: G }} /> : <Copy style={{ width: 13, height: 13 }} />}
+                            <span>{copiedText === "liability" ? "Copied" : "Copy Policy"}</span>
+                          </button>
+                        </div>
+                        <div style={{ padding: 16, borderRadius: 10, background: "rgba(255,102,122,0.04)", border: "1px solid rgba(255,102,122,0.2)" }}>
+                          <div style={{ fontWeight: 800, color: "#ff8595", fontSize: 12.5, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>⚠ Important Legal Notice</div>
+                          <p style={{ margin: 0, fontSize: 11.5, color: "rgba(255,255,255,0.7)", lineHeight: 1.5 }}>TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, CLIPVAULT STUDIO LLC SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, PUNITIVE, OR EXEMPLARY DAMAGES, INCLUDING LOSS OF PROFITS, DATA, GOODWILL, OR OTHER INTANGIBLE LOSSES.</p>
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                          <div><strong>1. Liability Cap:</strong> In no event shall the total cumulative liability of ClipVault Studio LLC exceed the amount paid by you for the software in the twelve (12) months preceding the claim.</div>
+                          <div><strong>2. No Consequential Damages:</strong> ClipVault Studio LLC is not liable for lost profits, lost data, business interruption, or reputational harm arising from use or inability to use the software.</div>
+                          <div><strong>3. Indemnification:</strong> You agree to indemnify, defend, and hold harmless ClipVault Studio LLC, its officers, employees, and agents from any third-party claims, damages, or legal expenses arising from your violation of these Terms.</div>
+                          <div><strong>4. Dispute Resolution:</strong> Any dispute arising from this Agreement shall be resolved through binding arbitration under the rules of the American Arbitration Association (AAA). Class action waivers apply.</div>
+                          <div><strong>5. Governing Law:</strong> This Agreement is governed by the laws of the jurisdiction in which ClipVault Studio LLC is incorporated, without regard to conflict-of-law principles.</div>
+                        </div>
+                      </div>
+                    )}
+
                     {settingsTab === "about" && (
+
                       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
                         <div style={{ borderBottom: "1px solid rgba(255,255,255,0.08)", paddingBottom: 14 }}>
                           <h3 style={{ fontSize: 18, fontWeight: 800, color: "#fff", margin: "0 0 4px", fontFamily: "'Space Grotesk', 'Geist', sans-serif" }}>

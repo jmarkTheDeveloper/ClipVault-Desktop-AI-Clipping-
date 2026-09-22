@@ -207,8 +207,9 @@ function createWindow() {
     },
     titleBarStyle: 'hidden',
     titleBarOverlay: {
-      color: '#050505',
-      symbolColor: '#f8fafc',
+      color: '#080c14',
+      symbolColor: '#aab4c8',
+      height: 48,
     }
   });
 
