@@ -9,6 +9,7 @@ import { LyricCreatorScreen } from "./screens/LyricCreatorScreen";
 import { AiChatVideoScreen } from "./screens/AiChatVideoScreen";
 import { OpusClipperScreen } from "./screens/OpusClipperScreen";
 import { InteractiveTour, FirstTimeWelcomeModal } from "./components/InteractiveTour";
+import { AlertTriangle, Check, X } from "lucide-react";
 
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; error: any }> {
   constructor(props: any) {
@@ -25,8 +26,8 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
     if (this.state.hasError) {
       return (
         <div className="h-screen w-screen flex flex-col items-center justify-center bg-[#050505] text-white p-6 space-y-4">
-          <div className="w-12 h-12 rounded-2xl bg-amber-400/10 border border-amber-400/30 flex items-center justify-center text-amber-400 font-bold text-xl">
-            ⚠️
+          <div className="w-12 h-12 rounded-2xl bg-amber-400/10 border border-amber-400/30 flex items-center justify-center text-amber-400">
+            <AlertTriangle className="w-6 h-6" />
           </div>
           <h2 className="text-lg font-bold text-white">ClipVault Studio Recovered</h2>
           <p className="text-xs text-gray-400 max-w-md text-center">
@@ -452,8 +453,8 @@ export default function App() {
             }}
             className="fixed top-6 right-6 z-[9999] bg-[#0d1f14]/95 border border-[#00e676] shadow-[0_12px_36px_rgba(0,0,0,0.9),0_0_30px_rgba(0,230,118,0.4)] rounded-2xl p-4 flex items-center gap-3 cursor-pointer hover:scale-[1.02] transition-all backdrop-blur-xl animate-in fade-in slide-in-from-top-4 duration-300"
           >
-            <div className="w-10 h-10 rounded-xl bg-[#00e676] text-black font-extrabold flex items-center justify-center text-lg shadow-lg">
-              ✓
+            <div className="w-10 h-10 rounded-xl bg-[#00e676] text-black font-extrabold flex items-center justify-center shadow-lg">
+              <Check className="w-5 h-5 stroke-[2.5]" />
             </div>
             <div>
               <div className="text-xs font-bold text-white flex items-center gap-1.5">
@@ -468,9 +469,9 @@ export default function App() {
                 e.stopPropagation();
                 setShowDoneToast(false);
               }}
-              className="ml-2 text-gray-400 hover:text-white text-xs px-1.5 py-1"
+              className="ml-2 text-gray-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
             >
-              ✕
+              <X className="w-3.5 h-3.5" />
             </button>
           </div>
         )}

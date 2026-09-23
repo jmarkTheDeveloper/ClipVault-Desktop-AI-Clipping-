@@ -151,6 +151,18 @@ ipcMain.handle('get-auth-token', (event) => {
     return false;
   });
 
+  ipcMain.handle('set-title-bar-overlay', async (event, options) => {
+    try {
+      if (mainWindow && !mainWindow.isDestroyed() && typeof mainWindow.setTitleBarOverlay === 'function') {
+        mainWindow.setTitleBarOverlay(options);
+        return true;
+      }
+    } catch (err) {
+      console.error('[Electron]: setTitleBarOverlay error:', err);
+    }
+    return false;
+  });
+
   ipcMain.on('start-drag', (event, filePath) => {
     try {
       if (filePath) {

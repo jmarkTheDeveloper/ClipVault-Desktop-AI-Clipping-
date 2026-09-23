@@ -236,6 +236,19 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
     }
   };
 
+  useEffect(() => {
+    try {
+      const win = window as any;
+      if (win.electronAPI?.setTitleBarOverlay) {
+        win.electronAPI.setTitleBarOverlay({
+          color: '#0e121a',
+          symbolColor: '#e2e8f0',
+          height: 48,
+        });
+      }
+    } catch {}
+  }, []);
+
   return (
     <div style={{ height: "100vh", width: "100vw", display: "flex", flexDirection: "column", overflow: "hidden", background: "#000000", fontFamily: "'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
       <style>{`
@@ -269,7 +282,8 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
         display: "flex", alignItems: "center", justifyContent: "space-between",
         padding: "0 140px 0 24px", background: "#0e121a",
         borderBottom: "1px solid rgba(255,255,255,0.08)",
-      }}>
+        WebkitAppRegion: "drag",
+      } as any}>
         {/* Brand */}
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <Logo size={22} />
@@ -2084,7 +2098,9 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
                           </button>
                         </div>
                         <div style={{ padding: 16, borderRadius: 10, background: "rgba(255,102,122,0.04)", border: "1px solid rgba(255,102,122,0.2)" }}>
-                          <div style={{ fontWeight: 800, color: "#ff8595", fontSize: 12.5, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>⚠ Important Legal Notice</div>
+                          <div style={{ fontWeight: 800, color: "#ff8595", fontSize: 12.5, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em", display: "flex", alignItems: "center", gap: 6 }}>
+                            <AlertTriangle style={{ width: 14, height: 14 }} /> Important Legal Notice
+                          </div>
                           <p style={{ margin: 0, fontSize: 11.5, color: "rgba(255,255,255,0.7)", lineHeight: 1.5 }}>TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, CLIPVAULT STUDIO LLC SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, PUNITIVE, OR EXEMPLARY DAMAGES, INCLUDING LOSS OF PROFITS, DATA, GOODWILL, OR OTHER INTANGIBLE LOSSES.</p>
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>

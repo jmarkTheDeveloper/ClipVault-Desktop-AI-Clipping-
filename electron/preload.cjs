@@ -33,6 +33,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   selectDirectory: (defaultPath) => ipcRenderer.invoke('select-directory', defaultPath),
   openPath: (folderPath) => ipcRenderer.invoke('open-path', folderPath),
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
+  setTitleBarOverlay: (options) => ipcRenderer.invoke('set-title-bar-overlay', options),
   showItemInFolder: (filePath) => ipcRenderer.invoke('show-item-in-folder', filePath),
   startDrag: (filePath) => ipcRenderer.send('start-drag', filePath),
   showNotification: (options) => ipcRenderer.invoke('show-notification', options),
