@@ -241,7 +241,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
       const win = window as any;
       if (win.electronAPI?.setTitleBarOverlay) {
         win.electronAPI.setTitleBarOverlay({
-          color: '#0e121a',
+          color: '#080c14',
           symbolColor: '#e2e8f0',
           height: 48,
         });
@@ -280,7 +280,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
       <header style={{
         height: 48, flexShrink: 0, zIndex: 30,
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "0 140px 0 24px", background: "#0e121a",
+        padding: "0 140px 0 24px", background: "#080c14",
         borderBottom: "1px solid rgba(255,255,255,0.08)",
         WebkitAppRegion: "drag",
       } as any}>
