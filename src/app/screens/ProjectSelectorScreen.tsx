@@ -239,8 +239,8 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
           to   { opacity: 1; transform: translateY(0) scaleY(1); }
         }
         @keyframes spotlightIn {
-          from { opacity: 0; transform: translateY(12px) scale(0.98); }
-          to   { opacity: 1; transform: translateY(0) scale(1); }
+          from { opacity: 0; transform: scale(0.94) translateY(10px); }
+          to   { opacity: 1; transform: scale(1) translateY(0); }
         }
       `}</style>
 
@@ -333,18 +333,11 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
             </p>
           </div>
 
-          {/* 2. Interactive Studio Section (Auto-collapses when cursor moves outside the studio section) */}
-          <div
-            style={{ width: "100%", position: "relative" }}
-            onMouseLeave={() => {
-              cancelHoverCountdown();
-              setExpandedStudio(null);
-            }}
-          >
-            <div style={{
-              display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-              gap: 24, width: "100%", marginBottom: 32,
-            }}>
+          {/* 2. Studio Cards: Balanced, High-Grade Enterprise Dual Structure */}
+          <div style={{
+            display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+            gap: 24, width: "100%", marginBottom: 32,
+          }}>
               {/* CARD 1: 1-Click Auto Clipper (Primary Hero Studio) */}
               <div
                 id="tour-step-1-clipper-card"
@@ -693,7 +686,6 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
                   <span>Open Pro Studio</span>
                 </div>
                 <div style={{
-
                   width: 24, height: 24, borderRadius: "50%",
                   display: "flex", alignItems: "center", justifyContent: "center",
                   background: "rgba(255,255,255,0.08)"
@@ -702,282 +694,6 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
                 </div>
               </button>
             </div>
-          </div>
-
-          {/* ── CENTERED WIDESCREEN SPOTLIGHT OVERLAY ── */}
-          {expandedStudio && (
-            <div style={{
-              width: "100%", marginBottom: 24, marginTop: 4,
-              animation: "spotlightIn 0.42s cubic-bezier(0.16, 1, 0.3, 1)",
-              position: "relative",
-            }}>
-              {/* Outer glow ring */}
-              <div style={{
-                position: "absolute", inset: -1, borderRadius: 24, pointerEvents: "none",
-                background: expandedStudio === "opus"
-                  ? "linear-gradient(135deg, rgba(0,230,118,0.25) 0%, rgba(0,230,118,0.05) 50%, transparent 100%)"
-                  : "linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.03) 50%, transparent 100%)",
-                filter: "blur(8px)",
-              }} />
-
-              <div style={{
-                position: "relative",
-                background: expandedStudio === "opus"
-                  ? "linear-gradient(135deg, rgba(0,12,6,0.97) 0%, rgba(4,20,12,0.97) 100%)"
-                  : "linear-gradient(135deg, rgba(8,10,16,0.97) 0%, rgba(10,12,20,0.97) 100%)",
-                borderRadius: 22,
-                border: expandedStudio === "opus"
-                  ? "1px solid rgba(0,230,118,0.3)"
-                  : "1px solid rgba(255,255,255,0.1)",
-                overflow: "hidden",
-                boxShadow: expandedStudio === "opus"
-                  ? "0 32px 80px rgba(0,0,0,0.7), 0 0 60px rgba(0,230,118,0.12)"
-                  : "0 32px 80px rgba(0,0,0,0.7)",
-              }}>
-                {/* Top edge accent line */}
-                <div style={{
-                  position: "absolute", top: 0, left: 0, right: 0, height: 2, pointerEvents: "none",
-                  background: expandedStudio === "opus"
-                    ? `linear-gradient(90deg, transparent 0%, ${G} 40%, rgba(0,230,118,0.3) 100%)`
-                    : "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.35) 40%, rgba(255,255,255,0.08) 100%)",
-                }} />
-
-                <div style={{ padding: "32px 36px" }}>
-                  {/* Header row */}
-                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 28 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
-                      {/* Studio icon */}
-                      <div style={{
-                        width: 56, height: 56, borderRadius: 18, flexShrink: 0,
-                        background: expandedStudio === "opus"
-                          ? "radial-gradient(circle, rgba(0,230,118,0.2) 0%, rgba(0,230,118,0.05) 100%)"
-                          : "linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%)",
-                        border: expandedStudio === "opus" ? "1px solid rgba(0,230,118,0.35)" : "1px solid rgba(255,255,255,0.14)",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        boxShadow: expandedStudio === "opus" ? "0 0 28px rgba(0,230,118,0.2)" : "0 4px 20px rgba(0,0,0,0.4)",
-                      }}>
-                        {expandedStudio === "opus"
-                          ? <Sparkles style={{ width: 24, height: 24, color: G }} />
-                          : <Layers style={{ width: 24, height: 24, color: "#fff" }} />
-                        }
-                      </div>
-                      <div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 5 }}>
-                          <span style={{
-                            fontFamily: "'Geist Mono', monospace", fontSize: 9.5, fontWeight: 700,
-                            padding: "3px 9px", borderRadius: 999, letterSpacing: "0.1em", textTransform: "uppercase",
-                            background: expandedStudio === "opus" ? "rgba(0,230,118,0.1)" : "rgba(255,255,255,0.06)",
-                            border: expandedStudio === "opus" ? "1px solid rgba(0,230,118,0.3)" : "1px solid rgba(255,255,255,0.1)",
-                            color: expandedStudio === "opus" ? G : "rgba(255,255,255,0.7)",
-                          }}>
-                            {expandedStudio === "opus" ? "Recommended" : "Precision Studio"}
-                          </span>
-                          <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 10, color: "rgba(255,255,255,0.2)", fontWeight: 700 }}>
-                            {expandedStudio === "opus" ? "STUDIO 01" : "STUDIO 02"}
-                          </span>
-                        </div>
-                        <h2 style={{
-                          fontFamily: "'Space Grotesk', 'Geist', sans-serif", fontWeight: 800, fontSize: 26,
-                          color: "#fff", letterSpacing: "-0.025em", margin: "0 0 4px",
-                        }}>
-                          {expandedStudio === "opus" ? "1-Click Auto Clipper" : "Pro Manual Studio"}
-                        </h2>
-                        <p style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", margin: 0, fontWeight: 450 }}>
-                          {expandedStudio === "opus"
-                            ? "Fully autonomous viral clip discovery — zero manual slicing required"
-                            : "Frame-accurate timeline editing with full creative control"}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Close button */}
-                    <button
-                      type="button"
-                      onClick={() => setExpandedStudio(null)}
-                      style={{
-                        display: "flex", alignItems: "center", gap: 6,
-                        padding: "7px 14px", borderRadius: 8, cursor: "pointer",
-                        background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
-                        color: "rgba(255,255,255,0.6)", fontSize: 11.5, fontWeight: 600, flexShrink: 0,
-                        transition: "all 0.2s",
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.1)"; e.currentTarget.style.color = "#fff"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "rgba(255,255,255,0.6)"; }}
-                    >
-                      <Minimize2 style={{ width: 12, height: 12 }} />
-                      <span>Collapse</span>
-                    </button>
-                  </div>
-
-                  {/* ── Content: Left column (features) + Right column (how it works) ── */}
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1.8fr", gap: 28, alignItems: "start" }}>
-
-                    {/* Left: Feature list */}
-                    <div>
-                      <div style={{
-                        fontSize: 9.5, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase",
-                        color: "rgba(255,255,255,0.3)", fontFamily: "'Geist Mono', monospace", marginBottom: 14,
-                      }}>
-                        {expandedStudio === "opus" ? "Auto Features" : "Studio Features"}
-                      </div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
-                        {(expandedStudio === "opus"
-                          ? [
-                              { label: "AI Virality Hook Discovery (0-100 pts)", detail: "Scores every moment for shareability" },
-                              { label: "Auto Speaker Tracking & 9:16 Centering", detail: "Face-lock keeps subjects perfectly framed" },
-                              { label: "Dynamic Word-by-Word Animated Subtitles", detail: "12 preset styles, karaoke-style reveal" },
-                              { label: "Zero Slicing Hassle: Instant 1-Click Export", detail: "Full pipeline runs end-to-end automatically" },
-                            ]
-                          : [
-                              { label: "Multi-Range Timeline Slicing & Waveforms", detail: "Precise audio-aligned cut points" },
-                              { label: "Dual-Layer Gameplay & B-Roll Split-Screen", detail: "Side-by-side or pip composite exports" },
-                              { label: "Custom Crop Bounding Boxes (9:16, 1:1, 16:9)", detail: "Per-clip aspect ratio targeting" },
-                              { label: "Custom Audio Tracks & Background Music", detail: "Mix voice, SFX, and licensed beats" },
-                            ]
-                        ).map(({ label, detail }) => (
-                          <div key={label} style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-                            <div style={{
-                              width: 20, height: 20, borderRadius: "50%", flexShrink: 0, marginTop: 1,
-                              display: "flex", alignItems: "center", justifyContent: "center",
-                              background: expandedStudio === "opus" ? "rgba(0,230,118,0.12)" : "rgba(255,255,255,0.06)",
-                              border: expandedStudio === "opus" ? "1px solid rgba(0,230,118,0.35)" : "1px solid rgba(255,255,255,0.12)",
-                            }}>
-                              <Check style={{ width: 11, height: 11, color: expandedStudio === "opus" ? G : "rgba(255,255,255,0.7)" }} />
-                            </div>
-                            <div>
-                              <div style={{ fontSize: 12.5, color: "#fff", fontWeight: 600, lineHeight: 1.3 }}>{label}</div>
-                              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>{detail}</div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Tags */}
-                      <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginTop: 20 }}>
-                        {(expandedStudio === "opus"
-                          ? ["Zero Manual Editing", "Face Auto-Track", "Gemini AI", "Karaoke Captions"]
-                          : ["Frame-Accurate Cuts", "12 Caption Styles", "Batch Export", "Dual Speaker"]
-                        ).map((tag) => (
-                          <span key={tag} style={{
-                            padding: "4px 12px", borderRadius: 999, fontSize: 10.5, fontWeight: 600,
-                            background: expandedStudio === "opus" ? "rgba(0,230,118,0.07)" : "rgba(255,255,255,0.04)",
-                            border: expandedStudio === "opus" ? "1px solid rgba(0,230,118,0.2)" : "1px solid rgba(255,255,255,0.09)",
-                            color: expandedStudio === "opus" ? G : "rgba(255,255,255,0.65)",
-                          }}>{tag}</span>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Right: How it works — horizontal step flow */}
-                    <div>
-                      <div style={{
-                        fontSize: 9.5, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase",
-                        color: "rgba(255,255,255,0.3)", fontFamily: "'Geist Mono', monospace", marginBottom: 14,
-                      }}>
-                        How It Works
-                      </div>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
-                        {(expandedStudio === "opus"
-                          ? [
-                              { step: "01", icon: Download, title: "Drop Your Video", desc: "Import any podcast, lecture, stream, or interview. Any format, any length." },
-                              { step: "02", icon: Bot, title: "AI Analyzes", desc: "Gemini Flash scans every second — scoring hooks, emotion peaks, and quotable moments." },
-                              { step: "03", icon: Film, title: "Clips Ready", desc: "9:16 shorts with animated captions, face-tracking, and branding auto-applied. Export in one click." },
-                            ]
-                          : [
-                              { step: "01", icon: Scissors, title: "Set In & Out Points", desc: "Drag precise markers on the visual waveform timeline with frame-level accuracy." },
-                              { step: "02", icon: Palette, title: "Style & Caption", desc: "Pick from 12 animated subtitle presets. Add B-roll, custom crops, or background music." },
-                              { step: "03", icon: Share2, title: "Batch Export", desc: "Export multiple clips simultaneously in any aspect ratio. Direct publish or local save." },
-                            ]
-                        ).map(({ step, icon: StepIcon, title, desc }, i) => (
-                          <div key={step} style={{
-                            padding: "20px 18px", borderRadius: 16, position: "relative",
-                            background: expandedStudio === "opus"
-                              ? "linear-gradient(160deg, rgba(0,230,118,0.05) 0%, rgba(0,0,0,0.35) 100%)"
-                              : "linear-gradient(160deg, rgba(255,255,255,0.04) 0%, rgba(0,0,0,0.35) 100%)",
-                            border: expandedStudio === "opus"
-                              ? "1px solid rgba(0,230,118,0.12)"
-                              : "1px solid rgba(255,255,255,0.07)",
-                          }}>
-                            {/* Step number bg watermark */}
-                            <div style={{
-                              position: "absolute", top: 14, right: 16,
-                              fontFamily: "'Geist Mono', monospace", fontSize: 36, fontWeight: 800,
-                              color: "rgba(255,255,255,0.04)", lineHeight: 1,
-                            }}>{step}</div>
-
-                            <div style={{
-                              width: 38, height: 38, borderRadius: 10, marginBottom: 12,
-                              display: "flex", alignItems: "center", justifyContent: "center",
-                              background: expandedStudio === "opus" ? "rgba(0,230,118,0.1)" : "rgba(255,255,255,0.05)",
-                              border: expandedStudio === "opus" ? "1px solid rgba(0,230,118,0.25)" : "1px solid rgba(255,255,255,0.1)",
-                            }}>
-                              <StepIcon style={{
-                                width: 18, height: 18,
-                                color: expandedStudio === "opus" ? G : "rgba(255,255,255,0.85)",
-                              }} />
-                            </div>
-                            <div style={{
-                              fontFamily: "'Geist Mono', monospace", fontSize: 10, fontWeight: 700,
-                              color: expandedStudio === "opus" ? G : "rgba(255,255,255,0.35)",
-                              letterSpacing: "0.08em", marginBottom: 6,
-                            }}>{step}</div>
-                            <div style={{ fontWeight: 700, fontSize: 13.5, color: "#fff", marginBottom: 8, lineHeight: 1.25 }}>{title}</div>
-                            <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)", lineHeight: 1.55 }}>{desc}</div>
-
-                            {/* Connector arrow (not on last) */}
-                            {i < 2 && (
-                              <div style={{
-                                position: "absolute", right: -10, top: "50%", transform: "translateY(-50%)",
-                                color: "rgba(255,255,255,0.12)", fontSize: 18, fontWeight: 700, zIndex: 2,
-                                pointerEvents: "none",
-                              }}>→</div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* CTA at bottom of right panel */}
-                      <div style={{ marginTop: 18 }}>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (!complianceAccepted) { setSettingsTab("eula"); setShowSettingsModal(true); return; }
-                            onSelect(expandedStudio === "opus" ? "opus-clipper" : "ai-clipper");
-                          }}
-                          style={{
-                            display: "inline-flex", alignItems: "center", gap: 9,
-                            padding: "12px 24px", borderRadius: 10, cursor: "pointer",
-                            background: expandedStudio === "opus"
-                              ? `linear-gradient(135deg, ${G} 0%, #00DF6D 100%)`
-                              : "rgba(255,255,255,0.08)",
-                            color: expandedStudio === "opus" ? "#000" : "#fff",
-                            fontSize: 13.5, fontWeight: 800,
-                            fontFamily: "'Space Grotesk', 'Geist', sans-serif",
-                            boxShadow: expandedStudio === "opus" ? "0 0 32px rgba(0,230,118,0.4)" : "none",
-                            border: expandedStudio === "opus" ? "none" : "1px solid rgba(255,255,255,0.12)",
-                            transition: "all 0.2s ease",
-                          }}
-                          onMouseEnter={(e) => {
-                            if (expandedStudio === "opus") { e.currentTarget.style.boxShadow = "0 0 48px rgba(0,230,118,0.6)"; }
-                            else { e.currentTarget.style.borderColor = G; e.currentTarget.style.color = G; }
-                          }}
-                          onMouseLeave={(e) => {
-                            if (expandedStudio === "opus") { e.currentTarget.style.boxShadow = "0 0 32px rgba(0,230,118,0.4)"; }
-                            else { e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)"; e.currentTarget.style.color = "#fff"; }
-                          }}
-                        >
-                          {expandedStudio === "opus"
-                            ? <><Sparkles style={{ width: 15, height: 15 }} /><span>Launch 1-Click Studio</span><ChevronRight style={{ width: 14, height: 14 }} /></>
-                            : <><Sliders style={{ width: 15, height: 15 }} /><span>Open Pro Studio</span><ChevronRight style={{ width: 14, height: 14 }} /></>
-                          }
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
           </div>
 
           {/* 3. Bottom Value Ribbon & Footer Links (Senior Monochromatic & Emerald) */}
@@ -1112,6 +828,304 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
 
         </div>
       </main>
+
+      {/* ── CENTERED WIDESCREEN SPOTLIGHT MODAL OVERLAY ── */}
+      {expandedStudio && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 90,
+            background: "rgba(0, 0, 0, 0.72)",
+            backdropFilter: "blur(14px)",
+            WebkitBackdropFilter: "blur(14px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "24px",
+            animation: "expandIn 0.25s ease-out",
+          }}
+          onClick={() => setExpandedStudio(null)}
+          onMouseEnter={() => setExpandedStudio(null)}
+        >
+          {/* Card Container: stops mouseEnter from bubbling to the overlay */}
+          <div
+            style={{
+              position: "relative",
+              width: "min(1040px, 94vw)",
+              animation: "spotlightIn 0.32s cubic-bezier(0.16, 1, 0.3, 1)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+            onMouseEnter={(e) => e.stopPropagation()}
+          >
+            {/* Outer glow ring */}
+            <div style={{
+              position: "absolute", inset: -1, borderRadius: 24, pointerEvents: "none",
+              background: expandedStudio === "opus"
+                ? "linear-gradient(135deg, rgba(0,230,118,0.28) 0%, rgba(0,230,118,0.06) 50%, transparent 100%)"
+                : "linear-gradient(135deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.04) 50%, transparent 100%)",
+              filter: "blur(10px)",
+            }} />
+
+            <div style={{
+              position: "relative",
+              background: expandedStudio === "opus"
+                ? "linear-gradient(135deg, rgba(2,16,8,0.98) 0%, rgba(6,22,14,0.98) 100%)"
+                : "linear-gradient(135deg, rgba(10,12,18,0.98) 0%, rgba(14,16,24,0.98) 100%)",
+              borderRadius: 22,
+              border: expandedStudio === "opus"
+                ? "1px solid rgba(0,230,118,0.35)"
+                : "1px solid rgba(255,255,255,0.12)",
+              overflow: "hidden",
+              boxShadow: expandedStudio === "opus"
+                ? "0 40px 100px rgba(0,0,0,0.85), 0 0 70px rgba(0,230,118,0.15)"
+                : "0 40px 100px rgba(0,0,0,0.85)",
+            }}>
+              {/* Top edge accent line */}
+              <div style={{
+                position: "absolute", top: 0, left: 0, right: 0, height: 2, pointerEvents: "none",
+                background: expandedStudio === "opus"
+                  ? `linear-gradient(90deg, transparent 0%, ${G} 40%, rgba(0,230,118,0.3) 100%)`
+                  : "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 40%, rgba(255,255,255,0.08) 100%)",
+              }} />
+
+              <div style={{ padding: "34px 38px" }}>
+                {/* Header row */}
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 28 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+                    {/* Studio icon */}
+                    <div style={{
+                      width: 58, height: 58, borderRadius: 18, flexShrink: 0,
+                      background: expandedStudio === "opus"
+                        ? "radial-gradient(circle, rgba(0,230,118,0.2) 0%, rgba(0,230,118,0.05) 100%)"
+                        : "linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%)",
+                      border: expandedStudio === "opus" ? "1px solid rgba(0,230,118,0.35)" : "1px solid rgba(255,255,255,0.14)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      boxShadow: expandedStudio === "opus" ? "0 0 28px rgba(0,230,118,0.2)" : "0 4px 20px rgba(0,0,0,0.4)",
+                    }}>
+                      {expandedStudio === "opus"
+                        ? <Sparkles style={{ width: 26, height: 26, color: G }} />
+                        : <Layers style={{ width: 26, height: 26, color: "#fff" }} />
+                      }
+                    </div>
+                    <div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 5 }}>
+                        <span style={{
+                          fontFamily: "'Geist Mono', monospace", fontSize: 9.5, fontWeight: 700,
+                          padding: "3px 9px", borderRadius: 999, letterSpacing: "0.1em", textTransform: "uppercase",
+                          background: expandedStudio === "opus" ? "rgba(0,230,118,0.1)" : "rgba(255,255,255,0.06)",
+                          border: expandedStudio === "opus" ? "1px solid rgba(0,230,118,0.3)" : "1px solid rgba(255,255,255,0.1)",
+                          color: expandedStudio === "opus" ? G : "rgba(255,255,255,0.7)",
+                        }}>
+                          {expandedStudio === "opus" ? "Recommended" : "Precision Studio"}
+                        </span>
+                        <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 10, color: "rgba(255,255,255,0.2)", fontWeight: 700 }}>
+                          {expandedStudio === "opus" ? "STUDIO 01" : "STUDIO 02"}
+                        </span>
+                      </div>
+                      <h2 style={{
+                        fontFamily: "'Space Grotesk', 'Geist', sans-serif", fontWeight: 800, fontSize: 26,
+                        color: "#fff", letterSpacing: "-0.025em", margin: "0 0 4px",
+                      }}>
+                        {expandedStudio === "opus" ? "1-Click Auto Clipper" : "Pro Manual Studio"}
+                      </h2>
+                      <p style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", margin: 0, fontWeight: 450 }}>
+                        {expandedStudio === "opus"
+                          ? "Fully autonomous viral clip discovery — zero manual slicing required"
+                          : "Frame-accurate timeline editing with full creative control"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Close button */}
+                  <button
+                    type="button"
+                    onClick={() => setExpandedStudio(null)}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 6,
+                      padding: "7px 14px", borderRadius: 8, cursor: "pointer",
+                      background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
+                      color: "rgba(255,255,255,0.6)", fontSize: 11.5, fontWeight: 600, flexShrink: 0,
+                      transition: "all 0.2s",
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.1)"; e.currentTarget.style.color = "#fff"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "rgba(255,255,255,0.6)"; }}
+                  >
+                    <Minimize2 style={{ width: 12, height: 12 }} />
+                    <span>Collapse</span>
+                  </button>
+                </div>
+
+                {/* ── Content: Left column (features) + Right column (how it works) ── */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1.8fr", gap: 32, alignItems: "start" }}>
+
+                  {/* Left: Feature list */}
+                  <div>
+                    <div style={{
+                      fontSize: 9.5, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase",
+                      color: "rgba(255,255,255,0.3)", fontFamily: "'Geist Mono', monospace", marginBottom: 14,
+                    }}>
+                      {expandedStudio === "opus" ? "Auto Features" : "Studio Features"}
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
+                      {(expandedStudio === "opus"
+                        ? [
+                            { label: "AI Virality Hook Discovery (0-100 pts)", detail: "Scores every moment for shareability" },
+                            { label: "Auto Speaker Tracking & 9:16 Centering", detail: "Face-lock keeps subjects perfectly framed" },
+                            { label: "Dynamic Word-by-Word Animated Subtitles", detail: "12 preset styles, karaoke-style reveal" },
+                            { label: "Zero Slicing Hassle: Instant 1-Click Export", detail: "Full pipeline runs end-to-end automatically" },
+                          ]
+                        : [
+                            { label: "Multi-Range Timeline Slicing & Waveforms", detail: "Precise audio-aligned cut points" },
+                            { label: "Dual-Layer Gameplay & B-Roll Split-Screen", detail: "Side-by-side or pip composite exports" },
+                            { label: "Custom Crop Bounding Boxes (9:16, 1:1, 16:9)", detail: "Per-clip aspect ratio targeting" },
+                            { label: "Custom Audio Tracks & Background Music", detail: "Mix voice, SFX, and licensed beats" },
+                          ]
+                      ).map(({ label, detail }) => (
+                        <div key={label} style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                          <div style={{
+                            width: 20, height: 20, borderRadius: "50%", flexShrink: 0, marginTop: 1,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            background: expandedStudio === "opus" ? "rgba(0,230,118,0.12)" : "rgba(255,255,255,0.06)",
+                            border: expandedStudio === "opus" ? "1px solid rgba(0,230,118,0.35)" : "1px solid rgba(255,255,255,0.12)",
+                          }}>
+                            <Check style={{ width: 11, height: 11, color: expandedStudio === "opus" ? G : "rgba(255,255,255,0.7)" }} />
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 12.5, color: "#fff", fontWeight: 600, lineHeight: 1.3 }}>{label}</div>
+                            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>{detail}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Tags */}
+                    <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginTop: 20 }}>
+                      {(expandedStudio === "opus"
+                        ? ["Zero Manual Editing", "Face Auto-Track", "Gemini AI", "Karaoke Captions"]
+                        : ["Frame-Accurate Cuts", "12 Caption Styles", "Batch Export", "Dual Speaker"]
+                      ).map((tag) => (
+                        <span key={tag} style={{
+                          padding: "4px 12px", borderRadius: 999, fontSize: 10.5, fontWeight: 600,
+                          background: expandedStudio === "opus" ? "rgba(0,230,118,0.07)" : "rgba(255,255,255,0.04)",
+                          border: expandedStudio === "opus" ? "1px solid rgba(0,230,118,0.2)" : "1px solid rgba(255,255,255,0.09)",
+                          color: expandedStudio === "opus" ? G : "rgba(255,255,255,0.65)",
+                        }}>{tag}</span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Right: How it works — horizontal step flow */}
+                  <div>
+                    <div style={{
+                      fontSize: 9.5, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase",
+                      color: "rgba(255,255,255,0.3)", fontFamily: "'Geist Mono', monospace", marginBottom: 14,
+                    }}>
+                      How It Works
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
+                      {(expandedStudio === "opus"
+                        ? [
+                            { step: "01", icon: Download, title: "Drop Your Video", desc: "Import any podcast, lecture, stream, or interview. Any format, any length." },
+                            { step: "02", icon: Bot, title: "AI Analyzes", desc: "Gemini Flash scans every second — scoring hooks, emotion peaks, and quotable moments." },
+                            { step: "03", icon: Film, title: "Clips Ready", desc: "9:16 shorts with animated captions, face-tracking, and branding auto-applied. Export in one click." },
+                          ]
+                        : [
+                            { step: "01", icon: Scissors, title: "Set In & Out Points", desc: "Drag precise markers on the visual waveform timeline with frame-level accuracy." },
+                            { step: "02", icon: Palette, title: "Style & Caption", desc: "Pick from 12 animated subtitle presets. Add B-roll, custom crops, or background music." },
+                            { step: "03", icon: Share2, title: "Batch Export", desc: "Export multiple clips simultaneously in any aspect ratio. Direct publish or local save." },
+                          ]
+                      ).map(({ step, icon: StepIcon, title, desc }, i) => (
+                        <div key={step} style={{
+                          padding: "20px 18px", borderRadius: 16, position: "relative",
+                          background: expandedStudio === "opus"
+                            ? "linear-gradient(160deg, rgba(0,230,118,0.05) 0%, rgba(0,0,0,0.35) 100%)"
+                            : "linear-gradient(160deg, rgba(255,255,255,0.04) 0%, rgba(0,0,0,0.35) 100%)",
+                          border: expandedStudio === "opus"
+                            ? "1px solid rgba(0,230,118,0.12)"
+                            : "1px solid rgba(255,255,255,0.07)",
+                        }}>
+                          {/* Step number bg watermark */}
+                          <div style={{
+                            position: "absolute", top: 14, right: 16,
+                            fontFamily: "'Geist Mono', monospace", fontSize: 36, fontWeight: 800,
+                            color: "rgba(255,255,255,0.04)", lineHeight: 1,
+                          }}>{step}</div>
+
+                          <div style={{
+                            width: 38, height: 38, borderRadius: 10, marginBottom: 12,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            background: expandedStudio === "opus" ? "rgba(0,230,118,0.1)" : "rgba(255,255,255,0.05)",
+                            border: expandedStudio === "opus" ? "1px solid rgba(0,230,118,0.25)" : "1px solid rgba(255,255,255,0.1)",
+                          }}>
+                            <StepIcon style={{
+                              width: 18, height: 18,
+                              color: expandedStudio === "opus" ? G : "rgba(255,255,255,0.85)",
+                            }} />
+                          </div>
+                          <div style={{
+                            fontFamily: "'Geist Mono', monospace", fontSize: 10, fontWeight: 700,
+                            color: expandedStudio === "opus" ? G : "rgba(255,255,255,0.35)",
+                            letterSpacing: "0.08em", marginBottom: 6,
+                          }}>{step}</div>
+                          <div style={{ fontWeight: 700, fontSize: 13.5, color: "#fff", marginBottom: 8, lineHeight: 1.25 }}>{title}</div>
+                          <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)", lineHeight: 1.55 }}>{desc}</div>
+
+                          {/* Connector arrow (not on last) */}
+                          {i < 2 && (
+                            <div style={{
+                              position: "absolute", right: -10, top: "50%", transform: "translateY(-50%)",
+                              color: "rgba(255,255,255,0.12)", fontSize: 18, fontWeight: 700, zIndex: 2,
+                              pointerEvents: "none",
+                            }}>→</div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* CTA at bottom of right panel */}
+                    <div style={{ marginTop: 20 }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!complianceAccepted) { setSettingsTab("eula"); setShowSettingsModal(true); return; }
+                          onSelect(expandedStudio === "opus" ? "opus-clipper" : "ai-clipper");
+                        }}
+                        style={{
+                          display: "inline-flex", alignItems: "center", gap: 9,
+                          padding: "12px 24px", borderRadius: 10, cursor: "pointer",
+                          background: expandedStudio === "opus"
+                            ? `linear-gradient(135deg, ${G} 0%, #00DF6D 100%)`
+                            : "rgba(255,255,255,0.08)",
+                          color: expandedStudio === "opus" ? "#000" : "#fff",
+                          fontSize: 13.5, fontWeight: 800,
+                          fontFamily: "'Space Grotesk', 'Geist', sans-serif",
+                          boxShadow: expandedStudio === "opus" ? "0 0 32px rgba(0,230,118,0.4)" : "none",
+                          border: expandedStudio === "opus" ? "none" : "1px solid rgba(255,255,255,0.12)",
+                          transition: "all 0.2s ease",
+                        }}
+                        onMouseEnter={(e) => {
+                          if (expandedStudio === "opus") { e.currentTarget.style.boxShadow = "0 0 48px rgba(0,230,118,0.6)"; }
+                          else { e.currentTarget.style.borderColor = G; e.currentTarget.style.color = G; }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (expandedStudio === "opus") { e.currentTarget.style.boxShadow = "0 0 32px rgba(0,230,118,0.4)"; }
+                          else { e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)"; e.currentTarget.style.color = "#fff"; }
+                        }}
+                      >
+                        {expandedStudio === "opus"
+                          ? <><Sparkles style={{ width: 15, height: 15 }} /><span>Launch 1-Click Studio</span><ChevronRight style={{ width: 14, height: 14 }} /></>
+                          : <><Sliders style={{ width: 15, height: 15 }} /><span>Open Pro Studio</span><ChevronRight style={{ width: 14, height: 14 }} /></>
+                        }
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Enterprise Settings, Essential Agreements & Legal Compliance Center Modal ── */}
       {showSettingsModal && (
