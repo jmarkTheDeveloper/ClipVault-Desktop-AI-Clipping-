@@ -29,18 +29,18 @@ export const TOUR_STEPS: TourStepInfo[] = [
     options: [
       {
         label: "1-Click Auto Clipper (Opus Style)",
-        desc: "Autonomous viral hook discovery, automatic B-roll injection & 1-click batch export with zero manual slicing.",
+        desc: "Autonomous zero-touch pipeline: drop a video or URL, and the local AI Engine automatically runs Whisper transcription, discovers top viral hooks, frames speakers, and exports batches in 1 click.",
         badge: "Autonomous",
         badgeColor: "#00e676",
       },
       {
         label: "Pro Manual Clipper Studio",
-        desc: "Complete creative control over crop boxes, layout, kinetic captions, camera styles & timelines.",
+        desc: "Professional precision editing: multi-range custom timeline slicing, interactive segment scrubbing, virtual camera director, custom bounding boxes, and manual caption styling.",
         badge: "Pro Studio",
         badgeColor: "#38bdf8",
       },
     ],
-    tipNotice: "💡 Click '1-Click Auto Clipper' or Next Step to enter the video studio and configure your video.",
+    tipNotice: "Click '1-Click Auto Clipper', 'Pro Manual Clipper Studio', or 'Next Step' to enter your studio workspace.",
     targetId: "tour-step-1-clipper-card",
     position: "bottom",
   },
@@ -70,23 +70,23 @@ export const TOUR_STEPS: TourStepInfo[] = [
     step: 3,
     title: "Select Multi-Model AI Engine",
     subtitle: "Step 3 of 13 • AI Intelligence & BYOK",
-    description: "Choose the intelligence model that will detect your viral hooks and transcribe dialogue:",
+    description: "Choose the intelligence model that will detect your viral hooks, transcribe dialogue, and drive computer vision:",
     options: [
       {
-        label: "Cloud AI (Groq, Gemini, OpenAI, Claude)",
-        desc: "Requires API Key. Ultra-fast 500+ tok/s processing with Groq or deep viral hook analysis with Gemini 2.5 and GPT-4o.",
-        badge: "Cloud API",
-        badgeColor: "#fbbf24",
-      },
-      {
         label: "Free Local GPU / Intel Arc QSV Engine",
-        desc: "100% Free & Offline. Powered by on-device Intel OpenVINO, AMD ROCm, or NVIDIA CUDA acceleration.",
+        desc: "100% Free & Offline. Powered by local Python engine on port 8000 using faster-whisper, MediaPipe face tracking, and NVIDIA CUDA / Intel QSV / AMD DirectML with zero subscription costs.",
         badge: "Free & Offline",
         badgeColor: "#00e676",
       },
+      {
+        label: "Cloud AI (Groq, Gemini, OpenAI, Claude)",
+        desc: "Requires API Key. Ultra-fast 500+ tok/s processing with Groq or deep viral hook analysis with Gemini 2.5 Flash, Claude 3.5, and GPT-4o via Bring-Your-Own-Key (BYOK).",
+        badge: "Cloud API",
+        badgeColor: "#fbbf24",
+      },
     ],
-    warningNotice: "⚠️ Cloud AI models require an API key in Vault Keys. Local mode runs entirely offline on your GPU/NPU with zero subscription costs.",
-    tipNotice: "💡 You can configure or change your API keys anytime by clicking the Engine button in the top bar.",
+    warningNotice: "Cloud AI models require an API key in Vault Keys. Local mode runs entirely offline on your GPU/NPU with zero subscription costs.",
+    tipNotice: "You can configure or change your API keys anytime by clicking the Engine button in the top bar.",
     targetId: "tour-step-3-engine",
     position: "right",
   },
@@ -109,7 +109,7 @@ export const TOUR_STEPS: TourStepInfo[] = [
         badgeColor: "#00e676",
       },
     ],
-    tipNotice: "💡 In Custom mode, click 'Play Clip' on any segment card or mark Start/End bounds directly from the player dock!",
+    tipNotice: "In Custom mode, click 'Play Clip' on any segment card or mark Start/End bounds directly from the player dock.",
     targetId: "tour-step-timeline",
     position: "right",
   },
@@ -154,7 +154,7 @@ export const TOUR_STEPS: TourStepInfo[] = [
         badgeColor: "#38bdf8",
       },
     ],
-    tipNotice: "💡 Expand 'Advanced Camera & Quality Controls' below to enable Adaptive Quality Framing and AI Neural Upscaling.",
+    tipNotice: "Expand 'Advanced Camera & Quality Controls' below to enable Adaptive Quality Framing and AI Neural Upscaling.",
     targetId: "tour-step-camera",
     position: "right",
   },
@@ -177,7 +177,7 @@ export const TOUR_STEPS: TourStepInfo[] = [
         badgeColor: "#00e676",
       },
     ],
-    tipNotice: "💡 Toggle 'Anti-Duplicate Filter' to flip footage and subtly shift tempo for fresh algorithmic ranking on TikTok and YouTube.",
+    tipNotice: "Toggle 'Anti-Duplicate Filter' to flip footage and subtly shift tempo for fresh algorithmic ranking on TikTok and YouTube.",
     targetId: "tour-step-effects",
     position: "right",
   },
@@ -200,7 +200,7 @@ export const TOUR_STEPS: TourStepInfo[] = [
         badgeColor: "#38bdf8",
       },
     ],
-    tipNotice: "💡 You can drag the caption text directly on the phone preview to reposition subtitles anywhere on screen!",
+    tipNotice: "You can drag the caption text directly on the phone preview to reposition subtitles anywhere on screen.",
     targetId: "tour-step-phone-preview",
     position: "bottom",
   },
@@ -223,7 +223,7 @@ export const TOUR_STEPS: TourStepInfo[] = [
         badgeColor: "#fbbf24",
       },
     ],
-    tipNotice: "💡 Next, we'll visit the Saved Clips Vault where all your rendered masters and project folders are organized!",
+    tipNotice: "Next, we'll visit the Saved Clips Vault where all your rendered masters and project folders are organized.",
     targetId: "tour-step-5-export",
     position: "top",
   },
@@ -312,7 +312,7 @@ export const TOUR_STEPS: TourStepInfo[] = [
         badgeColor: "#fbbf24",
       },
     ],
-    tipNotice: "🎉 You've mastered ClipVault! Click Finish Tour to start creating viral short-form content.",
+    tipNotice: "You've mastered ClipVault! Click Finish Tour to start creating viral short-form content.",
     targetId: "vault-tour-step-4-drag",
     position: "top",
   },
@@ -416,6 +416,7 @@ interface Props {
   onNext: () => void;
   onPrev: () => void;
   onExit: () => void;
+  onSelectMode?: (mode: "ai-clipper" | "opus-clipper") => void;
 }
 
 export const InteractiveTour: React.FC<Props> = ({
@@ -425,6 +426,7 @@ export const InteractiveTour: React.FC<Props> = ({
   onNext,
   onPrev,
   onExit,
+  onSelectMode,
 }) => {
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
 
@@ -693,48 +695,95 @@ export const InteractiveTour: React.FC<Props> = ({
                 marginTop: 2,
               }}
             >
-              {stepInfo.options.map((opt) => (
-                <div
-                  key={opt.label}
-                  style={{
-                    background: "rgba(255, 255, 255, 0.03)",
-                    border: "1px solid rgba(255, 255, 255, 0.08)",
-                    borderRadius: 12,
-                    padding: "10px 12px",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 4,
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: "#fff" }}>
-                      {opt.label}
-                    </span>
-                    {opt.badge && (
-                      <span
-                        style={{
-                          fontSize: 9.5,
-                          fontWeight: 800,
-                          fontFamily: "'Geist Mono', monospace",
-                          padding: "1.5px 6px",
-                          borderRadius: 4,
-                          background: opt.badgeColor ? `${opt.badgeColor}18` : "rgba(255,255,255,0.1)",
-                          color: opt.badgeColor || "#fff",
-                          border: `1px solid ${opt.badgeColor ? `${opt.badgeColor}40` : "rgba(255,255,255,0.2)"}`,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.04em",
-                          flexShrink: 0,
-                        }}
-                      >
-                        {opt.badge}
+              {stepInfo.options.map((opt, optIdx) => {
+                const isStep1 = stepInfo.step === 1;
+                const isOpus = optIdx === 0;
+                return (
+                  <div
+                    key={opt.label}
+                    onClick={() => {
+                      if (isStep1) {
+                        if (onSelectMode) {
+                          onSelectMode(isOpus ? "opus-clipper" : "ai-clipper");
+                        } else {
+                          onNext();
+                        }
+                      }
+                    }}
+                    role={isStep1 ? "button" : undefined}
+                    tabIndex={isStep1 ? 0 : undefined}
+                    style={{
+                      background: "rgba(255, 255, 255, 0.03)",
+                      border: "1px solid rgba(255, 255, 255, 0.08)",
+                      borderRadius: 12,
+                      padding: "10px 12px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 5,
+                      cursor: isStep1 ? "pointer" : "default",
+                      transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (isStep1) {
+                        e.currentTarget.style.background = isOpus ? "rgba(0, 230, 118, 0.08)" : "rgba(56, 189, 248, 0.08)";
+                        e.currentTarget.style.borderColor = isOpus ? "rgba(0, 230, 118, 0.45)" : "rgba(56, 189, 248, 0.45)";
+                        e.currentTarget.style.transform = "translateY(-1.5px)";
+                        e.currentTarget.style.boxShadow = isOpus ? "0 6px 20px rgba(0,230,118,0.2)" : "0 6px 20px rgba(56,189,248,0.2)";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (isStep1) {
+                        e.currentTarget.style.background = "rgba(255, 255, 255, 0.03)";
+                        e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.08)";
+                        e.currentTarget.style.transform = "none";
+                        e.currentTarget.style.boxShadow = "none";
+                      }
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: "#fff" }}>
+                        {opt.label}
                       </span>
+                      {opt.badge && (
+                        <span
+                          style={{
+                            fontSize: 9.5,
+                            fontWeight: 800,
+                            fontFamily: "'Geist Mono', monospace",
+                            padding: "1.5px 6px",
+                            borderRadius: 4,
+                            background: opt.badgeColor ? `${opt.badgeColor}18` : "rgba(255,255,255,0.1)",
+                            color: opt.badgeColor || "#fff",
+                            border: `1px solid ${opt.badgeColor ? `${opt.badgeColor}40` : "rgba(255,255,255,0.2)"}`,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.04em",
+                            flexShrink: 0,
+                          }}
+                        >
+                          {opt.badge}
+                        </span>
+                      )}
+                    </div>
+                    <p style={{ margin: 0, fontSize: 11, color: "rgba(255, 255, 255, 0.55)", lineHeight: 1.45 }}>
+                      {opt.desc}
+                    </p>
+                    {isStep1 && (
+                      <div style={{
+                        marginTop: 4,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4,
+                        fontSize: 10.5,
+                        fontWeight: 700,
+                        color: isOpus ? "#00e676" : "#38bdf8",
+                      }}>
+                        <span>Click to Enter Studio</span>
+                        <ChevronRight style={{ width: 12, height: 12 }} />
+                      </div>
                     )}
                   </div>
-                  <p style={{ margin: 0, fontSize: 11, color: "rgba(255, 255, 255, 0.55)", lineHeight: 1.45 }}>
-                    {opt.desc}
-                  </p>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 
@@ -864,7 +913,7 @@ export const InteractiveTour: React.FC<Props> = ({
                 e.currentTarget.style.transform = "none";
               }}
             >
-              <span>{isLastStep ? "Finish Tour 🎉" : "Next Step"}</span>
+              <span>{isLastStep ? "Finish Tour" : "Next Step"}</span>
               <ArrowRight style={{ width: 13, height: 13 }} />
             </button>
           </div>

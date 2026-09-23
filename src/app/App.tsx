@@ -370,6 +370,17 @@ export default function App() {
           onNext={handleNextTourStep}
           onPrev={handlePrevTourStep}
           onExit={handleExitTour}
+          onSelectMode={(mode) => {
+            if (mode === "opus-clipper") {
+              setScreen("opus-clipper");
+              setTourActive(false);
+            } else {
+              setClipperViewMode("setup");
+              setScreen("ai-clipper");
+              setTourActive(true);
+              setTourStep(2);
+            }
+          }}
         />
 
         {/* Global Floating Background Task HUD when navigating other screens */}

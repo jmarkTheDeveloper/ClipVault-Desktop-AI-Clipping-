@@ -521,6 +521,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
 
               {/* CARD 2: Pro Manual Studio */}
               <div
+                id="tour-step-1-pro-card"
                 style={{
                   position: "relative", overflow: "hidden",
                   background: isProHovered
