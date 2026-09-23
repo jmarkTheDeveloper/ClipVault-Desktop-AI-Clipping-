@@ -2112,7 +2112,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
                           <div><strong>Permitted Uses:</strong> Editorial references in reviews, written tutorials, or community blog posts with clear attribution ("Powered by ClipVault" or "Made with ClipVault") are allowed.</div>
                           <div><strong>Prohibited Uses:</strong> Using ClipVault branding to create competing products, unauthorized forks, or derivative SaaS services. Using the name or logo on merchandise, services, or commercial media without explicit written permission from ClipVault Studio LLC.</div>
                           <div><strong>Community Content:</strong> Approved fan tutorials, YouTube reviews, and community forums may display the ClipVault name in non-commercial, educational contexts with visible attribution.</div>
-                          <div><strong>Reporting Misuse:</strong> If you encounter unauthorized use of ClipVault trademarks, report it to <a href="mailto:clipvault-support@gmail.com" style={{ color: G }}>clipvault-support@gmail.com</a>.</div>
+                          <div><strong>Reporting Misuse:</strong> If you encounter unauthorized use of ClipVault trademarks, report it to <a href="mailto:studioclipvault@gmail.com" style={{ color: G }}>studioclipvault@gmail.com</a>.</div>
                         </div>
                       </div>
                     )}
@@ -2174,7 +2174,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
                           <div style={{ padding: 14, borderRadius: 10, background: "rgba(255,102,122,0.05)", border: "1px solid rgba(255,102,122,0.2)" }}>
                             <div style={{ fontWeight: 700, color: "#ff8595", marginBottom: 4 }}>Respect Independent Engineering</div>
                             <p style={{ margin: 0, fontSize: 11.5, color: "rgba(255,255,255,0.75)" }}>
-                              Please do not attempt to crack, reverse-engineer, or distribute unauthorized binaries. Cracking this software deprives an independent student of tuition and living expenses. For financial hardship inquiries or educator licenses, contact us at: <a href="mailto:clipvault-support@gmail.com" style={{ color: G, fontWeight: 700 }}>clipvault-support@gmail.com</a>.
+                              Please do not attempt to crack, reverse-engineer, or distribute unauthorized binaries. Cracking this software deprives an independent student of tuition and living expenses. For financial hardship inquiries or educator licenses, contact us at: <a href="mailto:studioclipvault@gmail.com" style={{ color: G, fontWeight: 700 }}>studioclipvault@gmail.com</a>.
                             </p>
                           </div>
                         </div>
@@ -2302,7 +2302,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
                     <>
                       <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
                         <a
-                          href="mailto:clipvault-support@gmail.com"
+                          href="mailto:studioclipvault@gmail.com"
                           style={{
                             fontSize: 11.5,
                             color: G,
@@ -2313,7 +2313,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
                           }}
                         >
                           <Mail style={{ width: 12, height: 12 }} />
-                          <span>clipvault-support@gmail.com</span>
+                          <span>studioclipvault@gmail.com</span>
                         </a>
 
                         <span style={{ fontSize: 11, color: "rgba(255,255,255,0.2)" }}>•</span>
