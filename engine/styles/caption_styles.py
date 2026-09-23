@@ -190,6 +190,42 @@ CAPTION_STYLES = {
         'stroke_factor': 0.18,
         'highlight_style': 'outline',
         'name': 'Thunder Beast (Bold Yellow Chunk)'
+    },
+    'purple_box': {
+        'text_color': (255, 255, 255, 255),
+        'highlight_color': (255, 255, 255, 255),
+        'font_type': 'montserrat_black',
+        'uppercase': True,
+        'phrase_mode': True,
+        'max_words': 3,
+        'karaoke': True,
+        'stacked': True,
+        'highlight_box': True,
+        'highlight_box_color': (139, 92, 246, 255),
+        'name': 'Purple Box (Stacked Text + Purple Active Pill Box)'
+    },
+    'duo_lime': {
+        'text_color': (255, 255, 255, 255),
+        'highlight_color': (163, 230, 53, 255),
+        'font_type': 'montserrat_black',
+        'uppercase': True,
+        'phrase_mode': True,
+        'max_words': 2,
+        'karaoke': True,
+        'stroke_factor': 0.16,
+        'name': 'Lime Duo (Two-Word Punch with Neon Lime)'
+    },
+    'single_word': {
+        'text_color': (255, 255, 255, 255),
+        'highlight_color': (255, 255, 255, 255),
+        'font_type': 'montserrat_black',
+        'uppercase': False,
+        'phrase_mode': False,
+        'max_words': 1,
+        'karaoke': True,
+        'ambient_shadow': True,
+        'stroke_factor': 0.12,
+        'name': 'Single Pop (Minimal Lowercase 1-Word Pop)'
     }
 }
 

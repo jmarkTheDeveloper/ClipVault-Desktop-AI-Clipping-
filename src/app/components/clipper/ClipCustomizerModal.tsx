@@ -17,6 +17,9 @@ const CAPTION_PRESETS = [
   { id: "sigma_pink", name: "Sigma Pink", color: "#FF4D94", bg: "bg-pink-500/20 text-pink-300 border-pink-400/40" },
   { id: "capcut_banner", name: "Black Banner", color: "#FFFFFF", bg: "bg-white/10 text-white border-white/20" },
   { id: "clean_white", name: "Clean White", color: "#FFFFFF", bg: "bg-gray-500/20 text-gray-200 border-gray-400/40" },
+  { id: "purple_box", name: "Purple Box", color: "#8B5CF6", bg: "bg-purple-500/20 text-purple-300 border-purple-400/40" },
+  { id: "duo_lime", name: "Lime Duo", color: "#A3E635", bg: "bg-lime-500/20 text-lime-300 border-lime-400/40" },
+  { id: "single_word", name: "Single Pop", color: "#FFFFFF", bg: "bg-white/20 text-white border-white/40" },
 ];
 
 export const ClipCustomizerModal: React.FC<ClipCustomizerModalProps> = ({

@@ -467,6 +467,83 @@ const DraggableCaptionOverlay: React.FC<{
             </span>
           </div>
         );
+      case "purple_box":
+        return (
+          <div className="flex flex-col items-center pointer-events-none tracking-wide uppercase font-black text-xs leading-tight" style={fontSans}>
+            <span
+              className="text-white drop-shadow-md"
+              style={{
+                WebkitTextStroke: "1px #000",
+                textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
+              }}
+            >
+              THE QUICK
+            </span>
+            <div className="flex items-center gap-1.5 mt-1">
+              <span
+                className="text-white drop-shadow-md"
+                style={{
+                  WebkitTextStroke: "1px #000",
+                  textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
+                }}
+              >
+                BROWN
+              </span>
+              <span
+                className={`bg-[#8B5CF6] text-white px-2 py-0.5 rounded-[5px] shadow-lg transition-transform duration-200 ${
+                  animStep === 1 ? "scale-110" : ""
+                }`}
+                style={{
+                  WebkitTextStroke: "0.8px #000",
+                  textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
+                }}
+              >
+                FOX
+              </span>
+            </div>
+          </div>
+        );
+      case "duo_lime":
+        return (
+          <div className="flex items-center gap-2 pointer-events-none tracking-tight uppercase font-black text-sm" style={fontSans}>
+            <span
+              className="text-white"
+              style={{
+                WebkitTextStroke: "1.2px #000",
+                textShadow: "-1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000, 1.5px 1.5px 0 #000, 0 3px 6px rgba(0,0,0,0.8)",
+              }}
+            >
+              BROWN
+            </span>
+            <span
+              className={`text-[#A3E635] transition-transform duration-200 ${
+                animStep === 1 ? "scale-110" : ""
+              }`}
+              style={{
+                WebkitTextStroke: "1.2px #000",
+                textShadow: "-1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000, 1.5px 1.5px 0 #000, 0 0 12px rgba(163,230,53,0.6)",
+              }}
+            >
+              FOX
+            </span>
+          </div>
+        );
+      case "single_word":
+        return (
+          <div className="flex items-center pointer-events-none lowercase font-black text-base" style={fontSans}>
+            <span
+              className={`text-white transition-transform duration-200 ${
+                animStep === 1 ? "scale-115" : ""
+              }`}
+              style={{
+                WebkitTextStroke: "1px #000",
+                textShadow: "0 3px 10px rgba(0,0,0,0.9), -1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000, 1.5px 1.5px 0 #000",
+              }}
+            >
+              fox
+            </span>
+          </div>
+        );
       default:
         return (
           <div className="flex items-center gap-1 pointer-events-none tracking-wider uppercase font-black text-sm">

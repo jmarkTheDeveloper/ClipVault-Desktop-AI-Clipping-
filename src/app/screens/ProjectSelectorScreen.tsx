@@ -81,23 +81,49 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const documentPaneRef = useRef<HTMLDivElement>(null);
 
-  // Card Hover & Showcase State
+  // Card Hover & 5-Second Widescreen Expansion State
   const [hoveredCard, setHoveredCard] = useState<"opus" | "pro" | null>(null);
   const [expandedStudio, setExpandedStudio] = useState<"opus" | "pro" | null>(null);
+  const hoverStartTimeRef = useRef<number | null>(null);
+  const hoverAnimFrameRef = useRef<number | null>(null);
 
   const handleCardMouseEnter = (card: "opus" | "pro") => {
     setHoveredCard(card);
+    if (expandedStudio === card) return;
+
+    hoverStartTimeRef.current = Date.now();
+
+    if (hoverAnimFrameRef.current) cancelAnimationFrame(hoverAnimFrameRef.current);
+
+    const checkHover = () => {
+      if (!hoverStartTimeRef.current) return;
+      const elapsed = Date.now() - hoverStartTimeRef.current;
+      // 5-second hover delay before expanding spotlight modal
+      if (elapsed >= 5000) {
+        setExpandedStudio(card);
+        hoverStartTimeRef.current = null;
+      } else {
+        hoverAnimFrameRef.current = requestAnimationFrame(checkHover);
+      }
+    };
+
+    hoverAnimFrameRef.current = requestAnimationFrame(checkHover);
   };
 
   const handleCardMouseLeave = () => {
     setHoveredCard(null);
+    hoverStartTimeRef.current = null;
+    if (hoverAnimFrameRef.current) {
+      cancelAnimationFrame(hoverAnimFrameRef.current);
+      hoverAnimFrameRef.current = null;
+    }
   };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         setExpandedStudio(null);
-        cancelHoverCountdown();
+        handleCardMouseLeave();
       }
     };
     window.addEventListener("keydown", handleKeyDown);

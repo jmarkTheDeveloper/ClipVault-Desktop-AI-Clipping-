@@ -94,6 +94,27 @@ export const SUBTITLE_PRESETS: SubtitlePresetItem[] = [
     color: "#FFDE00",
     desc: "Explosive ultra-bold all-caps yellow with thick black stroke and punch",
   },
+  {
+    id: "purple_box",
+    name: "Purple Box",
+    badge: "BOX",
+    color: "#8B5CF6",
+    desc: "Stacked 2-line text with vibrant purple pill badge around the active word",
+  },
+  {
+    id: "duo_lime",
+    name: "Lime Duo",
+    badge: "DUO",
+    color: "#A3E635",
+    desc: "Punchy two-word high-contrast layout with neon lime active highlight",
+  },
+  {
+    id: "single_word",
+    name: "Single Pop",
+    badge: "POP",
+    color: "#FFFFFF",
+    desc: "Single word minimal lowercase pop with cinematic drop shadow",
+  },
 ];
 
 export const SubtitlePreviewSnippet: React.FC<{
@@ -479,6 +500,101 @@ export const SubtitlePreviewSnippet: React.FC<{
             }}
           >
             BEAST
+          </span>
+        </div>
+      );
+
+    case "purple_box":
+      return (
+        <div
+          className={`flex flex-col items-center justify-center select-none font-black tracking-wide uppercase leading-tight ${
+            compact ? "text-[8.5px]" : "text-[10px]"
+          }`}
+          style={fontSans}
+        >
+          <span
+            className="text-white drop-shadow-md"
+            style={{
+              WebkitTextStroke: "0.8px #000",
+              textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
+            }}
+          >
+            THE QUICK
+          </span>
+          <div className="flex items-center gap-1 mt-0.5">
+            <span
+              className="text-white drop-shadow-md"
+              style={{
+                WebkitTextStroke: "0.8px #000",
+                textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
+              }}
+            >
+              BROWN
+            </span>
+            <span
+              className={`bg-[#8B5CF6] text-white px-1.5 py-0.5 rounded-[4px] shadow-lg transition-transform duration-200 ${
+                isHovered ? "scale-110" : ""
+              }`}
+              style={{
+                WebkitTextStroke: "0.6px #000",
+                textShadow: "-0.8px -0.8px 0 #000, 0.8px -0.8px 0 #000, -0.8px 0.8px 0 #000, 0.8px 0.8px 0 #000",
+              }}
+            >
+              FOX
+            </span>
+          </div>
+        </div>
+      );
+
+    case "duo_lime":
+      return (
+        <div
+          className={`flex items-center justify-center gap-1.5 select-none font-black tracking-tight uppercase ${
+            compact ? "text-[11px]" : "text-[13px]"
+          }`}
+          style={fontSans}
+        >
+          <span
+            className="text-white transition-all duration-200"
+            style={{
+              WebkitTextStroke: "1px #000",
+              textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 2px 4px rgba(0,0,0,0.8)",
+            }}
+          >
+            BROWN
+          </span>
+          <span
+            className={`text-[#A3E635] transition-all duration-200 ${
+              isHovered ? "scale-110" : ""
+            }`}
+            style={{
+              WebkitTextStroke: "1px #000",
+              textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 10px rgba(163,230,53,0.5)",
+            }}
+          >
+            FOX
+          </span>
+        </div>
+      );
+
+    case "single_word":
+      return (
+        <div
+          className={`flex items-center justify-center select-none font-black lowercase tracking-tight ${
+            compact ? "text-[12px]" : "text-[15px]"
+          }`}
+          style={fontSans}
+        >
+          <span
+            className={`text-white transition-transform duration-200 ${
+              isHovered ? "scale-110" : ""
+            }`}
+            style={{
+              WebkitTextStroke: "0.8px #000",
+              textShadow: "0 2px 8px rgba(0,0,0,0.9), -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
+            }}
+          >
+            fox
           </span>
         </div>
       );
