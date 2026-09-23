@@ -40,6 +40,12 @@ import {
   Flame,
   Film,
   Clock,
+  Download,
+  ArrowRight,
+  Scissors,
+  Palette,
+  Share2,
+  Eye,
 } from "lucide-react";
 import { Logo } from "../components/Logo";
 
@@ -83,7 +89,13 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
   const hoverAnimFrameRef = useRef<number | null>(null);
 
   const startHoverCountdown = (card: "opus" | "pro") => {
+    // If the opposite card is expanded, switch directly to this card
+    if (expandedStudio && expandedStudio !== card) {
+      setExpandedStudio(card);
+      return;
+    }
     if (expandedStudio === card) return;
+
     setHoveredCard(card);
     hoverStartTimeRef.current = Date.now();
     setHoverProgress(0);
@@ -227,8 +239,8 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
           to   { opacity: 1; transform: translateY(0) scaleY(1); }
         }
         @keyframes spotlightIn {
-          from { opacity: 0; transform: scaleX(0.82) scaleY(0.94); clip-path: inset(8% 12% 8% 12% round 22px); }
-          to   { opacity: 1; transform: scaleX(1) scaleY(1); clip-path: inset(0% 0% 0% 0% round 22px); }
+          from { opacity: 0; transform: translateY(12px) scale(0.98); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
         }
       `}</style>
 
@@ -321,14 +333,21 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
             </p>
           </div>
 
-          {/* 2. Studio Cards: Balanced, High-Grade Enterprise Dual Structure */}
-          <div style={{
-            display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-            gap: 24, width: "100%", marginBottom: 32,
-          }}>
-            {/* CARD 1: 1-Click Auto Clipper (Primary Hero Studio) */}
-            <div
-              id="tour-step-1-clipper-card"
+          {/* 2. Interactive Studio Section (Auto-collapses when cursor moves outside the studio section) */}
+          <div
+            style={{ width: "100%", position: "relative" }}
+            onMouseLeave={() => {
+              cancelHoverCountdown();
+              setExpandedStudio(null);
+            }}
+          >
+            <div style={{
+              display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+              gap: 24, width: "100%", marginBottom: 32,
+            }}>
+              {/* CARD 1: 1-Click Auto Clipper (Primary Hero Studio) */}
+              <div
+                id="tour-step-1-clipper-card"
               style={{
                 position: "relative", overflow: "hidden",
                 background: expandedStudio === "opus"
@@ -407,7 +426,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
                     background: "rgba(0,230,118,0.08)", border: "1px solid rgba(0,230,118,0.25)",
                   }}>
                     <Zap style={{ width: 12, height: 12, color: G }} />
-                    <span style={{ fontSize: 11, fontWeight: 700, color: G }}>✦ Recommended</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: G }}>Recommended</span>
                   </div>
                   <span style={{
                     fontFamily: "'Geist Mono', monospace", fontSize: 24, fontWeight: 700,
@@ -582,7 +601,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
                     background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)",
                   }}>
                     <Sliders style={{ width: 12, height: 12, color: "rgba(255,255,255,0.85)" }} />
-                    <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.85)" }}>⚡ Precision Studio</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.85)" }}>Precision Studio</span>
                   </div>
                   <span style={{
                     fontFamily: "'Geist Mono', monospace", fontSize: 24, fontWeight: 700,
@@ -751,7 +770,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
                             border: expandedStudio === "opus" ? "1px solid rgba(0,230,118,0.3)" : "1px solid rgba(255,255,255,0.1)",
                             color: expandedStudio === "opus" ? G : "rgba(255,255,255,0.7)",
                           }}>
-                            {expandedStudio === "opus" ? "✦ Recommended" : "⚡ Precision Studio"}
+                            {expandedStudio === "opus" ? "Recommended" : "Precision Studio"}
                           </span>
                           <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 10, color: "rgba(255,255,255,0.2)", fontWeight: 700 }}>
                             {expandedStudio === "opus" ? "STUDIO 01" : "STUDIO 02"}
@@ -860,16 +879,16 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
                         {(expandedStudio === "opus"
                           ? [
-                              { step: "01", icon: "📥", title: "Drop Your Video", desc: "Import any podcast, lecture, stream, or interview. Any format, any length." },
-                              { step: "02", icon: "🤖", title: "AI Analyzes", desc: "Gemini Flash scans every second — scoring hooks, emotion peaks, and quotable moments." },
-                              { step: "03", icon: "🎬", title: "Clips Ready", desc: "9:16 shorts with animated captions, face-tracking, and branding auto-applied. Export in one click." },
+                              { step: "01", icon: Download, title: "Drop Your Video", desc: "Import any podcast, lecture, stream, or interview. Any format, any length." },
+                              { step: "02", icon: Bot, title: "AI Analyzes", desc: "Gemini Flash scans every second — scoring hooks, emotion peaks, and quotable moments." },
+                              { step: "03", icon: Film, title: "Clips Ready", desc: "9:16 shorts with animated captions, face-tracking, and branding auto-applied. Export in one click." },
                             ]
                           : [
-                              { step: "01", icon: "✂️", title: "Set In & Out Points", desc: "Drag precise markers on the visual waveform timeline with frame-level accuracy." },
-                              { step: "02", icon: "🎨", title: "Style & Caption", desc: "Pick from 12 animated subtitle presets. Add B-roll, custom crops, or background music." },
-                              { step: "03", icon: "📤", title: "Batch Export", desc: "Export multiple clips simultaneously in any aspect ratio. Direct publish or local save." },
+                              { step: "01", icon: Scissors, title: "Set In & Out Points", desc: "Drag precise markers on the visual waveform timeline with frame-level accuracy." },
+                              { step: "02", icon: Palette, title: "Style & Caption", desc: "Pick from 12 animated subtitle presets. Add B-roll, custom crops, or background music." },
+                              { step: "03", icon: Share2, title: "Batch Export", desc: "Export multiple clips simultaneously in any aspect ratio. Direct publish or local save." },
                             ]
-                        ).map(({ step, icon, title, desc }, i) => (
+                        ).map(({ step, icon: StepIcon, title, desc }, i) => (
                           <div key={step} style={{
                             padding: "20px 18px", borderRadius: 16, position: "relative",
                             background: expandedStudio === "opus"
@@ -886,7 +905,17 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
                               color: "rgba(255,255,255,0.04)", lineHeight: 1,
                             }}>{step}</div>
 
-                            <div style={{ fontSize: 26, marginBottom: 12, lineHeight: 1 }}>{icon}</div>
+                            <div style={{
+                              width: 38, height: 38, borderRadius: 10, marginBottom: 12,
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              background: expandedStudio === "opus" ? "rgba(0,230,118,0.1)" : "rgba(255,255,255,0.05)",
+                              border: expandedStudio === "opus" ? "1px solid rgba(0,230,118,0.25)" : "1px solid rgba(255,255,255,0.1)",
+                            }}>
+                              <StepIcon style={{
+                                width: 18, height: 18,
+                                color: expandedStudio === "opus" ? G : "rgba(255,255,255,0.85)",
+                              }} />
+                            </div>
                             <div style={{
                               fontFamily: "'Geist Mono', monospace", fontSize: 10, fontWeight: 700,
                               color: expandedStudio === "opus" ? G : "rgba(255,255,255,0.35)",
@@ -949,6 +978,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
               </div>
             </div>
           )}
+          </div>
 
           {/* 3. Bottom Value Ribbon & Footer Links (Senior Monochromatic & Emerald) */}
 
