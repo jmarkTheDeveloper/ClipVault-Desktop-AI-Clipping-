@@ -335,16 +335,26 @@ const DraggableCaptionOverlay: React.FC<{
         );
       case "clean_white":
         return (
-          <div className="flex items-center gap-1 pointer-events-none tracking-wider uppercase font-black text-sm" style={fontSans}>
+          <div className="flex items-center justify-center gap-1.5 pointer-events-none tracking-wider uppercase font-black text-sm" style={fontSans}>
             <span
-              className={`text-white px-1 transition-all duration-200 ${animStep === 0 ? "scale-105 text-emerald-300" : ""}`}
+              className={`px-1 transition-all duration-200 ${animStep === 0 ? "scale-115 text-white drop-shadow-[0_0_12px_rgba(255,255,255,1)]" : "text-white/60"}`}
               style={{
                 textShadow: animStep === 0
-                  ? "0 0 12px rgba(0,230,118,0.8), -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000"
+                  ? "0 0 14px rgba(255,255,255,1), -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000"
                   : "-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000",
               }}
             >
-              CLEAN WHITE
+              CLEAN
+            </span>
+            <span
+              className={`px-1 transition-all duration-200 ${animStep === 1 ? "scale-115 text-white drop-shadow-[0_0_12px_rgba(255,255,255,1)]" : "text-white/60"}`}
+              style={{
+                textShadow: animStep === 1
+                  ? "0 0 14px rgba(255,255,255,1), -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000"
+                  : "-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000",
+              }}
+            >
+              WHITE
             </span>
           </div>
         );
@@ -471,7 +481,9 @@ const DraggableCaptionOverlay: React.FC<{
         return (
           <div className="flex flex-col items-center pointer-events-none tracking-wide uppercase font-black text-xs leading-tight" style={fontSans}>
             <span
-              className="text-white drop-shadow-md"
+              className={`drop-shadow-md transition-all duration-200 ${
+                animStep === 0 ? "scale-110 text-[#C4B5FD]" : "text-white"
+              }`}
               style={{
                 WebkitTextStroke: "1px #000",
                 textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
@@ -481,7 +493,9 @@ const DraggableCaptionOverlay: React.FC<{
             </span>
             <div className="flex items-center gap-1.5 mt-1">
               <span
-                className="text-white drop-shadow-md"
+                className={`drop-shadow-md transition-all duration-200 ${
+                  animStep === 1 ? "scale-110 text-[#C4B5FD]" : "text-white"
+                }`}
                 style={{
                   WebkitTextStroke: "1px #000",
                   textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
@@ -491,7 +505,9 @@ const DraggableCaptionOverlay: React.FC<{
               </span>
               <span
                 className={`bg-[#8B5CF6] text-white px-2 py-0.5 rounded-[5px] shadow-lg transition-transform duration-200 ${
-                  animStep === 1 ? "scale-110" : ""
+                  animStep === 2
+                    ? "scale-120 shadow-[0_0_16px_#8B5CF6]"
+                    : "scale-100"
                 }`}
                 style={{
                   WebkitTextStroke: "0.8px #000",
@@ -507,43 +523,57 @@ const DraggableCaptionOverlay: React.FC<{
         return (
           <div className="flex items-center gap-2 pointer-events-none tracking-tight uppercase font-black text-sm" style={fontSans}>
             <span
-              className="text-white"
+              className={`transition-all duration-200 ${
+                animStep === 0 ? "scale-115 text-[#A3E635]" : "text-white"
+              }`}
               style={{
                 WebkitTextStroke: "1.2px #000",
-                textShadow: "-1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000, 1.5px 1.5px 0 #000, 0 3px 6px rgba(0,0,0,0.8)",
+                textShadow:
+                  animStep === 0
+                    ? "-1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000, 1.5px 1.5px 0 #000, 0 0 12px rgba(163,230,53,0.8)"
+                    : "-1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000, 1.5px 1.5px 0 #000, 0 3px 6px rgba(0,0,0,0.8)",
               }}
             >
               BROWN
             </span>
             <span
-              className={`text-[#A3E635] transition-transform duration-200 ${
-                animStep === 1 ? "scale-110" : ""
+              className={`transition-all duration-200 ${
+                animStep === 1
+                  ? "scale-115 text-[#A3E635]"
+                  : animStep === 0
+                  ? "text-white"
+                  : "text-[#A3E635]"
               }`}
               style={{
                 WebkitTextStroke: "1.2px #000",
-                textShadow: "-1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000, 1.5px 1.5px 0 #000, 0 0 12px rgba(163,230,53,0.6)",
+                textShadow:
+                  animStep === 1
+                    ? "-1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000, 1.5px 1.5px 0 #000, 0 0 14px rgba(163,230,53,0.9)"
+                    : "-1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000, 1.5px 1.5px 0 #000, 0 0 12px rgba(163,230,53,0.6)",
               }}
             >
               FOX
             </span>
           </div>
         );
-      case "single_word":
+      case "single_word": {
+        const words = ["quick", "brown", "fox"];
+        const currentWord = words[animStep % words.length];
         return (
           <div className="flex items-center pointer-events-none lowercase font-black text-base" style={fontSans}>
             <span
-              className={`text-white transition-transform duration-200 ${
-                animStep === 1 ? "scale-115" : ""
-              }`}
+              key={currentWord}
+              className="text-white transition-all duration-200 scale-115 text-emerald-300 drop-shadow-[0_0_10px_rgba(0,230,118,0.8)]"
               style={{
                 WebkitTextStroke: "1px #000",
                 textShadow: "0 3px 10px rgba(0,0,0,0.9), -1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000, 1.5px 1.5px 0 #000",
               }}
             >
-              fox
+              {currentWord}
             </span>
           </div>
         );
+      }
       default:
         return (
           <div className="flex items-center gap-1 pointer-events-none tracking-wider uppercase font-black text-sm">

@@ -338,22 +338,44 @@ export const SubtitlePreviewSnippet: React.FC<{
     case "clean_white":
       return (
         <div
-          className={`flex items-center justify-center gap-1 font-extrabold tracking-wider uppercase select-none ${
-            compact ? "text-[10.5px]" : "text-xs"
+          className={`flex flex-col items-center justify-center w-full text-center font-black tracking-wider uppercase select-none leading-tight gap-0.5 ${
+            compact ? "text-[10px]" : "text-[11.5px]"
           }`}
           style={fontSans}
         >
           <span
-            className={`text-white transition-all duration-200 ${
-              isHovered ? "scale-110 tracking-widest text-emerald-300" : ""
+            className={`transition-all duration-200 block text-center w-full ${
+              isHovered && animStep === 0
+                ? "scale-115 text-white drop-shadow-[0_0_10px_rgba(255,255,255,1)]"
+                : isHovered
+                ? "text-white/50"
+                : "text-white"
             }`}
             style={{
-              textShadow: isHovered
-                ? "0 0 12px rgba(0,230,118,0.8), 0 2px 6px rgba(0,0,0,0.95)"
-                : "0 2px 5px rgba(0,0,0,0.95)",
+              textShadow:
+                isHovered && animStep === 0
+                  ? "0 0 12px rgba(255,255,255,1), 0 2px 6px rgba(0,0,0,0.95)"
+                  : "0 2px 5px rgba(0,0,0,0.95)",
             }}
           >
-            CLEAN WHITE
+            CLEAN
+          </span>
+          <span
+            className={`transition-all duration-200 block text-center w-full ${
+              isHovered && animStep === 1
+                ? "scale-115 text-white drop-shadow-[0_0_10px_rgba(255,255,255,1)]"
+                : isHovered
+                ? "text-white/50"
+                : "text-white"
+            }`}
+            style={{
+              textShadow:
+                isHovered && animStep === 1
+                  ? "0 0 12px rgba(255,255,255,1), 0 2px 6px rgba(0,0,0,0.95)"
+                  : "0 2px 5px rgba(0,0,0,0.95)",
+            }}
+          >
+            WHITE
           </span>
         </div>
       );
@@ -507,13 +529,15 @@ export const SubtitlePreviewSnippet: React.FC<{
     case "purple_box":
       return (
         <div
-          className={`flex flex-col items-center justify-center select-none font-black tracking-wide uppercase leading-tight ${
+          className={`flex flex-col items-center justify-center w-full text-center select-none font-black tracking-wide uppercase leading-tight ${
             compact ? "text-[8.5px]" : "text-[10px]"
           }`}
           style={fontSans}
         >
           <span
-            className="text-white drop-shadow-md"
+            className={`transition-all duration-200 drop-shadow-md text-center w-full ${
+              isHovered && animStep === 0 ? "scale-110 text-[#C4B5FD]" : "text-white"
+            }`}
             style={{
               WebkitTextStroke: "0.8px #000",
               textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
@@ -521,9 +545,11 @@ export const SubtitlePreviewSnippet: React.FC<{
           >
             THE QUICK
           </span>
-          <div className="flex items-center gap-1 mt-0.5">
+          <div className="flex items-center justify-center gap-1 mt-0.5 w-full">
             <span
-              className="text-white drop-shadow-md"
+              className={`transition-all duration-200 drop-shadow-md ${
+                isHovered && animStep === 1 ? "scale-110 text-[#C4B5FD]" : "text-white"
+              }`}
               style={{
                 WebkitTextStroke: "0.8px #000",
                 textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
@@ -533,7 +559,11 @@ export const SubtitlePreviewSnippet: React.FC<{
             </span>
             <span
               className={`bg-[#8B5CF6] text-white px-1.5 py-0.5 rounded-[4px] shadow-lg transition-transform duration-200 ${
-                isHovered ? "scale-110" : ""
+                isHovered && animStep === 2
+                  ? "scale-115 shadow-[0_0_12px_#8B5CF6]"
+                  : isHovered
+                  ? "scale-105"
+                  : ""
               }`}
               style={{
                 WebkitTextStroke: "0.6px #000",
@@ -549,27 +579,41 @@ export const SubtitlePreviewSnippet: React.FC<{
     case "duo_lime":
       return (
         <div
-          className={`flex items-center justify-center gap-1.5 select-none font-black tracking-tight uppercase ${
+          className={`flex items-center justify-center w-full text-center gap-1.5 select-none font-black tracking-tight uppercase ${
             compact ? "text-[11px]" : "text-[13px]"
           }`}
           style={fontSans}
         >
           <span
-            className="text-white transition-all duration-200"
+            className={`transition-all duration-200 ${
+              isHovered && animStep === 0
+                ? "scale-115 text-[#A3E635]"
+                : "text-white"
+            }`}
             style={{
               WebkitTextStroke: "1px #000",
-              textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 2px 4px rgba(0,0,0,0.8)",
+              textShadow:
+                isHovered && animStep === 0
+                  ? "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 10px rgba(163,230,53,0.8)"
+                  : "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 2px 4px rgba(0,0,0,0.8)",
             }}
           >
             BROWN
           </span>
           <span
-            className={`text-[#A3E635] transition-all duration-200 ${
-              isHovered ? "scale-110" : ""
+            className={`transition-all duration-200 ${
+              isHovered && animStep === 1
+                ? "scale-115 text-[#A3E635]"
+                : isHovered && animStep === 0
+                ? "text-white"
+                : "text-[#A3E635]"
             }`}
             style={{
               WebkitTextStroke: "1px #000",
-              textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 10px rgba(163,230,53,0.5)",
+              textShadow:
+                isHovered && animStep === 1
+                  ? "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 14px rgba(163,230,53,0.9)"
+                  : "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 10px rgba(163,230,53,0.5)",
             }}
           >
             FOX
@@ -577,27 +621,31 @@ export const SubtitlePreviewSnippet: React.FC<{
         </div>
       );
 
-    case "single_word":
+    case "single_word": {
+      const words = ["quick", "brown", "fox"];
+      const currentWord = isHovered ? words[animStep % words.length] : "fox";
       return (
         <div
-          className={`flex items-center justify-center select-none font-black lowercase tracking-tight ${
+          className={`flex items-center justify-center w-full text-center select-none font-black lowercase tracking-tight ${
             compact ? "text-[12px]" : "text-[15px]"
           }`}
           style={fontSans}
         >
           <span
-            className={`text-white transition-transform duration-200 ${
-              isHovered ? "scale-110" : ""
+            key={currentWord}
+            className={`text-white transition-all duration-200 ${
+              isHovered ? "scale-115 text-emerald-300 drop-shadow-[0_0_10px_rgba(0,230,118,0.8)]" : ""
             }`}
             style={{
               WebkitTextStroke: "0.8px #000",
               textShadow: "0 2px 8px rgba(0,0,0,0.9), -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
             }}
           >
-            fox
+            {currentWord}
           </span>
         </div>
       );
+    }
 
     default:
       return null;
