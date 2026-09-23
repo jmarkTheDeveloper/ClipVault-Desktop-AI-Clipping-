@@ -267,8 +267,8 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
       <header style={{
         height: 48, flexShrink: 0, zIndex: 30,
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "0 140px 0 24px", background: "#000000",
-        borderBottom: "1px solid rgba(255,255,255,0.06)",
+        padding: "0 140px 0 24px", background: "#0e121a",
+        borderBottom: "1px solid rgba(255,255,255,0.08)",
       }}>
         {/* Brand */}
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>

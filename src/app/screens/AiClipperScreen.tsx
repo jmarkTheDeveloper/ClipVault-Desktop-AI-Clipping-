@@ -1369,7 +1369,7 @@ export const AiClipperScreen: React.FC<Props> = ({
       />
 
       {/* Header Bar */}
-      <header className="relative z-10 flex items-center justify-between pl-8 pr-44 pt-2 h-14 flex-shrink-0 border-b border-white/5 bg-[#000000]/95 backdrop-blur-xl">
+      <header className="relative z-10 flex items-center justify-between pl-8 pr-44 pt-2 h-14 flex-shrink-0 border-b border-white/10 bg-[#0e121a] backdrop-blur-xl">
         <div className="flex items-center gap-4">
           <button
             onClick={onBack}
