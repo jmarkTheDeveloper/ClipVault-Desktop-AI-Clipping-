@@ -2144,50 +2144,47 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
                       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
                         <div style={{ borderBottom: "1px solid rgba(255,255,255,0.08)", paddingBottom: 14 }}>
                           <h3 style={{ fontSize: 18, fontWeight: 800, color: "#fff", margin: "0 0 4px", fontFamily: "'Space Grotesk', 'Geist', sans-serif" }}>
-                            Building a New Standard for Creator Software
+                            A Note from the Developer
                           </h3>
                           <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)" }}>
-                            ClipVault Studio LLC • Independent Solo Computer Science Student Engineering
+                            Solo Computer Science Student Project • ClipVault
                           </div>
                         </div>
 
                         <div style={{ padding: 16, background: "rgba(255,255,255,0.02)", borderLeft: `3px solid ${G}`, borderRadius: "0 10px 10px 0", color: "#fff", fontStyle: "italic", fontSize: 13, lineHeight: 1.6 }}>
-                          "Creators shouldn't be forced to rent their editing workflow from cloud servers when their own computer has all the processing power needed to do it locally, privately, and for free."
+                          "I built this because I truly believe creators shouldn't be forced to pay crazy monthly subscriptions just to cut clips, when your own computer can do it locally, privately, and for free."
                         </div>
 
-                        <div style={{ display: "flex", flexDirection: "column", gap: 14, color: "rgba(255,255,255,0.8)" }}>
-                          <p style={{ margin: 0, lineHeight: 1.65 }}>
-                            ClipVault was designed, engineered, and coded over countless days and late-night development sprints by an active <strong>Computer Science college student</strong>, purposefully built to target the rapidly exploding short-form video and content creator market.
-                          </p>
-                          <p style={{ margin: 0, lineHeight: 1.65 }}>
-                            While corporate cloud clipping platforms charge $30 to $100+ every single month for basic cuts and impose artificial credit ceilings, ClipVault was born to disrupt the status quo: empowering creators with a high-performance, local-first workstation where you own your processing power, privacy, and workflows forever.
+                        <div style={{ display: "flex", flexDirection: "column", gap: 14, color: "rgba(255,255,255,0.85)" }}>
+                          <p style={{ margin: 0, lineHeight: 1.65, fontSize: 13 }}>
+                            Hey! I'm an active <strong>Computer Science college student</strong>, and I spent countless days and sleepless nights coding ClipVault completely from scratch. I saw how big cloud platforms were charging creators \$30 to \$100+ every single month for basic cuts and restricting how many videos they could make, so I decided to build a real, honest alternative that runs right on your own machine forever.
                           </p>
 
-                          {/* Enterprise Inquiries & Strategic Partnerships Card */}
-                          <div style={{ padding: 16, borderRadius: 10, background: "rgba(0,230,118,0.04)", border: "1px solid rgba(0,230,118,0.25)" }}>
+                          {/* Deals, Partnerships & Acquisition Inquiries Card */}
+                          <div style={{ padding: 16, borderRadius: 12, background: "rgba(0,230,118,0.04)", border: "1px solid rgba(0,230,118,0.25)" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 700, color: G, marginBottom: 6 }}>
                               <Sparkles style={{ width: 15, height: 15, color: G }} />
-                              <span>Corporate Partnerships, Commercial Licensing &amp; Acquisition Inquiries</span>
+                              <span>Open to Deals, Acquisitions &amp; Business Inquiries</span>
                             </div>
-                            <p style={{ margin: "0 0 10px", fontSize: 11.8, color: "rgba(255,255,255,0.8)", lineHeight: 1.6 }}>
-                              If you represent a media brand, studio network, enterprise organization, or investment firm interested in corporate licensing, strategic partnerships, distributor deals, or acquiring ClipVault and its proprietary local AI clipping engine, we are actively open to discussions and serious commercial proposals.
+                            <p style={{ margin: "0 0 10px", fontSize: 12, color: "rgba(255,255,255,0.85)", lineHeight: 1.6 }}>
+                              If you're a company, media brand, studio, or investor interested in acquiring ClipVault, licensing the engine, or making a business deal—please reach out to me! Making a deal like that would literally be life-changing for me, and I'd be more than happy to talk:
                             </p>
-                            <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.7)" }}>
-                              Direct business proposals &amp; acquisition inquiries to: <a href="https://mail.google.com/mail/?view=cm&fs=1&to=studioclipvault@gmail.com" target="_blank" rel="noopener noreferrer" onClick={openEmail} style={{ color: G, fontWeight: 700, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: "3px" }}>studioclipvault@gmail.com</a>{copiedText === "email" && <span style={{ color: G, marginLeft: 6, fontSize: 11, fontWeight: 600 }}>• Copied &amp; opening Gmail!</span>}
+                            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.7)" }}>
+                              Contact me directly: <a href="https://mail.google.com/mail/?view=cm&fs=1&to=studioclipvault@gmail.com" target="_blank" rel="noopener noreferrer" onClick={openEmail} style={{ color: G, fontWeight: 700, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: "3px" }}>studioclipvault@gmail.com</a>{copiedText === "email" && <span style={{ color: G, marginLeft: 6, fontSize: 11, fontWeight: 600 }}>• Copied &amp; opening Gmail!</span>}
                             </div>
                           </div>
 
-                          {/* Respect Independent Engineering & Financial Hardship / Student Discount Card */}
-                          <div style={{ padding: 16, borderRadius: 10, background: "rgba(255,102,122,0.05)", border: "1px solid rgba(255,102,122,0.22)" }}>
+                          {/* Support My Family & Tuition + Student / Hardship Discount Card */}
+                          <div style={{ padding: 16, borderRadius: 12, background: "rgba(255,102,122,0.05)", border: "1px solid rgba(255,102,122,0.22)" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 700, color: "#ff8595", marginBottom: 6 }}>
                               <Heart style={{ width: 15, height: 15, color: "#ff8595" }} />
-                              <span>Respect Independent Engineering • Family &amp; Tuition Support</span>
+                              <span>Support My Education &amp; Family • Hardship Discounts Available</span>
                             </div>
-                            <p style={{ margin: "0 0 10px", fontSize: 11.8, color: "rgba(255,255,255,0.8)", lineHeight: 1.6 }}>
-                              Please do not crack, reverse-engineer, or distribute unauthorized binaries. Every single license purchased directly funds an independent student's college tuition, family living expenses, and ongoing solo engineering craftsmanship.
+                            <p style={{ margin: "0 0 10px", fontSize: 12, color: "rgba(255,255,255,0.85)", lineHeight: 1.6 }}>
+                              Please do not crack or distribute pirated copies of this software. Every single license purchased genuinely helps me survive in real life—it directly pays my college tuition, helps support my family with living expenses, and keeps food on my table while I continue updating and improving ClipVault.
                             </p>
-                            <p style={{ margin: 0, fontSize: 11.8, color: "rgba(255,255,255,0.8)", lineHeight: 1.6 }}>
-                              <strong>Can't afford ClipVault right now?</strong> We believe economic barriers should never hold back driven creators. If you are facing financial hardship, a fellow student, or an educator, please don't pirate the software—reach out directly and we will gladly arrange an honest, generous discount or subsidized license to support your creative journey: <a href="https://mail.google.com/mail/?view=cm&fs=1&to=studioclipvault@gmail.com" target="_blank" rel="noopener noreferrer" onClick={openEmail} style={{ color: G, fontWeight: 700, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: "3px" }}>studioclipvault@gmail.com</a>{copiedText === "email" && <span style={{ color: G, marginLeft: 6, fontSize: 11, fontWeight: 600 }}>• Copied &amp; opening Gmail!</span>}.
+                            <p style={{ margin: 0, fontSize: 12, color: "rgba(255,255,255,0.85)", lineHeight: 1.6 }}>
+                              <strong>Honestly can't afford it right now?</strong> Please don't pirate it. I know firsthand how tough money can be as a student. If you're struggling financially, just send me an email at <a href="https://mail.google.com/mail/?view=cm&fs=1&to=studioclipvault@gmail.com" target="_blank" rel="noopener noreferrer" onClick={openEmail} style={{ color: G, fontWeight: 700, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: "3px" }}>studioclipvault@gmail.com</a> and tell me what you can afford—I will gladly hook you up with a discount or help you out so you can still create your videos. We're all trying to make it out here!
                             </p>
                           </div>
                         </div>
