@@ -32,6 +32,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   showOpenDialog: (options) => ipcRenderer.invoke('show-open-dialog', options),
   selectDirectory: (defaultPath) => ipcRenderer.invoke('select-directory', defaultPath),
   openPath: (folderPath) => ipcRenderer.invoke('open-path', folderPath),
+  openExternal: (url) => ipcRenderer.invoke('open-external', url),
   showItemInFolder: (filePath) => ipcRenderer.invoke('show-item-in-folder', filePath),
   startDrag: (filePath) => ipcRenderer.send('start-drag', filePath),
   showNotification: (options) => ipcRenderer.invoke('show-notification', options),

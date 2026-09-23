@@ -139,6 +139,18 @@ ipcMain.handle('get-auth-token', (event) => {
     return false;
   });
 
+  ipcMain.handle('open-external', async (event, url) => {
+    try {
+      if (url && (url.startsWith('http:') || url.startsWith('https:') || url.startsWith('mailto:'))) {
+        await shell.openExternal(url);
+        return true;
+      }
+    } catch (err) {
+      console.error('[Electron]: openExternal error:', err);
+    }
+    return false;
+  });
+
   ipcMain.on('start-drag', (event, filePath) => {
     try {
       if (filePath) {
@@ -219,9 +231,9 @@ function createWindow() {
     } catch (e) {}
   }
 
-  // Security Guard: Safely delegate external web links to default browser
+  // Security Guard: Safely delegate external web links and mailto protocols to default system browser / mail client
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    if (url.startsWith('http:') || url.startsWith('https:')) {
+    if (url.startsWith('http:') || url.startsWith('https:') || url.startsWith('mailto:')) {
       shell.openExternal(url);
     }
     return { action: 'deny' };
@@ -229,6 +241,11 @@ function createWindow() {
 
   // Security Guard: Block unauthorized in-app remote navigation while allowing file:// and local origins
   mainWindow.webContents.on('will-navigate', (event, url) => {
+    if (url.startsWith('mailto:')) {
+      event.preventDefault();
+      shell.openExternal(url);
+      return;
+    }
     if (!url.startsWith('http://localhost') && !url.startsWith('http://127.0.0.1') && !url.startsWith('file://')) {
       event.preventDefault();
       shell.openExternal(url);
