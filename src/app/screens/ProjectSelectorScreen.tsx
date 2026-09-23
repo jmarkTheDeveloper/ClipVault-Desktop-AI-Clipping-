@@ -89,11 +89,6 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
   const hoverAnimFrameRef = useRef<number | null>(null);
 
   const startHoverCountdown = (card: "opus" | "pro") => {
-    // If the opposite card is expanded, switch directly to this card
-    if (expandedStudio && expandedStudio !== card) {
-      setExpandedStudio(card);
-      return;
-    }
     if (expandedStudio === card) return;
 
     setHoveredCard(card);
@@ -105,10 +100,11 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
     const checkHover = () => {
       if (!hoverStartTimeRef.current) return;
       const elapsed = Date.now() - hoverStartTimeRef.current;
-      const pct = Math.min(100, (elapsed / 3000) * 100);
+      // Responsive 400ms hover delay so it triggers reliably without feeling stuck
+      const pct = Math.min(100, (elapsed / 400) * 100);
       setHoverProgress(pct);
 
-      if (elapsed >= 3000) {
+      if (elapsed >= 400) {
         setExpandedStudio(card);
         setHoveredCard(null);
         setHoverProgress(0);
@@ -368,48 +364,6 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
                 background: "linear-gradient(90deg, transparent, rgba(0,230,118,0.6), transparent)",
               }} />
 
-              {/* Hover progress beam (3-second countdown) */}
-              {hoveredCard === "opus" && (
-                <div style={{
-                  position: "absolute", bottom: 0, left: 0, height: 2, pointerEvents: "none",
-                  width: `${hoverProgress}%`,
-                  background: `linear-gradient(90deg, rgba(0,230,118,0.4), ${G}, rgba(0,230,118,0.8))`,
-                  boxShadow: `0 0 8px ${G}`,
-                  transition: "width 0.05s linear",
-                  borderRadius: "0 2px 0 0",
-                }} />
-              )}
-              {hoveredCard === "opus" && (
-                <div style={{
-                  position: "absolute", bottom: 4, right: 12, pointerEvents: "none",
-                  fontSize: 9.5, fontFamily: "'Geist Mono', monospace", color: G, fontWeight: 700, opacity: 0.7,
-                  display: "flex", alignItems: "center", gap: 4,
-                }}>
-                  <Clock style={{ width: 9, height: 9 }} />
-                  Hold to expand…
-                </div>
-              )}
-
-              {/* Instant expand button (top-right corner) */}
-              <button
-                type="button"
-                onClick={() => setExpandedStudio(expandedStudio === "opus" ? null : "opus")}
-                style={{
-                  position: "absolute", top: 12, right: 12,
-                  display: "flex", alignItems: "center", gap: 5,
-                  padding: "4px 9px", borderRadius: 6, border: "1px solid rgba(0,230,118,0.25)",
-                  background: expandedStudio === "opus" ? "rgba(0,230,118,0.15)" : "rgba(0,0,0,0.35)",
-                  color: expandedStudio === "opus" ? G : "rgba(255,255,255,0.5)",
-                  fontSize: 10, cursor: "pointer", backdropFilter: "blur(4px)",
-                  transition: "all 0.2s",
-                }}
-              >
-                {expandedStudio === "opus"
-                  ? <><Minimize2 style={{ width: 10, height: 10 }} /><span>Collapse</span></>
-                  : <><Maximize2 style={{ width: 10, height: 10 }} /><span>Expand</span></>
-                }
-              </button>
-
               <div>
                 {/* Header row */}
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
@@ -543,47 +497,6 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
                 position: "absolute", top: 0, left: 0, right: 0, height: 1, pointerEvents: "none",
                 background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent)",
               }} />
-
-              {/* Hover progress beam (3-second countdown) */}
-              {hoveredCard === "pro" && (
-                <div style={{
-                  position: "absolute", bottom: 0, left: 0, height: 2, pointerEvents: "none",
-                  width: `${hoverProgress}%`,
-                  background: "linear-gradient(90deg, rgba(255,255,255,0.2), rgba(255,255,255,0.6), rgba(255,255,255,0.3))",
-                  transition: "width 0.05s linear",
-                  borderRadius: "0 2px 0 0",
-                }} />
-              )}
-              {hoveredCard === "pro" && (
-                <div style={{
-                  position: "absolute", bottom: 4, right: 12, pointerEvents: "none",
-                  fontSize: 9.5, fontFamily: "'Geist Mono', monospace", color: "rgba(255,255,255,0.5)", fontWeight: 700,
-                  display: "flex", alignItems: "center", gap: 4,
-                }}>
-                  <Clock style={{ width: 9, height: 9 }} />
-                  Hold to expand…
-                </div>
-              )}
-
-              {/* Instant expand button (top-right corner) */}
-              <button
-                type="button"
-                onClick={() => setExpandedStudio(expandedStudio === "pro" ? null : "pro")}
-                style={{
-                  position: "absolute", top: 12, right: 12,
-                  display: "flex", alignItems: "center", gap: 5,
-                  padding: "4px 9px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.12)",
-                  background: expandedStudio === "pro" ? "rgba(0,230,118,0.1)" : "rgba(0,0,0,0.35)",
-                  color: expandedStudio === "pro" ? G : "rgba(255,255,255,0.5)",
-                  fontSize: 10, cursor: "pointer", backdropFilter: "blur(4px)",
-                  transition: "all 0.2s",
-                }}
-              >
-                {expandedStudio === "pro"
-                  ? <><Minimize2 style={{ width: 10, height: 10 }} /><span>Collapse</span></>
-                  : <><Maximize2 style={{ width: 10, height: 10 }} /><span>Expand</span></>
-                }
-              </button>
 
               <div>
                 {/* Header row */}
@@ -836,9 +749,9 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
             position: "fixed",
             inset: 0,
             zIndex: 90,
-            background: "rgba(0, 0, 0, 0.72)",
-            backdropFilter: "blur(14px)",
-            WebkitBackdropFilter: "blur(14px)",
+            background: "rgba(0, 0, 0, 0.75)",
+            backdropFilter: "blur(16px)",
+            WebkitBackdropFilter: "blur(16px)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -846,9 +759,8 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
             animation: "expandIn 0.25s ease-out",
           }}
           onClick={() => setExpandedStudio(null)}
-          onMouseEnter={() => setExpandedStudio(null)}
         >
-          {/* Card Container: stops mouseEnter from bubbling to the overlay */}
+          {/* Card Container: mouseleave collapses it back to normal */}
           <div
             style={{
               position: "relative",
@@ -856,7 +768,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
               animation: "spotlightIn 0.32s cubic-bezier(0.16, 1, 0.3, 1)",
             }}
             onClick={(e) => e.stopPropagation()}
-            onMouseEnter={(e) => e.stopPropagation()}
+            onMouseLeave={() => setExpandedStudio(null)}
           >
             {/* Outer glow ring */}
             <div style={{
