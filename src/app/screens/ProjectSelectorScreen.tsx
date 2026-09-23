@@ -81,50 +81,16 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const documentPaneRef = useRef<HTMLDivElement>(null);
 
-  // 3-Second Hover Widescreen Expansion Animation State
+  // Card Hover & Showcase State
   const [hoveredCard, setHoveredCard] = useState<"opus" | "pro" | null>(null);
-  const [hoverProgress, setHoverProgress] = useState<number>(0);
   const [expandedStudio, setExpandedStudio] = useState<"opus" | "pro" | null>(null);
-  const hoverStartTimeRef = useRef<number | null>(null);
-  const hoverAnimFrameRef = useRef<number | null>(null);
 
-  const startHoverCountdown = (card: "opus" | "pro") => {
-    if (expandedStudio === card) return;
-
+  const handleCardMouseEnter = (card: "opus" | "pro") => {
     setHoveredCard(card);
-    hoverStartTimeRef.current = Date.now();
-    setHoverProgress(0);
-
-    if (hoverAnimFrameRef.current) cancelAnimationFrame(hoverAnimFrameRef.current);
-
-    const checkHover = () => {
-      if (!hoverStartTimeRef.current) return;
-      const elapsed = Date.now() - hoverStartTimeRef.current;
-      // Responsive 400ms hover delay so it triggers reliably without feeling stuck
-      const pct = Math.min(100, (elapsed / 400) * 100);
-      setHoverProgress(pct);
-
-      if (elapsed >= 400) {
-        setExpandedStudio(card);
-        setHoveredCard(null);
-        setHoverProgress(0);
-        hoverStartTimeRef.current = null;
-      } else {
-        hoverAnimFrameRef.current = requestAnimationFrame(checkHover);
-      }
-    };
-
-    hoverAnimFrameRef.current = requestAnimationFrame(checkHover);
   };
 
-  const cancelHoverCountdown = () => {
+  const handleCardMouseLeave = () => {
     setHoveredCard(null);
-    setHoverProgress(0);
-    hoverStartTimeRef.current = null;
-    if (hoverAnimFrameRef.current) {
-      cancelAnimationFrame(hoverAnimFrameRef.current);
-      hoverAnimFrameRef.current = null;
-    }
   };
 
   useEffect(() => {
@@ -249,6 +215,9 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
     } catch {}
   }, []);
 
+  const isOpusHovered = hoveredCard === "opus" || expandedStudio === "opus";
+  const isProHovered = hoveredCard === "pro" || expandedStudio === "pro";
+
   return (
     <div style={{ height: "100vh", width: "100vw", display: "flex", flexDirection: "column", overflow: "hidden", background: "#000000", fontFamily: "'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
       <style>{`
@@ -371,279 +340,311 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
             display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
             gap: 24, width: "100%", marginBottom: 32,
           }}>
-              {/* CARD 1: 1-Click Auto Clipper (Primary Hero Studio) */}
+              {/* CARD 1: 1-Click Auto Clipper */}
               <div
                 id="tour-step-1-clipper-card"
-              style={{
-                position: "relative", overflow: "hidden",
-                background: expandedStudio === "opus"
-                  ? "linear-gradient(160deg, rgba(0,230,118,0.07) 0%, rgba(0,230,118,0.02) 100%)"
-                  : "linear-gradient(160deg, rgba(255,255,255,0.035) 0%, rgba(255,255,255,0.01) 100%)",
-                borderRadius: 22, padding: "30px 28px",
-                border: expandedStudio === "opus"
-                  ? "1px solid rgba(0,230,118,0.45)"
-                  : hoveredCard === "opus"
-                    ? "1px solid rgba(0,230,118,0.35)"
-                    : "1px solid rgba(0,230,118,0.22)",
-                display: "flex", flexDirection: "column", justifyContent: "space-between",
-                boxShadow: expandedStudio === "opus"
-                  ? "0 25px 80px rgba(0,0,0,0.65), 0 0 60px rgba(0,230,118,0.18)"
-                  : "0 20px 60px rgba(0,0,0,0.5), 0 0 35px rgba(0,230,118,0.06)",
-                transition: "all 0.3s ease",
-                transform: hoveredCard === "opus" ? "translateY(-2px)" : "none",
-              }}
-              onMouseEnter={() => startHoverCountdown("opus")}
-              onMouseLeave={() => cancelHoverCountdown()}
-            >
-              {/* Top ambient highlight line */}
-              <div style={{
-                position: "absolute", top: 0, left: 0, right: 0, height: 1, pointerEvents: "none",
-                background: "linear-gradient(90deg, transparent, rgba(0,230,118,0.6), transparent)",
-              }} />
+                style={{
+                  position: "relative", overflow: "hidden",
+                  background: isOpusHovered
+                    ? "linear-gradient(160deg, rgba(0,230,118,0.08) 0%, rgba(0,230,118,0.02) 100%)"
+                    : "linear-gradient(160deg, rgba(255,255,255,0.035) 0%, rgba(255,255,255,0.008) 100%)",
+                  borderRadius: 22, padding: "30px 28px",
+                  border: isOpusHovered
+                    ? "1px solid rgba(0,230,118,0.45)"
+                    : "1px solid rgba(255,255,255,0.1)",
+                  display: "flex", flexDirection: "column", justifyContent: "space-between",
+                  boxShadow: isOpusHovered
+                    ? "0 25px 80px rgba(0,0,0,0.65), 0 0 55px rgba(0,230,118,0.2)"
+                    : "0 20px 60px rgba(0,0,0,0.5)",
+                  transition: "all 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
+                  transform: isOpusHovered ? "translateY(-3px)" : "none",
+                }}
+                onMouseEnter={() => handleCardMouseEnter("opus")}
+                onMouseLeave={handleCardMouseLeave}
+              >
+                {/* Top ambient highlight line */}
+                <div style={{
+                  position: "absolute", top: 0, left: 0, right: 0, height: 1, pointerEvents: "none",
+                  background: isOpusHovered
+                    ? "linear-gradient(90deg, transparent, rgba(0,230,118,0.7), transparent)"
+                    : "linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent)",
+                  transition: "all 0.25s ease",
+                }} />
 
-              <div>
-                {/* Header row */}
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
-                  <div style={{
-                    display: "flex", alignItems: "center", gap: 6,
-                    padding: "5px 11px", borderRadius: 999,
-                    background: "rgba(0,230,118,0.08)", border: "1px solid rgba(0,230,118,0.25)",
-                  }}>
-                    <Zap style={{ width: 12, height: 12, color: G }} />
-                    <span style={{ fontSize: 11, fontWeight: 700, color: G }}>Recommended</span>
-                  </div>
-                  <span style={{
-                    fontFamily: "'Geist Mono', monospace", fontSize: 24, fontWeight: 700,
-                    color: "rgba(255,255,255,0.15)", letterSpacing: "-0.05em", lineHeight: 1,
-                  }}>
-                    01
-                  </span>
-                </div>
-
-                {/* Title & Icon */}
-                <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 16 }}>
-                  <div style={{
-                    width: 52, height: 52, borderRadius: 16, flexShrink: 0,
-                    background: "radial-gradient(circle, rgba(0,230,118,0.18) 0%, rgba(0,230,118,0.04) 100%)",
-                    border: "1px solid rgba(0,230,118,0.3)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    boxShadow: "0 0 20px rgba(0,230,118,0.15)",
-                  }}>
-                    <Sparkles style={{ width: 22, height: 22, color: G }} />
-                  </div>
-
-                  <div>
-                    <h2 style={{
-                      fontFamily: "'Space Grotesk', 'Geist', sans-serif", fontWeight: 800, fontSize: 21,
-                      color: "#fff", letterSpacing: "-0.02em", margin: "0 0 3px",
+                <div>
+                  {/* Header row */}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+                    <div style={{
+                      display: "flex", alignItems: "center", gap: 6,
+                      padding: "5px 11px", borderRadius: 999,
+                      background: isOpusHovered ? "rgba(0,230,118,0.1)" : "rgba(255,255,255,0.04)",
+                      border: isOpusHovered ? "1px solid rgba(0,230,118,0.3)" : "1px solid rgba(255,255,255,0.1)",
+                      transition: "all 0.25s ease",
                     }}>
-                      1-Click Auto Clipper
-                    </h2>
-                    <p style={{ fontSize: 12.5, color: "rgba(255,255,255,0.5)", margin: 0, fontWeight: 500 }}>
-                      Opus-style autonomous curation with zero manual slicing
-                    </p>
-                  </div>
-                </div>
-
-                {/* Feature checklist */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 26, paddingLeft: 2 }}>
-                  {opusFeatures.map((feat) => (
-                    <div key={feat} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <div style={{
-                        width: 17, height: 17, borderRadius: "50%", flexShrink: 0,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        background: "rgba(0,230,118,0.1)", border: "1px solid rgba(0,230,118,0.3)",
-                      }}>
-                        <Check style={{ width: 10, height: 10, color: G }} />
-                      </div>
-                      <span style={{ fontSize: 12.5, color: "rgba(255,255,255,0.75)", fontWeight: 500 }}>{feat}</span>
+                      <Zap style={{ width: 12, height: 12, color: isOpusHovered ? G : "rgba(255,255,255,0.85)", transition: "color 0.25s ease" }} />
+                      <span style={{ fontSize: 11, fontWeight: 700, color: isOpusHovered ? G : "rgba(255,255,255,0.85)", transition: "color 0.25s ease" }}>Recommended</span>
                     </div>
-                  ))}
+                    <span style={{
+                      fontFamily: "'Geist Mono', monospace", fontSize: 24, fontWeight: 700,
+                      color: isOpusHovered ? "rgba(0,230,118,0.4)" : "rgba(255,255,255,0.15)", letterSpacing: "-0.05em", lineHeight: 1,
+                      transition: "color 0.25s ease",
+                    }}>
+                      01
+                    </span>
+                  </div>
+
+                  {/* Title & Icon */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 16 }}>
+                    <div style={{
+                      width: 52, height: 52, borderRadius: 16, flexShrink: 0,
+                      background: isOpusHovered
+                        ? "radial-gradient(circle, rgba(0,230,118,0.22) 0%, rgba(0,230,118,0.05) 100%)"
+                        : "linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)",
+                      border: isOpusHovered ? "1px solid rgba(0,230,118,0.4)" : "1px solid rgba(255,255,255,0.12)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      boxShadow: isOpusHovered ? "0 0 25px rgba(0,230,118,0.25)" : "0 4px 20px rgba(0,0,0,0.3)",
+                      transition: "all 0.25s ease",
+                    }}>
+                      <Sparkles style={{ width: 22, height: 22, color: isOpusHovered ? G : "#fff", transition: "color 0.25s ease" }} />
+                    </div>
+
+                    <div>
+                      <h2 style={{
+                        fontFamily: "'Space Grotesk', 'Geist', sans-serif", fontWeight: 800, fontSize: 21,
+                        color: "#fff", letterSpacing: "-0.02em", margin: "0 0 3px",
+                      }}>
+                        1-Click Auto Clipper
+                      </h2>
+                      <p style={{ fontSize: 12.5, color: "rgba(255,255,255,0.5)", margin: 0, fontWeight: 500 }}>
+                        Opus-style autonomous curation with zero manual slicing
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Feature checklist */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 26, paddingLeft: 2 }}>
+                    {opusFeatures.map((feat) => (
+                      <div key={feat} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <div style={{
+                          width: 17, height: 17, borderRadius: "50%", flexShrink: 0,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          background: isOpusHovered ? "rgba(0,230,118,0.14)" : "rgba(0,230,118,0.08)",
+                          border: isOpusHovered ? "1px solid rgba(0,230,118,0.35)" : "1px solid rgba(0,230,118,0.22)",
+                          transition: "all 0.25s ease",
+                        }}>
+                          <Check style={{ width: 10, height: 10, color: G }} />
+                        </div>
+                        <span style={{ fontSize: 12.5, color: isOpusHovered ? "#fff" : "rgba(255,255,255,0.75)", fontWeight: 500, transition: "color 0.25s ease" }}>{feat}</span>
+                      </div>
+                    ))}
+                  </div>
+
                 </div>
 
+                {/* Action Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!complianceAccepted) {
+                      setSettingsTab("eula");
+                      setShowSettingsModal(true);
+                      return;
+                    }
+                    onSelect("opus-clipper");
+                  }}
+                  style={{
+                    width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+                    padding: "14px 20px", borderRadius: 12, cursor: "pointer",
+                    background: isOpusHovered ? `linear-gradient(135deg, ${G} 0%, #00DF6D 100%)` : "rgba(255,255,255,0.04)",
+                    color: isOpusHovered ? "#000" : "#fff",
+                    fontSize: 13.5,
+                    fontWeight: isOpusHovered ? 800 : 700,
+                    fontFamily: "'Space Grotesk', 'Geist', sans-serif", letterSpacing: "-0.01em",
+                    border: isOpusHovered ? "1px solid rgba(0,230,118,0.5)" : "1px solid rgba(255,255,255,0.14)",
+                    boxShadow: isOpusHovered ? "0 0 32px rgba(0,230,118,0.45)" : "none",
+                    transition: "all 0.25s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (isOpusHovered) {
+                      e.currentTarget.style.boxShadow = "0 0 45px rgba(0,230,118,0.7)";
+                      e.currentTarget.style.transform = "translateY(-1px)";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (isOpusHovered) {
+                      e.currentTarget.style.boxShadow = "0 0 32px rgba(0,230,118,0.45)";
+                      e.currentTarget.style.transform = "none";
+                    }
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <Sparkles style={{ width: 15, height: 15 }} />
+                    <span>Launch 1-Click Studio</span>
+                  </div>
+                  <div style={{
+                    width: 24, height: 24, borderRadius: "50%",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    background: isOpusHovered ? "rgba(0,0,0,0.22)" : "rgba(255,255,255,0.08)",
+                    color: isOpusHovered ? "#000" : "#fff",
+                    transition: "all 0.25s ease",
+                  }}>
+                    <ChevronRight style={{ width: 14, height: 14 }} />
+                  </div>
+                </button>
               </div>
 
 
-              {/* Action Button */}
-              <button
-                type="button"
-                onClick={() => {
-                  if (!complianceAccepted) {
-                    setSettingsTab("eula");
-                    setShowSettingsModal(true);
-                    return;
-                  }
-                  onSelect("opus-clipper");
-                }}
+              {/* CARD 2: Pro Manual Studio */}
+              <div
                 style={{
-                  width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
-                  padding: "14px 20px", borderRadius: 12, border: "none", cursor: "pointer",
-                  background: `linear-gradient(135deg, ${G} 0%, #00DF6D 100%)`, color: "#000", fontSize: 13.5, fontWeight: 800,
-                  fontFamily: "'Space Grotesk', 'Geist', sans-serif", letterSpacing: "-0.01em",
-                  boxShadow: "0 0 28px rgba(0,230,118,0.35)", transition: "all 0.2s ease",
+                  position: "relative", overflow: "hidden",
+                  background: isProHovered
+                    ? "linear-gradient(160deg, rgba(0,230,118,0.08) 0%, rgba(0,230,118,0.02) 100%)"
+                    : "linear-gradient(160deg, rgba(255,255,255,0.035) 0%, rgba(255,255,255,0.008) 100%)",
+                  borderRadius: 22, padding: "30px 28px",
+                  border: isProHovered
+                    ? "1px solid rgba(0,230,118,0.45)"
+                    : "1px solid rgba(255,255,255,0.1)",
+                  display: "flex", flexDirection: "column", justifyContent: "space-between",
+                  boxShadow: isProHovered
+                    ? "0 25px 80px rgba(0,0,0,0.65), 0 0 55px rgba(0,230,118,0.2)"
+                    : "0 20px 60px rgba(0,0,0,0.5)",
+                  transition: "all 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
+                  transform: isProHovered ? "translateY(-3px)" : "none",
                 }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.boxShadow = "0 0 45px rgba(0,230,118,0.65)";
-                  e.currentTarget.style.transform = "translateY(-1px)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.boxShadow = "0 0 28px rgba(0,230,118,0.35)";
-                  e.currentTarget.style.transform = "none";
-                }}
+                onMouseEnter={() => handleCardMouseEnter("pro")}
+                onMouseLeave={handleCardMouseLeave}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <Sparkles style={{ width: 15, height: 15 }} />
-                  <span>Launch 1-Click Studio</span>
-                </div>
+                {/* Top ambient subtle highlight line */}
                 <div style={{
-                  width: 24, height: 24, borderRadius: "50%",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  background: "rgba(0,0,0,0.22)"
-                }}>
-                  <ChevronRight style={{ width: 14, height: 14 }} />
-                </div>
-              </button>
-            </div>
+                  position: "absolute", top: 0, left: 0, right: 0, height: 1, pointerEvents: "none",
+                  background: isProHovered
+                    ? "linear-gradient(90deg, transparent, rgba(0,230,118,0.7), transparent)"
+                    : "linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent)",
+                  transition: "all 0.25s ease",
+                }} />
 
-
-            {/* CARD 2: Pro Manual Studio (Senior High-Contrast Precision Secondary) */}
-            <div
-              style={{
-                position: "relative", overflow: "hidden",
-                background: expandedStudio === "pro"
-                  ? "linear-gradient(160deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)"
-                  : "linear-gradient(160deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.008) 100%)",
-                borderRadius: 22, padding: "30px 28px",
-                border: expandedStudio === "pro"
-                  ? "1px solid rgba(0,230,118,0.35)"
-                  : hoveredCard === "pro"
-                    ? "1px solid rgba(255,255,255,0.18)"
-                    : "1px solid rgba(255,255,255,0.09)",
-                display: "flex", flexDirection: "column", justifyContent: "space-between",
-                boxShadow: expandedStudio === "pro"
-                  ? "0 25px 80px rgba(0,0,0,0.65), 0 0 40px rgba(0,230,118,0.1)"
-                  : "0 20px 60px rgba(0,0,0,0.5)",
-                transition: "all 0.3s ease",
-                transform: hoveredCard === "pro" ? "translateY(-2px)" : "none",
-              }}
-              onMouseEnter={() => startHoverCountdown("pro")}
-              onMouseLeave={() => cancelHoverCountdown()}
-            >
-              {/* Top ambient subtle highlight line */}
-              <div style={{
-                position: "absolute", top: 0, left: 0, right: 0, height: 1, pointerEvents: "none",
-                background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent)",
-              }} />
-
-              <div>
-                {/* Header row */}
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
-                  <div style={{
-                    display: "flex", alignItems: "center", gap: 6,
-                    padding: "5px 11px", borderRadius: 999,
-                    background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)",
-                  }}>
-                    <Sliders style={{ width: 12, height: 12, color: "rgba(255,255,255,0.85)" }} />
-                    <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.85)" }}>Precision Studio</span>
-                  </div>
-                  <span style={{
-                    fontFamily: "'Geist Mono', monospace", fontSize: 24, fontWeight: 700,
-                    color: "rgba(255,255,255,0.15)", letterSpacing: "-0.05em", lineHeight: 1,
-                  }}>
-                    02
-                  </span>
-                </div>
-
-                {/* Title & Icon */}
-                <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 16 }}>
-                  <div style={{
-                    width: 52, height: 52, borderRadius: 16, flexShrink: 0,
-                    background: "linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)",
-                    border: "1px solid rgba(255,255,255,0.12)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
-                  }}>
-                    <Layers style={{ width: 22, height: 22, color: "#fff" }} />
-                  </div>
-
-                  <div>
-                    <h2 style={{
-                      fontFamily: "'Space Grotesk', 'Geist', sans-serif", fontWeight: 800, fontSize: 21,
-                      color: "#fff", letterSpacing: "-0.02em", margin: "0 0 3px",
+                <div>
+                  {/* Header row */}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+                    <div style={{
+                      display: "flex", alignItems: "center", gap: 6,
+                      padding: "5px 11px", borderRadius: 999,
+                      background: isProHovered ? "rgba(0,230,118,0.1)" : "rgba(255,255,255,0.04)",
+                      border: isProHovered ? "1px solid rgba(0,230,118,0.3)" : "1px solid rgba(255,255,255,0.1)",
+                      transition: "all 0.25s ease",
                     }}>
-                      Pro Manual Studio
-                    </h2>
-                    <p style={{ fontSize: 12.5, color: "rgba(255,255,255,0.5)", margin: 0, fontWeight: 500 }}>
-                      Frame-accurate timeline, multi-ranges &amp; split-screen
-                    </p>
-                  </div>
-                </div>
-
-                {/* Feature checklist */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 26, paddingLeft: 2 }}>
-                  {proFeatures.map((feat) => (
-                    <div key={feat} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <div style={{
-                        width: 17, height: 17, borderRadius: "50%", flexShrink: 0,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        background: "rgba(0,230,118,0.08)", border: "1px solid rgba(0,230,118,0.22)",
-                      }}>
-                        <Check style={{ width: 10, height: 10, color: G }} />
-                      </div>
-                      <span style={{ fontSize: 12.5, color: "rgba(255,255,255,0.75)", fontWeight: 500 }}>{feat}</span>
+                      <Sliders style={{ width: 12, height: 12, color: isProHovered ? G : "rgba(255,255,255,0.85)", transition: "color 0.25s ease" }} />
+                      <span style={{ fontSize: 11, fontWeight: 700, color: isProHovered ? G : "rgba(255,255,255,0.85)", transition: "color 0.25s ease" }}>Precision Studio</span>
                     </div>
-                  ))}
+                    <span style={{
+                      fontFamily: "'Geist Mono', monospace", fontSize: 24, fontWeight: 700,
+                      color: isProHovered ? "rgba(0,230,118,0.4)" : "rgba(255,255,255,0.15)", letterSpacing: "-0.05em", lineHeight: 1,
+                      transition: "color 0.25s ease",
+                    }}>
+                      02
+                    </span>
+                  </div>
+
+                  {/* Title & Icon */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 16 }}>
+                    <div style={{
+                      width: 52, height: 52, borderRadius: 16, flexShrink: 0,
+                      background: isProHovered
+                        ? "radial-gradient(circle, rgba(0,230,118,0.22) 0%, rgba(0,230,118,0.05) 100%)"
+                        : "linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)",
+                      border: isProHovered ? "1px solid rgba(0,230,118,0.4)" : "1px solid rgba(255,255,255,0.12)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      boxShadow: isProHovered ? "0 0 25px rgba(0,230,118,0.25)" : "0 4px 20px rgba(0,0,0,0.3)",
+                      transition: "all 0.25s ease",
+                    }}>
+                      <Layers style={{ width: 22, height: 22, color: isProHovered ? G : "#fff", transition: "color 0.25s ease" }} />
+                    </div>
+
+                    <div>
+                      <h2 style={{
+                        fontFamily: "'Space Grotesk', 'Geist', sans-serif", fontWeight: 800, fontSize: 21,
+                        color: "#fff", letterSpacing: "-0.02em", margin: "0 0 3px",
+                      }}>
+                        Pro Manual Studio
+                      </h2>
+                      <p style={{ fontSize: 12.5, color: "rgba(255,255,255,0.5)", margin: 0, fontWeight: 500 }}>
+                        Frame-accurate timeline, multi-ranges &amp; split-screen
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Feature checklist */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 26, paddingLeft: 2 }}>
+                    {proFeatures.map((feat) => (
+                      <div key={feat} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <div style={{
+                          width: 17, height: 17, borderRadius: "50%", flexShrink: 0,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          background: isProHovered ? "rgba(0,230,118,0.14)" : "rgba(0,230,118,0.08)",
+                          border: isProHovered ? "1px solid rgba(0,230,118,0.35)" : "1px solid rgba(0,230,118,0.22)",
+                          transition: "all 0.25s ease",
+                        }}>
+                          <Check style={{ width: 10, height: 10, color: G }} />
+                        </div>
+                        <span style={{ fontSize: 12.5, color: isProHovered ? "#fff" : "rgba(255,255,255,0.75)", fontWeight: 500, transition: "color 0.25s ease" }}>{feat}</span>
+                      </div>
+                    ))}
+                  </div>
+
                 </div>
 
+                {/* Action Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!complianceAccepted) {
+                      setSettingsTab("eula");
+                      setShowSettingsModal(true);
+                      return;
+                    }
+                    onSelect("ai-clipper");
+                  }}
+                  style={{
+                    width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+                    padding: "14px 20px", borderRadius: 12, cursor: "pointer",
+                    background: isProHovered ? `linear-gradient(135deg, ${G} 0%, #00DF6D 100%)` : "rgba(255,255,255,0.04)",
+                    color: isProHovered ? "#000" : "#fff",
+                    fontSize: 13.5,
+                    fontWeight: isProHovered ? 800 : 700,
+                    fontFamily: "'Space Grotesk', 'Geist', sans-serif", letterSpacing: "-0.01em",
+                    border: isProHovered ? "1px solid rgba(0,230,118,0.5)" : "1px solid rgba(255,255,255,0.14)",
+                    boxShadow: isProHovered ? "0 0 32px rgba(0,230,118,0.45)" : "none",
+                    transition: "all 0.25s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (isProHovered) {
+                      e.currentTarget.style.boxShadow = "0 0 45px rgba(0,230,118,0.7)";
+                      e.currentTarget.style.transform = "translateY(-1px)";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (isProHovered) {
+                      e.currentTarget.style.boxShadow = "0 0 32px rgba(0,230,118,0.45)";
+                      e.currentTarget.style.transform = "none";
+                    }
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <Sliders style={{ width: 15, height: 15 }} />
+                    <span>Open Pro Studio</span>
+                  </div>
+                  <div style={{
+                    width: 24, height: 24, borderRadius: "50%",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    background: isProHovered ? "rgba(0,0,0,0.22)" : "rgba(255,255,255,0.08)",
+                    color: isProHovered ? "#000" : "#fff",
+                    transition: "all 0.25s ease",
+                  }}>
+                    <ChevronRight style={{ width: 14, height: 14 }} />
+                  </div>
+                </button>
               </div>
-
-
-              {/* Action Button: High-End Senior Secondary Ghost/Elevated Studio Button */}
-              <button
-                type="button"
-                onClick={() => {
-                  if (!complianceAccepted) {
-                    setSettingsTab("eula");
-                    setShowSettingsModal(true);
-                    return;
-                  }
-                  onSelect("ai-clipper");
-                }}
-                style={{
-                  width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
-                  padding: "14px 20px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.15)", cursor: "pointer",
-                  background: "rgba(255,255,255,0.04)", color: "#fff", fontSize: 13.5, fontWeight: 700,
-                  fontFamily: "'Space Grotesk', 'Geist', sans-serif", letterSpacing: "-0.01em",
-                  transition: "all 0.2s ease",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "rgba(0,230,118,0.12)";
-                  e.currentTarget.style.borderColor = G;
-                  e.currentTarget.style.color = G;
-                  e.currentTarget.style.boxShadow = "0 0 32px rgba(0,230,118,0.25)";
-                  e.currentTarget.style.transform = "translateY(-1px)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "rgba(255,255,255,0.04)";
-                  e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)";
-                  e.currentTarget.style.color = "#fff";
-                  e.currentTarget.style.boxShadow = "none";
-                  e.currentTarget.style.transform = "none";
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <Sliders style={{ width: 15, height: 15 }} />
-                  <span>Open Pro Studio</span>
-                </div>
-                <div style={{
-                  width: 24, height: 24, borderRadius: "50%",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  background: "rgba(255,255,255,0.08)"
-                }}>
-                  <ChevronRight style={{ width: 14, height: 14 }} />
-                </div>
-              </button>
-            </div>
           </div>
 
           {/* 3. Bottom Value Ribbon & Footer Links (Senior Monochromatic & Emerald) */}
