@@ -84,38 +84,29 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
   // Card Hover & 5-Second Widescreen Expansion State
   const [hoveredCard, setHoveredCard] = useState<"opus" | "pro" | null>(null);
   const [expandedStudio, setExpandedStudio] = useState<"opus" | "pro" | null>(null);
-  const hoverStartTimeRef = useRef<number | null>(null);
-  const hoverAnimFrameRef = useRef<number | null>(null);
+  const hoverTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleCardMouseEnter = (card: "opus" | "pro") => {
     setHoveredCard(card);
     if (expandedStudio === card) return;
 
-    hoverStartTimeRef.current = Date.now();
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
 
-    if (hoverAnimFrameRef.current) cancelAnimationFrame(hoverAnimFrameRef.current);
-
-    const checkHover = () => {
-      if (!hoverStartTimeRef.current) return;
-      const elapsed = Date.now() - hoverStartTimeRef.current;
-      // 5-second hover delay before expanding spotlight modal
-      if (elapsed >= 5000) {
-        setExpandedStudio(card);
-        hoverStartTimeRef.current = null;
-      } else {
-        hoverAnimFrameRef.current = requestAnimationFrame(checkHover);
-      }
-    };
-
-    hoverAnimFrameRef.current = requestAnimationFrame(checkHover);
+    // 5-second hover delay before expanding spotlight modal
+    hoverTimerRef.current = setTimeout(() => {
+      setExpandedStudio(card);
+      hoverTimerRef.current = null;
+    }, 5000);
   };
 
   const handleCardMouseLeave = () => {
     setHoveredCard(null);
-    hoverStartTimeRef.current = null;
-    if (hoverAnimFrameRef.current) {
-      cancelAnimationFrame(hoverAnimFrameRef.current);
-      hoverAnimFrameRef.current = null;
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
     }
   };
 
@@ -132,7 +123,10 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
 
   useEffect(() => {
     return () => {
-      if (hoverAnimFrameRef.current) cancelAnimationFrame(hoverAnimFrameRef.current);
+      if (hoverTimerRef.current) {
+        clearTimeout(hoverTimerRef.current);
+        hoverTimerRef.current = null;
+      }
     };
   }, []);
 
@@ -213,19 +207,24 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
     const email = "studioclipvault@gmail.com";
     const gmailComposeUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}`;
     
+    // Always copy the email to clipboard for instant user access
+    try {
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(email);
+        setCopiedText("email");
+        setTimeout(() => setCopiedText(null), 3000);
+      }
+    } catch {}
+
     // 1. Try electronAPI.openExternal if running in Electron
     const win = window as any;
-    if (win.electronAPI?.openExternal) {
+    if (typeof win.electronAPI?.openExternal === "function") {
       win.electronAPI.openExternal(gmailComposeUrl);
       return;
     }
 
-    // 2. Open Gmail compose directly in new browser tab
-    const opened = window.open(gmailComposeUrl, "_blank", "noopener,noreferrer");
-    if (!opened) {
-      // 3. Fallback to standard mailto:
-      window.location.href = `mailto:${email}`;
-    }
+    // 2. Open Gmail compose directly in external default browser
+    window.open(gmailComposeUrl, "_blank", "noopener,noreferrer");
   };
 
   useEffect(() => {
@@ -2102,7 +2101,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
                           <div><strong>Permitted Uses:</strong> Editorial references in reviews, written tutorials, or community blog posts with clear attribution ("Powered by ClipVault" or "Made with ClipVault") are allowed.</div>
                           <div><strong>Prohibited Uses:</strong> Using ClipVault branding to create competing products, unauthorized forks, or derivative SaaS services. Using the name or logo on merchandise, services, or commercial media without explicit written permission from ClipVault Studio LLC.</div>
                           <div><strong>Community Content:</strong> Approved fan tutorials, YouTube reviews, and community forums may display the ClipVault name in non-commercial, educational contexts with visible attribution.</div>
-                          <div><strong>Reporting Misuse:</strong> If you encounter unauthorized use of ClipVault trademarks, report it to <a href="https://mail.google.com/mail/?view=cm&fs=1&to=studioclipvault@gmail.com" target="_blank" rel="noopener noreferrer" onClick={openEmail} style={{ color: G, cursor: "pointer" }}>studioclipvault@gmail.com</a>.</div>
+                          <div><strong>Reporting Misuse:</strong> If you encounter unauthorized use of ClipVault trademarks, report it to <a href="https://mail.google.com/mail/?view=cm&fs=1&to=studioclipvault@gmail.com" target="_blank" rel="noopener noreferrer" onClick={openEmail} style={{ color: G, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: "3px" }}>studioclipvault@gmail.com</a>{copiedText === "email" && <span style={{ color: G, marginLeft: 6, fontSize: 11, fontWeight: 600 }}>• Copied &amp; opening Gmail!</span>}.</div>
                         </div>
                       </div>
                     )}
@@ -2166,7 +2165,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
                           <div style={{ padding: 14, borderRadius: 10, background: "rgba(255,102,122,0.05)", border: "1px solid rgba(255,102,122,0.2)" }}>
                             <div style={{ fontWeight: 700, color: "#ff8595", marginBottom: 4 }}>Respect Independent Engineering</div>
                             <p style={{ margin: 0, fontSize: 11.5, color: "rgba(255,255,255,0.75)" }}>
-                              Please do not attempt to crack, reverse-engineer, or distribute unauthorized binaries. Cracking this software deprives an independent student of tuition and living expenses. For financial hardship inquiries or educator licenses, contact us at: <a href="https://mail.google.com/mail/?view=cm&fs=1&to=studioclipvault@gmail.com" target="_blank" rel="noopener noreferrer" onClick={openEmail} style={{ color: G, fontWeight: 700, cursor: "pointer" }}>studioclipvault@gmail.com</a>.
+                              Please do not attempt to crack, reverse-engineer, or distribute unauthorized binaries. Cracking this software deprives an independent student of tuition and living expenses. For financial hardship inquiries or educator licenses, contact us at: <a href="https://mail.google.com/mail/?view=cm&fs=1&to=studioclipvault@gmail.com" target="_blank" rel="noopener noreferrer" onClick={openEmail} style={{ color: G, fontWeight: 700, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: "3px" }}>studioclipvault@gmail.com</a>{copiedText === "email" && <span style={{ color: G, marginLeft: 6, fontSize: 11, fontWeight: 600 }}>• Copied &amp; opening Gmail!</span>}.
                             </p>
                           </div>
                         </div>
@@ -2310,6 +2309,9 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
                         >
                           <Mail style={{ width: 12, height: 12 }} />
                           <span>studioclipvault@gmail.com</span>
+                          {copiedText === "email" && (
+                            <span style={{ fontSize: 10.5, color: G, marginLeft: 4 }}>• Copied &amp; opening Gmail!</span>
+                          )}
                         </a>
 
                         <span style={{ fontSize: 11, color: "rgba(255,255,255,0.2)" }}>•</span>
