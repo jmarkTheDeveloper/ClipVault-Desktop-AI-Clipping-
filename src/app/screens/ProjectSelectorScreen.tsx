@@ -214,7 +214,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
   };
 
   return (
-    <div style={{ height: "100vh", width: "100vw", display: "flex", flexDirection: "column", overflow: "hidden", background: "#050508", fontFamily: "'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
+    <div style={{ height: "100vh", width: "100vw", display: "flex", flexDirection: "column", overflow: "hidden", background: "#000000", fontFamily: "'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
 
@@ -244,7 +244,7 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
       <header style={{
         height: 48, flexShrink: 0, zIndex: 30,
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "0 140px 0 24px", background: "#080c14",
+        padding: "0 140px 0 24px", background: "#000000",
         borderBottom: "1px solid rgba(255,255,255,0.06)",
       }}>
         {/* Brand */}
