@@ -210,9 +210,10 @@ ipcMain.handle('get-auth-token', (event) => {
 function createWindow() {
   const iconIco = path.resolve(__dirname, '../public/icon.ico');
   const iconPng = path.resolve(__dirname, '../public/icon.png');
+  const icon512 = path.resolve(__dirname, '../public/icon-512.png');
   const iconTarget = process.platform === 'win32'
-    ? (fs.existsSync(iconIco) ? iconIco : iconPng)
-    : (fs.existsSync(iconPng) ? iconPng : iconIco);
+    ? (fs.existsSync(iconIco) ? iconIco : (fs.existsSync(icon512) ? icon512 : iconPng))
+    : (fs.existsSync(icon512) ? icon512 : (fs.existsSync(iconPng) ? iconPng : iconIco));
   const appIcon = fs.existsSync(iconTarget) ? nativeImage.createFromPath(iconTarget) : undefined;
 
   mainWindow = new BrowserWindow({
@@ -220,7 +221,7 @@ function createWindow() {
     height: 720,
     title: 'ClipVault',
     show: false,
-    icon: iconTarget,
+    icon: (appIcon && !appIcon.isEmpty()) ? appIcon : iconTarget,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       nodeIntegration: false,
@@ -239,7 +240,7 @@ function createWindow() {
 
   if (appIcon && !appIcon.isEmpty()) {
     try {
-      mainWindow.setIcon(process.platform === 'win32' ? iconTarget : appIcon);
+      mainWindow.setIcon(appIcon);
     } catch (e) {}
   }
 
@@ -540,9 +541,11 @@ app.whenReady().then(() => {
         }
       } catch (e) {}
 
+      const rootDir = path.resolve(__dirname, '..');
       const shortcutOptions = {
         target: process.execPath,
-        args: app.isPackaged ? '' : `"${path.resolve(__dirname, '..')}"`,
+        args: app.isPackaged ? '' : rootDir,
+        cwd: rootDir,
         appUserModelId: 'ClipVault',
         description: 'ClipVault',
         icon: iconIco,
