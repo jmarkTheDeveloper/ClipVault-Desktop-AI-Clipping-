@@ -95,11 +95,11 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
       hoverTimerRef.current = null;
     }
 
-    // 5-second hover delay before expanding spotlight modal
+    // 3.5-second hover delay before expanding spotlight modal
     hoverTimerRef.current = setTimeout(() => {
       setExpandedStudio(card);
       hoverTimerRef.current = null;
-    }, 5000);
+    }, 3500);
   };
 
   const handleCardMouseLeave = () => {
@@ -161,14 +161,14 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
       .catch(() => setEngineOnline(false));
   }, []);
 
-  // 5-second inactivity timer for scroll down prompt when first-launch compliance is pending
+  // 3.5-second inactivity timer for scroll down prompt when first-launch compliance is pending
   useEffect(() => {
     if (showSettingsModal && !complianceAccepted && !hasScrolledToBottom) {
       setShowScrollPrompt(false);
       if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
       scrollTimeoutRef.current = setTimeout(() => {
         setShowScrollPrompt(true);
-      }, 5000);
+      }, 3500);
     } else {
       setShowScrollPrompt(false);
     }
@@ -409,13 +409,6 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
                       <Zap style={{ width: 12, height: 12, color: isOpusHovered ? G : "rgba(255,255,255,0.85)", transition: "color 0.25s ease" }} />
                       <span style={{ fontSize: 11, fontWeight: 700, color: isOpusHovered ? G : "rgba(255,255,255,0.85)", transition: "color 0.25s ease" }}>Recommended</span>
                     </div>
-                    <span style={{
-                      fontFamily: "'Geist Mono', monospace", fontSize: 24, fontWeight: 700,
-                      color: isOpusHovered ? "rgba(0,230,118,0.4)" : "rgba(255,255,255,0.15)", letterSpacing: "-0.05em", lineHeight: 1,
-                      transition: "color 0.25s ease",
-                    }}>
-                      01
-                    </span>
                   </div>
 
                   {/* Title & Icon */}
@@ -563,13 +556,6 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
                       <Sliders style={{ width: 12, height: 12, color: isProHovered ? G : "rgba(255,255,255,0.85)", transition: "color 0.25s ease" }} />
                       <span style={{ fontSize: 11, fontWeight: 700, color: isProHovered ? G : "rgba(255,255,255,0.85)", transition: "color 0.25s ease" }}>Precision Studio</span>
                     </div>
-                    <span style={{
-                      fontFamily: "'Geist Mono', monospace", fontSize: 24, fontWeight: 700,
-                      color: isProHovered ? "rgba(0,230,118,0.4)" : "rgba(255,255,255,0.15)", letterSpacing: "-0.05em", lineHeight: 1,
-                      transition: "color 0.25s ease",
-                    }}>
-                      02
-                    </span>
                   </div>
 
                   {/* Title & Icon */}
@@ -895,9 +881,6 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
                         }}>
                           {expandedStudio === "opus" ? "Recommended" : "Precision Studio"}
                         </span>
-                        <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 10, color: "rgba(255,255,255,0.2)", fontWeight: 700 }}>
-                          {expandedStudio === "opus" ? "STUDIO 01" : "STUDIO 02"}
-                        </span>
                       </div>
                       <h2 style={{
                         fontFamily: "'Space Grotesk', 'Geist', sans-serif", fontWeight: 800, fontSize: 26,
@@ -1002,17 +985,17 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
                       {(expandedStudio === "opus"
                         ? [
-                            { step: "01", icon: Download, title: "Drop Your Video", desc: "Import any podcast, lecture, stream, or interview. Any format, any length." },
-                            { step: "02", icon: Bot, title: "AI Analyzes", desc: "Gemini Flash scans every second — scoring hooks, emotion peaks, and quotable moments." },
-                            { step: "03", icon: Film, title: "Clips Ready", desc: "9:16 shorts with animated captions, face-tracking, and branding auto-applied. Export in one click." },
+                            { id: "step-drop", icon: Download, title: "Drop Your Video", desc: "Import any podcast, lecture, stream, or interview. Any format, any length." },
+                            { id: "step-ai", icon: Bot, title: "AI Analyzes", desc: "Gemini Flash scans every second — scoring hooks, emotion peaks, and quotable moments." },
+                            { id: "step-clips", icon: Film, title: "Clips Ready", desc: "9:16 shorts with animated captions, face-tracking, and branding auto-applied. Export in one click." },
                           ]
                         : [
-                            { step: "01", icon: Scissors, title: "Set In & Out Points", desc: "Drag precise markers on the visual waveform timeline with frame-level accuracy." },
-                            { step: "02", icon: Palette, title: "Style & Caption", desc: "Pick from 12 animated subtitle presets. Add B-roll, custom crops, or background music." },
-                            { step: "03", icon: Share2, title: "Batch Export", desc: "Export multiple clips simultaneously in any aspect ratio. Direct publish or local save." },
+                            { id: "step-points", icon: Scissors, title: "Set In & Out Points", desc: "Drag precise markers on the visual waveform timeline with frame-level accuracy." },
+                            { id: "step-style", icon: Palette, title: "Style & Caption", desc: "Pick from 12 animated subtitle presets. Add B-roll, custom crops, or background music." },
+                            { id: "step-export", icon: Share2, title: "Batch Export", desc: "Export multiple clips simultaneously in any aspect ratio. Direct publish or local save." },
                           ]
-                      ).map(({ step, icon: StepIcon, title, desc }, i) => (
-                        <div key={step} style={{
+                      ).map(({ id, icon: StepIcon, title, desc }, i) => (
+                        <div key={id} style={{
                           padding: "20px 18px", borderRadius: 16, position: "relative",
                           background: expandedStudio === "opus"
                             ? "linear-gradient(160deg, rgba(0,230,118,0.05) 0%, rgba(0,0,0,0.35) 100%)"
@@ -1021,15 +1004,8 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
                             ? "1px solid rgba(0,230,118,0.12)"
                             : "1px solid rgba(255,255,255,0.07)",
                         }}>
-                          {/* Step number bg watermark */}
                           <div style={{
-                            position: "absolute", top: 14, right: 16,
-                            fontFamily: "'Geist Mono', monospace", fontSize: 36, fontWeight: 800,
-                            color: "rgba(255,255,255,0.04)", lineHeight: 1,
-                          }}>{step}</div>
-
-                          <div style={{
-                            width: 38, height: 38, borderRadius: 10, marginBottom: 12,
+                            width: 38, height: 38, borderRadius: 10, marginBottom: 14,
                             display: "flex", alignItems: "center", justifyContent: "center",
                             background: expandedStudio === "opus" ? "rgba(0,230,118,0.1)" : "rgba(255,255,255,0.05)",
                             border: expandedStudio === "opus" ? "1px solid rgba(0,230,118,0.25)" : "1px solid rgba(255,255,255,0.1)",
@@ -1039,11 +1015,6 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
                               color: expandedStudio === "opus" ? G : "rgba(255,255,255,0.85)",
                             }} />
                           </div>
-                          <div style={{
-                            fontFamily: "'Geist Mono', monospace", fontSize: 10, fontWeight: 700,
-                            color: expandedStudio === "opus" ? G : "rgba(255,255,255,0.35)",
-                            letterSpacing: "0.08em", marginBottom: 6,
-                          }}>{step}</div>
                           <div style={{ fontWeight: 700, fontSize: 13.5, color: "#fff", marginBottom: 8, lineHeight: 1.25 }}>{title}</div>
                           <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)", lineHeight: 1.55 }}>{desc}</div>
 
