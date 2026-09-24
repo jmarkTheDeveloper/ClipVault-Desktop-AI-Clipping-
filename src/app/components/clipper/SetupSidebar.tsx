@@ -116,8 +116,10 @@ interface SetupSidebarProps {
   layout: string;
   setLayout: (l: string) => void;
   setCropModalOpen: (mode: "none" | "top" | "bottom") => void;
-  cameraStyle: "instant" | "snappy" | "smooth";
-  setCameraStyle: (s: "instant" | "snappy" | "smooth") => void;
+  cameraStyle: "instant" | "snappy" | "smooth" | "off";
+  setCameraStyle: (s: "instant" | "snappy" | "smooth" | "off") => void;
+  enableFaceTracker?: boolean;
+  setEnableFaceTracker?: (enabled: boolean) => void;
   durationMode: string;
   setDurationMode: (d: string) => void;
   numClips: number | string;
@@ -219,6 +221,8 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
   setCropModalOpen,
   cameraStyle,
   setCameraStyle,
+  enableFaceTracker = true,
+  setEnableFaceTracker,
   durationMode,
   setDurationMode,
   numClips,
@@ -571,7 +575,28 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
         {/* Camera Tracking Style */}
         <div id="tour-step-camera" className={layout !== "vertical_crop" && layout !== "square_blur" ? "opacity-35 pointer-events-none transition-opacity" : "transition-opacity"}>
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-xs font-bold text-amber-400 uppercase tracking-wider">Camera Tracking Style</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-xs font-bold text-amber-400 uppercase tracking-wider">AI Face Tracking</h3>
+              <button
+                type="button"
+                onClick={() => {
+                  const next = !enableFaceTracker;
+                  setEnableFaceTracker?.(next);
+                  if (!next) {
+                    setCameraStyle("off");
+                  } else if (cameraStyle === "off") {
+                    setCameraStyle("instant");
+                  }
+                }}
+                className={`text-[10px] font-bold px-2 py-0.5 rounded-full border transition-all cursor-pointer ${
+                  enableFaceTracker && cameraStyle !== "off"
+                    ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40"
+                    : "bg-red-500/20 text-red-400 border-red-500/40"
+                }`}
+              >
+                {enableFaceTracker && cameraStyle !== "off" ? "Tracking Enabled" : "No Tracking (Off)"}
+              </button>
+            </div>
             {layout !== "vertical_crop" && layout !== "square_blur" && (
               <span className="text-[9px] font-bold text-gray-400 bg-white/5 px-2 py-0.5 rounded border border-white/10">
                 (Face-Tracking Layouts Only)
@@ -579,44 +604,79 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
             )}
           </div>
           <div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-4 gap-1.5">
               <button
-                onClick={() => setCameraStyle("instant")}
-                className={`p-2.5 rounded-xl text-left border transition-all cursor-pointer ${
-                  cameraStyle === "instant"
+                type="button"
+                onClick={() => {
+                  setEnableFaceTracker?.(true);
+                  setCameraStyle("instant");
+                }}
+                className={`p-2 rounded-xl text-left border transition-all cursor-pointer ${
+                  enableFaceTracker && cameraStyle === "instant"
                     ? "bg-amber-400/10 border-amber-400/50 shadow-[0_0_15px_rgba(251,191,36,0.15)] ring-1 ring-amber-400/30"
                     : "bg-white/[0.02] border-white/5 hover:border-white/10"
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <p className="text-white text-xs font-extrabold">Instant Cut</p>
-                  <span className="text-[8px] font-bold px-1 py-0.2 rounded bg-amber-400/20 text-amber-300">Hard Cut</span>
+                  <p className="text-white text-xs font-extrabold">Instant</p>
+                  <span className="text-[8px] font-bold px-1 py-0.2 rounded bg-amber-400/20 text-amber-300">Fast</span>
                 </div>
-                <p className="text-[10px] text-gray-400 mt-0.5 leading-tight">Jump-cuts to speaker, zero sliding</p>
+                <p className="text-[10px] text-gray-400 mt-0.5 leading-tight">Hard cut to speaker</p>
               </button>
               <button
-                onClick={() => setCameraStyle("snappy")}
-                className={`p-2.5 rounded-xl text-left border transition-all cursor-pointer ${
-                  cameraStyle === "snappy"
+                type="button"
+                onClick={() => {
+                  setEnableFaceTracker?.(true);
+                  setCameraStyle("snappy");
+                }}
+                className={`p-2 rounded-xl text-left border transition-all cursor-pointer ${
+                  enableFaceTracker && cameraStyle === "snappy"
                     ? "bg-amber-400/10 border-amber-400/50 shadow-[0_0_15px_rgba(251,191,36,0.15)] ring-1 ring-amber-400/30"
                     : "bg-white/[0.02] border-white/5 hover:border-white/10"
                 }`}
               >
                 <p className="text-white text-xs font-bold">Snappy</p>
-                <p className="text-[10px] text-gray-500 mt-0.5 leading-tight">Quick reactive glide</p>
+                <p className="text-[10px] text-gray-500 mt-0.5 leading-tight">Reactive pan glide</p>
               </button>
               <button
-                onClick={() => setCameraStyle("smooth")}
-                className={`p-2.5 rounded-xl text-left border transition-all cursor-pointer ${
-                  cameraStyle === "smooth"
+                type="button"
+                onClick={() => {
+                  setEnableFaceTracker?.(true);
+                  setCameraStyle("smooth");
+                }}
+                className={`p-2 rounded-xl text-left border transition-all cursor-pointer ${
+                  enableFaceTracker && cameraStyle === "smooth"
                     ? "bg-amber-400/10 border-amber-400/50 shadow-[0_0_15px_rgba(251,191,36,0.15)] ring-1 ring-amber-400/30"
                     : "bg-white/[0.02] border-white/5 hover:border-white/10"
                 }`}
               >
                 <p className="text-white text-xs font-bold">Smooth</p>
-                <p className="text-[10px] text-gray-500 mt-0.5 leading-tight">Gentle cinematic glide</p>
+                <p className="text-[10px] text-gray-500 mt-0.5 leading-tight">Gentle fluid pan</p>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setEnableFaceTracker?.(false);
+                  setCameraStyle("off");
+                }}
+                className={`p-2 rounded-xl text-left border transition-all cursor-pointer ${
+                  !enableFaceTracker || cameraStyle === "off"
+                    ? "bg-red-500/15 border-red-500/60 shadow-[0_0_15px_rgba(239,68,68,0.2)] ring-1 ring-red-500/40"
+                    : "bg-white/[0.02] border-white/5 hover:border-white/10"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <p className="text-white text-xs font-extrabold text-red-300">No Tracker</p>
+                  <span className="text-[8px] font-bold px-1 py-0.2 rounded bg-red-500/25 text-red-300">Off</span>
+                </div>
+                <p className="text-[10px] text-gray-400 mt-0.5 leading-tight">Fixed center crop</p>
               </button>
             </div>
+            {(!enableFaceTracker || cameraStyle === "off") && (
+              <p className="text-[11px] text-gray-400 mt-2 bg-white/[0.03] border border-white/5 rounded-lg px-2.5 py-1.5 leading-relaxed">
+                <span className="text-amber-400 font-bold">Face Tracking Disabled:</span> Video is cropped cleanly down the center with zero camera pans, zooms, or subject following.
+              </p>
+            )}
           </div>
         </div>
 

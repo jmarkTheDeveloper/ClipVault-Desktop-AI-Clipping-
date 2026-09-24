@@ -323,6 +323,7 @@ class ProcessRequest(BaseModel):
     ai_engine: str = "openai_sora"
     api_key: Optional[str] = None
     camera_style: str = "instant"
+    enable_face_tracker: bool = True
     gameplay_bg_video: Optional[str] = None
     bg_music_file: Optional[str] = None
     aspect_ratio: str = "9:16"
@@ -459,6 +460,7 @@ def execute_rendering_task(task_id: str, request: ProcessRequest, cancel_event: 
             bg_music_vol=request.bg_music_vol,
             custom_crop_boxes=request.custom_crop_boxes,
             camera_style=request.camera_style,
+            enable_face_tracker=getattr(request, 'enable_face_tracker', True),
             transcription_language=request.transcription_language,
             caption_y_pct=request.caption_y_pct,
             caption_style=request.caption_style,

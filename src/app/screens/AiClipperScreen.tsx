@@ -383,7 +383,8 @@ export const AiClipperScreen: React.FC<Props> = ({
   const [adaptiveCrop, setAdaptiveCrop] = useState(true);
   const [enableSuperResolution, setEnableSuperResolution] = useState(false);
   const [layout, setLayout] = useState("vertical_crop");
-  const [cameraStyle, setCameraStyle] = useState<"instant" | "snappy" | "smooth">("instant");
+  const [cameraStyle, setCameraStyle] = useState<"instant" | "snappy" | "smooth" | "off">("instant");
+  const [enableFaceTracker, setEnableFaceTracker] = useState<boolean>(true);
   const [durationMode, setDurationMode] = useState("auto");
   const [numClips, setNumClips] = useState<number | string>(3);
   const [targetDuration, setTargetDuration] = useState<number | string>(30);
@@ -832,7 +833,8 @@ export const AiClipperScreen: React.FC<Props> = ({
           enable_super_resolution: enableSuperResolution,
           diagnostic_mode: false,
           layout,
-          camera_style: cameraStyle,
+          camera_style: enableFaceTracker ? cameraStyle : "off",
+          enable_face_tracker: enableFaceTracker,
           add_captions: addCaptions,
           caption_style: selectedEffectId,
           caption_y_pct: captionYPct / 100.0,
@@ -1607,6 +1609,8 @@ export const AiClipperScreen: React.FC<Props> = ({
                 setCropModalOpen={setCropModalOpen}
                 cameraStyle={cameraStyle}
                 setCameraStyle={setCameraStyle}
+                enableFaceTracker={enableFaceTracker}
+                setEnableFaceTracker={setEnableFaceTracker}
                 durationMode={durationMode}
                 setDurationMode={setDurationMode}
                 numClips={numClips}

@@ -76,6 +76,7 @@ class LayoutCompositor:
         target_height: int,
         custom_crop_boxes: Optional[List[Dict[str, Any]]] = None,
         camera_style: str = "instant",
+        enable_face_tracker: bool = True,
         clips_to_close: Optional[List[Any]] = None,
         gameplay_bg_video: Optional[str] = None,
         adaptive_crop: bool = True,
@@ -165,7 +166,7 @@ class LayoutCompositor:
             fg_ratio = float(fg_w) / float(fg_h)
 
             fg_sharp = None
-            if self.face_tracker:
+            if self.face_tracker and enable_face_tracker and camera_style != "off":
                 try:
                     print("    [LayoutCompositor] Centering active speaker inside Square Focus frame...")
                     tracked_fg = self.face_tracker.track_and_crop(
@@ -246,7 +247,7 @@ class LayoutCompositor:
                 # Face track or center crop speaker for top half
                 speaker_ratio = speaker_w / speaker_h
                 top_speaker = None
-                if self.face_tracker:
+                if self.face_tracker and enable_face_tracker and camera_style != "off":
                     print("    [LayoutCompositor] Applying intelligent face/subject tracking to top speaker frame...")
                     try:
                         tracked_top = self.face_tracker.track_and_crop(clip, crop_ratio=speaker_ratio, camera_style=camera_style)
@@ -470,7 +471,7 @@ class LayoutCompositor:
             clips_to_close.append(cropped)
             return self.letterbox(cropped, target_width, target_height)
 
-        if self.face_tracker:
+        if self.face_tracker and enable_face_tracker and camera_style != "off":
             print("    [LayoutCompositor] Applying intelligent subject / speaker reframe tracking...")
             try:
                 active_ar = aspect_ratio if aspect_ratio is not None else (float(target_width) / float(target_height))
@@ -494,7 +495,8 @@ class LayoutCompositor:
             except Exception as e:
                 print(f"    [LayoutCompositor] Face/Subject tracking notice: {e}")
 
-        # Fallback centered vertical crop
+        # Centered vertical crop (Used when Face Tracking is disabled or fallback)
+        print("    [LayoutCompositor] Face tracking disabled or unneeded — applying clean fixed centered crop...")
         active_ar = aspect_ratio if aspect_ratio is not None else (float(target_width) / float(target_height))
         crop_w = int(clip.h * active_ar)
         if crop_w % 2 != 0: crop_w -= 1
