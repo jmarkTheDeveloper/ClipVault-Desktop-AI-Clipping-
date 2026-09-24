@@ -612,6 +612,20 @@ class FaceTracker:
         if width <= base_crop_w and not diagnostic_mode:
             return clip
 
+        if str(camera_style).lower() in ("off", "none", "center", "fixed"):
+            print("    [FaceTracker] camera_style is 'off' — bypassing tracking and using rock-solid fixed center crop.")
+            crop_w = min(width, base_crop_w)
+            x1 = max(0, min(width - crop_w, (width - crop_w) // 2))
+            if x1 % 2 != 0: x1 = max(0, x1 - 1)
+            
+            def static_center_crop_filter(get_frame, t):
+                frame = get_frame(t)
+                return frame[:, x1:x1 + crop_w]
+            
+            cropped = clip.fl(static_center_crop_filter, apply_to=["mask"])
+            cropped.size = (crop_w, height)
+            return cropped
+
         self.face_cache = {}
 
         # Sample clip frames to perform multi-model detection and temporal tracking

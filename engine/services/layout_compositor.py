@@ -44,6 +44,8 @@ class LayoutCompositor:
         interp = cv2.INTER_AREA if (tw < w or th < h) else cv2.INTER_LINEAR
 
         def transform_frame(frame):
+            if frame.dtype != np.uint8:
+                frame = np.clip(frame, 0, 255).astype(np.uint8)
             return cv2.resize(frame, (tw, th), interpolation=interp)
 
         resized_clip = clip.fl_image(transform_frame)

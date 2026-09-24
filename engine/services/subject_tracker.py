@@ -143,6 +143,16 @@ class SubjectTracker:
         if width <= target_width:
             return clip
 
+        if str(camera_style).lower() in ("off", "none", "center", "fixed"):
+            print("    [SubjectTracker] camera_style is 'off' — bypassing tracking and using rock-solid fixed center crop.")
+            x1 = max(0, min(width - target_width, (width - target_width) // 2))
+            def static_center_filter(get_frame, t):
+                frame = get_frame(t)
+                return frame[:, x1:x1 + target_width]
+            cropped = clip.fl(static_center_filter, apply_to=["mask"])
+            cropped.size = (target_width, height)
+            return cropped
+
         num_samples = max(4, int(clip.duration * self.sample_fps))
         sample_times = np.linspace(0.05, max(0.1, clip.duration - 0.05), num_samples)
 
