@@ -180,8 +180,25 @@ ipcMain.handle('get-auth-token', (event) => {
     }
   });
 
+function cleanupLegacyWindowsShortcuts() {
+  if (process.platform !== 'win32') return;
+  try {
+    const shortcutDir = path.join(app.getPath('appData'), 'Microsoft', 'Windows', 'Start Menu', 'Programs');
+    if (fs.existsSync(shortcutDir)) {
+      const files = fs.readdirSync(shortcutDir);
+      for (const file of files) {
+        const fLower = file.toLowerCase();
+        if (fLower.endsWith('.lnk') && fLower.includes('clipvault') && file !== 'ClipVault.lnk') {
+          try { fs.unlinkSync(path.join(shortcutDir, file)); } catch (e) {}
+        }
+      }
+    }
+  } catch (e) {}
+}
+
   ipcMain.handle('show-notification', async (event, { title, body, icon }) => {
     try {
+      cleanupLegacyWindowsShortcuts();
       if (Notification.isSupported()) {
         const notifIconPath = icon || path.join(__dirname, '../public/icon.png');
         const notifIcon = nativeImage.createFromPath(notifIconPath);
@@ -528,18 +545,7 @@ app.whenReady().then(() => {
       const shortcutPath = path.join(shortcutDir, 'ClipVault.lnk');
       const iconIco = path.resolve(__dirname, '../public/icon.ico');
 
-      // Clean up legacy truncated shortcuts so Windows toast notifications always show "ClipVault"
-      try {
-        if (fs.existsSync(shortcutDir)) {
-          const files = fs.readdirSync(shortcutDir);
-          for (const file of files) {
-            const fLower = file.toLowerCase();
-            if (fLower.endsWith('.lnk') && fLower.includes('clipvault') && (fLower.includes('studi') || fLower.includes('studio'))) {
-              try { fs.unlinkSync(path.join(shortcutDir, file)); } catch (e) {}
-            }
-          }
-        }
-      } catch (e) {}
+      cleanupLegacyWindowsShortcuts();
 
       const rootDir = path.resolve(__dirname, '..');
       const shortcutOptions = {
