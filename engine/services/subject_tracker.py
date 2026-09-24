@@ -35,19 +35,27 @@ class SubjectTracker:
 
     def _compute_human_presence_centroid_x(self, rgb_frame: np.ndarray, width: int) -> Optional[float]:
         """
-        Locates the horizontal centroid of human skin and flesh tones across the frame.
+        Locates the horizontal centroid of human skin and flesh tones across the frame
+        using dual YCrCb + HSV chrominance masking.
         Guarantees that when humans are in the scene, the camera focuses on the person
         rather than background furniture, bookshelves, or static objects.
         """
         try:
+            ycrcb = cv2.cvtColor(rgb_frame, cv2.COLOR_RGB2YCrCb)
+            cr = ycrcb[:, :, 1]
+            cb = ycrcb[:, :, 2]
+            skin_ycrcb = ((cr >= 130) & (cr <= 180) & (cb >= 75) & (cb <= 135))
+
             hsv = cv2.cvtColor(rgb_frame, cv2.COLOR_RGB2HSV)
-            m1 = cv2.inRange(hsv, np.array([0, 20, 35]), np.array([25, 255, 255]))
-            m2 = cv2.inRange(hsv, np.array([170, 20, 35]), np.array([180, 255, 255]))
-            skin_mask = cv2.bitwise_or(m1, m2)
+            m1 = cv2.inRange(hsv, np.array([0, 15, 30]), np.array([28, 255, 255]))
+            m2 = cv2.inRange(hsv, np.array([168, 15, 30]), np.array([180, 255, 255]))
+            skin_hsv = (cv2.bitwise_or(m1, m2) > 0)
+
+            skin_mask = (skin_ycrcb | skin_hsv).astype(np.uint8)
             col_sums = np.sum(skin_mask > 0, axis=0)
             total_skin = np.sum(col_sums)
             # Require minimum skin volume (e.g. face, hands, arms, or torso)
-            if total_skin > (rgb_frame.shape[0] * 3):
+            if total_skin > (rgb_frame.shape[0] * 2):
                 smooth_skin = cv2.GaussianBlur(col_sums.astype(np.float32).reshape(1, -1), (1, 15), 0)[0]
                 peak_idx = int(np.argmax(smooth_skin))
                 return (peak_idx / len(col_sums)) * width
@@ -58,15 +66,23 @@ class SubjectTracker:
     def _compute_saliency_centroid_x(self, gray_frame: np.ndarray, width: int) -> float:
         """
         Computes the horizontal center of visual saliency using spectral residual
-        or gradient energy density.
+        or gradient energy density, with anti-lamp and anti-desk-clutter filtering.
         """
+        H, W = gray_frame.shape[:2]
+        # Anti-object vertical weight: focus on eye/torso height (10% to 78% of frame)
+        # and suppress specular blowout (lamps, light fixtures, reflective mugs with gray > 235)
+        valid_mask = np.ones((H, W), dtype=np.float32)
+        valid_mask[:int(H * 0.10), :] = 0.0
+        valid_mask[int(H * 0.78):, :] = 0.0
+        valid_mask[gray_frame > 235] = 0.0
+
         try:
             if self.saliency_detector is not None:
                 rgb_small = cv2.cvtColor(gray_frame, cv2.COLOR_GRAY2BGR)
                 success, saliency_map = self.saliency_detector.computeSaliency(rgb_small)
                 if success and saliency_map is not None:
                     thresh = np.percentile(saliency_map, 85)
-                    sal_mask = (saliency_map >= thresh).astype(np.uint8)
+                    sal_mask = (saliency_map >= thresh).astype(np.float32) * valid_mask
                     col_sums = np.sum(sal_mask, axis=0)
                     total_sal = np.sum(col_sums)
                     if total_sal > 0:
@@ -76,11 +92,11 @@ class SubjectTracker:
         except Exception:
             pass
 
-        # Fallback: High-contrast Sobel gradient energy
+        # Fallback: High-contrast Sobel gradient energy with anti-lamp mask
         try:
             gx = cv2.Sobel(gray_frame, cv2.CV_32F, 1, 0, ksize=3)
             gy = cv2.Sobel(gray_frame, cv2.CV_32F, 0, 1, ksize=3)
-            mag = cv2.magnitude(gx, gy)
+            mag = cv2.magnitude(gx, gy) * valid_mask
             col_energy = np.sum(mag, axis=0)
             total_energy = np.sum(col_energy)
             if total_energy > 0:

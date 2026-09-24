@@ -137,8 +137,10 @@ class FaceTracker:
 
     def _get_skin_ratio(self, rgb_frame: np.ndarray, x: int, y: int, bw: int, bh: int) -> float:
         """
-        Calculates ratio of human skin/flesh pixels within a bounding box using HSV chroma ranges.
-        Filters out false positives on inanimate objects (bookshelves, lamps, furniture, wallpaper).
+        Calculates ratio of human skin/flesh pixels within a bounding box using
+        dual YCrCb (scientific standard across all complexions) and HSV color spaces.
+        Accurately identifies all skin complexions, studio lighting, and side profiles
+        while filtering out inanimate objects (lamps, walls, mugs, microphones).
         """
         h, w = rgb_frame.shape[:2]
         x1, y1 = max(0, x), max(0, y)
@@ -147,12 +149,21 @@ class FaceTracker:
             return 0.0
         patch = rgb_frame[y1:y2, x1:x2]
         try:
+            # 1. YCrCb skin chrominance (permissive for all skin tones and studio lighting)
+            ycrcb = cv2.cvtColor(patch, cv2.COLOR_RGB2YCrCb)
+            cr = ycrcb[:, :, 1]
+            cb = ycrcb[:, :, 2]
+            skin_ycrcb = (cr >= 130) & (cr <= 180) & (cb >= 75) & (cb <= 135)
+
+            # 2. HSV skin hue
             hsv = cv2.cvtColor(patch, cv2.COLOR_RGB2HSV)
-            m1 = cv2.inRange(hsv, np.array([0, 20, 35]), np.array([25, 255, 255]))
-            m2 = cv2.inRange(hsv, np.array([170, 20, 35]), np.array([180, 255, 255]))
-            mask = cv2.bitwise_or(m1, m2)
+            m1 = cv2.inRange(hsv, np.array([0, 15, 30]), np.array([28, 255, 255]))
+            m2 = cv2.inRange(hsv, np.array([168, 15, 30]), np.array([180, 255, 255]))
+            skin_hsv = (cv2.bitwise_or(m1, m2) > 0)
+
+            combined_skin = skin_ycrcb | skin_hsv
             total_pixels = patch.shape[0] * patch.shape[1]
-            return float(np.sum(mask > 0)) / float(total_pixels) if total_pixels > 0 else 0.0
+            return float(np.sum(combined_skin)) / float(total_pixels) if total_pixels > 0 else 0.0
         except Exception:
             return 0.0
 
@@ -163,13 +174,13 @@ class FaceTracker:
         rather than background furniture, bookshelves, or static objects.
         """
         try:
-            hsv = cv2.cvtColor(rgb_small, cv2.COLOR_RGB2HSV)
-            m1 = cv2.inRange(hsv, np.array([0, 20, 35]), np.array([25, 255, 255]))
-            m2 = cv2.inRange(hsv, np.array([170, 20, 35]), np.array([180, 255, 255]))
-            skin_mask = cv2.bitwise_or(m1, m2)
+            ycrcb = cv2.cvtColor(rgb_small, cv2.COLOR_RGB2YCrCb)
+            cr = ycrcb[:, :, 1]
+            cb = ycrcb[:, :, 2]
+            skin_mask = ((cr >= 130) & (cr <= 180) & (cb >= 75) & (cb <= 135)).astype(np.uint8)
             col_sums = np.sum(skin_mask > 0, axis=0)
             total_skin = np.sum(col_sums)
-            if total_skin > (rgb_small.shape[0] * 3):
+            if total_skin > (rgb_small.shape[0] * 2):
                 smooth_skin = cv2.GaussianBlur(col_sums.astype(np.float32).reshape(1, -1), (1, 15), 0)[0]
                 peak_idx = int(np.argmax(smooth_skin))
                 return (peak_idx / len(col_sums)) * orig_w
@@ -192,7 +203,8 @@ class FaceTracker:
         frame = np.ascontiguousarray(frame)
 
         h, w = frame.shape[:2]
-        max_dim = 640
+        # Higher resolution max_dim (960) gives small heads in wide shots 2x more pixels to be detected
+        max_dim = 960
         if max(h, w) > max_dim:
             scale = max_dim / float(max(h, w))
             small_w = int(w * scale)
@@ -215,7 +227,7 @@ class FaceTracker:
                     for det in yunet_faces:
                         box_x, box_y, box_w, box_h = int(det[0]), int(det[1]), int(det[2]), int(det[3])
                         conf = float(det[14])
-                        if conf < 0.25 or box_w < 12 or box_h < 12:
+                        if conf < 0.18 or box_w < 8 or box_h < 8:
                             continue
                         orig_x = int(box_x / scale)
                         orig_y = int(box_y / scale)
@@ -243,9 +255,9 @@ class FaceTracker:
                 pass
 
         # ── TIER 2: MediaPipe Neural Face Detector (TFLite) ──
-        # Only query MediaPipe if YuNet found no high-confidence face (preserves 15ms frame throughput)
-        has_confident_yunet = any(c.get('confidence', 0.0) >= 0.40 for c in candidate_detections)
-        if self.mp_detector is not None and not has_confident_yunet:
+        # Run MediaPipe unless YuNet already found a very high-confidence face (>= 0.70)
+        has_very_confident_yunet = any(c.get('confidence', 0.0) >= 0.70 for c in candidate_detections)
+        if self.mp_detector is not None and not has_very_confident_yunet:
             try:
                 rgb_small = np.ascontiguousarray(small_frame)
                 mp_img = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_small)
@@ -274,7 +286,7 @@ class FaceTracker:
                 pass
 
         # ── TIER 3 & 4: OpenCV Haar Cascades (Fallback Only) ──
-        # Haar sliding-window cascades are expensive (100-150ms). Only run when modern neural detectors find zero faces.
+        # Haar sliding-window cascades are expensive. Only run when modern neural detectors find zero faces.
         if not candidate_detections:
             gray = cv2.cvtColor(small_frame, cv2.COLOR_RGB2GRAY)
             gray_eq = cv2.equalizeHist(gray)
@@ -284,7 +296,7 @@ class FaceTracker:
             if self.frontal_cascade is not None:
                 try:
                     detected_frontal = self.frontal_cascade.detectMultiScale(
-                        gray_eq, scaleFactor=1.12, minNeighbors=4, minSize=(26, 26)
+                        gray_eq, scaleFactor=1.10, minNeighbors=3, minSize=(12, 12)
                     )
                     for (sx, sy, sw, sh) in detected_frontal:
                         orig_x = int(sx / scale)
@@ -308,7 +320,7 @@ class FaceTracker:
                 try:
                     # 4A: Left-facing profiles (standard orientation)
                     detected_left = self.profile_cascade.detectMultiScale(
-                        gray_eq, scaleFactor=1.10, minNeighbors=3, minSize=(26, 26)
+                        gray_eq, scaleFactor=1.08, minNeighbors=2, minSize=(12, 12)
                     )
                     for (sx, sy, sw, sh) in detected_left:
                         orig_x = int(sx / scale)
@@ -327,7 +339,7 @@ class FaceTracker:
 
                     # 4B: Right-facing profiles (horizontally flipped orientation)
                     detected_right = self.profile_cascade.detectMultiScale(
-                        gray_flipped, scaleFactor=1.10, minNeighbors=3, minSize=(26, 26)
+                        gray_flipped, scaleFactor=1.08, minNeighbors=2, minSize=(12, 12)
                     )
                     for (fx, fy, fw, fh) in detected_right:
                         sx = small_w - (fx + fw)
@@ -348,8 +360,6 @@ class FaceTracker:
                     pass
 
         # ── TIER 5: Full-Body / Upper-Body Person Detector (Foreground Dominance) ──
-        # Enforces a strict Foreground Dominance filter to lock onto human subjects
-        # while discarding distant pedestrians and architectural structures.
         if len(candidate_detections) == 0 and self.hog_detector is not None:
             try:
                 rects, weights = self.hog_detector.detectMultiScale(
@@ -357,17 +367,13 @@ class FaceTracker:
                 )
                 for (sx, sy, sw, sh), wgt in zip(rects, weights):
                     orig_h = int(sh / scale)
-                    # FOREGROUND DOMINANCE FILTER:
-                    # In street vlogs or interviews, main subjects occupy >= 25% of frame height.
-                    # Distant pedestrians in background occupy < 20% of frame height.
-                    if orig_h < (h * 0.25) or wgt < 0.20:
+                    if orig_h < (h * 0.18) or wgt < 0.15:
                         continue
 
                     orig_x = int(sx / scale)
                     orig_y = int(sy / scale)
                     orig_w = int(sw / scale)
 
-                    # Compute head position and head bounding box from upper body
                     head_cx = orig_x + orig_w // 2
                     head_cy = orig_y + int(orig_h * 0.16)
                     head_w = int(orig_w * 0.45)
@@ -390,39 +396,30 @@ class FaceTracker:
         valid_faces = []
         for f in candidate_detections:
             # 1. Human faces must be in the upper/middle portion of the frame
-            if f['center_y'] > h * 0.85:
+            if f['center_y'] > h * 0.88:
                 continue
-            # Ceiling rejection: Objects with face centers in the extreme top 10% of the frame
-            # are ceiling fixtures, hanging portraits/paintings, banners, or wall art.
-            if f['center_y'] < h * 0.10 and f['height'] < h * 0.30:
+            # Ceiling rejection: extreme top 8% of frame
+            if f['center_y'] < h * 0.08 and f['height'] < h * 0.25:
                 continue
-            # 2. Bounding box cannot take up more than 68% width or 75% height of the entire frame.
-            # Close-up talking-head shots can have very large face boxes — allow them through.
-            if f['width'] > w * 0.68 or f['height'] > h * 0.75 or f['area'] > (w * h * 0.45):
+            # 2. Max size check
+            if f['width'] > w * 0.75 or f['height'] > h * 0.80 or f['area'] > (w * h * 0.50):
                 continue
-            # 3. Minimum size to avoid single-pixel noise
-            if f['width'] < 12 or f['height'] < 12 or f['area'] < 150:
+            # 3. Minimum size to avoid noise
+            if f['width'] < 8 or f['height'] < 8 or f['area'] < 64:
                 continue
 
-            # 4. Biological human skin-tone verification to eliminate background furniture & lanterns.
-            # Note: Studio/cool lighting and dark skin tones produce lower HSV skin saturation,
-            # so thresholds are kept permissive for neural detectors which already have high precision.
             bx = f['center_x'] - f['width'] // 2
             by = f['center_y'] - f['height'] // 2
             skin_ratio = self._get_skin_ratio(frame, bx, by, f['width'], f['height'])
             f['skin_ratio'] = skin_ratio
 
-            # Cascade and HOG detectors lack deep semantic reasoning and frequently trigger
-            # false positives on bookshelves, lanterns, wallpaper, and boxes.
-            # Enforce biological skin-chroma threshold (>= 8%).
+            # Cascade and HOG detectors lack semantic features: enforce biological skin-chroma threshold
             if f['type'] in ('frontal_haar', 'profile_haar_left', 'profile_haar_right', 'hog_person'):
-                if skin_ratio < 0.08:
+                if skin_ratio < 0.05:
                     continue
             else:
-                # Neural detectors (YuNet, MediaPipe) have high semantic precision.
-                # Only reject objects with near-zero skin signal (< 1.5%) — catches lamps, shelves.
-                # Dark skin tones and studio-lit speakers can read as low as 2-4% in the HSV range.
-                if skin_ratio < 0.015:
+                # Neural detectors (YuNet, MediaPipe): only reject pure inanimate objects (skin_ratio < 0.005)
+                if skin_ratio < 0.005:
                     continue
 
             valid_faces.append(f)
@@ -737,7 +734,7 @@ class FaceTracker:
             print("    [FaceTracker] 0 human tracks detected. Attempting skin-tone centroid rescue before SubjectTracker...")
             try:
                 skin_rescue_xs = []
-                rescue_sample_times = np.linspace(0.08, max(0.1, clip.duration - 0.08), min(8, max(4, int(clip.duration * 2))))
+                rescue_sample_times = np.linspace(0.08, max(0.1, clip.duration - 0.08), min(12, max(6, int(clip.duration * 2))))
                 for rt in rescue_sample_times:
                     try:
                         rescue_frame = clip.get_frame(rt)
@@ -758,13 +755,15 @@ class FaceTracker:
                     xs_arr = np.array(skin_rescue_xs)
                     med_x = float(np.median(xs_arr))
                     agree = sum(1 for x in xs_arr if abs(x - med_x) < width * 0.22)
-                    if agree >= max(2, len(skin_rescue_xs) // 2):
+                    if agree >= max(2, len(skin_rescue_xs) // 3):
                         print(f"    [FaceTracker] Skin centroid rescue: locking crop to x={med_x:.0f} ({agree}/{len(skin_rescue_xs)} frames agree)")
-                        # Build a fixed static crop centered on the skin centroid
+                        # Build a fixed static crop centered on the skin centroid with Safe-Zone Edge Guard
                         crop_w = int(height * crop_ratio)
                         if crop_w % 2 != 0: crop_w -= 1
                         crop_w = min(width, crop_w)
-                        x1_rescue = max(0, min(width - crop_w, int(round(med_x - crop_w / 2.0))))
+                        half_cw = crop_w / 2.0
+                        target_cx = max(half_cw, min(width - half_cw, med_x))
+                        x1_rescue = max(0, min(width - crop_w, int(round(target_cx - half_cw))))
                         if x1_rescue % 2 != 0: x1_rescue = max(0, x1_rescue - 1)
 
                         final_out_w = crop_w
@@ -818,12 +817,31 @@ class FaceTracker:
                 segments.append(seg)
                 continue
             prev_seg = segments[-1]
-            prev_med_x = float(np.median([it["crop_rect"][0] for it in prev_seg]))
-            curr_med_x = float(np.median([it["crop_rect"][0] for it in seg]))
+            prev_humans = [it for it in prev_seg if it.get("primary_track") is not None]
+            curr_humans = [it for it in seg if it.get("primary_track") is not None]
+            prev_target = prev_humans if prev_humans else prev_seg
+            curr_target = curr_humans if curr_humans else seg
+            prev_med_x = float(np.median([it["crop_rect"][0] for it in prev_target]))
+            curr_med_x = float(np.median([it["crop_rect"][0] for it in curr_target]))
             if len(seg) < min_seg_len or abs(curr_med_x - prev_med_x) < (width * 0.15):
                 prev_seg.extend(seg)
             else:
                 segments.append(seg)
+
+        # ── Human-Anchor Shot Segments ──
+        # In any shot segment where at least one frame detected a human speaker, anchor all frames
+        # in that segment to the confirmed human speaker's location. Frames with missing detections
+        # must NEVER default to center (x = width / 2), which previously dragged crops onto walls/mugs!
+        for seg in segments:
+            human_items = [it for it in seg if it.get("primary_track") is not None]
+            if human_items:
+                seg_human_x1 = float(np.median([it["crop_rect"][0] for it in human_items]))
+                seg_human_y1 = float(np.median([it["crop_rect"][1] for it in human_items]))
+                seg_human_cw = float(np.median([it["crop_rect"][2] for it in human_items]))
+                seg_human_ch = float(np.median([it["crop_rect"][3] for it in human_items]))
+                for it in seg:
+                    if it.get("primary_track") is None:
+                        it["crop_rect"] = (seg_human_x1, seg_human_y1, seg_human_cw, seg_human_ch)
 
         if camera_style == "instant":
             # True Broadcast Multi-Camera Studio Behavior:
@@ -831,10 +849,12 @@ class FaceTracker:
             # Zero micro-creeping, zero 6-FPS stair-stepping, zero roughness.
             # When switching speakers or scenes, the camera cuts instantly in 0.0 seconds.
             for seg in segments:
-                med_x1 = float(np.median([it["crop_rect"][0] for it in seg]))
-                med_y1 = float(np.median([it["crop_rect"][1] for it in seg]))
-                med_cw = float(np.median([it["crop_rect"][2] for it in seg]))
-                med_ch = float(np.median([it["crop_rect"][3] for it in seg]))
+                human_items = [it for it in seg if it.get("primary_track") is not None]
+                target_items = human_items if human_items else seg
+                med_x1 = float(np.median([it["crop_rect"][0] for it in target_items]))
+                med_y1 = float(np.median([it["crop_rect"][1] for it in target_items]))
+                med_cw = float(np.median([it["crop_rect"][2] for it in target_items]))
+                med_ch = float(np.median([it["crop_rect"][3] for it in target_items]))
                 for it in seg:
                     it["crop_rect"] = (med_x1, med_y1, med_cw, med_ch)
         else:

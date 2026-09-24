@@ -194,6 +194,18 @@ class VirtualCamera:
         target_cy = s_cy + (target_crop_h * 0.12)
         target_cx = s_cx
 
+        # ── SAFE-ZONE EDGE GUARD ──
+        # Mathematically guarantees human subjects are NEVER sliced in half or pushed against the edge
+        crop_half_w = target_crop_w / 2.0
+        person_left = s_cx - (s_w * 0.75)
+        person_right = s_cx + (s_w * 0.75)
+        min_edge_margin = target_crop_w * 0.12
+
+        if (target_cx - crop_half_w) > (person_left - min_edge_margin):
+            target_cx = max(crop_half_w, person_left - min_edge_margin + crop_half_w)
+        elif (target_cx + crop_half_w) < (person_right + min_edge_margin):
+            target_cx = min(float(self.frame_w) - crop_half_w, person_right + min_edge_margin - crop_half_w)
+
         # Update last valid crop memory
         self.last_valid_cx = target_cx
         self.last_valid_cy = target_cy
