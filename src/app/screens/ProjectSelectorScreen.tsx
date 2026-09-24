@@ -95,11 +95,11 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
       hoverTimerRef.current = null;
     }
 
-    // 3.5-second hover delay before expanding spotlight modal
+    // 2.7-second hover delay before expanding spotlight modal
     hoverTimerRef.current = setTimeout(() => {
       setExpandedStudio(card);
       hoverTimerRef.current = null;
-    }, 3500);
+    }, 2700);
   };
 
   const handleCardMouseLeave = () => {
