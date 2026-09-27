@@ -109,6 +109,12 @@ class YouTubeDownloader:
         if img_dir not in os.environ.get('PATH', ''):
             os.environ['PATH'] = img_dir + os.pathsep + os.environ.get('PATH', '')
 
+        try:
+            from yt_dlp.postprocessor.ffmpeg import FFmpegPostProcessor
+            FFmpegPostProcessor._ffmpeg_location.set(ffmpeg_bin)
+        except Exception:
+            pass
+
         user_agent = YOUTUBE_USER_AGENT or 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
 
         opts = {
@@ -319,8 +325,17 @@ class YouTubeDownloader:
 
             if cached_stream:
                 video_url, audio_url, video_headers, audio_headers = cached_stream
-                print(f"    [YouTubeDownloader] Reusing cached stream CDN URLs for {video_id}")
-            else:
+                import time, re
+                now_ts = int(time.time())
+                exp_match = re.search(r'[?&]expire=(\d+)', video_url or '')
+                if exp_match and int(exp_match.group(1)) < (now_ts + 90):
+                    print(f"    [YouTubeDownloader] Cached stream CDN URLs for {video_id} have expired. Refreshing...")
+                    cached_stream = None
+                    self._stream_cache.pop(cache_key, None)
+                else:
+                    print(f"    [YouTubeDownloader] Reusing cached stream CDN URLs for {video_id}")
+            
+            if not cached_stream:
                 opts = self._get_base_opts()
                 opts.update({'skip_download': True})
 
@@ -442,6 +457,7 @@ class YouTubeDownloader:
                     "-reconnect_at_eof", "1",
                     "-reconnect_streamed", "1",
                     "-reconnect_delay_max", "2",
+                    "-timeout", "10000000",
                 ]
 
                 cmd = [
@@ -489,7 +505,8 @@ class YouTubeDownloader:
                 ])
 
                 print(f"    [YouTubeDownloader] Running direct HTTP range slice with ffmpeg ({duration_sec:.1f}s)...")
-                slice_timeout = max(90, int(duration_sec * 2.5))
+                # Direct HTTP range seeking should finish quickly; if CDN stalls, fallback to yt-dlp partial downloader
+                slice_timeout = min(60, max(25, int(duration_sec * 0.7)))
                 proc = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, timeout=slice_timeout)
                 if proc.returncode == 0 and temp_slice.exists() and temp_slice.stat().st_size > 10240:
                     if output_path.exists():
@@ -564,7 +581,7 @@ class YouTubeDownloader:
             try:
                 from moviepy.video.io.ffmpeg_reader import ffmpeg_parse_infos
                 infos = ffmpeg_parse_infos(str(p))
-                return bool(infos.get('video_found') or infos.get('video_fps'))
+                return bool(infos.get('video_found') and infos.get('video_fps'))
             except Exception:
                 return False
 
@@ -573,7 +590,11 @@ class YouTubeDownloader:
             if candidates:
                 output_path = candidates[0]
             else:
-                raise FileNotFoundError(f"Failed to extract valid video slice from {start_sec}s to {end_sec}s")
+                mp4_target = output_path.with_suffix('.mp4')
+                if _is_valid_video_file(mp4_target):
+                    output_path = mp4_target
+                else:
+                    raise FileNotFoundError(f"Failed to extract valid video slice from {start_sec}s to {end_sec}s")
 
         print(f" Slice downloaded: {output_path.name} ({round(output_path.stat().st_size / (1024*1024), 2)} MB)")
         return output_path

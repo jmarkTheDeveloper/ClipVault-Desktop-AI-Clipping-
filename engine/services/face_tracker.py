@@ -628,113 +628,44 @@ class FaceTracker:
 
         self.face_cache = {}
 
-        # Sample clip frames to perform multi-model detection and temporal tracking
-        # 2 FPS provides buttery smooth virtual camera tracking while cutting analysis time from 108s down to 3s
+        # ── PASS 1: Global Lookahead Video Pre-Scan ("Watch the video first") ──
+        # Pre-scanning the video allows the AI to predict and map every shot cut, camera angle change,
+        # and speaker location in advance. This guarantees the virtual camera instantly aligns with the speaker
+        # from frame 0 of every shot, with zero lag and zero drift onto empty space or chairs.
         fps_sample = 2
         num_samples = max(4, int(clip.duration * fps_sample))
         sample_times = np.linspace(0.05, max(0.1, clip.duration - 0.05), num_samples)
 
-        temporal_tracker = TemporalTracker(max_age=int(fps_sample * 2.5), min_hits=1)
-        virtual_cam = VirtualCamera(
-            width, height, aspect_ratio=crop_ratio,
-            camera_style=camera_style,
-            deadzone_ratio=0.12 if camera_style == "snappy" else (0.18 if camera_style == "smooth" else 0.16),
-            pan_speed=400.0 if camera_style == "snappy" else (240.0 if camera_style == "smooth" else 350.0),
-            fps=float(fps_sample)
-        )
-
-        all_timeline_data = []
-        prev_faces = []
-        found_any_human = False
-        prev_primary_id = None
-        prev_primary_cx = None
-
+        pre_frames = []
         prev_sample_hist = None
+        found_any_human = False
+
         for t in sample_times:
             try:
                 frame = clip.get_frame(t)
+                if frame.dtype != np.uint8:
+                    frame = np.clip(frame, 0, 255).astype(np.uint8)
 
-                # Fast visual scene cut detection via normalized 2D HSV chromatic histogram comparison
-                is_visual_cut = False
+                # Normalized 2D HSV chromatic histogram for visual scene cut detection
+                hdiff = 0.0
                 try:
                     small_hsv = cv2.cvtColor(cv2.resize(frame, (80, 80), interpolation=cv2.INTER_NEAREST), cv2.COLOR_RGB2HSV)
                     hist = cv2.calcHist([small_hsv], [0, 1], None, [12, 12], [0, 180, 0, 256])
                     cv2.normalize(hist, hist, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX)
                     if prev_sample_hist is not None:
-                        hist_diff = cv2.compareHist(prev_sample_hist, hist, cv2.HISTCMP_BHATTACHARYYA)
-                        if hist_diff > 0.68:
-                            is_visual_cut = True
+                        hdiff = cv2.compareHist(prev_sample_hist, hist, cv2.HISTCMP_BHATTACHARYYA)
                     prev_sample_hist = hist
                 except Exception:
                     pass
 
-                # If visual cut detected, reset temporal tracker so predictions don't carry over from previous angle
-                if is_visual_cut:
-                    temporal_tracker.reset()
-
                 detected = self.detect_faces_in_frame(frame, frame_time=t)
                 if detected:
-                    for f in detected:
-                        best_motion = 0.0
-                        if 'mouth_roi' in f and prev_faces:
-                            closest_prev = min(prev_faces, key=lambda pf: abs(pf['center_x'] - f['center_x']) + abs(pf['center_y'] - f['center_y']))
-                            if 'mouth_roi' in closest_prev and abs(closest_prev['center_x'] - f['center_x']) < width * 0.35:
-                                diff = np.mean(cv2.absdiff(f['mouth_roi'], closest_prev['mouth_roi']))
-                                best_motion = float(diff)
-                        f['mouth_motion'] = best_motion
-                    prev_faces = detected
-                else:
-                    prev_faces = []
-
-                tracks = temporal_tracker.update(detected, width, height)
-                primary_track = tracks[0] if tracks else None
-
-                # Determine if a visual scene cut, scene boundary, or confirmed speaker switch occurred
-                is_scene_boundary = is_visual_cut or bool(scene_cut_times and any(abs(t - ct) < (0.5 / fps_sample) for ct in scene_cut_times))
-
-                is_speaker_switch = False
-                if primary_track:
                     found_any_human = True
-                    curr_cx = primary_track["center_x"]
-                    if prev_primary_id is not None and prev_primary_cx is not None:
-                        # Genuine speaker switch requires BOTH:
-                        # 1. A different track ID
-                        # 2. A distinct spatial separation (at least 20% of video width)
-                        # This prevents false cuts when the same speaker is re-detected after turning their head
-                        if primary_track["track_id"] != prev_primary_id and abs(curr_cx - prev_primary_cx) > (width * 0.20):
-                            is_speaker_switch = True
-                    prev_primary_id = primary_track["track_id"]
-                    prev_primary_cx = curr_cx
 
-                is_cut = is_scene_boundary or (is_speaker_switch and camera_style == "instant")
-
-                # Calculate target crop
-                tcx, tcy, tcw, tch = virtual_cam.calculate_target_crop(
-                    primary_track, tracks, min_margin_pct=min_crop_margin, max_digital_zoom=max_digital_zoom
-                )
-
-                if adaptive_crop:
-                    tw = target_resolution[0] if target_resolution else int(tch * crop_ratio)
-                    th = target_resolution[1] if target_resolution else int(tch)
-                    tcw, tch = QualityEngine.adjust_crop_for_quality(
-                        int(tcw), int(tch), tw, th, width, height,
-                        max_digital_zoom=max_digital_zoom, aspect_ratio=crop_ratio
-                    )
-
-                crop_rect = virtual_cam.update(tcx, tcy, tcw, tch, is_scene_cut=is_cut)
-
-                # Quality evaluation
-                tw = target_resolution[0] if target_resolution else int(crop_rect[3] * crop_ratio)
-                th = target_resolution[1] if target_resolution else crop_rect[3]
-                q_eval = QualityEngine.evaluate_quality(width, height, crop_rect[2], crop_rect[3], tw, th)
-
-                all_timeline_data.append({
+                pre_frames.append({
                     "t": t,
-                    "crop_rect": crop_rect,
-                    "tracks": tracks,
-                    "primary_track": primary_track,
-                    "is_cut": is_cut,
-                    "quality_eval": q_eval
+                    "faces": detected or [],
+                    "hdiff": hdiff
                 })
             except Exception:
                 pass
@@ -805,144 +736,202 @@ class FaceTracker:
             except Exception as st_err:
                 print(f"    [FaceTracker] SubjectTracker notice: {st_err}")
 
-        if not all_timeline_data:
+        if not pre_frames:
             return clip
 
-        # ── Shot Segment Post-Processing & Tripod Stabilization ──
-        # Group timeline keyframes into stable broadcast shot segments
-        raw_segments = []
-        current_seg = []
-        for item in all_timeline_data:
-            if current_seg and item.get("is_cut", False):
-                raw_segments.append(current_seg)
-                current_seg = []
-            current_seg.append(item)
-        if current_seg:
-            raw_segments.append(current_seg)
+        # ── PASS 1.5: Dynamic Shot Partitioning ──
+        # Segment the video into discrete broadcast shots based on visual cuts, external cuts, or speaker position jumps
+        cut_indices = set()
+        for i in range(1, len(pre_frames)):
+            t = pre_frames[i]["t"]
+            hdiff = pre_frames[i]["hdiff"]
+            prev_f = pre_frames[i - 1]["faces"]
+            curr_f = pre_frames[i]["faces"]
 
-        # Merge micro-segments: In broadcast editing, shots must have a minimum dwell duration
-        # (at least ~1.5 - 2.0 seconds, or 3-4 keyframes at 2 FPS). Micro-segments shorter than min_seg_len
-        # or segments whose median centers are virtually identical (< 15% width) are merged into the
-        # dominant adjacent shot to completely eliminate jittery jump-cutting.
-        min_seg_len = max(3, int(fps_sample * 1.5))
-        segments = []
-        for seg in raw_segments:
-            if not segments:
-                segments.append(seg)
+            is_cut = False
+            # Visual cut threshold (0.25 accurately catches multi-camera cuts in identical studio lighting)
+            if hdiff >= 0.25:
+                is_cut = True
+            elif scene_cut_times and any(abs(t - ct) < (0.5 / fps_sample) for ct in scene_cut_times):
+                is_cut = True
+            elif prev_f and curr_f:
+                p_cx = prev_f[0]["center_x"]
+                c_cx = curr_f[0]["center_x"]
+                if abs(c_cx - p_cx) > (width * 0.18):
+                    is_cut = True
+
+            if is_cut:
+                cut_indices.add(i)
+
+        raw_shots = []
+        curr_shot = []
+        for i, item in enumerate(pre_frames):
+            if i in cut_indices and curr_shot:
+                raw_shots.append(curr_shot)
+                curr_shot = []
+            curr_shot.append(item)
+        if curr_shot:
+            raw_shots.append(curr_shot)
+
+        # Merge micro-shots: shots shorter than min_shot_len where speaker centers are virtually identical (< 15% width)
+        min_shot_len = max(2, int(fps_sample * 1.0))
+        shots = []
+        for shot in raw_shots:
+            if not shots:
+                shots.append(shot)
                 continue
-            prev_seg = segments[-1]
-            prev_humans = [it for it in prev_seg if it.get("primary_track") is not None]
-            curr_humans = [it for it in seg if it.get("primary_track") is not None]
-            prev_target = prev_humans if prev_humans else prev_seg
-            curr_target = curr_humans if curr_humans else seg
-            prev_med_x = float(np.median([it["crop_rect"][0] for it in prev_target]))
-            curr_med_x = float(np.median([it["crop_rect"][0] for it in curr_target]))
-            if len(seg) < min_seg_len or abs(curr_med_x - prev_med_x) < (width * 0.15):
-                prev_seg.extend(seg)
-            else:
-                segments.append(seg)
+            prev_s = shots[-1]
+            prev_faces = [f for it in prev_s for f in it["faces"]]
+            curr_faces = [f for it in shot for f in it["faces"]]
+            if len(shot) < min_shot_len and prev_faces and curr_faces:
+                prev_med = float(np.median([f["center_x"] for f in prev_faces]))
+                curr_med = float(np.median([f["center_x"] for f in curr_faces]))
+                if abs(curr_med - prev_med) < (width * 0.15):
+                    prev_s.extend(shot)
+                    continue
+            shots.append(shot)
 
-        # ── Human-Anchor Shot Segments ──
-        # In any shot segment where at least one frame detected a human speaker, anchor all frames
-        # in that segment to the confirmed human speaker's location. Frames with missing detections
-        # must NEVER default to center (x = width / 2), which previously dragged crops onto walls/mugs!
-        for seg in segments:
-            human_items = [it for it in seg if it.get("primary_track") is not None]
-            if human_items:
-                seg_human_x1 = float(np.median([it["crop_rect"][0] for it in human_items]))
-                seg_human_y1 = float(np.median([it["crop_rect"][1] for it in human_items]))
-                seg_human_cw = float(np.median([it["crop_rect"][2] for it in human_items]))
-                seg_human_ch = float(np.median([it["crop_rect"][3] for it in human_items]))
-                for it in seg:
-                    if it.get("primary_track") is None:
-                        it["crop_rect"] = (seg_human_x1, seg_human_y1, seg_human_cw, seg_human_ch)
+        # ── PASS 2: Virtual Camera Framing with Shot-Isolated Smoothing ──
+        shot_keyframes = []
+        all_cw = []
+        all_ch = []
 
-        if camera_style == "instant":
-            # True Broadcast Multi-Camera Studio Behavior:
-            # Every shot segment is 100.0% LOCKED on a static tripod.
-            # Zero micro-creeping, zero 6-FPS stair-stepping, zero roughness.
-            # When switching speakers or scenes, the camera cuts instantly in 0.0 seconds.
-            for seg in segments:
-                human_items = [it for it in seg if it.get("primary_track") is not None]
-                target_items = human_items if human_items else seg
-                med_x1 = float(np.median([it["crop_rect"][0] for it in target_items]))
-                med_y1 = float(np.median([it["crop_rect"][1] for it in target_items]))
-                med_cw = float(np.median([it["crop_rect"][2] for it in target_items]))
-                med_ch = float(np.median([it["crop_rect"][3] for it in target_items]))
-                for it in seg:
+        for shot_idx, shot in enumerate(shots):
+            # Compute dominant confirmed human speaker location for this entire shot
+            shot_faces = [f for it in shot for f in it["faces"]]
+            shot_anchor_cx = float(np.median([f["center_x"] for f in shot_faces])) if shot_faces else None
+            shot_anchor_cy = float(np.median([f["center_y"] for f in shot_faces])) if shot_faces else None
+
+            temporal_tracker = TemporalTracker(max_age=int(fps_sample * 2.5), min_hits=1)
+            virtual_cam = VirtualCamera(
+                width, height, aspect_ratio=crop_ratio,
+                camera_style=camera_style,
+                deadzone_ratio=0.12 if camera_style == "snappy" else (0.18 if camera_style == "smooth" else 0.16),
+                pan_speed=400.0 if camera_style == "snappy" else (240.0 if camera_style == "smooth" else 350.0),
+                fps=float(fps_sample)
+            )
+
+            shot_items = []
+            for item_idx, item in enumerate(shot):
+                t = item["t"]
+                faces = item["faces"]
+                is_first_in_shot = (item_idx == 0)
+
+                tracks = temporal_tracker.update(faces, width, height)
+                primary_track = tracks[0] if tracks else None
+
+                if primary_track:
+                    tcx, tcy, tcw, tch = virtual_cam.calculate_target_crop(
+                        primary_track, tracks, min_margin_pct=min_crop_margin, max_digital_zoom=max_digital_zoom
+                    )
+                elif shot_anchor_cx is not None:
+                    # Anchor to confirmed speaker in this shot! Never drift onto empty walls or chairs!
+                    tch = float(base_crop_w / crop_ratio)
+                    tcw = float(base_crop_w)
+                    tcx = shot_anchor_cx
+                    tcy = shot_anchor_cy + (tch * 0.12)
+                else:
+                    tcw = float(base_crop_w)
+                    tch = float(base_crop_w / crop_ratio)
+                    tcx = float(width / 2.0)
+                    tcy = float(height / 2.0)
+
+                if adaptive_crop:
+                    tw = target_resolution[0] if target_resolution else int(tch * crop_ratio)
+                    th = target_resolution[1] if target_resolution else int(tch)
+                    tcw, tch = QualityEngine.adjust_crop_for_quality(
+                        int(tcw), int(tch), tw, th, width, height,
+                        max_digital_zoom=max_digital_zoom, aspect_ratio=crop_ratio
+                    )
+
+                crop_rect = virtual_cam.update(tcx, tcy, tcw, tch, is_scene_cut=is_first_in_shot)
+                all_cw.append(crop_rect[2])
+                all_ch.append(crop_rect[3])
+
+                item_data = {
+                    "t": t,
+                    "crop_rect": crop_rect,
+                    "tracks": tracks,
+                    "primary_track": primary_track,
+                    "is_cut": is_first_in_shot,
+                    "shot_idx": shot_idx
+                }
+                shot_items.append(item_data)
+
+            # Shot-Isolated Stabilization:
+            # Across cuts, camera transitions instantly with 0.0 lag.
+            # Within each shot, apply camera style smoothing strictly confined inside the shot.
+            raw_x1 = np.array([it["crop_rect"][0] for it in shot_items], dtype=np.float64)
+            raw_y1 = np.array([it["crop_rect"][1] for it in shot_items], dtype=np.float64)
+            raw_cw = np.array([it["crop_rect"][2] for it in shot_items], dtype=np.float64)
+            raw_ch = np.array([it["crop_rect"][3] for it in shot_items], dtype=np.float64)
+
+            if camera_style == "instant" or np.std(raw_x1) < (width * 0.05):
+                # Pure tripod lock on median framing
+                med_x1 = float(np.median(raw_x1))
+                med_y1 = float(np.median(raw_y1))
+                med_cw = float(np.median(raw_cw))
+                med_ch = float(np.median(raw_ch))
+                for it in shot_items:
                     it["crop_rect"] = (med_x1, med_y1, med_cw, med_ch)
-        else:
-            # Smooth / Snappy Steadi-Cam Mode:
-            # 1. Deadzone: If movement within a segment is small (< 5% width), lock to tripod to eliminate jitter.
-            # 2. Gaussian temporal smoothing: eliminates piecewise-linear kinks and creates buttery fluid pans.
-            raw_x1 = np.array([it["crop_rect"][0] for it in all_timeline_data], dtype=np.float64)
-            raw_y1 = np.array([it["crop_rect"][1] for it in all_timeline_data], dtype=np.float64)
-            raw_cw = np.array([it["crop_rect"][2] for it in all_timeline_data], dtype=np.float64)
-            raw_ch = np.array([it["crop_rect"][3] for it in all_timeline_data], dtype=np.float64)
-
-            stable_x1 = raw_x1.copy()
-            stable_y1 = raw_y1.copy()
-            idx_start = 0
-            for seg in segments:
-                seg_len = len(seg)
-                idx_end = idx_start + seg_len
-                seg_x = raw_x1[idx_start:idx_end]
-                if np.std(seg_x) < (width * 0.05):
-                    stable_x1[idx_start:idx_end] = np.median(seg_x)
-                    stable_y1[idx_start:idx_end] = np.median(raw_y1[idx_start:idx_end])
-                idx_start = idx_end
-
-            kernel_size = 3 if camera_style == "snappy" else 5
-            if len(stable_x1) >= kernel_size:
-                sigma = 1.2 if camera_style == "snappy" else 2.0
-                k = cv2.getGaussianKernel(kernel_size, sigma).flatten()
-                padded_x = np.pad(stable_x1, (kernel_size // 2, kernel_size // 2), mode='edge')
-                padded_y = np.pad(stable_y1, (kernel_size // 2, kernel_size // 2), mode='edge')
-                smoothed_x1 = np.convolve(padded_x, k, mode='valid')
-                smoothed_y1 = np.convolve(padded_y, k, mode='valid')
             else:
-                smoothed_x1 = stable_x1
-                smoothed_y1 = stable_y1
+                # Smooth / snappy: Gaussian filter strictly inside this shot (never bleeding across cuts)
+                k_size = 3 if (camera_style == "snappy" or len(raw_x1) < 5) else 5
+                sigma = 1.2 if camera_style == "snappy" else 2.0
+                k = cv2.getGaussianKernel(k_size, sigma).flatten()
+                pad_w = k_size // 2
+                padded_x = np.pad(raw_x1, (pad_w, pad_w), mode='edge')
+                padded_y = np.pad(raw_y1, (pad_w, pad_w), mode='edge')
+                smoothed_x = np.convolve(padded_x, k, mode='valid')
+                smoothed_y = np.convolve(padded_y, k, mode='valid')
+                for i, it in enumerate(shot_items):
+                    it["crop_rect"] = (float(smoothed_x[i]), float(smoothed_y[i]), float(raw_cw[i]), float(raw_ch[i]))
 
-            for i, it in enumerate(all_timeline_data):
-                it["crop_rect"] = (float(smoothed_x1[i]), float(smoothed_y1[i]), float(raw_cw[i]), float(raw_ch[i]))
-
-        # Timeline keyframe arrays
-        t_keys = np.array([item["t"] for item in all_timeline_data], dtype=np.float64)
-        x1_keys = np.array([item["crop_rect"][0] for item in all_timeline_data], dtype=np.float64)
-        y1_keys = np.array([item["crop_rect"][1] for item in all_timeline_data], dtype=np.float64)
-        cw_keys = np.array([item["crop_rect"][2] for item in all_timeline_data], dtype=np.float64)
-        ch_keys = np.array([item["crop_rect"][3] for item in all_timeline_data], dtype=np.float64)
+            shot_keyframes.append({
+                "shot_idx": shot_idx,
+                "t_start": shot_items[0]["t"],
+                "t_end": shot_items[-1]["t"],
+                "t_keys": np.array([it["t"] for it in shot_items], dtype=np.float64),
+                "x1_keys": np.array([it["crop_rect"][0] for it in shot_items], dtype=np.float64),
+                "y1_keys": np.array([it["crop_rect"][1] for it in shot_items], dtype=np.float64),
+                "cw_keys": np.array([it["crop_rect"][2] for it in shot_items], dtype=np.float64),
+                "ch_keys": np.array([it["crop_rect"][3] for it in shot_items], dtype=np.float64)
+            })
 
         if target_resolution and len(target_resolution) == 2:
             final_out_w, final_out_h = int(target_resolution[0]), int(target_resolution[1])
         else:
-            final_out_w = int(round(float(np.median(cw_keys))))
-            final_out_h = int(round(float(np.median(ch_keys))))
+            final_out_w = int(round(float(np.median(all_cw)))) if all_cw else base_crop_w
+            final_out_h = int(round(float(np.median(all_ch)))) if all_ch else height
         if final_out_w % 2 != 0: final_out_w -= 1
         if final_out_h % 2 != 0: final_out_h -= 1
 
         print(
-            f"    [FaceTracker] Temporal Virtual Camera Active ({len(t_keys)} keyframes) | "
+            f"    [FaceTracker] Two-Pass Virtual Camera Active ({len(shots)} broadcast shots, {len(pre_frames)} keyframes) | "
             f"Aspect: {crop_ratio:.3f} | Style: {camera_style} | Adaptive Crop: {adaptive_crop} | Diagnostics: {diagnostic_mode}"
         )
 
+        shot_starts = np.array([sk["t_start"] for sk in shot_keyframes], dtype=np.float64)
+
         def virtual_camera_filter(get_frame, t):
             frame = get_frame(t)
-            if camera_style == "instant":
-                idx = int(np.searchsorted(t_keys, t, side="right")) - 1
-                idx = max(0, min(len(t_keys) - 1, idx))
-                x1 = int(round(x1_keys[idx]))
-                y1 = int(round(y1_keys[idx]))
-                cw = int(round(cw_keys[idx]))
-                ch = int(round(ch_keys[idx]))
+            # Find the active shot for timestamp t
+            s_idx = int(np.searchsorted(shot_starts, t, side="right")) - 1
+            s_idx = max(0, min(len(shot_keyframes) - 1, s_idx))
+            sk = shot_keyframes[s_idx]
+
+            if len(sk["t_keys"]) <= 1 or camera_style == "instant":
+                # Static tripod framing for this shot
+                x1 = int(round(sk["x1_keys"][0]))
+                y1 = int(round(sk["y1_keys"][0]))
+                cw = int(round(sk["cw_keys"][0]))
+                ch = int(round(sk["ch_keys"][0]))
             else:
-                idx = int(np.searchsorted(t_keys, t))
-                idx = max(0, min(len(t_keys) - 1, idx))
-                x1 = int(round(float(np.interp(t, t_keys, x1_keys))))
-                y1 = int(round(float(np.interp(t, t_keys, y1_keys))))
-                cw = int(round(float(np.interp(t, t_keys, cw_keys))))
-                ch = int(round(float(np.interp(t, t_keys, ch_keys))))
+                # Interpolate smoothly strictly within this shot's keyframes
+                x1 = int(round(float(np.interp(t, sk["t_keys"], sk["x1_keys"]))))
+                y1 = int(round(float(np.interp(t, sk["t_keys"], sk["y1_keys"]))))
+                cw = int(round(float(np.interp(t, sk["t_keys"], sk["cw_keys"]))))
+                ch = int(round(float(np.interp(t, sk["t_keys"], sk["ch_keys"]))))
 
             # Clamp boundaries
             x1 = max(0, min(width - cw, x1))

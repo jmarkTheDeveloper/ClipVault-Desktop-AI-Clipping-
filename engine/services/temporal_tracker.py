@@ -322,9 +322,10 @@ class TemporalTracker:
             req_challenger_streak = 2
             challenger_margin = 1.15
 
-        if incumbent_track is None or incumbent_track["time_since_update"] > 6:
-            # Incumbent has left the frame or timed out: establish lock on highest raw prominence
-            best_candidate = max(active_outputs, key=lambda x: x["raw_prominence"])
+        live_tracks = [t for t in active_outputs if not t.get("is_coasting", False)]
+        if incumbent_track is None or incumbent_track["time_since_update"] > 3 or (incumbent_track.get("is_coasting", False) and live_tracks):
+            # Incumbent has left the frame, timed out, or is coasting while a live human is detected:
+            best_candidate = max(live_tracks if live_tracks else active_outputs, key=lambda x: x["raw_prominence"])
             self.primary_track_id = best_candidate["track_id"]
             self.speaker_dwell_frames = 1
             self.challenger_track_id = None
