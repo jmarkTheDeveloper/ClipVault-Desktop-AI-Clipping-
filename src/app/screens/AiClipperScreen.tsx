@@ -1724,6 +1724,7 @@ export const AiClipperScreen: React.FC<Props> = ({
               onCancel={cancelClipper}
               gameplayBgVideo={gameplayBgVideo}
               onPlaySegment={handlePlaySegment}
+              onOpenEngineSettings={() => setShowKeySettings(true)}
             />
           </>
         )}

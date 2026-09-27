@@ -62,6 +62,7 @@ interface PhonePreviewProps {
   onPlaySegment?: (seg: CustomSegment) => void;
   isPreviewingEffect?: boolean;
   hoveredEffectName?: string;
+  onOpenEngineSettings?: () => void;
 }
 
 function formatTime(seconds: number): string {
@@ -666,6 +667,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
   onPlaySegment,
   isPreviewingEffect = false,
   hoveredEffectName = "",
+  onOpenEngineSettings,
 }) => {
   const youtubeId = extractYouTubeId(ytUrl);
   const posterUrl = youtubeId ? `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg` : "";
@@ -1671,6 +1673,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
         currentTime={currentTime}
         onSeek={handleAskStudioSeek}
         onSetClipBounds={handleAskStudioSetClipBounds}
+        onOpenEngineSettings={onOpenEngineSettings}
       />
     </div>
   );
