@@ -19,10 +19,12 @@ import {
 } from "lucide-react";
 import type { CropBox, CustomSegment } from "./types";
 import { extractYouTubeId, parseTimestampToSec } from "./types";
+import { AskStudioPanel } from "./AskStudioPanel";
 
 interface PhonePreviewProps {
   activeVideoUrl: string;
   ytUrl?: string;
+  localFilePath?: string;
   loadingPreview?: boolean;
   previewError?: string;
   onRetryPreview?: () => void;
@@ -626,6 +628,7 @@ const DraggableCaptionOverlay: React.FC<{
 export const PhonePreview: React.FC<PhonePreviewProps> = ({
   activeVideoUrl,
   ytUrl = "",
+  localFilePath = "",
   loadingPreview = false,
   previewError = "",
   onRetryPreview,
@@ -677,6 +680,35 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
   const [isBuffering, setIsBuffering] = useState(false);
   const [streamError, setStreamError] = useState(false);
   const [loopSegment, setLoopSegment] = useState(true);
+
+  // Ask Studio Assistant State
+  const [isAskStudioOpen, setIsAskStudioOpen] = useState(false);
+
+  const handleAskStudioSeek = (sec: number) => {
+    if (videoRef?.current) {
+      videoRef.current.currentTime = sec;
+    }
+    setCurrentTime(sec);
+  };
+
+  const handleAskStudioSetClipBounds = (startSec: number, endSec: number) => {
+    const startFormatted = formatTime(startSec);
+    const endFormatted = formatTime(endSec);
+    if (setStartTs) setStartTs(startFormatted);
+    if (setEndTs) setEndTs(endFormatted);
+    if (setDurationMode) setDurationMode("custom");
+    if (setCustomSegments) {
+      setCustomSegments((prev) =>
+        prev.map((s) =>
+          s.id === activeSegmentId ? { ...s, start: startFormatted, end: endFormatted } : s
+        )
+      );
+    }
+    if (videoRef?.current) {
+      videoRef.current.currentTime = startSec;
+    }
+    setCurrentTime(startSec);
+  };
 
   // Reset stream error when URL changes
   useEffect(() => {
@@ -1627,6 +1659,19 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
         {/* Home Indicator Bar (Swipe Bar) */}
         <div className="w-32 h-1 bg-white/20 rounded-full mx-auto mt-2 mb-0.5 pointer-events-none shrink-0" />
       </div>
+
+      {/* Ask Studio AI Video Assistant Panel */}
+      <AskStudioPanel
+        isOpen={isAskStudioOpen}
+        onOpen={() => setIsAskStudioOpen(true)}
+        onClose={() => setIsAskStudioOpen(false)}
+        ytUrl={ytUrl}
+        activeVideoUrl={activeVideoUrl}
+        localFilePath={localFilePath}
+        currentTime={currentTime}
+        onSeek={handleAskStudioSeek}
+        onSetClipBounds={handleAskStudioSetClipBounds}
+      />
     </div>
   );
 };

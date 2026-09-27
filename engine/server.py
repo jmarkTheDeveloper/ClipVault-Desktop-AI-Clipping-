@@ -363,6 +363,33 @@ def re_render_clip_endpoint(req: ReRenderRequest):
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
+class AskVideoRequest(BaseModel):
+    question: str
+    url: Optional[str] = None
+    local_path: Optional[str] = None
+    api_key: Optional[str] = None
+    ai_engine: Optional[str] = "gemini"
+    language: Optional[str] = "en"
+
+@app.post("/api/ask_video")
+@app.post("/api/ask-video")
+def ask_video_endpoint(req: AskVideoRequest):
+    """Answers creator questions and surfaces timestamped video moments for instant seeking and clipping."""
+    try:
+        from services.video_qa_service import VideoQAService
+        return VideoQAService.ask_video(
+            question=req.question,
+            url=req.url,
+            local_path=req.local_path,
+            api_key=req.api_key,
+            ai_engine=req.ai_engine,
+            language=req.language or "en"
+        )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
 def get_current_user(authorization: Optional[str] = Header(None)):
     """
     Security dependency that validates the JWT OAuth token passed in the Authorization header.

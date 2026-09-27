@@ -1684,6 +1684,7 @@ export const AiClipperScreen: React.FC<Props> = ({
             <PhonePreview
               activeVideoUrl={activeVideoUrl}
               ytUrl={ytUrl}
+              localFilePath={localFilePath}
               loadingPreview={loadingPreview}
               previewError={previewError}
               onRetryPreview={() => fetchYouTubePreview(ytUrl)}
