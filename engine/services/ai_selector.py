@@ -3,6 +3,7 @@ import os
 import json
 import random
 import base64
+import re
 import requests
 import google.generativeai as genai
 
@@ -45,6 +46,37 @@ class AISelector:
             'gemini-2.5-pro',
             'gemini-pro-latest'
         ]
+
+    @staticmethod
+    def clean_topic_query(raw_topic):
+        """
+        Cleans user topic input by stripping meta-phrasing (e.g. 'find a moment where...', 'clips worth watching').
+        Returns (cleaned_topic_for_llm, list_of_keywords_for_heuristic).
+        If the prompt is purely generic (e.g. 'find a moment where it is worth clipping a video'),
+        returns (None, []) so the AI runs general viral peak detection.
+        """
+        if not raw_topic or not str(raw_topic).strip():
+            return None, []
+        text = str(raw_topic).strip()
+
+        # Check if purely generic meta-instruction
+        generic_patterns = [
+            r'^(?:please\s+)?(?:find|get|give|show|clip|extract)?\s*(?:me\s+)?(?:a\s+|some\s+|the\s+)?(?:good|best|viral|interesting|top|great|any)?\s*(?:moment|moments|part|parts|clip|clips|highlights?|sections?|scenes?)\s*(?:where\s+)?(?:it\s+is\s+)?(?:worth\s+)?(?:clipping|watching|sharing|saving)?(?:\s+a\s+video)?(?:\s+for\s+me)?[\.\?!]*$',
+            r'^(?:find\s+a\s+moment\s+where\s+it\s+is\s+worth\s+clipping\s+a\s+video)$',
+            r'^(?:best\s+moments|viral\s+clips|good\s+parts|highlights?|worth\s+clipping|viral\s+peaks?)$'
+        ]
+        for pat in generic_patterns:
+            if re.match(pat, text, re.IGNORECASE):
+                return None, []
+
+        # Strip leading filler prompts like 'find moments where', 'talk about', etc.
+        cleaned = re.sub(r'^(?:please\s+)?(?:find|get|show|clip|extract)\s+(?:me\s+)?(?:moments?|clips?|parts?|sections?)\s+(?:where|when|about|involving|discussing)\s+', '', text, flags=re.IGNORECASE).strip()
+
+        words = [w.lower() for w in re.findall(r'\b[a-zA-Z0-9_\'-]+\b', cleaned) if len(w) > 2]
+        stopwords = {'the', 'and', 'for', 'that', 'this', 'with', 'about', 'from', 'they', 'what', 'when', 'where', 'who', 'how', 'why', 'have', 'were', 'been', 'their', 'there'}
+        keywords = [w for w in words if w not in stopwords]
+
+        return cleaned, keywords
 
     def sample_candidate_keyframes(self, video_path: str, timestamps: list, max_frames: int = 4) -> list:
         """
@@ -433,6 +465,8 @@ class AISelector:
         """
         import re
 
+        clean_topic, topic_keywords = self.clean_topic_query(topic)
+
         if not segments:
             clips = []
             step = max(10.0, (video_duration - 45.0) / max(1, n))
@@ -642,8 +676,13 @@ class AISelector:
                         score = 50.0 + anchor_bonus + resolution_score
 
                         # Topic alignment bonus
-                        if topic and topic.lower() in story_text.lower():
-                            score += 40.0
+                        if clean_topic:
+                            if clean_topic.lower() in story_text.lower():
+                                score += 40.0
+                            elif topic_keywords:
+                                hits = sum(1 for kw in topic_keywords if kw in story_text.lower())
+                                if hits > 0:
+                                    score += min(40.0, hits * 15.0)
 
                         # Speaking rate check
                         words_count = len(story_text.split())
@@ -856,12 +895,19 @@ class AISelector:
         (Gemini, Groq, OpenAI, Claude, DeepSeek) with intelligent multimodal evaluation and NLP fallback.
         Enforces complete self-contained context and question-premise anchoring.
         """
+        clean_topic, topic_keywords = self.clean_topic_query(topic)
+        if topic and clean_topic != topic:
+            if clean_topic:
+                print(f"[AISelector] Refined topic query '{topic}' -> '{clean_topic}' (keywords: {topic_keywords})")
+            else:
+                print(f"[AISelector] Generic prompt '{topic}' detected. Running peak viral story arc detection across full transcript.")
+
         # Format continuous, coherent dialogue without skipping or striding sentences
         transcript_with_timestamps, aggregated_dialogue = self.format_continuous_dialogue(segments)
         if not transcript_with_timestamps:
-            return self._heuristic_viral_selector(segments, video_duration, n, target_duration, topic=topic)
+            return self._heuristic_viral_selector(segments, video_duration, n, target_duration, topic=clean_topic)
         
-        topic_clause = f"Focus strictly on highlights involving '{topic}'." if topic else "Focus on the most jaw-dropping, funny, emotional, or educational viral peaks."
+        topic_clause = f"Focus strictly on highlights involving '{clean_topic}'." if clean_topic else "Focus on the most jaw-dropping, funny, emotional, or educational viral peaks."
 
         # Check if long video (> 15 minutes) with active API key -> Use Hierarchical Chaptering
         has_api_key = bool(self.api_key and self.api_key not in ["YOUR_API_KEY_HERE", "demo", "null", "undefined", ""])
@@ -983,7 +1029,7 @@ Return ONLY valid JSON format:
                     elif deduped:
                         needed = n - len(deduped)
                         print(f"[AISelector] Multi-Chapter Analysis produced {len(deduped)} clips, padding {needed} more to guarantee exactly {n} clips...")
-                        extra = self._heuristic_viral_selector(segments, video_duration, needed, target_duration, topic=topic)
+                        extra = self._heuristic_viral_selector(segments, video_duration, needed, target_duration, topic=clean_topic)
                         for ex in extra:
                             deduped.append(ex)
                         top_n = deduped[:n]
@@ -1121,7 +1167,7 @@ Return ONLY valid JSON format:
             if len(validated_clips) < n:
                 needed = n - len(validated_clips)
                 print(f"[AISelector] Padding {needed} additional viral moments using NLP context detector...")
-                extra = self._heuristic_viral_selector(segments, video_duration, needed, target_duration, topic=topic)
+                extra = self._heuristic_viral_selector(segments, video_duration, needed, target_duration, topic=clean_topic)
                 for ex in extra:
                     validated_clips.append(ex)
 
@@ -1137,7 +1183,7 @@ Return ONLY valid JSON format:
             
         except Exception as e:
             print(f"[AISelector] AI selection notice: {e}. Executing Intelligent NLP Virality Scorer...")
-            return self._heuristic_viral_selector(segments, video_duration, n, target_duration, topic=topic)
+            return self._heuristic_viral_selector(segments, video_duration, n, target_duration, topic=clean_topic)
 
     def _fallback_selection(self, segments, video_duration, n, target_duration):
         """Backwards-compatible wrapper routing to heuristic viral selector."""
