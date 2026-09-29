@@ -1967,6 +1967,26 @@ def save_vault_keys(data: dict = Body(...)):
         print(f" Error saving key vault: {e}")
         return {"success": False, "error": str(e)}
 
+# ── Commercial Licensing & Lemon Squeezy Activation Endpoints ────────────────
+@app.get("/api/license/status")
+def get_license_status():
+    """Returns whether the application has a valid, hardware-bound license."""
+    from services.license_service import LicenseService
+    return LicenseService.get_status()
+
+@app.post("/api/license/activate")
+def activate_license(payload: dict = Body(...)):
+    """Activates ClipVault with a Lemon Squeezy or Developer license key."""
+    from services.license_service import LicenseService
+    license_key = payload.get("license_key", "")
+    return LicenseService.activate(license_key)
+
+@app.post("/api/license/deactivate")
+def deactivate_license():
+    """Deactivates the license on this PC and Lemon Squeezy."""
+    from services.license_service import LicenseService
+    return LicenseService.deactivate()
+
 if __name__ == "__main__":
     import uvicorn
     if sys.platform == "win32":

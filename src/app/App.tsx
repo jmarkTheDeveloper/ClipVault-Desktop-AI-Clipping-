@@ -10,6 +10,7 @@ import { AiChatVideoScreen } from "./screens/AiChatVideoScreen";
 import { OpusClipperScreen } from "./screens/OpusClipperScreen";
 import { InteractiveTour, FirstTimeWelcomeModal } from "./components/InteractiveTour";
 import { SystemEnvironmentModal } from "./components/SystemEnvironmentModal";
+import { LicenseActivationModal } from "./components/LicenseActivationModal";
 import { AlertTriangle, Check, X } from "lucide-react";
 
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; error: any }> {
@@ -82,6 +83,38 @@ export default function App() {
       return false;
     }
   });
+
+  // Commercial Licensing State (Lemon Squeezy)
+  const [isLicensed, setIsLicensed] = useState<boolean>(true);
+  const [showLicenseModal, setShowLicenseModal] = useState<boolean>(false);
+  const [licenseData, setLicenseData] = useState<{ key_preview?: string; user_email?: string } | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    const checkLicense = () => {
+      fetch("http://127.0.0.1:8000/api/license/status")
+        .then((r) => r.json())
+        .then((data) => {
+          if (!isMounted) return;
+          if (data && data.licensed) {
+            setIsLicensed(true);
+            setShowLicenseModal(false);
+            setLicenseData({ key_preview: data.key_preview, user_email: data.user_email });
+          } else {
+            setIsLicensed(false);
+            setShowLicenseModal(true);
+          }
+        })
+        .catch(() => {
+          if (!isMounted) return;
+          setTimeout(checkLicense, 1500);
+        });
+    };
+    checkLicense();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Background Task State Tracking
   const [taskState, setTaskState] = useState<{
@@ -517,6 +550,16 @@ export default function App() {
             </button>
           </div>
         )}
+
+        {/* Commercial Licensing & Lemon Squeezy Activation Gate */}
+        <LicenseActivationModal
+          isOpen={showLicenseModal}
+          onActivated={(data) => {
+            setIsLicensed(true);
+            setShowLicenseModal(false);
+            setLicenseData(data);
+          }}
+        />
 
         {/* Active Clipping Task Exit Confirmation Guard Overlay */}
         {showExitConfirmModal && (

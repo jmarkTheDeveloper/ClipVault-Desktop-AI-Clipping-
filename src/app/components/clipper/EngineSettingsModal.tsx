@@ -318,6 +318,21 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
   const [activeCloudTab, setActiveCloudTab] = useState<"all" | "frontier" | "fast" | "video">("all");
   const [showSecretKey, setShowSecretKey] = useState(false);
   const [apiWarning, setApiWarning] = useState<string | null>(null);
+  const [licenseStatus, setLicenseStatus] = useState<{
+    licensed?: boolean;
+    key_preview?: string;
+    user_email?: string;
+    activated_at?: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetch("http://127.0.0.1:8000/api/license/status")
+        .then((r) => r.json())
+        .then((d) => setLicenseStatus(d))
+        .catch(() => {});
+    }
+  }, [isOpen]);
 
   // Helper to extract the active key for the selected engine
   const getCurrentKey = (): string => {
@@ -1526,6 +1541,42 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
               </div>
             </div>
           )}
+
+          {/* Commercial License Status Card */}
+          <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center shrink-0">
+                <ShieldCheck className="w-4 h-4 text-amber-400" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h4 className="text-sm font-bold text-white">Commercial License</h4>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${licenseStatus?.licensed ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30" : "bg-amber-400/15 text-amber-300 border border-amber-400/30"}`}>
+                    {licenseStatus?.licensed ? "ACTIVE & BOUND" : "ACTIVATION PENDING"}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {licenseStatus?.licensed
+                    ? `Licensed to: ${licenseStatus.user_email || 'Creator'} (${licenseStatus.key_preview || 'Active'})`
+                    : "No commercial license detected on this PC."}
+                </p>
+              </div>
+            </div>
+            {licenseStatus?.licensed && (
+              <button
+                type="button"
+                onClick={async () => {
+                  if (confirm("Are you sure you want to deactivate your license on this machine?")) {
+                    await fetch("http://127.0.0.1:8000/api/license/deactivate", { method: "POST" });
+                    window.location.reload();
+                  }
+                }}
+                className="px-3.5 py-1.5 rounded-xl bg-white/5 hover:bg-red-500/20 text-gray-400 hover:text-red-300 border border-white/10 hover:border-red-500/30 text-xs font-bold transition-all cursor-pointer shadow-sm"
+              >
+                Deactivate License
+              </button>
+            )}
+          </div>
 
           {/* Storage & Disk Space Cache Cleaner */}
           <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 flex items-center justify-between gap-3 flex-wrap">
