@@ -85,8 +85,20 @@ export default function App() {
   });
 
   // Commercial Licensing State (Lemon Squeezy)
-  const [isLicensed, setIsLicensed] = useState<boolean>(true);
-  const [showLicenseModal, setShowLicenseModal] = useState<boolean>(false);
+  const [isLicensed, setIsLicensed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("clipvault_license_active") === "true";
+    } catch {
+      return false;
+    }
+  });
+  const [showLicenseModal, setShowLicenseModal] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("clipvault_license_active") !== "true";
+    } catch {
+      return true;
+    }
+  });
   const [licenseData, setLicenseData] = useState<{ key_preview?: string; user_email?: string } | null>(null);
 
   useEffect(() => {
@@ -99,19 +111,31 @@ export default function App() {
           if (data && data.licensed) {
             setIsLicensed(true);
             setShowLicenseModal(false);
+            try {
+              localStorage.setItem("clipvault_license_active", "true");
+            } catch {}
             setLicenseData({ key_preview: data.key_preview, user_email: data.user_email });
           } else {
-            setIsLicensed(false);
-            setShowLicenseModal(true);
+            try {
+              if (localStorage.getItem("clipvault_license_active") !== "true") {
+                setIsLicensed(false);
+                setShowLicenseModal(true);
+              }
+            } catch {}
           }
         })
-        .catch(() => {});
+        .catch(() => {
+          try {
+            if (localStorage.getItem("clipvault_license_active") === "true") {
+              setIsLicensed(true);
+              setShowLicenseModal(false);
+            }
+          } catch {}
+        });
     };
     checkLicense();
-    const interval = setInterval(checkLicense, 1500);
     return () => {
       isMounted = false;
-      clearInterval(interval);
     };
   }, []);
 
@@ -557,6 +581,9 @@ export default function App() {
             onActivated={(data) => {
               setIsLicensed(true);
               setShowLicenseModal(false);
+              try {
+                localStorage.setItem("clipvault_license_active", "true");
+              } catch {}
               setLicenseData(data);
             }}
           />
