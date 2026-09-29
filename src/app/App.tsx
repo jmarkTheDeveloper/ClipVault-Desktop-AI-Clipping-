@@ -9,6 +9,7 @@ import { LyricCreatorScreen } from "./screens/LyricCreatorScreen";
 import { AiChatVideoScreen } from "./screens/AiChatVideoScreen";
 import { OpusClipperScreen } from "./screens/OpusClipperScreen";
 import { InteractiveTour, FirstTimeWelcomeModal } from "./components/InteractiveTour";
+import { SystemEnvironmentModal } from "./components/SystemEnvironmentModal";
 import { AlertTriangle, Check, X } from "lucide-react";
 
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; error: any }> {
@@ -72,6 +73,15 @@ export default function App() {
     }
   });
   const [showVaultWelcomePrompt, setShowVaultWelcomePrompt] = useState(false);
+
+  // CapCut-Style System Environment Diagnostic Check
+  const [showEnvCheckModal, setShowEnvCheckModal] = useState<boolean>(() => {
+    try {
+      return !localStorage.getItem("clipvault_env_check_completed");
+    } catch {
+      return false;
+    }
+  });
 
   // Background Task State Tracking
   const [taskState, setTaskState] = useState<{
@@ -196,6 +206,15 @@ export default function App() {
     window.addEventListener("keydown", handleKeyDown);
 
     return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  useEffect(() => {
+    const handleOpenEnv = () => setShowEnvCheckModal(true);
+    window.addEventListener("clipvault-open-env-check", handleOpenEnv);
+    (window as any).runSystemCheck = () => setShowEnvCheckModal(true);
+    return () => {
+      window.removeEventListener("clipvault-open-env-check", handleOpenEnv);
+    };
   }, []);
 
   const handleStartTour = () => {
@@ -345,6 +364,12 @@ export default function App() {
         </div>
 
         {screen === "movie-recapper" && <MovieRecapperScreen onBack={() => setScreen("project-select")} />}
+
+        {/* CapCut-Style System Environment Compatibility Test Modal */}
+        <SystemEnvironmentModal
+          isOpen={showEnvCheckModal}
+          onClose={() => setShowEnvCheckModal(false)}
+        />
 
         {/* First-Time Clipper Welcome Prompt Modal */}
         <FirstTimeWelcomeModal

@@ -832,15 +832,26 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                     Runs 100% locally with zero cloud API keys, $0 cost, and full offline support.
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={runHardwareScan}
-                  disabled={isScanning}
-                  className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-xs text-white font-bold transition-all cursor-pointer border border-white/10 disabled:opacity-50"
-                >
-                  <RefreshCw className={`w-4 h-4 ${isScanning ? "animate-spin text-amber-400" : "text-gray-300"}`} />
-                  <span>{isScanning ? "Scanning System..." : "Run Hardware Scan"}</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => window.dispatchEvent(new CustomEvent("clipvault-open-env-check"))}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-400/15 hover:bg-amber-400/25 text-xs text-amber-300 font-bold transition-all cursor-pointer border border-amber-400/30"
+                    title="Launch full CapCut-style environment compatibility test"
+                  >
+                    <Activity className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Test Environment</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={runHardwareScan}
+                    disabled={isScanning}
+                    className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-xs text-white font-bold transition-all cursor-pointer border border-white/10 disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${isScanning ? "animate-spin text-amber-400" : "text-gray-300"}`} />
+                    <span>{isScanning ? "Scanning..." : "Rescan Hardware"}</span>
+                  </button>
+                </div>
               </div>
 
               {/* Scanned Hardware Results */}
