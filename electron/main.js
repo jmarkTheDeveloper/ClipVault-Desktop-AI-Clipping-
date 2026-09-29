@@ -293,9 +293,10 @@ function createWindow() {
 
   let loadAttempts = 0;
   const loadApp = () => {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
     if (isDev) {
       mainWindow.loadURL('http://localhost:54321').catch(() => {
-        if (fs.existsSync(distPath)) {
+        if (mainWindow && !mainWindow.isDestroyed() && fs.existsSync(distPath)) {
           mainWindow.loadFile(distPath);
         }
       });
@@ -309,14 +310,15 @@ function createWindow() {
     if (isDev && loadAttempts < 5) {
       loadAttempts++;
       setTimeout(() => {
+        if (!mainWindow || mainWindow.isDestroyed()) return;
         console.log(`[Electron]: Retrying connection to dev server (attempt ${loadAttempts})...`);
         mainWindow.loadURL('http://localhost:54321').catch(() => {
-          if (fs.existsSync(distPath)) {
+          if (mainWindow && !mainWindow.isDestroyed() && fs.existsSync(distPath)) {
             mainWindow.loadFile(distPath);
           }
         });
       }, 1000);
-    } else if (fs.existsSync(distPath)) {
+    } else if (mainWindow && !mainWindow.isDestroyed() && fs.existsSync(distPath)) {
       console.log('[Electron]: Falling back to built bundle dist/index.html');
       mainWindow.loadFile(distPath);
     }
