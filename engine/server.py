@@ -108,12 +108,21 @@ async def startup_event():
     except Exception as e:
         print(f" [Startup]: Non-critical startup task notification: {e}")
 
-# Enable CORS for frontend calls
+# Allowed Origins: Local desktop Vite server, Electron, and local app schemes
+ALLOWED_ORIGIN_PATTERNS = [
+    r"^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?$",
+    r"^app://-",
+    r"^file://",
+    r"^vscode-webview://",
+    r"^null$",
+]
+
+# Enable strict CORS for desktop frontend calls only
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?$|^app://-|^file://|^null$",
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
     allow_headers=["*"],
 )
 
@@ -121,10 +130,35 @@ AUTH_TOKEN = os.getenv("CLIPVAULT_AUTH_TOKEN", "")
 
 @app.middleware("http")
 async def verify_app_auth(request: Request, call_next):
-    # Allow OPTIONS preflight, static file mounts, video streaming, health checks, and local desktop loopback requests
+    # Preflight OPTIONS
+    if request.method == "OPTIONS":
+        return await call_next(request)
+
     path = request.url.path
+    origin = request.headers.get("origin")
+    sec_fetch_site = request.headers.get("sec-fetch-site")
+
+    # ── SECURITY SHIELD: REJECT CROSS-SITE BROWSER ATTACKS ─────────────────
+    # If a malicious website inside a user's web browser tries to fetch 127.0.0.1, drop it
+    if sec_fetch_site == "cross-site":
+        from fastapi.responses import JSONResponse
+        return JSONResponse(
+            status_code=403,
+            content={"detail": "Forbidden: Cross-site requests from external web browsers are strictly blocked."}
+        )
+
+    if origin:
+        import re
+        is_allowed_origin = any(re.match(pat, origin, re.IGNORECASE) for pat in ALLOWED_ORIGIN_PATTERNS)
+        if not is_allowed_origin:
+            from fastapi.responses import JSONResponse
+            return JSONResponse(
+                status_code=403,
+                content={"detail": f"Forbidden: Untrusted cross-origin request from '{origin}' blocked."}
+            )
+
     client_host = request.client.host if request.client else ""
-    if request.method == "OPTIONS" or not path.startswith("/api/") or path == "/api/health" or path.startswith("/api/video_info") or client_host in ["127.0.0.1", "::1", "localhost"]:
+    if not path.startswith("/api/") or path == "/api/health" or path.startswith("/api/video_info") or client_host in ["127.0.0.1", "::1", "localhost"]:
         return await call_next(request)
     
     if AUTH_TOKEN:
@@ -212,8 +246,20 @@ def stream_media(request: Request, path: Optional[str] = None, url: Optional[str
             raise HTTPException(status_code=502, detail=f"Failed to proxy stream: {e}")
 
     elif target_path:
-        # Resolve local video file on disk
-        file_path = Path(target_path)
+        # Resolve local video file on disk with path jail & media extension validation
+        file_path = Path(target_path).resolve()
+
+        # Security Guard 1: Block access to sensitive system paths, credentials, and configuration files
+        str_path = str(file_path).lower().replace("\\", "/")
+        forbidden_keywords = [".ssh", ".clipvault", ".env", "system32", "etc/passwd", "credentials", "id_rsa", "config.py", "secrets", "wallet"]
+        if any(bad in str_path for bad in forbidden_keywords):
+            raise HTTPException(status_code=403, detail="Forbidden: Access to sensitive system or credential paths is strictly prohibited.")
+
+        # Security Guard 2: Enforce allowed media file extensions (prevent arbitrary file disclosure)
+        ALLOWED_MEDIA_EXTS = {".mp4", ".mkv", ".mov", ".webm", ".avi", ".m4a", ".mp3", ".wav", ".aac", ".jpg", ".jpeg", ".png", ".webp"}
+        if file_path.suffix.lower() not in ALLOWED_MEDIA_EXTS:
+            raise HTTPException(status_code=403, detail="Forbidden: Only approved media file types can be streamed.")
+
         if not (file_path.is_absolute() and file_path.exists()):
             clean_name = target_path.replace("\\", "/").split("clips/")[-1].lstrip("/")
             candidates = [
@@ -1858,28 +1904,40 @@ VAULT_FILE = VAULT_DIR / "keys_vault.json"
 
 @app.get("/api/vault_keys")
 def get_vault_keys():
-    """Returns securely saved API keys from the persistent local on-device vault."""
+    """Returns securely saved API keys from the persistent local on-device vault, encrypted at rest via DPAPI."""
     try:
+        from services.vault_crypto import VaultCrypto
         if VAULT_FILE.exists() and VAULT_FILE.stat().st_size > 0:
             with open(VAULT_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                if isinstance(data, dict):
-                    return {"success": True, "keys": data}
+                content = f.read()
+            data = VaultCrypto.decrypt_data(content)
+            if isinstance(data, dict):
+                # Auto-encrypt legacy plain files to DPAPI
+                if content.strip().startswith("{") and '"encrypted": true' not in content:
+                    try:
+                        encrypted_payload = VaultCrypto.encrypt_data(data)
+                        with open(VAULT_FILE, "w", encoding="utf-8") as f:
+                            f.write(encrypted_payload)
+                    except Exception:
+                        pass
+                return {"success": True, "keys": data}
     except Exception as e:
         print(f" Note reading key vault: {e}")
     return {"success": True, "keys": {}}
 
 @app.post("/api/save_vault_keys")
 def save_vault_keys(data: dict = Body(...)):
-    """Saves API keys to persistent local disk vault so keys are NEVER lost across restarts."""
+    """Saves API keys to persistent local disk vault encrypted at rest with Windows DPAPI."""
     try:
+        from services.vault_crypto import VaultCrypto
         VAULT_DIR.mkdir(parents=True, exist_ok=True)
         keys_data = data.get("keys", {})
         existing = {}
         if VAULT_FILE.exists() and VAULT_FILE.stat().st_size > 0:
             try:
                 with open(VAULT_FILE, "r", encoding="utf-8") as f:
-                    existing = json.load(f)
+                    content = f.read()
+                existing = VaultCrypto.decrypt_data(content)
             except Exception:
                 existing = {}
         
@@ -1888,10 +1946,13 @@ def save_vault_keys(data: dict = Body(...)):
             if v and str(v).strip():
                 existing[k] = str(v).strip()
                 
+        # Encrypt payload with hardware/OS DPAPI
+        encrypted_payload = VaultCrypto.encrypt_data(existing)
+
         # Atomic write via tmp file to guarantee 0% corruption risk
         tmp_file = VAULT_DIR / "keys_vault.tmp"
         with open(tmp_file, "w", encoding="utf-8") as f:
-            json.dump(existing, f, indent=2)
+            f.write(encrypted_payload)
         tmp_file.replace(VAULT_FILE)
         return {"success": True, "saved_count": len(existing)}
     except Exception as e:
