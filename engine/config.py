@@ -47,7 +47,7 @@ try:
 except Exception as _ffmpeg_setup_err:
     pass
 
-GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', 'YOUR_API_KEY_HERE')
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
 
 def _resolve_dir(env_key: str, default_name: str) -> Path:
     val = os.getenv(env_key, '').strip()
@@ -75,6 +75,6 @@ TEMP_DIR.mkdir(parents=True, exist_ok=True)
 BACKGROUNDS_DIR.mkdir(parents=True, exist_ok=True)
 MUSIC_DIR.mkdir(parents=True, exist_ok=True)
 
-if "YOUR_API_KEY_HERE" in GEMINI_API_KEY:
+if GEMINI_API_KEY and "YOUR_API_KEY_HERE" in GEMINI_API_KEY:
     print("[WARNING] Please set your actual API key in the app's Engine Settings.")
 

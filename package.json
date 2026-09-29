@@ -45,7 +45,9 @@
       "!clips/**/*",
       "!temp/**/*",
       "!logo/**/*",
-      "!guidelines/**/*"
+      "!guidelines/**/*",
+      "!**/.env*",
+      "!**/.git*"
     ],
     "extraResources": [
       {
