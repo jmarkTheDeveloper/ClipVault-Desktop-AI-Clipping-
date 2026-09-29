@@ -68,6 +68,21 @@ export function extractYouTubeId(url: string): string | null {
   return match && match[1] ? match[1] : null;
 }
 
+export function isLikedVideosUrl(url: string): boolean {
+  if (!url) return false;
+  const clean = url.trim();
+  // Check for list=LL (Liked Videos), list=WL (Watch Later), list=LM (Liked Music), or list=FL (Favorites)
+  return /[?&]list=(?:LL|WL|LM|FL)(?:&|$)/i.test(clean);
+}
+
+export function cleanYouTubeUrl(url: string): string | null {
+  const videoId = extractYouTubeId(url);
+  if (videoId) {
+    return `https://www.youtube.com/watch?v=${videoId}`;
+  }
+  return null;
+}
+
 export function parseTimestampToSec(ts: string): number {
   if (!ts) return 0;
   const parts = ts.trim().split(":").map(Number);

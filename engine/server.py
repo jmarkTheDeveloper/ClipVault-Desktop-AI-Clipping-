@@ -1150,8 +1150,16 @@ def get_video_info(url: str):
     import shutil
     clean_url = url.strip()
 
-    # Canonicalize YouTube URL if it matches standard patterns
+    # Detect private playlists (Liked Videos list=LL, Watch Later list=WL)
+    is_liked = bool(re.search(r'[?&]list=(?:LL|WL|LM|FL)(?:&|$)', clean_url, re.IGNORECASE))
     m = re.search(r'(?:v=|\/|youtu\.be\/)([0-9A-Za-z_-]{11})', clean_url)
+    if is_liked and not m:
+        return {
+            "success": False,
+            "error": "Error: Liked Videos link detected! This URL points to a private YouTube playlist (list=LL). YouTube blocks automated tools from accessing private playlists. Please use a direct public video link."
+        }
+
+    # Canonicalize YouTube URL if it matches standard patterns
     if m:
         clean_url = f"https://www.youtube.com/watch?v={m.group(1)}"
 

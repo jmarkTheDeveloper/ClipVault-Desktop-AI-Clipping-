@@ -78,7 +78,11 @@ class YouTubeDownloader:
     def get_video_id(url: str) -> Optional[str]:
         if not url:
             return None
+        # Detect private playlists (Liked Videos list=LL, Watch Later list=WL)
+        is_liked = bool(re.search(r'[?&]list=(?:LL|WL|LM|FL)(?:&|$)', url, re.IGNORECASE))
         m = re.search(r'(?:v=|\/|youtu\.be\/)([0-9A-Za-z_-]{11})', url)
+        if is_liked and not m:
+            raise ValueError("Error: Liked Videos playlist link detected (list=LL). YouTube blocks automated tools from accessing private playlists. Please use a direct public video link.")
         if m:
             return m.group(1)
         if 'youtu.be' in url:

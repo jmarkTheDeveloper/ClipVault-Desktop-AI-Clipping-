@@ -35,7 +35,7 @@ import {
   Play,
   Pause,
 } from "lucide-react";
-import type { CustomSegment } from "./types";
+import { isLikedVideosUrl, cleanYouTubeUrl, type CustomSegment } from "./types";
 import { SUBTITLE_PRESETS, SubtitleStyleCard } from "./SubtitleStyleCard";
 
 function parseTimestampToSec(ts: string): number {
@@ -328,8 +328,12 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                 <p className="text-xs text-gray-400 mb-2.5">
                   Paste a YouTube URL to automatically download and extract high-energy clips.
                 </p>
-                <div className="flex items-center gap-2 rounded-xl px-3.5 py-2.5 bg-white/5 border border-amber-400/30">
-                  <Link2 className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                <div className={`flex items-center gap-2 rounded-xl px-3.5 py-2.5 bg-white/5 border transition-all ${
+                  isLikedVideosUrl(ytUrl)
+                    ? "border-red-500/80 bg-red-500/10 shadow-[0_0_20px_rgba(239,68,68,0.25)]"
+                    : "border-amber-400/30"
+                }`}>
+                  <Link2 className={`w-4 h-4 flex-shrink-0 ${isLikedVideosUrl(ytUrl) ? "text-red-400" : "text-amber-400"}`} />
                   <input
                     value={ytUrl}
                     onChange={(e) => setYtUrl(e.target.value)}
@@ -351,8 +355,36 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                     Paste
                   </button>
                 </div>
+
+                {/* Error Banner: Private Liked Videos Playlist Detected */}
+                {isLikedVideosUrl(ytUrl) && (
+                  <div className="mt-2.5 p-3 rounded-xl bg-red-500/15 border border-red-500/40 text-red-300 text-xs flex flex-col gap-2 animate-in fade-in duration-200">
+                    <div className="flex items-center gap-2 font-bold text-red-200">
+                      <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+                      <span>Error: Liked Videos Link Detected</span>
+                    </div>
+                    <p className="text-[11px] text-gray-300 leading-relaxed font-medium">
+                      You copied this link directly from your private YouTube "Liked videos" playlist (<code className="text-red-300 bg-red-500/20 px-1 py-0.5 rounded font-mono font-bold">list=LL</code>). YouTube blocks external software from accessing private playlists. Please use the direct public video link instead.
+                    </p>
+                    {cleanYouTubeUrl(ytUrl) && (
+                      <div className="pt-0.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const cleaned = cleanYouTubeUrl(ytUrl);
+                            if (cleaned) setYtUrl(cleaned);
+                          }}
+                          className="px-3 py-1.5 rounded-lg bg-red-500 hover:bg-red-600 text-white font-bold text-xs transition-all cursor-pointer shadow-md flex items-center gap-1.5"
+                        >
+                          <span>Clean Link & Use Direct Video</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <p className="text-[11px] text-gray-400 mt-1.5 leading-relaxed">
-                  💡 <span className="text-amber-300 font-medium">Tip:</span> Paste links directly from your browser. YouTube video IDs are strictly case-sensitive (e.g. <code className="text-amber-200 bg-amber-400/10 px-1 rounded">EI</code> vs <code className="text-amber-200 bg-amber-400/10 px-1 rounded">I1</code>).
+                  <span className="text-amber-300 font-medium">Tip:</span> Paste links directly from your browser. YouTube video IDs are strictly case-sensitive (e.g. <code className="text-amber-200 bg-amber-400/10 px-1 rounded">EI</code> vs <code className="text-amber-200 bg-amber-400/10 px-1 rounded">I1</code>).
                 </p>
               </>
             ) : (

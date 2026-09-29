@@ -9,7 +9,7 @@ import { SUBTITLE_PRESETS } from "../components/clipper/SubtitleStyleCard";
 import { SavedClipsVault } from "../components/clipper/SavedClipsVault";
 import { GalleryView } from "../components/clipper/GalleryView";
 import { ClipDetailsModal } from "../components/clipper/ClipDetailsModal";
-import { extractYouTubeId, parseTimestampToSec } from "../components/clipper/types";
+import { extractYouTubeId, parseTimestampToSec, isLikedVideosUrl, cleanYouTubeUrl } from "../components/clipper/types";
 import type { ViewMode, ClipMetadata, CropBox, EngineOption, CustomSegment } from "../components/clipper/types";
 
 interface Props {
@@ -636,6 +636,15 @@ export const AiClipperScreen: React.FC<Props> = ({
 
   // Automatically fetch YouTube stream preview when user types or pastes YouTube link
   const fetchYouTubePreview = async (urlToFetch: string, retries = 4) => {
+    if (isLikedVideosUrl(urlToFetch)) {
+      setActiveVideoUrl("");
+      const likedErr = "Liked Videos Playlist Link Detected: This link was copied from your private YouTube 'Liked videos' playlist (list=LL). YouTube blocks automated tools from accessing private playlists. Please use the direct video link instead.";
+      setPreviewError(likedErr);
+      setErrorMsg(likedErr);
+      setLoadingPreview(false);
+      return;
+    }
+
     const videoId = extractYouTubeId(urlToFetch);
     if (!videoId) {
       setActiveVideoUrl("");
@@ -714,6 +723,18 @@ export const AiClipperScreen: React.FC<Props> = ({
     };
   }, [ytUrl, inputType, localFilePath]);
 
+  // External URL sync event listener (e.g., from PhonePreview clean link button)
+  useEffect(() => {
+    const handleExternalUrl = (e: Event) => {
+      const customEvent = e as CustomEvent<string>;
+      if (customEvent.detail) {
+        setYtUrl(customEvent.detail);
+      }
+    };
+    window.addEventListener("clipvault-set-yt-url", handleExternalUrl);
+    return () => window.removeEventListener("clipvault-set-yt-url", handleExternalUrl);
+  }, []);
+
   // Run AI Clipper Pipeline
   const runClipper = async () => {
     setErrorMsg("");
@@ -732,6 +753,15 @@ export const AiClipperScreen: React.FC<Props> = ({
     const activeUrl = inputType === "youtube" ? ytUrl : localFilePath;
     if (!activeUrl) {
       setErrorMsg("Please provide a valid YouTube URL or select a local video file.");
+      return;
+    }
+
+    // Step 3: Validate against private liked videos playlist URLs
+    if (inputType === "youtube" && isLikedVideosUrl(ytUrl)) {
+      const likedErr = "Liked Videos Playlist Link Detected: This link was copied from your private YouTube 'Liked videos' playlist (list=LL). YouTube blocks automated tools from accessing private playlists. Please click 'Clean Link' or use the direct video link instead.";
+      setErrorMsg(likedErr);
+      setExportNotice("Private playlist link cannot be processed.");
+      setTimeout(() => setExportNotice(""), 8000);
       return;
     }
 

@@ -32,6 +32,7 @@ import { EngineSettingsModal } from "../components/clipper/EngineSettingsModal";
 import type { ByokMode } from "../components/clipper/EngineSettingsModal";
 import { AI_ENGINES } from "./AiClipperScreen";
 import { SUBTITLE_PRESETS, SubtitleStyleCard } from "../components/clipper/SubtitleStyleCard";
+import { isLikedVideosUrl, cleanYouTubeUrl } from "../components/clipper/types";
 
 const G = "#00e676";
 
@@ -217,6 +218,13 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
       return;
     }
 
+    if (isLikedVideosUrl(trimmed)) {
+      setInfoError("Liked Videos Playlist Link Detected: This link was copied from your private YouTube 'Liked videos' playlist (list=LL). YouTube blocks automated tools from accessing private playlists. Please use the direct video link instead.");
+      setVideoInfo(null);
+      setResolvingInfo(false);
+      return;
+    }
+
     const timer = setTimeout(async () => {
       setResolvingInfo(true);
       setInfoError(null);
@@ -325,6 +333,11 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
   // Start Generation
   const handleGenerate = async () => {
     if (!url.trim()) return;
+
+    if (sourceTab === "url" && isLikedVideosUrl(url)) {
+      setErrorMsg("Liked Videos Playlist Link Detected: This link was copied from your private YouTube 'Liked videos' playlist (list=LL). YouTube blocks automated tools from accessing private playlists. Please click 'Clean Link' or use the direct video link instead.");
+      return;
+    }
 
     setErrorMsg(null);
     setIsGenerating(true);
@@ -747,43 +760,73 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
 
                   {/* Input View 1: Public Web URL */}
                   {sourceTab === "url" ? (
-                    <div className="relative flex items-center">
-                      <div className="absolute left-3.5 text-gray-500 pointer-events-none">
-                        <Link2 className="w-4 h-4" />
-                      </div>
-                      <input
-                        type="text"
-                        value={url}
-                        onChange={(e) => setUrl(e.target.value)}
-                        placeholder="Paste public video URL (e.g. https://youtube.com/watch?v=...)"
-                        disabled={isGenerating}
-                        className="w-full bg-white/[0.03] border border-white/[0.12] rounded-xl pl-10 pr-24 py-3.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#00e676] focus:ring-1 focus:ring-[#00e676]/40 transition-all disabled:opacity-50"
-                      />
-                      <div className="absolute right-2.5 flex items-center gap-1.5">
-                        {url && (
+                    <>
+                      <div className="relative flex items-center">
+                        <div className="absolute left-3.5 text-gray-500 pointer-events-none">
+                          <Link2 className="w-4 h-4" />
+                        </div>
+                        <input
+                          type="text"
+                          value={url}
+                          onChange={(e) => setUrl(e.target.value)}
+                          placeholder="Paste public video URL (e.g. https://youtube.com/watch?v=...)"
+                          disabled={isGenerating}
+                          className={`w-full rounded-xl pl-10 pr-24 py-3.5 text-sm text-white placeholder-gray-500 focus:outline-none transition-all disabled:opacity-50 ${
+                            isLikedVideosUrl(url)
+                              ? "bg-red-500/10 border border-red-500/80 focus:border-red-500 focus:ring-1 focus:ring-red-500/30"
+                              : "bg-white/[0.03] border border-white/[0.12] focus:border-[#00e676] focus:ring-1 focus:ring-[#00e676]/40"
+                          }`}
+                        />
+                        <div className="absolute right-2.5 flex items-center gap-1.5">
+                          {url && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setUrl("");
+                                setVideoInfo(null);
+                              }}
+                              disabled={isGenerating}
+                              className="p-1.5 text-gray-400 hover:text-white rounded-md transition-all cursor-pointer"
+                              title="Clear input"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          )}
                           <button
                             type="button"
-                            onClick={() => {
-                              setUrl("");
-                              setVideoInfo(null);
-                            }}
+                            onClick={handlePaste}
                             disabled={isGenerating}
-                            className="p-1.5 text-gray-400 hover:text-white rounded-md transition-all cursor-pointer"
-                            title="Clear input"
+                            className="px-3 py-1.5 rounded-lg bg-white/[0.08] hover:bg-white/[0.16] text-xs font-bold text-gray-200 transition-all cursor-pointer"
                           >
-                            <X className="w-4 h-4" />
+                            Paste
                           </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={handlePaste}
-                          disabled={isGenerating}
-                          className="px-3 py-1.5 rounded-lg bg-white/[0.08] hover:bg-white/[0.16] text-xs font-bold text-gray-200 transition-all cursor-pointer"
-                        >
-                          Paste
-                        </button>
+                        </div>
                       </div>
-                    </div>
+
+                      {isLikedVideosUrl(url) && (
+                        <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-red-200">
+                          <div className="flex items-start gap-2.5">
+                            <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                            <div>
+                              <span className="font-bold text-red-300">Liked Videos Playlist Link Detected:</span>{" "}
+                              <span>This link was copied directly from your private YouTube &quot;Liked videos&quot; playlist (<code className="text-amber-300 bg-amber-500/10 px-1 py-0.5 rounded">list=LL</code>). YouTube blocks external software from accessing private playlists. Please use the direct video link instead.</span>
+                            </div>
+                          </div>
+                          {cleanYouTubeUrl(url) && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const clean = cleanYouTubeUrl(url);
+                                if (clean) setUrl(clean);
+                              }}
+                              className="px-3.5 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-bold text-xs transition-all shrink-0 cursor-pointer shadow-md self-start sm:self-center"
+                            >
+                              Clean Link &amp; Use Direct Video
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </>
                   ) : (
                     /* Input View 2: Local Video File Browse Card */
                     <div

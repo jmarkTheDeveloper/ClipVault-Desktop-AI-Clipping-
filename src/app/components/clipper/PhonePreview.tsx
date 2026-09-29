@@ -18,7 +18,7 @@ import {
   Repeat,
 } from "lucide-react";
 import type { CropBox, CustomSegment } from "./types";
-import { extractYouTubeId, parseTimestampToSec } from "./types";
+import { extractYouTubeId, parseTimestampToSec, isLikedVideosUrl, cleanYouTubeUrl } from "./types";
 import { AskStudioPanel } from "./AskStudioPanel";
 
 interface PhonePreviewProps {
@@ -987,27 +987,55 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                   className="absolute inset-0 w-full h-full object-cover filter blur-2xl opacity-20 scale-125 pointer-events-none"
                 />
               )}
-              <div className="relative z-10 flex flex-col items-center max-w-[270px] space-y-3 p-5 rounded-2xl bg-[#141419]/95 border border-red-500/30 backdrop-blur-xl shadow-2xl">
-                <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/25 flex items-center justify-center text-red-400">
-                  <AlertCircle className="w-6 h-6" />
+              {((ytUrl && isLikedVideosUrl(ytUrl)) || previewError.toLowerCase().includes("liked videos")) ? (
+                <div className="relative z-10 flex flex-col items-center max-w-[275px] space-y-3.5 p-5 rounded-2xl bg-[#141419]/95 border border-red-500/40 backdrop-blur-xl shadow-2xl">
+                  <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400">
+                    <AlertCircle className="w-6 h-6" />
+                  </div>
+                  <div className="space-y-1.5 text-center">
+                    <p className="text-xs font-bold text-red-300">Liked Videos Link Detected</p>
+                    <p className="text-[11px] text-gray-300 leading-relaxed font-medium">
+                      This link was copied directly from your private YouTube &quot;Liked videos&quot; playlist (<code className="text-amber-300 bg-amber-500/10 px-1 py-0.5 rounded">list=LL</code>). YouTube blocks external software from accessing private playlists.
+                    </p>
+                  </div>
+                  {ytUrl && cleanYouTubeUrl(ytUrl) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const clean = cleanYouTubeUrl(ytUrl);
+                        if (clean) {
+                          window.dispatchEvent(new CustomEvent("clipvault-set-yt-url", { detail: clean }));
+                        }
+                      }}
+                      className="w-full px-3 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-bold transition-all cursor-pointer shadow-md flex items-center justify-center gap-1.5"
+                    >
+                      <span>Clean Link &amp; Use Direct Video</span>
+                    </button>
+                  )}
                 </div>
-                <div className="space-y-1.5">
-                  <p className="text-xs font-bold text-red-200">Video Stream Unavailable</p>
-                  <p className="text-[11px] text-gray-300 leading-relaxed font-medium">
-                    {previewError || "This YouTube video is unavailable, private, or deleted. Please verify the URL or try another link."}
-                  </p>
+              ) : (
+                <div className="relative z-10 flex flex-col items-center max-w-[270px] space-y-3 p-5 rounded-2xl bg-[#141419]/95 border border-red-500/30 backdrop-blur-xl shadow-2xl">
+                  <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/25 flex items-center justify-center text-red-400">
+                    <AlertCircle className="w-6 h-6" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <p className="text-xs font-bold text-red-200">Video Stream Unavailable</p>
+                    <p className="text-[11px] text-gray-300 leading-relaxed font-medium">
+                      {previewError || "This YouTube video is unavailable, private, or deleted. Please verify the URL or try another link."}
+                    </p>
+                  </div>
+                  {onRetryPreview && (
+                    <button
+                      type="button"
+                      onClick={onRetryPreview}
+                      className="px-3.5 py-1.5 rounded-xl bg-amber-400 text-black text-xs font-bold hover:bg-amber-300 transition-all cursor-pointer shadow-md flex items-center gap-1.5"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>Retry Stream</span>
+                    </button>
+                  )}
                 </div>
-                {onRetryPreview && (
-                  <button
-                    type="button"
-                    onClick={onRetryPreview}
-                    className="px-3.5 py-1.5 rounded-xl bg-amber-400 text-black text-xs font-bold hover:bg-amber-300 transition-all cursor-pointer shadow-md flex items-center gap-1.5"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    <span>Retry Stream</span>
-                  </button>
-                )}
-              </div>
+              )}
             </div>
           ) : !activeVideoUrl ? (
             <div className="w-full h-full flex flex-col items-center justify-center space-y-3 p-6 text-center text-gray-500 bg-[#0a0a0d] select-none">
