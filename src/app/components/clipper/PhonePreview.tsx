@@ -63,6 +63,10 @@ interface PhonePreviewProps {
   isPreviewingEffect?: boolean;
   hoveredEffectName?: string;
   onOpenEngineSettings?: () => void;
+  activeEngineKey?: string;
+  isKeyMissingForActiveEngine?: boolean;
+  selectedEngine?: string;
+  activeEngineName?: string;
 }
 
 function formatTime(seconds: number): string {
@@ -668,6 +672,10 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
   isPreviewingEffect = false,
   hoveredEffectName = "",
   onOpenEngineSettings,
+  activeEngineKey,
+  isKeyMissingForActiveEngine,
+  selectedEngine,
+  activeEngineName,
 }) => {
   const youtubeId = extractYouTubeId(ytUrl);
   const posterUrl = youtubeId ? `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg` : "";
@@ -1702,6 +1710,10 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
         onSeek={handleAskStudioSeek}
         onSetClipBounds={handleAskStudioSetClipBounds}
         onOpenEngineSettings={onOpenEngineSettings}
+        activeEngineKey={activeEngineKey}
+        isKeyMissingForActiveEngine={isKeyMissingForActiveEngine}
+        selectedEngine={selectedEngine}
+        activeEngineName={activeEngineName}
       />
     </div>
   );

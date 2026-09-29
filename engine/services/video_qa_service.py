@@ -131,13 +131,23 @@ class VideoQAService:
 
         # ── SECURITY LAYER 1: STRICT API KEY REQUIREMENT ─────────────────────────
         # AI execution is strictly dependent on the user configuring a valid API key.
-        eff_api_key = (api_key if api_key is not None else GEMINI_API_KEY or "").strip()
-        has_api_key = bool(eff_api_key and eff_api_key not in ["YOUR_API_KEY_HERE", "demo", "null", "undefined", ""])
+        eff_api_key = (api_key or "").strip()
+        if not eff_api_key:
+            fallback = (GEMINI_API_KEY or "").strip()
+            if fallback and fallback not in ["YOUR_API_KEY_HERE", "demo", "null", "undefined", "AIzaSyD5W1DeEq8IRQNskd_ntZYsMsdXhxj3i0s"]:
+                eff_api_key = fallback
+
+        has_api_key = bool(
+            eff_api_key and eff_api_key not in [
+                "YOUR_API_KEY_HERE", "demo", "null", "undefined", "",
+                "AIzaSyD5W1DeEq8IRQNskd_ntZYsMsdXhxj3i0s"
+            ]
+        )
 
         if not has_api_key:
             return {
                 "status": "api_key_required",
-                "answer": "API Key Required: Ask Studio requires a valid personal AI API key (Google Gemini, OpenAI, etc.). Please add your API key in Engine Settings to unlock video intelligence.",
+                "answer": "API Key Required: Please put an API key first in Engine Settings before using AI chat.",
                 "moments": []
             }
 

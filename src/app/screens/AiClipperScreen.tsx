@@ -1755,6 +1755,10 @@ export const AiClipperScreen: React.FC<Props> = ({
               gameplayBgVideo={gameplayBgVideo}
               onPlaySegment={handlePlaySegment}
               onOpenEngineSettings={() => setShowKeySettings(true)}
+              activeEngineKey={activeEngineKey}
+              isKeyMissingForActiveEngine={isKeyMissingForActiveEngine}
+              selectedEngine={selectedEngine}
+              activeEngineName={activeEngineName}
             />
           </>
         )}

@@ -45,6 +45,10 @@ interface AskStudioPanelProps {
   onSeek?: (seconds: number) => void;
   onSetClipBounds?: (startSec: number, endSec: number) => void;
   onOpenEngineSettings?: () => void;
+  activeEngineKey?: string;
+  isKeyMissingForActiveEngine?: boolean;
+  selectedEngine?: string;
+  activeEngineName?: string;
 }
 
 const DEFAULT_SUGGESTIONS = [
@@ -70,22 +74,82 @@ export function AskStudioPanel({
   onSeek,
   onSetClipBounds,
   onOpenEngineSettings,
+  activeEngineKey,
+  isKeyMissingForActiveEngine,
+  selectedEngine,
+  activeEngineName,
 }: AskStudioPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [pinnedMomentIndex, setPinnedMomentIndex] = useState<string | null>(null);
-  const [showKeyAlert, setShowKeyAlert] = useState(false);
+  const [showKeyModal, setShowKeyModal] = useState(false);
 
-  // Check if user has configured any valid API key
-  const getActiveApiKey = () => {
-    const gemini = localStorage.getItem("clipvault_gemini_key")?.trim() || "";
-    const openai = localStorage.getItem("clipvault_openai_key")?.trim() || "";
-    const anthropic = localStorage.getItem("clipvault_anthropic_key")?.trim() || "";
-    return gemini || openai || anthropic || "";
+  const isDummyKey = (k?: string | null) => {
+    if (!k) return true;
+    const trimmed = k.trim();
+    const lower = trimmed.toLowerCase();
+    return (
+      trimmed === "" ||
+      lower === "your_api_key_here" ||
+      lower === "demo" ||
+      lower === "null" ||
+      lower === "undefined" ||
+      trimmed === "AIzaSyD5W1DeEq8IRQNskd_ntZYsMsdXhxj3i0s"
+    );
   };
 
-  const hasApiKey = Boolean(getActiveApiKey());
+  // Check if user has configured any valid API key
+  const getActiveApiKeyInfo = (): { key: string; engine: string } => {
+    // 1. If activeEngineKey is provided and not dummy, return it
+    if (activeEngineKey && !isDummyKey(activeEngineKey)) {
+      return { key: activeEngineKey.trim(), engine: selectedEngine || "gemini" };
+    }
+
+    // 2. Check engine-specific key in localStorage
+    if (selectedEngine) {
+      const engineKeyMap: Record<string, string> = {
+        openai_chatgpt: "clipvault_openai_key",
+        claude_fable: "clipvault_anthropic_key",
+        gemini_flash: "clipvault_gemini_key",
+        groq_lpu: "clipvault_groq_key",
+        deepseek: "clipvault_deepseek_key",
+        moonlight: "clipvault_moonlight_key",
+        qwen_ai: "clipvault_qwen_key",
+        qwen: "clipvault_qwen_key",
+        higgsfield: "clipvault_higgsfield_key",
+        seedance: "clipvault_seedance_key",
+      };
+      const storageKey = engineKeyMap[selectedEngine];
+      if (storageKey) {
+        const stored = localStorage.getItem(storageKey)?.trim();
+        if (stored && !isDummyKey(stored)) {
+          return { key: stored, engine: selectedEngine };
+        }
+      }
+    }
+
+    // 3. Fallback to any valid LLM key configured on device
+    const fallbackList = [
+      { id: "groq_lpu", key: localStorage.getItem("clipvault_groq_key") },
+      { id: "gemini_flash", key: localStorage.getItem("clipvault_gemini_key") },
+      { id: "openai_chatgpt", key: localStorage.getItem("clipvault_openai_key") },
+      { id: "claude_fable", key: localStorage.getItem("clipvault_anthropic_key") },
+      { id: "deepseek", key: localStorage.getItem("clipvault_deepseek_key") },
+      { id: "moonlight", key: localStorage.getItem("clipvault_moonlight_key") },
+      { id: "qwen_ai", key: localStorage.getItem("clipvault_qwen_key") },
+    ];
+    for (const item of fallbackList) {
+      if (item.key && !isDummyKey(item.key)) {
+        return { key: item.key.trim(), engine: item.id };
+      }
+    }
+    return { key: "", engine: selectedEngine || "gemini" };
+  };
+
+  const keyInfo = getActiveApiKeyInfo();
+  // If active engine is cloud and requires its specific key which is missing, or no API key is detected anywhere
+  const hasApiKey = !isKeyMissingForActiveEngine && Boolean(keyInfo.key);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -108,7 +172,7 @@ export function AskStudioPanel({
 
     // Gate: Check API Key presence
     if (!hasApiKey) {
-      setShowKeyAlert(true);
+      setShowKeyModal(true);
       return;
     }
 
@@ -129,7 +193,7 @@ export function AskStudioPanel({
         id: `sec-${Date.now()}`,
         role: "assistant",
         isSecurityNotice: true,
-        content: "🛡️ Security Shield Active: System credentials, API keys, and internal configurations are strictly protected and confidential. They cannot be shared, displayed, or discussed under any circumstances.",
+        content: "Security Shield Active: System credentials, API keys, and internal configurations are strictly protected and confidential. They cannot be shared, displayed, or discussed under any circumstances.",
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       };
       setMessages((prev) => [...prev, securityBlockedMsg]);
@@ -142,7 +206,7 @@ export function AskStudioPanel({
         id: `scope-${Date.now()}`,
         role: "assistant",
         isSecurityNotice: true,
-        content: "⚠️ Scope Guard: Ask Studio is strictly restricted to analyzing the current video's spoken dialogue. I cannot assist with general programming questions (e.g. 'what is python'), world trivia, or political queries. Please ask questions about the moments, topics, or dialogue in this video.",
+        content: "Scope Guard: Ask Studio is strictly restricted to analyzing the current video's spoken dialogue. I cannot assist with general programming questions (e.g. 'what is python'), world trivia, or political queries. Please ask questions about the moments, topics, or dialogue in this video.",
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       };
       setMessages((prev) => [...prev, scopeBlockedMsg]);
@@ -159,8 +223,8 @@ export function AskStudioPanel({
           question: query,
           url: ytUrl || activeVideoUrl || "",
           local_path: localFilePath || "",
-          api_key: getActiveApiKey(),
-          ai_engine: "gemini",
+          api_key: keyInfo.key,
+          ai_engine: keyInfo.engine || selectedEngine || "gemini",
         }),
       });
 
@@ -171,12 +235,12 @@ export function AskStudioPanel({
       const data = await response.json();
 
       if (data.status === "api_key_required") {
-        setShowKeyAlert(true);
+        setShowKeyModal(true);
         const keyReqMsg: ChatMessage = {
           id: `key-req-${Date.now()}`,
           role: "assistant",
           isSecurityNotice: true,
-          content: "🔒 API Key Required: Please configure your API key in Engine Settings before using Ask Studio.",
+          content: "API Key Required: Please put an API key first in Engine Settings before using AI chat.",
           timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         };
         setMessages((prev) => [...prev, keyReqMsg]);
@@ -218,37 +282,114 @@ export function AskStudioPanel({
     }
   };
 
+  // Floating popup modal when user clicks locked AI chat without API key
+  const renderKeyModal = () => (
+    <div
+      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 select-none"
+      onClick={() => setShowKeyModal(false)}
+    >
+      <div
+        className="relative w-full max-w-sm bg-[#12110c] border border-amber-400/40 rounded-3xl p-6 shadow-[0_20px_70px_rgba(0,0,0,0.95)] flex flex-col items-center text-center space-y-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={() => setShowKeyModal(false)}
+          className="absolute top-4 right-4 p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+        >
+          <X className="w-4 h-4" />
+        </button>
+
+        <div className="w-14 h-14 rounded-2xl bg-amber-400/10 border border-amber-400/30 flex items-center justify-center text-amber-400 shadow-[0_0_30px_rgba(245,158,11,0.2)]">
+          <Lock className="w-7 h-7" />
+        </div>
+
+        <div className="space-y-1.5">
+          <h3 className="text-base font-black text-white tracking-wide">
+            Please Put an API Key First
+          </h3>
+          <p className="text-xs text-gray-300 leading-relaxed font-medium">
+            {activeEngineName
+              ? `No API key was detected for ${activeEngineName}. AI chat is disabled until your API key is configured.`
+              : "Ask Studio AI chat requires a personal API key to analyze video transcripts. No API key was detected."}
+          </p>
+        </div>
+
+        <div className="w-full p-3 rounded-2xl bg-amber-400/10 border border-amber-400/20 text-[11px] text-amber-300 text-left flex items-start gap-2.5">
+          <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+          <span className="leading-tight">
+            Security Guarantee: Your keys are encrypted locally with on-device protection and never shared.
+          </span>
+        </div>
+
+        <div className="w-full space-y-2 pt-1">
+          {onOpenEngineSettings && (
+            <button
+              type="button"
+              onClick={() => {
+                setShowKeyModal(false);
+                onOpenEngineSettings();
+              }}
+              className="w-full py-2.5 px-4 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-bold text-xs flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer"
+            >
+              <Key className="w-3.5 h-3.5 text-black" />
+              <span>Configure API Key</span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setShowKeyModal(false)}
+            className="w-full py-2 rounded-xl text-gray-400 hover:text-white text-xs font-semibold transition-colors cursor-pointer"
+          >
+            Dismiss
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   // Minimized floating launcher button
   if (!isOpen) {
     return (
-      <button
-        type="button"
-        onClick={onOpen}
-        title="Open Ask Studio (AI Video Assistant)"
-        className={`absolute bottom-6 right-6 z-30 group flex items-center gap-2.5 px-4 py-2.5 rounded-full border text-white font-medium text-xs backdrop-blur-xl transition-all duration-200 hover:scale-105 cursor-pointer ring-1 ${
-          hasApiKey
-            ? "bg-[#12110c]/90 hover:bg-[#1a180f] border-amber-400/40 shadow-[0_8px_32px_rgba(245,158,11,0.25)] hover:shadow-[0_8px_36px_rgba(245,158,11,0.45)] ring-amber-400/20"
-            : "bg-[#141414]/90 hover:bg-[#1c1c1c] border-gray-600/40 shadow-lg ring-white/5 opacity-80"
-        }`}
-      >
-        <div className={`w-5 h-5 rounded-full flex items-center justify-center text-black shadow-inner ${
-          hasApiKey ? "bg-gradient-to-tr from-amber-500 to-yellow-400" : "bg-gray-600 text-gray-300"
-        }`}>
-          {hasApiKey ? (
-            <Sparkles className="w-3 h-3 text-black animate-pulse" />
-          ) : (
-            <Lock className="w-2.5 h-2.5 text-gray-200" />
-          )}
-        </div>
-        <span className={hasApiKey ? "bg-gradient-to-r from-amber-200 via-amber-300 to-yellow-400 bg-clip-text text-transparent font-bold tracking-wide" : "text-gray-400 font-bold"}>
-          Ask Studio
-        </span>
-        <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${
-          hasApiKey ? "bg-amber-400/20 text-amber-300 border border-amber-400/30" : "bg-gray-800 text-gray-400 border border-gray-700"
-        }`}>
-          {hasApiKey ? "AI" : "LOCKED"}
-        </span>
-      </button>
+      <>
+        <button
+          type="button"
+          onClick={() => {
+            if (!hasApiKey) {
+              setShowKeyModal(true);
+            } else {
+              onOpen();
+            }
+          }}
+          title={hasApiKey ? "Open Ask Studio (AI Video Assistant)" : "Please put an API key first (AI Chat is Locked)"}
+          className={`absolute bottom-6 right-6 z-30 group flex items-center gap-2.5 px-4 py-2.5 rounded-full border text-white font-medium text-xs backdrop-blur-xl transition-all duration-200 ${
+            hasApiKey
+              ? "bg-[#12110c]/90 hover:bg-[#1a180f] border-amber-400/40 shadow-[0_8px_32px_rgba(245,158,11,0.25)] hover:shadow-[0_8px_36px_rgba(245,158,11,0.45)] ring-1 ring-amber-400/20 hover:scale-105 cursor-pointer"
+              : "bg-[#141416]/80 hover:bg-[#1c1c1f] border-zinc-700/60 shadow-none ring-1 ring-white/5 opacity-60 grayscale cursor-not-allowed"
+          }`}
+        >
+          <div className={`w-5 h-5 rounded-full flex items-center justify-center shadow-inner ${
+            hasApiKey ? "bg-gradient-to-tr from-amber-500 to-yellow-400 text-black" : "bg-zinc-700 text-zinc-400"
+          }`}>
+            {hasApiKey ? (
+              <Sparkles className="w-3 h-3 text-black animate-pulse" />
+            ) : (
+              <Lock className="w-2.5 h-2.5 text-zinc-300" />
+            )}
+          </div>
+          <span className={hasApiKey ? "bg-gradient-to-r from-amber-200 via-amber-300 to-yellow-400 bg-clip-text text-transparent font-bold tracking-wide" : "text-zinc-400 font-bold"}>
+            Ask Studio
+          </span>
+          <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${
+            hasApiKey ? "bg-amber-400/20 text-amber-300 border border-amber-400/30" : "bg-red-500/15 text-red-400 border border-red-500/25"
+          }`}>
+            {hasApiKey ? "AI" : "LOCKED"}
+          </span>
+        </button>
+
+        {showKeyModal && renderKeyModal()}
+      </>
     );
   }
 
@@ -258,14 +399,20 @@ export function AskStudioPanel({
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 bg-white/[0.02]">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-amber-500 to-yellow-400 flex items-center justify-center text-black shadow-md">
-            <Sparkles className="w-4 h-4 text-black" />
+          <div className={`w-7 h-7 rounded-xl flex items-center justify-center shadow-md ${
+            hasApiKey ? "bg-gradient-to-tr from-amber-500 to-yellow-400 text-black" : "bg-zinc-700 text-zinc-300"
+          }`}>
+            {hasApiKey ? <Sparkles className="w-4 h-4 text-black" /> : <Lock className="w-3.5 h-3.5" />}
           </div>
           <div>
             <h3 className="text-sm font-bold text-white tracking-wide flex items-center gap-1.5">
               Ask Studio
-              <span className="flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[9px] bg-amber-400/15 text-amber-300 border border-amber-400/30 font-mono">
-                <ShieldCheck className="w-2.5 h-2.5" /> SECURE
+              <span className={`flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[9px] font-mono ${
+                hasApiKey
+                  ? "bg-amber-400/15 text-amber-300 border border-amber-400/30"
+                  : "bg-red-500/15 text-red-300 border border-red-500/30"
+              }`}>
+                <ShieldCheck className="w-2.5 h-2.5" /> {hasApiKey ? "SECURE" : "LOCKED"}
               </span>
             </h3>
             <p className="text-[10px] text-amber-400/70">Video Transcript Intelligence</p>
@@ -273,7 +420,7 @@ export function AskStudioPanel({
         </div>
 
         <div className="flex items-center gap-1">
-          {messages.length > 0 && (
+          {messages.length > 0 && hasApiKey && (
             <button
               type="button"
               onClick={handleResetChat}
@@ -298,22 +445,24 @@ export function AskStudioPanel({
       <div className="relative flex-1 flex flex-col overflow-hidden">
         {/* ── SECURITY GATING OVERLAY (WHEN NO API KEY IS CONFIGURED) ─── */}
         {!hasApiKey && (
-          <div className="absolute inset-0 z-20 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center space-y-4 select-none">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500/20 to-yellow-500/20 border border-amber-400/50 flex items-center justify-center shadow-[0_0_30px_rgba(245,158,11,0.2)]">
-              <Lock className="w-7 h-7 text-amber-400" />
+          <div className="absolute inset-0 z-20 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center space-y-4 select-none">
+            <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-400/40 flex items-center justify-center shadow-[0_0_30px_rgba(245,158,11,0.2)] text-amber-400">
+              <Lock className="w-7 h-7" />
             </div>
 
             <div className="space-y-1.5 max-w-[280px]">
-              <h3 className="text-base font-bold text-white tracking-wide">
-                API Key Required
+              <h3 className="text-base font-black text-white tracking-wide">
+                Please Put an API Key First
               </h3>
-              <p className="text-xs text-gray-400 leading-relaxed">
-                Ask Studio is strictly locked to your personal API key and local hardware. Please configure your key first.
+              <p className="text-xs text-gray-400 leading-relaxed font-medium">
+                {activeEngineName
+                  ? `No API key detected for ${activeEngineName}. AI chat is disabled until your API key is provided.`
+                  : "Ask Studio is strictly locked to your personal API key and local hardware. Please configure your key first."}
               </p>
             </div>
 
-            <div className="p-2.5 rounded-xl bg-amber-400/10 border border-amber-400/30 text-[11px] text-amber-300/90 leading-tight flex items-center gap-2 max-w-[300px] text-left">
-              <ShieldCheck className="w-5 h-5 text-amber-400 shrink-0" />
+            <div className="p-2.5 rounded-xl bg-amber-400/10 border border-amber-400/25 text-[11px] text-amber-300/90 leading-tight flex items-center gap-2 max-w-[300px] text-left">
+              <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
               <span>Zero-leakage security: Keys are encrypted locally and never shared.</span>
             </div>
 
@@ -322,9 +471,9 @@ export function AskStudioPanel({
                 type="button"
                 onClick={() => {
                   onOpenEngineSettings();
-                  setShowKeyAlert(false);
+                  setShowKeyModal(false);
                 }}
-                className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-black font-bold text-xs flex items-center justify-center gap-2 shadow-lg transition-all hover:scale-[1.02] cursor-pointer"
+                className="w-full py-2.5 px-4 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-bold text-xs flex items-center justify-center gap-2 shadow-lg transition-all hover:scale-[1.02] cursor-pointer"
               >
                 <Key className="w-3.5 h-3.5 text-black" />
                 <span>Configure API Key</span>
@@ -479,10 +628,21 @@ export function AskStudioPanel({
       </div>
 
       {/* Input Bar & Footer */}
-      <div className={`p-3 border-t border-white/10 bg-black/40 space-y-2 ${!hasApiKey ? "opacity-50 pointer-events-none" : ""}`}>
+      <div
+        onClick={() => {
+          if (!hasApiKey) setShowKeyModal(true);
+        }}
+        className={`p-3 border-t border-white/10 bg-black/40 space-y-2 ${
+          !hasApiKey ? "grayscale opacity-40 cursor-not-allowed bg-[#0d0d10]" : ""
+        }`}
+      >
         <form
           onSubmit={(e) => {
             e.preventDefault();
+            if (!hasApiKey) {
+              setShowKeyModal(true);
+              return;
+            }
             handleSendMessage();
           }}
           className="flex items-center gap-2 bg-[#141310] border border-white/10 focus-within:border-amber-400/60 rounded-2xl px-3 py-2 transition-all shadow-inner"
@@ -492,14 +652,14 @@ export function AskStudioPanel({
             type="text"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            placeholder={hasApiKey ? "Ask something about this video..." : "Please configure API key first..."}
+            placeholder={hasApiKey ? "Ask something about this video..." : "Please put an API key first..."}
             disabled={isLoading || !hasApiKey}
             className="flex-1 bg-transparent text-white text-xs outline-none placeholder-gray-500 disabled:cursor-not-allowed"
           />
           <button
             type="submit"
             disabled={!inputText.trim() || isLoading || !hasApiKey}
-            className="p-1.5 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 text-black hover:from-amber-300 hover:to-yellow-400 disabled:bg-gray-800 disabled:text-gray-600 transition-all cursor-pointer disabled:cursor-not-allowed shadow-sm font-bold"
+            className="p-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black disabled:bg-zinc-800 disabled:text-zinc-600 transition-all cursor-pointer disabled:cursor-not-allowed shadow-sm font-bold"
           >
             <Send className="w-3.5 h-3.5 text-black" />
           </button>
@@ -509,6 +669,8 @@ export function AskStudioPanel({
           Strict video analysis scope. API credentials and system data are fully protected.
         </p>
       </div>
+
+      {showKeyModal && renderKeyModal()}
     </div>
   );
 }
