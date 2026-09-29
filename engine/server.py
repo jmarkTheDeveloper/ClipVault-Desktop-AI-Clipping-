@@ -158,7 +158,7 @@ async def verify_app_auth(request: Request, call_next):
             )
 
     client_host = request.client.host if request.client else ""
-    if not path.startswith("/api/") or path == "/api/health" or path.startswith("/api/video_info") or client_host in ["127.0.0.1", "::1", "localhost"]:
+    if not path.startswith("/api/") or path == "/api/health" or path.startswith("/api/video_info") or path.startswith("/api/license") or client_host in ["127.0.0.1", "::1", "localhost"]:
         return await call_next(request)
     
     if AUTH_TOKEN:
