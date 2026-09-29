@@ -101,17 +101,26 @@ class HardwareScanner:
 
         # CapCut-style Compatibility Evaluation
         has_hw_accel = info['is_intel'] or info['is_nvidia'] or info['is_amd']
+        is_potato = (info['ram_gb'] < 7.5) or (info['cores'] <= 4 and not has_hw_accel) or (not has_hw_accel and 'software' in info['encoder'].lower())
+        info['is_potato'] = is_potato
+
         if (info['is_nvidia'] or (info['is_intel'] and info.get('npu'))) and info['ram_gb'] >= 14:
             info['compatibility_level'] = 'ultra'
             info['performance_tag'] = 'Ultra Performance (Pro Hardware)'
+            info['summary_headline'] = "Your computer can run ClipVault smoothly!"
+            info['potato_warning'] = None
         elif has_hw_accel and info['ram_gb'] >= 7.5:
             info['compatibility_level'] = 'smooth'
             info['performance_tag'] = 'Smooth Performance (Hardware Accelerated)'
+            info['summary_headline'] = "Your computer can run ClipVault smoothly!"
+            info['potato_warning'] = None
         else:
-            info['compatibility_level'] = 'compatible'
-            info['performance_tag'] = 'Compatible (CPU Multi-Threaded Mode)'
+            info['compatibility_level'] = 'potato'
+            info['performance_tag'] = 'Entry Hardware (CPU Multi-Threaded Mode)'
+            info['summary_headline'] = "Your system can handle ClipVault, but might see some performance issues."
+            info['potato_warning'] = "Your hardware meets baseline requirements to run ClipVault, but you might experience slower processing or performance issues during heavy video encoding and frame analysis on this configuration."
 
-        info['summary_headline'] = "Your computer can run ClipVault smoothly!"
+        info['apology_notice'] = "Sorry for inconvenience this application is still undergoing for system updates"
 
         # Structured Environment Verification Checks
         info['checks'] = [

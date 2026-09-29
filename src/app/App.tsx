@@ -74,10 +74,10 @@ export default function App() {
   });
   const [showVaultWelcomePrompt, setShowVaultWelcomePrompt] = useState(false);
 
-  // CapCut-Style System Environment Diagnostic Check
+  // Post-Installation CapCut-Style System Environment Verification
   const [showEnvCheckModal, setShowEnvCheckModal] = useState<boolean>(() => {
     try {
-      return !localStorage.getItem("clipvault_env_check_completed");
+      return !localStorage.getItem("clipvault_install_verified");
     } catch {
       return false;
     }
@@ -315,6 +315,18 @@ export default function App() {
     } catch {}
   };
 
+  if (showEnvCheckModal) {
+    return (
+      <ErrorBoundary>
+        <SystemEnvironmentModal
+          isOpen={true}
+          isStandalone={true}
+          onClose={() => setShowEnvCheckModal(false)}
+        />
+      </ErrorBoundary>
+    );
+  }
+
   return (
     <ErrorBoundary>
       <div className="h-screen w-screen overflow-hidden" style={{ background: "#050505" }}>
@@ -364,12 +376,6 @@ export default function App() {
         </div>
 
         {screen === "movie-recapper" && <MovieRecapperScreen onBack={() => setScreen("project-select")} />}
-
-        {/* CapCut-Style System Environment Compatibility Test Modal */}
-        <SystemEnvironmentModal
-          isOpen={showEnvCheckModal}
-          onClose={() => setShowEnvCheckModal(false)}
-        />
 
         {/* First-Time Clipper Welcome Prompt Modal */}
         <FirstTimeWelcomeModal
