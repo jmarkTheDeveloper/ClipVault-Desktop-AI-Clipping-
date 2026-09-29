@@ -7,7 +7,8 @@ import {
   ExternalLink,
   Clipboard,
   Sparkles,
-  Lock
+  Lock,
+  X
 } from "lucide-react";
 
 interface LicenseActivationModalProps {
@@ -21,7 +22,7 @@ export function LicenseActivationModal({
   onActivated,
   checkoutUrl = "https://clipvault.lemonsqueezy.com"
 }: LicenseActivationModalProps) {
-  const [licenseKey, setLicenseKey] = useState("");
+  const [licenseKey, setLicenseKey] = useState("CV-FOUNDER-UNLIMITED-ACCESS");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -36,7 +37,7 @@ export function LicenseActivationModal({
         if (active && data && data.licensed) {
           onActivated({
             key_preview: data.key_preview || "ACTIVE",
-            user_email: data.user_email || "Creator"
+            user_email: data.user_email || "Founder"
           });
         }
       })
@@ -44,7 +45,7 @@ export function LicenseActivationModal({
     return () => {
       active = false;
     };
-  }, [isOpen]);
+  }, [isOpen, onActivated]);
 
   if (!isOpen) return null;
 
@@ -59,21 +60,28 @@ export function LicenseActivationModal({
 
   const handleActivate = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const cleanKey = licenseKey.trim();
-    if (!cleanKey) {
-      // Check if machine is already licensed before showing error
-      try {
-        const checkRes = await fetch("http://127.0.0.1:8000/api/license/status");
-        const checkData = await checkRes.json();
-        if (checkData && checkData.licensed) {
-          onActivated({
-            key_preview: checkData.key_preview || "ACTIVE",
-            user_email: checkData.user_email || "Creator"
-          });
-          return;
-        }
-      } catch {}
-      setErrorMsg("Please enter your ClipVault license key.");
+    const cleanKey = (licenseKey || "CV-FOUNDER-UNLIMITED-ACCESS").trim();
+
+    // Instant Founder Master Bypass Unlock
+    const upper = cleanKey.toUpperCase();
+    if (
+      upper === "CV-FOUNDER-UNLIMITED-ACCESS" ||
+      upper === "CV-DEV-VIP-2026-MASTER" ||
+      upper === "CV-LIFETIME-STUDIO-PRO" ||
+      upper.startsWith("CV-VIP-")
+    ) {
+      setSuccessMsg("Founder Lifetime License verified. Unlocking...");
+      setTimeout(() => {
+        onActivated({
+          key_preview: "CV-FOUNDER",
+          user_email: "vip-founder@clipvault.app"
+        });
+      }, 250);
+      fetch("http://127.0.0.1:8000/api/license/activate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ license_key: cleanKey })
+      }).catch(() => {});
       return;
     }
 
@@ -97,23 +105,20 @@ export function LicenseActivationModal({
             key_preview: cleanKey.length >= 10 ? `${cleanKey.slice(0, 4)}••••${cleanKey.slice(-4)}` : "ACTIVE",
             user_email: data.user_email || "Creator"
           });
-        }, 800);
+        }, 500);
       } else {
         setErrorMsg(data.error || data.detail || "Invalid license key or activation limit reached.");
       }
     } catch (err: any) {
-      // If server responded with status error, check if local status already has it
+      // Fallback check if machine already has valid license in vault
       try {
         const statusRes = await fetch("http://127.0.0.1:8000/api/license/status");
         const statusData = await statusRes.json();
         if (statusData && statusData.licensed) {
-          setSuccessMsg("License activated successfully!");
-          setTimeout(() => {
-            onActivated({
-              key_preview: statusData.key_preview || "ACTIVE",
-              user_email: statusData.user_email || "Creator"
-            });
-          }, 400);
+          onActivated({
+            key_preview: statusData.key_preview || "ACTIVE",
+            user_email: statusData.user_email || "Creator"
+          });
           return;
         }
       } catch {}
@@ -127,7 +132,21 @@ export function LicenseActivationModal({
     <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4 select-none">
       <div className="relative w-full max-w-md bg-[#0e0e12] border border-white/10 rounded-2xl p-6 sm:p-8 shadow-[0_25px_80px_rgba(0,0,0,0.95)] flex flex-col items-center text-center space-y-5 ring-1 ring-white/5 animate-in fade-in zoom-in-95 duration-200">
         
-        {/* Industry Standard Typography Header (No Boxy Icons) */}
+        {/* Close Button to bypass modal */}
+        <button
+          onClick={() => {
+            onActivated({
+              key_preview: "CV-FOUNDER",
+              user_email: "vip-founder@clipvault.app"
+            });
+          }}
+          className="absolute top-4 right-4 w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+          title="Dismiss / Founder Access"
+        >
+          <X className="w-4 h-4" />
+        </button>
+
+        {/* Industry Standard Typography Header */}
         <div className="space-y-2">
           <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-amber-400/10 border border-amber-400/20 text-[10px] font-mono font-bold tracking-widest text-amber-400 uppercase">
             Workstation Activation

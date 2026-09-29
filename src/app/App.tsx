@@ -551,14 +551,16 @@ export default function App() {
         )}
 
         {/* Commercial Licensing & Lemon Squeezy Activation Gate */}
-        <LicenseActivationModal
-          isOpen={showLicenseModal}
-          onActivated={(data) => {
-            setIsLicensed(true);
-            setShowLicenseModal(false);
-            setLicenseData(data);
-          }}
-        />
+        {!isLicensed && (
+          <LicenseActivationModal
+            isOpen={!isLicensed}
+            onActivated={(data) => {
+              setIsLicensed(true);
+              setShowLicenseModal(false);
+              setLicenseData(data);
+            }}
+          />
+        )}
 
         {/* Active Clipping Task Exit Confirmation Guard Overlay */}
         {showExitConfirmModal && (
