@@ -294,39 +294,6 @@ export function ProjectSelectorScreen({ onBack = () => {}, onSelect, onStartTour
             V1.0
           </span>
         </div>
-
-        {/* Header Right Actions */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10, WebkitAppRegion: "no-drag" } as any}>
-          <button
-            onClick={() => window.dispatchEvent(new CustomEvent("clipvault-open-env-check"))}
-            style={{
-              background: "rgba(251, 191, 36, 0.08)",
-              border: "1px solid rgba(251, 191, 36, 0.28)",
-              color: "#fbbf24",
-              padding: "5px 12px",
-              borderRadius: 8,
-              fontSize: 11,
-              fontWeight: 700,
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              cursor: "pointer",
-              transition: "all 0.15s ease",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "rgba(251, 191, 36, 0.16)";
-              e.currentTarget.style.borderColor = "rgba(251, 191, 36, 0.5)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "rgba(251, 191, 36, 0.08)";
-              e.currentTarget.style.borderColor = "rgba(251, 191, 36, 0.28)";
-            }}
-            title="Check if your computer hardware meets requirements (CapCut-style Environment Test)"
-          >
-            <Activity style={{ width: 13, height: 13 }} />
-            <span>Test Environment</span>
-          </button>
-        </div>
       </header>
 
       {/* ── Main Canvas (Spacious, Industry-Grade, Breathable, 60-30-10 Color Theory) ── */}

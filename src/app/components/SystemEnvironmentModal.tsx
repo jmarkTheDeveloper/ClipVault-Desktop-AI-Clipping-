@@ -16,7 +16,6 @@ import {
   Sparkles,
   Info,
 } from "lucide-react";
-import { Logo } from "./Logo";
 
 export interface SystemCheckItem {
   id: string;
@@ -321,7 +320,6 @@ export function SystemEnvironmentModal({ isOpen, onClose, isStandalone = false }
         } as any}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <Logo size={22} />
           <span style={{ fontFamily: "'Space Grotesk', 'Geist', sans-serif", fontWeight: 800, fontSize: 17, letterSpacing: "-0.03em", color: "#fff" }}>
             Clip<span style={{ color: "#00e676" }}>Vault</span>
           </span>
@@ -606,33 +604,10 @@ export function SystemEnvironmentModal({ isOpen, onClose, isStandalone = false }
                     : "1px solid rgba(251, 191, 36, 0.4)",
                   boxShadow: "0 8px 30px rgba(0, 0, 0, 0.4)",
                   display: "flex",
-                  alignItems: "flex-start",
-                  gap: 14,
+                  flexDirection: "column",
+                  gap: 10,
                 }}
               >
-                <div
-                  style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 14,
-                    background: isPotatoMode
-                      ? "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)"
-                      : "linear-gradient(135deg, #facc15 0%, #f59e0b 100%)",
-                    color: "#000000",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                    boxShadow: "0 0 20px rgba(245, 158, 11, 0.4)",
-                  }}
-                >
-                  {isPotatoMode ? (
-                    <AlertTriangle style={{ width: 24, height: 24, strokeWidth: 2.5 }} />
-                  ) : (
-                    <ShieldCheck style={{ width: 26, height: 26, strokeWidth: 2.5 }} />
-                  )}
-                </div>
-
                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                   <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#ffffff", letterSpacing: "-0.01em" }}>
                     {headline}
