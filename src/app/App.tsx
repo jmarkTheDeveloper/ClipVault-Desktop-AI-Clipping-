@@ -105,14 +105,13 @@ export default function App() {
             setShowLicenseModal(true);
           }
         })
-        .catch(() => {
-          if (!isMounted) return;
-          setTimeout(checkLicense, 1500);
-        });
+        .catch(() => {});
     };
     checkLicense();
+    const interval = setInterval(checkLicense, 1500);
     return () => {
       isMounted = false;
+      clearInterval(interval);
     };
   }, []);
 

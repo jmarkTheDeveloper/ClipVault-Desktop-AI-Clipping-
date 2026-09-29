@@ -29,21 +29,22 @@ export function LicenseActivationModal({
   // Auto-verify if machine is already licensed on mount
   useEffect(() => {
     if (!isOpen) return;
+    let active = true;
     fetch("http://127.0.0.1:8000/api/license/status")
       .then((r) => r.json())
       .then((data) => {
-        if (data && data.licensed) {
-          setSuccessMsg("Active license verified. Unlocking studio...");
-          setTimeout(() => {
-            onActivated({
-              key_preview: data.key_preview || "ACTIVE",
-              user_email: data.user_email || "Creator"
-            });
-          }, 400);
+        if (active && data && data.licensed) {
+          onActivated({
+            key_preview: data.key_preview || "ACTIVE",
+            user_email: data.user_email || "Creator"
+          });
         }
       })
       .catch(() => {});
-  }, [isOpen, onActivated]);
+    return () => {
+      active = false;
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -60,6 +61,18 @@ export function LicenseActivationModal({
     if (e) e.preventDefault();
     const cleanKey = licenseKey.trim();
     if (!cleanKey) {
+      // Check if machine is already licensed before showing error
+      try {
+        const checkRes = await fetch("http://127.0.0.1:8000/api/license/status");
+        const checkData = await checkRes.json();
+        if (checkData && checkData.licensed) {
+          onActivated({
+            key_preview: checkData.key_preview || "ACTIVE",
+            user_email: checkData.user_email || "Creator"
+          });
+          return;
+        }
+      } catch {}
       setErrorMsg("Please enter your ClipVault license key.");
       return;
     }
