@@ -5,9 +5,17 @@
 *.env.local
 *.key
 *.pem
+license_private_key*.pem
+license_private_key*
+*.pfx
+*.p12
 *.token
 cookies.txt
 *cookie*.txt
+
+# Licensing note: the Ed25519 PRIVATE signing key must never be committed
+# (license_private_key*.pem above). The matching PUBLIC key is intentionally
+# committable and is NOT ignored: engine/license_public_key.txt
 
 # Dependencies & Virtual Environments
 node_modules/
@@ -25,6 +33,10 @@ ENV/
 # Build & Media Artifacts
 dist/
 build/
+release/
+dist_python/
+build_python/
+*.asar
 clips/
 engine/clips/
 temp/
@@ -42,6 +54,9 @@ engine/temp/
 scratch/
 repo_work/
 temp_repo_clone/
+
+# Scraped / third-party junk that must never be published
+*-player-script.js
 
 # Logs & System Cache
 *.log

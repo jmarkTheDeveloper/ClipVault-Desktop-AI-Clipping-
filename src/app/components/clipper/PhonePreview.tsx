@@ -191,8 +191,10 @@ const DraggableCaptionOverlay: React.FC<{
   isPreviewingEffect = false,
   hoveredEffectName = "",
 }) => {
-  if (!addCaptions) return null;
-
+  // HOOK-ORDER FIX: every hook must run on every render. The `!addCaptions` early return
+  // used to sit ABOVE these hooks, so toggling "AI Captions" off threw
+  // "Rendered fewer hooks than expected" and the ErrorBoundary replaced the whole UI.
+  // All hooks now run unconditionally; the null result is returned after them (see below).
   const [animStep, setAnimStep] = useState(0);
 
   useEffect(() => {
@@ -201,6 +203,9 @@ const DraggableCaptionOverlay: React.FC<{
     }, 650);
     return () => clearInterval(interval);
   }, []);
+
+  // Captions disabled: render nothing (after all hooks have run).
+  if (!addCaptions) return null;
 
   const fontSans = { fontFamily: "'Montserrat', sans-serif" };
   const fontAnton = { fontFamily: "'Anton', 'Impact', sans-serif" };
@@ -327,7 +332,7 @@ const DraggableCaptionOverlay: React.FC<{
                 textShadow: "-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000",
               }}
             >
-              HORMOZI
+              IMPACT
             </span>
             <span
               className={`px-1 transition-all duration-200 ${animStep === 1 ? "scale-115 text-[#FFD700]" : "text-white"}`}
@@ -480,7 +485,7 @@ const DraggableCaptionOverlay: React.FC<{
                 textShadow: "-1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000, 1.5px 1.5px 0 #000, 0 4px 8px rgba(0,0,0,0.9)",
               }}
             >
-              BEAST
+              BOLT
             </span>
           </div>
         );
@@ -570,7 +575,7 @@ const DraggableCaptionOverlay: React.FC<{
           <div className="flex items-center pointer-events-none lowercase font-black text-base" style={fontSans}>
             <span
               key={currentWord}
-              className="text-white transition-all duration-200 scale-115 text-emerald-300 drop-shadow-[0_0_10px_rgba(0,230,118,0.8)]"
+              className="text-white transition-all duration-200 scale-115 text-emerald-300 drop-shadow-[0_0_10px_rgba(52, 235, 61,0.8)]"
               style={{
                 WebkitTextStroke: "1px #000",
                 textShadow: "0 3px 10px rgba(0,0,0,0.9), -1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000, 1.5px 1.5px 0 #000",
@@ -611,10 +616,10 @@ const DraggableCaptionOverlay: React.FC<{
         title="Click & Drag to reposition captions on screen"
         className={`pointer-events-auto px-4 py-2 rounded-2xl bg-black/85 backdrop-blur-md border transition-all cursor-grab active:cursor-grabbing shadow-[0_8px_32px_rgba(0,0,0,0.8)] flex items-center gap-2 group relative ${
           isDraggingCaption
-            ? "border-amber-400 ring-2 ring-amber-400/60 scale-105"
+            ? "border-emerald-400 ring-2 ring-emerald-400/60 scale-105"
             : isPreviewingEffect
             ? "border-emerald-400 ring-2 ring-emerald-400/80 scale-110 bg-black/95 shadow-[0_0_30px_rgba(0,255,102,0.45)]"
-            : "border-white/20 hover:border-amber-400/80 hover:bg-black/95 hover:scale-102"
+            : "border-white/20 hover:border-emerald-400/80 hover:bg-black/95 hover:scale-102"
         }`}
       >
         {isPreviewingEffect && (
@@ -623,7 +628,7 @@ const DraggableCaptionOverlay: React.FC<{
             {hoveredEffectName && <span className="opacity-90">• {hoveredEffectName}</span>}
           </div>
         )}
-        <Move className="w-3.5 h-3.5 text-gray-500 group-hover:text-amber-400 transition-colors pointer-events-none shrink-0" />
+        <Move className="w-3.5 h-3.5 text-gray-500 group-hover:text-emerald-400 transition-colors pointer-events-none shrink-0" />
         {renderPresetPreview()}
       </div>
     </div>
@@ -691,7 +696,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
   const [streamError, setStreamError] = useState(false);
   const [loopSegment, setLoopSegment] = useState(true);
 
-  // Ask Studio Assistant State
+  // Ask ClipVault Assistant State
   const [isAskStudioOpen, setIsAskStudioOpen] = useState(false);
 
   const handleAskStudioSeek = (sec: number) => {
@@ -951,7 +956,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
   return (
     <div ref={containerRef} className="flex-1 flex flex-col items-center justify-center p-6 bg-[#0a0a0a] select-none relative overflow-hidden">
       {/* Background Ambient Glow */}
-      <div className="absolute w-[500px] h-[500px] bg-amber-400/5 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute w-[500px] h-[500px] bg-emerald-400/5 rounded-full blur-3xl pointer-events-none" />
 
       {/* 9:16 Smartphone Mockup */}
       <div id="tour-step-phone-preview" className="relative w-[400px] h-[780px] max-h-[88vh] bg-black rounded-[54px] p-3.5 shadow-[0_0_90px_rgba(0,0,0,0.9)] border-[8px] border-[#222] ring-1 ring-white/15 flex flex-col z-10">
@@ -967,8 +972,8 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
           <div className="flex-1 relative overflow-hidden flex items-center justify-center bg-black select-none">
             {isProcessing ? (
             <div className="flex flex-col items-center justify-center space-y-4 p-6 text-center z-30">
-              <Loader2 className="w-10 h-10 text-amber-400 animate-spin" />
-              <span className="text-amber-400 font-bold text-sm">{Math.floor(progress)}%</span>
+              <Loader2 className="w-10 h-10 text-emerald-400 animate-spin" />
+              <span className="text-emerald-400 font-bold text-sm">{Math.floor(progress)}%</span>
               <p className="text-xs text-gray-400">Processing clips in 4K/1080p...</p>
               {onCancel && (
                 <button
@@ -982,7 +987,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
             </div>
           ) : loadingPreview ? (
             <div className="flex flex-col items-center justify-center p-6 text-center space-y-3 z-30">
-              <Loader2 className="w-9 h-9 text-amber-400 animate-spin" />
+              <Loader2 className="w-9 h-9 text-emerald-400 animate-spin" />
               <p className="text-xs font-bold text-white">Connecting Video Stream...</p>
               <p className="text-[10px] text-gray-400 max-w-[200px]">Fetching stream & synchronizing preview</p>
             </div>
@@ -1003,7 +1008,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                   <div className="space-y-1.5 text-center">
                     <p className="text-xs font-bold text-red-300">Liked Videos Link Detected</p>
                     <p className="text-[11px] text-gray-300 leading-relaxed font-medium">
-                      This link was copied directly from your private YouTube &quot;Liked videos&quot; playlist (<code className="text-amber-300 bg-amber-500/10 px-1 py-0.5 rounded">list=LL</code>). YouTube blocks external software from accessing private playlists.
+                      This link was copied directly from your private YouTube &quot;Liked videos&quot; playlist (<code className="text-emerald-300 bg-emerald-500/10 px-1 py-0.5 rounded">list=LL</code>). YouTube blocks external software from accessing private playlists.
                     </p>
                   </div>
                   {ytUrl && cleanYouTubeUrl(ytUrl) && (
@@ -1015,7 +1020,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                           window.dispatchEvent(new CustomEvent("clipvault-set-yt-url", { detail: clean }));
                         }
                       }}
-                      className="w-full px-3 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-bold transition-all cursor-pointer shadow-md flex items-center justify-center gap-1.5"
+                      className="w-full px-3 py-2 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-black text-xs font-bold transition-all cursor-pointer shadow-md flex items-center justify-center gap-1.5"
                     >
                       <span>Clean Link &amp; Use Direct Video</span>
                     </button>
@@ -1036,7 +1041,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                     <button
                       type="button"
                       onClick={onRetryPreview}
-                      className="px-3.5 py-1.5 rounded-xl bg-amber-400 text-black text-xs font-bold hover:bg-amber-300 transition-all cursor-pointer shadow-md flex items-center gap-1.5"
+                      className="px-3.5 py-1.5 rounded-xl bg-emerald-400 text-black text-xs font-bold hover:bg-emerald-300 transition-all cursor-pointer shadow-md flex items-center gap-1.5"
                     >
                       <RotateCcw className="w-3.5 h-3.5" />
                       <span>Retry Stream</span>
@@ -1130,11 +1135,11 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
               ) : layout === "custom_split" ? (
                 /* Custom Split Screen Preview (Top & Bottom Crop Boxes) */
                 <div className="w-full h-full flex flex-col relative select-none bg-black pointer-events-none">
-                  <div className="absolute top-10 left-3 z-30 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-amber-400/40 text-[9px] font-bold text-amber-400 flex items-center gap-1 shadow-lg">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                  <div className="absolute top-10 left-3 z-30 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-emerald-400/40 text-[9px] font-bold text-emerald-400 flex items-center gap-1 shadow-lg">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                     Custom Split (9:16)
                   </div>
-                  <div className="w-full h-1/2 relative overflow-hidden border-b-2 border-amber-400/50">
+                  <div className="w-full h-1/2 relative overflow-hidden border-b-2 border-emerald-400/50">
                     <CroppedVideo
                       videoRef={videoRef}
                       src={activeVideoUrl}
@@ -1159,11 +1164,11 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
               ) : layout === "gameplay_bg" ? (
                 /* Dual-Layer Split (Speaker Top, B-Roll / Visuals Bottom) */
                 <div className="w-full h-full flex flex-col relative select-none bg-black pointer-events-none">
-                  <div className="absolute top-10 left-3 z-30 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-amber-400/40 text-[9px] font-bold text-amber-400 flex items-center gap-1 shadow-lg">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                  <div className="absolute top-10 left-3 z-30 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-emerald-400/40 text-[9px] font-bold text-emerald-400 flex items-center gap-1 shadow-lg">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                     Dual Split (9:16)
                   </div>
-                  <div className="w-full h-1/2 relative overflow-hidden border-b-2 border-amber-400/30">
+                  <div className="w-full h-1/2 relative overflow-hidden border-b-2 border-emerald-400/30">
                     <video
                       ref={videoRef}
                       src={activeVideoUrl}
@@ -1203,14 +1208,14 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                         }}
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-[#0a0a0a] text-amber-400/40 text-xs font-bold font-mono">
+                      <div className="w-full h-full flex items-center justify-center bg-[#0a0a0a] text-emerald-400/40 text-xs font-bold font-mono">
                         [ Secondary B-Roll / Visuals ]
                       </div>
                     )}
                   </div>
                 </div>
               ) : layout === "square_blur" ? (
-                /* Square Focus + Blurred Canvas (Shorts / Pawn Stars Style) */
+                /* Square Focus + Blurred Canvas (Shorts / Portrait Feed Style) */
                 <div className="w-full h-full relative overflow-hidden bg-black flex flex-col items-center justify-center pointer-events-none">
                   <video
                     src={activeVideoUrl}
@@ -1220,7 +1225,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                     muted={true}
                     playsInline
                   />
-                  {/* Elevated Square Focus Frame (58% height, matching Pawn Stars / YouTube Shorts style) */}
+                  {/* Elevated Square Focus Frame (58% height, matching Portrait Shorts style) */}
                   <div className="relative z-10 w-full aspect-[1/1.1] max-h-[60%] overflow-hidden shadow-[0_12px_40px_rgba(0,0,0,0.85)] border-y border-white/10 flex items-center justify-center">
                     <video
                       ref={videoRef}
@@ -1353,8 +1358,8 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                       setStreamError(true);
                     }}
                   />
-                  <div className="absolute top-10 left-3 z-20 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-amber-400/40 text-[9px] font-bold text-amber-400 flex items-center gap-1 shadow-lg">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                  <div className="absolute top-10 left-3 z-20 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-emerald-400/40 text-[9px] font-bold text-emerald-400 flex items-center gap-1 shadow-lg">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                     9:16 Face Tracking Active
                   </div>
                 </div>
@@ -1371,7 +1376,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                   className="p-1.5 rounded-full bg-black/70 backdrop-blur-md text-white border border-white/20 hover:bg-black transition-colors cursor-pointer shadow-lg"
                   title={isPlaying ? "Pause" : "Play"}
                 >
-                  {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />}
+                  {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 text-emerald-400 fill-emerald-400" />}
                 </button>
                 <button
                   type="button"
@@ -1382,7 +1387,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                   className="p-1.5 rounded-full bg-black/70 backdrop-blur-md text-white border border-white/20 hover:bg-black transition-colors cursor-pointer shadow-lg"
                   title={isMuted ? "Unmute" : "Mute"}
                 >
-                  {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5 text-amber-400" />}
+                  {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5 text-emerald-400" />}
                 </button>
               </div>
 
@@ -1395,7 +1400,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                   }}
                   className="absolute inset-0 z-20 flex items-center justify-center bg-black/25 backdrop-blur-[1px] cursor-pointer pointer-events-auto transition-all"
                 >
-                  <div className="w-14 h-14 rounded-full bg-black/75 backdrop-blur-md border border-amber-400/60 flex items-center justify-center text-amber-400 shadow-2xl hover:scale-110 hover:bg-amber-400 hover:text-black transition-all">
+                  <div className="w-14 h-14 rounded-full bg-black/75 backdrop-blur-md border border-emerald-400/60 flex items-center justify-center text-emerald-400 shadow-2xl hover:scale-110 hover:bg-emerald-400 hover:text-black transition-all">
                     <Play className="w-6 h-6 fill-current ml-1" />
                   </div>
                 </div>
@@ -1404,8 +1409,8 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
               {/* Central Buffering Indicator */}
               {isBuffering && (
                 <div className="absolute inset-0 z-25 flex items-center justify-center bg-black/45 backdrop-blur-[1px] pointer-events-none">
-                  <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-black/80 border border-amber-400/50 text-amber-300 text-xs font-bold shadow-lg animate-pulse">
-                    <Loader2 className="w-4 h-4 text-amber-400 animate-spin" />
+                  <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-black/80 border border-emerald-400/50 text-emerald-300 text-xs font-bold shadow-lg animate-pulse">
+                    <Loader2 className="w-4 h-4 text-emerald-400 animate-spin" />
                     <span>Buffering stream...</span>
                   </div>
                 </div>
@@ -1414,7 +1419,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
               {/* Central Stream Error / Reconnect Indicator */}
               {streamError && (
                 <div className="absolute inset-0 z-25 flex flex-col items-center justify-center bg-black/85 p-6 text-center space-y-3 pointer-events-auto">
-                  <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
                     <AlertCircle className="w-6 h-6" />
                   </div>
                   <div className="space-y-1">
@@ -1436,7 +1441,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                         } catch {}
                       });
                     }}
-                    className="px-3.5 py-1.5 rounded-xl bg-amber-400 text-black text-xs font-bold hover:bg-amber-300 transition-all cursor-pointer shadow-md flex items-center gap-1.5"
+                    className="px-3.5 py-1.5 rounded-xl bg-emerald-400 text-black text-xs font-bold hover:bg-emerald-300 transition-all cursor-pointer shadow-md flex items-center gap-1.5"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
                     <span>Reload Stream</span>
@@ -1463,8 +1468,8 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
             <div className="w-full bg-[#0d0d0f]/95 backdrop-blur-xl border-t border-white/10 p-3 space-y-2 z-30 shrink-0 select-none">
               {/* Timeline Scrubber & Timestamp Readout */}
               <div className="flex items-center justify-between text-[11px] font-mono text-gray-300 font-bold">
-                <span className="text-amber-400 flex items-center gap-1">
-                  <Clock className="w-3 h-3 text-amber-400" /> {formatTime(currentTime)}
+                <span className="text-emerald-400 flex items-center gap-1">
+                  <Clock className="w-3 h-3 text-emerald-400" /> {formatTime(currentTime)}
                 </span>
                 <span className="text-gray-400 font-mono">
                   {duration > 0 ? formatTime(duration) : (mediaDuration && mediaDuration > 0 ? formatTime(mediaDuration) : "--:--")}
@@ -1499,7 +1504,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                 onKeyUp={(e) => {
                   commitSeek(parseFloat(e.currentTarget.value));
                 }}
-                className="w-full accent-amber-400 h-1.5 bg-black/60 rounded-lg cursor-pointer"
+                className="w-full accent-emerald-400 h-1.5 bg-black/60 rounded-lg cursor-pointer"
               />
 
               {/* Transport Buttons & Quick Scene Jumps */}
@@ -1516,7 +1521,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                 <button
                   type="button"
                   onClick={togglePlayAll}
-                  className="w-[84px] h-7 rounded-xl bg-amber-400 text-black font-extrabold text-xs flex items-center justify-center gap-1.5 hover:bg-amber-300 transition-all shadow-md cursor-pointer shrink-0"
+                  className="w-[84px] h-7 rounded-xl bg-emerald-400 text-black font-extrabold text-xs flex items-center justify-center gap-1.5 hover:bg-emerald-300 transition-all shadow-md cursor-pointer shrink-0"
                 >
                   {isPlaying ? <Pause className="w-3.5 h-3.5 fill-black" /> : <Play className="w-3.5 h-3.5 fill-black ml-0.5" />}
                   <span>{isPlaying ? "Pause" : "Play"}</span>
@@ -1559,7 +1564,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                   onClick={() => setLoopSegment(!loopSegment)}
                   className={`h-7 px-2 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors cursor-pointer shrink-0 ${
                     loopSegment
-                      ? "bg-amber-400/20 text-amber-300 border border-amber-400/40"
+                      ? "bg-emerald-400/20 text-emerald-300 border border-emerald-400/40"
                       : "bg-white/5 text-gray-400 hover:text-white"
                   }`}
                   title={loopSegment ? "Segment Looping: ON (auto-replays from start when reaching end time)" : "Segment Looping: OFF"}
@@ -1576,7 +1581,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                     <div className="flex items-center gap-1.5">
                       <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Clip Time Bounds</span>
                       {customSegments.length > 1 && (
-                        <span className="text-[9px] font-bold text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/20">
+                        <span className="text-[9px] font-bold text-emerald-400 bg-emerald-400/10 px-1.5 py-0.5 rounded border border-emerald-400/20">
                           {customSegments.length} Clips
                         </span>
                       )}
@@ -1585,10 +1590,10 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                       <button
                         type="button"
                         onClick={() => handlePlayActiveSegment()}
-                        className="text-[9.5px] text-amber-400 hover:text-amber-300 font-extrabold flex items-center gap-1 bg-amber-400/15 hover:bg-amber-400/25 px-2 py-0.5 rounded-md border border-amber-400/30 transition-all cursor-pointer shadow-sm"
+                        className="text-[9.5px] text-emerald-400 hover:text-emerald-300 font-extrabold flex items-center gap-1 bg-emerald-400/15 hover:bg-emerald-400/25 px-2 py-0.5 rounded-md border border-emerald-400/30 transition-all cursor-pointer shadow-sm"
                         title="Play active segment from start in preview"
                       >
-                        <Play className="w-2.5 h-2.5 fill-amber-400" />
+                        <Play className="w-2.5 h-2.5 fill-emerald-400" />
                         <span>Play Segment</span>
                       </button>
                       {(startTs || endTs || customSegments.some((s) => s.start || s.end)) && (
@@ -1624,7 +1629,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                             }}
                             className={`px-2 py-0.5 rounded-lg text-[9.5px] font-black border transition-all cursor-pointer shrink-0 flex items-center gap-1 ${
                               isSel
-                                ? "bg-amber-400 text-black border-amber-400 shadow-sm"
+                                ? "bg-emerald-400 text-black border-emerald-400 shadow-sm"
                                 : "bg-white/5 text-gray-400 border-white/10 hover:text-white"
                             }`}
                           >
@@ -1657,11 +1662,11 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                           title={`Pin Start timestamp (${formatTime(currentTime)}) to active clip`}
                           className={`flex-1 py-1.5 px-2 rounded-xl border text-[10px] font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm ${
                             currentActiveSeg.start || startTs
-                              ? "bg-amber-400/20 border-amber-400 text-amber-300 ring-1 ring-amber-400/30"
+                              ? "bg-emerald-400/20 border-emerald-400 text-emerald-300 ring-1 ring-emerald-400/30"
                               : "bg-white/5 hover:bg-white/10 border-white/10 text-gray-300 hover:text-white"
                           }`}
                         >
-                          <Pin className={`w-3 h-3 ${currentActiveSeg.start || startTs ? "text-amber-400" : "text-gray-400"}`} />
+                          <Pin className={`w-3 h-3 ${currentActiveSeg.start || startTs ? "text-emerald-400" : "text-gray-400"}`} />
                           <span>Start: {currentStartDisplay}</span>
                         </button>
 
@@ -1698,7 +1703,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
         <div className="w-32 h-1 bg-white/20 rounded-full mx-auto mt-2 mb-0.5 pointer-events-none shrink-0" />
       </div>
 
-      {/* Ask Studio AI Video Assistant Panel */}
+      {/* Ask ClipVault AI Video Assistant Panel */}
       <AskStudioPanel
         isOpen={isAskStudioOpen}
         onOpen={() => setIsAskStudioOpen(true)}

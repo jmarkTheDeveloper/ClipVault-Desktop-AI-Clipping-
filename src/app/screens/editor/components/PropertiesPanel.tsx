@@ -47,7 +47,7 @@ export function PropertiesPanel() {
             onClick={() => setActiveRightTab(tab.toLowerCase())}
             className={`flex-1 px-3 py-3 text-[11px] font-bold border-b-2 transition-all duration-200 cursor-pointer hover:bg-white/10 hover:text-white hover:scale-105 active:scale-95 ${
               activeRightTab === tab.toLowerCase()
-                ? "text-[#00e676] border-[#00e676]"
+                ? "text-[#34eb3d] border-[#34eb3d]"
                 : "text-gray-400 border-transparent"
             }`}
           >
@@ -60,12 +60,12 @@ export function PropertiesPanel() {
       {selectedId == null || !selectedClip ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-4 px-6 text-center">
           <div
-            className="w-12 h-12 rounded-2xl flex items-center justify-center bg-[#00e676]/10 border border-[#00e676]/20"
+            className="w-12 h-12 rounded-2xl flex items-center justify-center bg-[#34eb3d]/10 border border-[#34eb3d]/20"
           >
-            {activeRightTab === "basic" && <SlidersHorizontal className="w-5 h-5 text-[#00e676]" />}
-            {activeRightTab === "adjust" && <Zap className="w-5 h-5 text-[#00e676]" />}
-            {activeRightTab === "speed" && <Gauge className="w-5 h-5 text-[#00e676]" />}
-            {activeRightTab === "color" && <Palette className="w-5 h-5 text-[#00e676]" />}
+            {activeRightTab === "basic" && <SlidersHorizontal className="w-5 h-5 text-[#34eb3d]" />}
+            {activeRightTab === "adjust" && <Zap className="w-5 h-5 text-[#34eb3d]" />}
+            {activeRightTab === "speed" && <Gauge className="w-5 h-5 text-[#34eb3d]" />}
+            {activeRightTab === "color" && <Palette className="w-5 h-5 text-[#34eb3d]" />}
           </div>
           <div>
             <h4 className="text-xs font-bold text-white capitalize mb-1">{activeRightTab} Tab</h4>
@@ -76,7 +76,7 @@ export function PropertiesPanel() {
               {activeRightTab === "color" && "Color grading tab: controls saturation, warmth, and color temperature."}
             </p>
           </div>
-          <p className="text-[10px] text-[#00e676] font-semibold bg-[#00e676]/10 px-3 py-1.5 rounded-full border border-[#00e676]/20">
+          <p className="text-[10px] text-[#34eb3d] font-semibold bg-[#34eb3d]/10 px-3 py-1.5 rounded-full border border-[#34eb3d]/20">
             Select a clip on timeline to edit
           </p>
         </div>
@@ -97,7 +97,7 @@ export function PropertiesPanel() {
                       <PropRow label="Rot" value={vc.rotation} unit="deg" onChange={(v: string) => updateVideoClip(vc.id, { rotation: Number(v) })} />
                       <button
                         onClick={() => updateVideoClip(vc.id, { scaleX: 1.8, scaleY: 1.8, x: 0, y: 0 })}
-                        className="w-full mt-2 py-1.5 rounded-lg text-xs font-bold transition-all bg-[#00e676]/10 text-[#00e676] border border-[#00e676]/20 hover:bg-[#00e676]/20"
+                        className="w-full mt-2 py-1.5 rounded-lg text-xs font-bold transition-all bg-[#34eb3d]/10 text-[#34eb3d] border border-[#34eb3d]/20 hover:bg-[#34eb3d]/20"
                       >
                         9:16 Auto-Reframe (Vertical Short)
                       </button>
@@ -123,9 +123,9 @@ export function PropertiesPanel() {
                           onClick={() => updateVideoClip(vc.id, { flipH: !vc.flipH })}
                           className="flex-1 flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs transition-all"
                           style={{
-                            background: vc.flipH ? "rgba(0,230,118,0.1)" : "rgba(255,255,255,0.03)",
+                            background: vc.flipH ? "rgba(52, 235, 61,0.1)" : "rgba(255,255,255,0.03)",
                             color: vc.flipH ? G : "#5a5a5a",
-                            border: `1px solid ${vc.flipH ? "rgba(0,230,118,0.3)" : "rgba(255,255,255,0.06)"}`,
+                            border: `1px solid ${vc.flipH ? "rgba(52, 235, 61,0.3)" : "rgba(255,255,255,0.06)"}`,
                           }}
                         >
                           <FlipHorizontal className="w-3.5 h-3.5" /> H-Flip
@@ -134,9 +134,9 @@ export function PropertiesPanel() {
                           onClick={() => updateVideoClip(vc.id, { flipV: !vc.flipV })}
                           className="flex-1 flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs transition-all"
                           style={{
-                            background: vc.flipV ? "rgba(0,230,118,0.1)" : "rgba(255,255,255,0.03)",
+                            background: vc.flipV ? "rgba(52, 235, 61,0.1)" : "rgba(255,255,255,0.03)",
                             color: vc.flipV ? G : "#5a5a5a",
-                            border: `1px solid ${vc.flipV ? "rgba(0,230,118,0.3)" : "rgba(255,255,255,0.06)"}`,
+                            border: `1px solid ${vc.flipV ? "rgba(52, 235, 61,0.3)" : "rgba(255,255,255,0.06)"}`,
                           }}
                         >
                           <FlipHorizontal className="w-3.5 h-3.5 rotate-90" /> V-Flip
@@ -182,7 +182,7 @@ export function PropertiesPanel() {
                               className="py-2 rounded-lg text-[10px] font-semibold border transition-all"
                               style={
                                 Math.abs(vc.speed - s) < 0.01
-                                  ? { background: "rgba(0,230,118,0.1)", borderColor: "rgba(0,230,118,0.4)", color: G }
+                                  ? { background: "rgba(52, 235, 61,0.1)", borderColor: "rgba(52, 235, 61,0.4)", color: G }
                                   : { background: "rgba(255,255,255,0.03)", borderColor: "rgba(255,255,255,0.06)", color: "#888" }
                               }
                             >
@@ -268,9 +268,9 @@ export function PropertiesPanel() {
             return (
               <>
                 <PropGroup label="Track Info">
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-[#00e676]/5 border border-[#00e676]/15">
-                    <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 bg-[#00e676]/10">
-                      <Music className="w-4 h-4 text-[#00e676]" />
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-[#34eb3d]/5 border border-[#34eb3d]/15">
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 bg-[#34eb3d]/10">
+                      <Music className="w-4 h-4 text-[#34eb3d]" />
                     </div>
                     <div>
                       <p className="text-white text-xs font-semibold">{ac.name}</p>

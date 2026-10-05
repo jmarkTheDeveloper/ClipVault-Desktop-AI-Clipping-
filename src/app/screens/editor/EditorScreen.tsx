@@ -184,7 +184,7 @@ function EditorLayout({ onBack, initialVideoUrl }: { onBack: () => void, initial
           <div className="bg-[#101010] border border-white/10 rounded-2xl p-6 w-[440px] shadow-2xl space-y-5 relative">
             <div className="flex items-center justify-between border-b border-white/5 pb-3">
               <h3 className="text-sm font-bold text-white flex items-center gap-2 truncate pr-4">
-                <Film className="w-4 h-4 text-[#00e676] shrink-0" /> <span className="truncate">Export: {projectName}</span>
+                <Film className="w-4 h-4 text-[#34eb3d] shrink-0" /> <span className="truncate">Export: {projectName}</span>
               </h3>
               {!isExporting && (
                 <button
@@ -206,7 +206,7 @@ function EditorLayout({ onBack, initialVideoUrl }: { onBack: () => void, initial
                 onChange={e => setProjectName(e.target.value)}
                 disabled={isExporting}
                 placeholder="e.g. My Awesome Video"
-                className="w-full rounded-xl px-3.5 py-2.5 text-xs text-white bg-white/5 border border-white/10 outline-none focus:border-[#00e676]/50 transition-all font-semibold placeholder-gray-600"
+                className="w-full rounded-xl px-3.5 py-2.5 text-xs text-white bg-white/5 border border-white/10 outline-none focus:border-[#34eb3d]/50 transition-all font-semibold placeholder-gray-600"
               />
             </div>
 
@@ -223,7 +223,7 @@ function EditorLayout({ onBack, initialVideoUrl }: { onBack: () => void, initial
                     onClick={() => setSelectedRes(r.id)}
                     className={`w-full flex items-center justify-between p-2.5 rounded-xl border text-xs font-medium transition-all ${
                       selectedRes === r.id
-                        ? "bg-[#00e676]/10 border-[#00e676] text-[#00e676]"
+                        ? "bg-[#34eb3d]/10 border-[#34eb3d] text-[#34eb3d]"
                         : "bg-white/5 border-white/5 text-gray-300 hover:bg-white/10"
                     }`}
                   >
@@ -248,7 +248,7 @@ function EditorLayout({ onBack, initialVideoUrl }: { onBack: () => void, initial
                       onClick={() => setSelectedFps(fps)}
                       className={`py-1.5 rounded-lg text-xs font-semibold border transition-all ${
                         selectedFps === fps
-                          ? "bg-[#00e676]/10 border-[#00e676] text-[#00e676]"
+                          ? "bg-[#34eb3d]/10 border-[#34eb3d] text-[#34eb3d]"
                           : "bg-white/5 border-white/5 text-gray-400"
                       }`}
                     >
@@ -269,7 +269,7 @@ function EditorLayout({ onBack, initialVideoUrl }: { onBack: () => void, initial
                       onClick={() => setSelectedFormat(fmt)}
                       className={`py-1.5 rounded-lg text-xs font-semibold uppercase border transition-all ${
                         selectedFormat === fmt
-                          ? "bg-[#00e676]/10 border-[#00e676] text-[#00e676]"
+                          ? "bg-[#34eb3d]/10 border-[#34eb3d] text-[#34eb3d]"
                           : "bg-white/5 border-white/5 text-gray-400"
                       }`}
                     >
@@ -285,11 +285,11 @@ function EditorLayout({ onBack, initialVideoUrl }: { onBack: () => void, initial
               <div className="p-3.5 rounded-xl bg-black/60 border border-white/5 space-y-2">
                 <div className="flex justify-between text-xs font-semibold">
                   <span className="text-gray-300 truncate">{exportStatusMsg}</span>
-                  <span className="text-[#00e676] font-mono">{exportProgress}%</span>
+                  <span className="text-[#34eb3d] font-mono">{exportProgress}%</span>
                 </div>
                 <div className="w-full bg-gray-800 h-2 rounded-full overflow-hidden">
                   <div
-                    className="bg-[#00e676] h-full transition-all duration-300"
+                    className="bg-[#34eb3d] h-full transition-all duration-300"
                     style={{ width: `${exportProgress}%` }}
                   />
                 </div>
@@ -298,16 +298,16 @@ function EditorLayout({ onBack, initialVideoUrl }: { onBack: () => void, initial
 
             {/* Completed Result Link */}
             {completedUrl && !isExporting && (
-              <div className="p-3 rounded-xl bg-[#00e676]/10 border border-[#00e676]/30 flex items-center justify-between">
+              <div className="p-3 rounded-xl bg-[#34eb3d]/10 border border-[#34eb3d]/30 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-[#00e676]" />
-                  <span className="text-xs text-[#00e676] font-bold">Export Render Complete!</span>
+                  <CheckCircle2 className="w-4 h-4 text-[#34eb3d]" />
+                  <span className="text-xs text-[#34eb3d] font-bold">Export Render Complete!</span>
                 </div>
                 <a
                   href={completedUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="px-3 py-1 rounded-lg bg-[#00e676] text-black text-xs font-bold hover:brightness-110"
+                  className="px-3 py-1 rounded-lg bg-[#34eb3d] text-black text-xs font-bold hover:brightness-110"
                 >
                   Download
                 </a>
@@ -327,7 +327,7 @@ function EditorLayout({ onBack, initialVideoUrl }: { onBack: () => void, initial
               <button
                 onClick={startExportProcess}
                 disabled={isExporting}
-                className="px-5 py-2 rounded-xl text-xs font-bold bg-[#00e676] text-black hover:brightness-110 disabled:opacity-50 transition-all flex items-center gap-1.5"
+                className="px-5 py-2 rounded-xl text-xs font-bold bg-[#34eb3d] text-black hover:brightness-110 disabled:opacity-50 transition-all flex items-center gap-1.5"
               >
                 <Download className="w-3.5 h-3.5" />
                 {isExporting ? "Rendering..." : `Export ${selectedRes.toUpperCase()}`}
@@ -349,7 +349,7 @@ function EditorLayout({ onBack, initialVideoUrl }: { onBack: () => void, initial
         <div className="flex items-center gap-4">
           <button
             onClick={onBack}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#00e676]/15 border border-[#00e676]/30 text-[#00e676] hover:bg-[#00e676] hover:text-black font-bold text-xs transition-all duration-200 cursor-pointer shadow-md z-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#34eb3d]/15 border border-[#34eb3d]/30 text-[#34eb3d] hover:bg-[#34eb3d] hover:text-black font-bold text-xs transition-all duration-200 cursor-pointer shadow-md z-50"
             style={{ WebkitAppRegion: "no-drag" } as any}
             title="Back to Studio Home"
           >
@@ -374,13 +374,13 @@ function EditorLayout({ onBack, initialVideoUrl }: { onBack: () => void, initial
                       if (!projectName.trim()) setProjectName("Untitled Project");
                     }
                   }}
-                  className="text-xs font-bold tracking-wide bg-black/50 border-b border-[#00e676] outline-none text-white w-40 px-1"
+                  className="text-xs font-bold tracking-wide bg-black/50 border-b border-[#34eb3d] outline-none text-white w-40 px-1"
                   autoFocus
                 />
               ) : (
                 <h1 
                   onClick={() => setIsEditingName(true)}
-                  className="text-xs font-bold tracking-wide cursor-text hover:text-[#00e676] transition-colors truncate max-w-[200px]" 
+                  className="text-xs font-bold tracking-wide cursor-text hover:text-[#34eb3d] transition-colors truncate max-w-[200px]" 
                   style={{ color: "#eee" }}
                   title="Click to rename project"
                 >
@@ -395,13 +395,13 @@ function EditorLayout({ onBack, initialVideoUrl }: { onBack: () => void, initial
         </div>
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/5 bg-white/5 cursor-default select-none">
-            <div className="w-2 h-2 rounded-full bg-[#00e676] animate-pulse" />
+            <div className="w-2 h-2 rounded-full bg-[#34eb3d] animate-pulse" />
             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Auto-Saved</span>
           </div>
           <button
             onClick={() => setShowConfigModal(true)}
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer shadow-lg shadow-[#00e676]/20"
-            style={{ background: "#00e676", color: "#000" }}
+            className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer shadow-lg shadow-[#34eb3d]/20"
+            style={{ background: "#34eb3d", color: "#000" }}
           >
             <Download className="w-3.5 h-3.5" />
             Export
@@ -423,7 +423,7 @@ function EditorLayout({ onBack, initialVideoUrl }: { onBack: () => void, initial
               className="w-12 h-12 flex flex-col items-center justify-center rounded-xl transition-all duration-200 cursor-pointer relative group hover:bg-white/10 hover:text-white hover:scale-105 active:scale-95"
               style={
                 activeLeftTab === t.id
-                  ? { color: "#00e676", background: "rgba(0,230,118,0.1)" }
+                  ? { color: "#34eb3d", background: "rgba(52, 235, 61,0.1)" }
                   : { color: "#888888" }
               }
             >
@@ -432,7 +432,7 @@ function EditorLayout({ onBack, initialVideoUrl }: { onBack: () => void, initial
               {activeLeftTab === t.id && (
                 <div
                   className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 rounded-r"
-                  style={{ background: "#00e676" }}
+                  style={{ background: "#34eb3d" }}
                 />
               )}
             </button>

@@ -75,7 +75,6 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
   setIsPlaying,
   isMuted = true,
 }) => {
-  if (!isOpen) return null;
   const youtubeId = extractYouTubeId(ytUrl);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const lastUpdateTimeRef = useRef<number>(0);
@@ -108,6 +107,11 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
       } catch {}
     }
   }, [activeVideoUrl]);
+
+  // This early return MUST stay below every hook in this component. It used to sit above them,
+  // which changed the hook count when the modal toggled and crashed React with
+  // "Rendered fewer hooks than expected".
+  if (!isOpen) return null;
 
   const handleTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement>) => {
     if (isDraggingRef.current || isSeekingRef.current) return;
@@ -210,7 +214,7 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-white font-bold text-base flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-amber-400" /> Visual Crop Editor
+            <Sparkles className="w-4 h-4 text-emerald-400" /> Visual Crop Editor
           </h3>
           <p className="text-gray-400 text-xs mt-0.5">
             Position the glowing crop boxes over the camera and gameplay scenes.
@@ -218,7 +222,7 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
         </div>
         <button
           onClick={onClose}
-          className="px-4 py-1.5 rounded-xl text-xs font-bold bg-amber-400 text-black hover:brightness-110 transition-all shadow-[0_0_15px_rgba(251,191,36,0.3)] cursor-pointer"
+          className="px-4 py-1.5 rounded-xl text-xs font-bold bg-emerald-400 text-black hover:brightness-110 transition-all shadow-[0_0_15px_rgba(251,191,36,0.3)] cursor-pointer"
         >
           Done Cropping
         </button>
@@ -227,13 +231,13 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
       {/* AI Smart Crop Presets */}
       <div className="space-y-1.5 bg-white/[0.03] border border-white/10 rounded-2xl p-2.5">
         <div className="flex items-center justify-between px-1">
-          <span className="text-[10px] font-extrabold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+          <span className="text-[10px] font-extrabold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
             <Sparkles className="w-3 h-3" /> 1-Click Pro Crop Presets
           </span>
           <button
             type="button"
             onClick={swapCrops}
-            className="text-[10px] text-gray-400 hover:text-amber-400 flex items-center gap-1 font-bold cursor-pointer"
+            className="text-[10px] text-gray-400 hover:text-emerald-400 flex items-center gap-1 font-bold cursor-pointer"
           >
             <ArrowUpDown className="w-3 h-3" /> Swap Boxes
           </button>
@@ -242,23 +246,23 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
           <button
             type="button"
             onClick={applyTinyWebcamPreset}
-            className="px-1 py-1.5 rounded-xl bg-amber-400/15 hover:bg-amber-400/30 border border-amber-400/40 text-amber-300 font-black text-[10px] flex flex-col items-center gap-1 transition-all cursor-pointer shadow-sm"
+            className="px-1 py-1.5 rounded-xl bg-emerald-400/15 hover:bg-emerald-400/30 border border-emerald-400/40 text-emerald-300 font-black text-[10px] flex flex-col items-center gap-1 transition-all cursor-pointer shadow-sm"
           >
-            <Gamepad2 className="w-3.5 h-3.5 text-amber-400" />
+            <Gamepad2 className="w-3.5 h-3.5 text-emerald-400" />
             <span>Tiny Box</span>
           </button>
           <button
             type="button"
             onClick={applyStreamerPreset}
-            className="px-1 py-1.5 rounded-xl bg-white/5 hover:bg-amber-400/20 border border-white/10 hover:border-amber-400/50 text-white font-bold text-[10px] flex flex-col items-center gap-1 transition-all cursor-pointer"
+            className="px-1 py-1.5 rounded-xl bg-white/5 hover:bg-emerald-400/20 border border-white/10 hover:border-emerald-400/50 text-white font-bold text-[10px] flex flex-col items-center gap-1 transition-all cursor-pointer"
           >
-            <Gamepad2 className="w-3.5 h-3.5 text-amber-400" />
+            <Gamepad2 className="w-3.5 h-3.5 text-emerald-400" />
             <span>Top-Left Cam</span>
           </button>
           <button
             type="button"
             onClick={applyPodcastPreset}
-            className="px-1 py-1.5 rounded-xl bg-white/5 hover:bg-amber-400/20 border border-white/10 hover:border-amber-400/50 text-white font-bold text-[10px] flex flex-col items-center gap-1 transition-all cursor-pointer"
+            className="px-1 py-1.5 rounded-xl bg-white/5 hover:bg-emerald-400/20 border border-white/10 hover:border-emerald-400/50 text-white font-bold text-[10px] flex flex-col items-center gap-1 transition-all cursor-pointer"
           >
             <Mic className="w-3.5 h-3.5 text-cyan-400" />
             <span>Podcast</span>
@@ -266,7 +270,7 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
           <button
             type="button"
             onClick={applyCinematicPreset}
-            className="px-1 py-1.5 rounded-xl bg-white/5 hover:bg-amber-400/20 border border-white/10 hover:border-amber-400/50 text-white font-bold text-[10px] flex flex-col items-center gap-1 transition-all cursor-pointer"
+            className="px-1 py-1.5 rounded-xl bg-white/5 hover:bg-emerald-400/20 border border-white/10 hover:border-emerald-400/50 text-white font-bold text-[10px] flex flex-col items-center gap-1 transition-all cursor-pointer"
           >
             <Film className="w-3.5 h-3.5 text-purple-400" />
             <span>Cinematic</span>
@@ -274,7 +278,7 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
           <button
             type="button"
             onClick={applyStandard5050}
-            className="px-1 py-1.5 rounded-xl bg-white/5 hover:bg-amber-400/20 border border-white/10 hover:border-amber-400/50 text-white font-bold text-[10px] flex flex-col items-center gap-1 transition-all cursor-pointer"
+            className="px-1 py-1.5 rounded-xl bg-white/5 hover:bg-emerald-400/20 border border-white/10 hover:border-emerald-400/50 text-white font-bold text-[10px] flex flex-col items-center gap-1 transition-all cursor-pointer"
           >
             <RefreshCw className="w-3.5 h-3.5 text-emerald-400" />
             <span>Full 50/50</span>
@@ -317,8 +321,8 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
             />
             {isBuffering && (
               <div className="absolute inset-0 bg-black/50 backdrop-blur-[1px] flex items-center justify-center pointer-events-none z-30">
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-black/80 border border-amber-400/50 text-amber-300 text-xs font-bold shadow-lg animate-pulse">
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-amber-400" />
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-black/80 border border-emerald-400/50 text-emerald-300 text-xs font-bold shadow-lg animate-pulse">
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-400" />
                   <span>Buffering video...</span>
                 </div>
               </div>
@@ -352,11 +356,11 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
           bounds="parent"
           className="group cursor-move z-20"
         >
-          <div className="absolute inset-0 border-2 border-amber-400 bg-amber-400/25 shadow-[0_0_20px_rgba(251,191,36,0.4)] flex flex-col justify-between p-1.5 backdrop-blur-[1px]">
-            <span className="text-[9px] font-black text-amber-300 bg-black/90 px-1.5 py-0.5 rounded w-max uppercase tracking-wider">
+          <div className="absolute inset-0 border-2 border-emerald-400 bg-emerald-400/25 shadow-[0_0_20px_rgba(251,191,36,0.4)] flex flex-col justify-between p-1.5 backdrop-blur-[1px]">
+            <span className="text-[9px] font-black text-emerald-300 bg-black/90 px-1.5 py-0.5 rounded w-max uppercase tracking-wider">
               TOP CLIP (9:16)
             </span>
-            <div className="w-full flex justify-between text-[8px] font-mono text-amber-300/80">
+            <div className="w-full flex justify-between text-[8px] font-mono text-emerald-300/80">
               <span>{Math.round(cropTop.width)}px</span>
               <span>{Math.round(cropTop.height)}px</span>
             </div>
@@ -394,8 +398,8 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
       {/* Synchronized Playback Dock for Precise Scene Scrubbing */}
       <div className="w-[456px] mx-auto p-2.5 rounded-xl bg-[#121212] border border-white/10 space-y-2">
         <div className="flex items-center justify-between text-[11px] font-mono text-gray-300 font-bold">
-          <span className="text-amber-400 flex items-center gap-1">
-            <Clock className="w-3 h-3 text-amber-400" /> {formatTime(currentTime)}
+          <span className="text-emerald-400 flex items-center gap-1">
+            <Clock className="w-3 h-3 text-emerald-400" /> {formatTime(currentTime)}
           </span>
           <span className="text-gray-400">
             {mediaDuration > 0 ? formatTime(mediaDuration) : "--:--"}
@@ -430,7 +434,7 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
           onKeyUp={(e) => {
             commitSeek(parseFloat(e.currentTarget.value));
           }}
-          className="w-full accent-amber-400 h-1.5 bg-black/60 rounded-lg cursor-pointer"
+          className="w-full accent-emerald-400 h-1.5 bg-black/60 rounded-lg cursor-pointer"
         />
 
         <div className="flex items-center justify-center gap-2 pt-0.5">
@@ -446,7 +450,7 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
           <button
             type="button"
             onClick={togglePlay}
-            className="w-[84px] h-7 rounded-xl bg-amber-400 text-black font-extrabold text-xs flex items-center justify-center gap-1.5 hover:bg-amber-300 transition-all shadow-md cursor-pointer shrink-0"
+            className="w-[84px] h-7 rounded-xl bg-emerald-400 text-black font-extrabold text-xs flex items-center justify-center gap-1.5 hover:bg-emerald-300 transition-all shadow-md cursor-pointer shrink-0"
           >
             {isPlaying ? <Pause className="w-3.5 h-3.5 fill-black" /> : <Play className="w-3.5 h-3.5 fill-black ml-0.5" />}
             <span>{isPlaying ? "Pause" : "Play"}</span>
@@ -467,7 +471,7 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
       {(setStartTs || setEndTs) && (
         <div className="w-[456px] mx-auto p-2.5 rounded-xl bg-white/[0.03] border border-white/10 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">Clip Timestamp Bounds</span>
+            <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Clip Timestamp Bounds</span>
             {(startTs || endTs) && (
               <button
                 type="button"
@@ -492,7 +496,7 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
                       setStartTs(formatTime(currentTime));
                       if (setDurationMode) setDurationMode("custom");
                     }}
-                    className="text-[9px] text-amber-400 hover:underline font-bold cursor-pointer"
+                    className="text-[9px] text-emerald-400 hover:underline font-bold cursor-pointer"
                   >
                     Pin Current
                   </button>
@@ -506,7 +510,7 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
                   if (setDurationMode) setDurationMode("custom");
                 }}
                 placeholder="0:00"
-                className="w-full rounded-lg px-2.5 py-1.5 text-xs font-bold text-white bg-black/40 border border-white/10 outline-none focus:border-amber-400 transition-colors"
+                className="w-full rounded-lg px-2.5 py-1.5 text-xs font-bold text-white bg-black/40 border border-white/10 outline-none focus:border-emerald-400 transition-colors"
               />
             </div>
             <div className="space-y-1">
@@ -533,7 +537,7 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
                   if (setDurationMode) setDurationMode("custom");
                 }}
                 placeholder={mediaDuration && mediaDuration > 0 ? formatTime(mediaDuration) : "e.g. 1:45"}
-                className="w-full rounded-lg px-2.5 py-1.5 text-xs font-bold text-white bg-black/40 border border-white/10 outline-none focus:border-amber-400 transition-colors"
+                className="w-full rounded-lg px-2.5 py-1.5 text-xs font-bold text-white bg-black/40 border border-white/10 outline-none focus:border-emerald-400 transition-colors"
               />
             </div>
           </div>

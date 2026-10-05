@@ -440,6 +440,14 @@ class YouTubeDownloader:
                             break
 
                 if video_url:
+                    # Bound this cache. CDN URLs carry `expire=` params and are invalidated by the
+                    # next task anyway, so keeping every entry for the process lifetime was a pure
+                    # leak (URLs + headers per video, forever).
+                    if len(self._stream_cache) >= 16:
+                        try:
+                            self._stream_cache.pop(next(iter(self._stream_cache)), None)
+                        except (StopIteration, RuntimeError):
+                            pass
                     self._stream_cache[cache_key] = (video_url, audio_url, video_headers, audio_headers)
 
             if video_url:

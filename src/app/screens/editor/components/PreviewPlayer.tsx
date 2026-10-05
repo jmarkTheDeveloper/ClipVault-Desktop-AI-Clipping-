@@ -142,23 +142,23 @@ export function PreviewPlayer({ drawFrame }: { drawFrame?: () => void } = {}) {
         <div className="h-12 flex items-center justify-between px-6 flex-shrink-0" style={{ background: "#030303", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
           <div>
             <button onClick={() => setShowCropBoxes(!showCropBoxes)} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer hover:bg-white/10 hover:text-white"
-              style={{ background: showCropBoxes ? "rgba(0,230,118,0.12)" : "rgba(0,0,0,0.7)", color: showCropBoxes ? G : "#888", border: `1px solid ${showCropBoxes ? "rgba(0,230,118,0.35)" : "rgba(255,255,255,0.1)"}` }}>
+              style={{ background: showCropBoxes ? "rgba(52, 235, 61,0.12)" : "rgba(0,0,0,0.7)", color: showCropBoxes ? G : "#888", border: `1px solid ${showCropBoxes ? "rgba(52, 235, 61,0.35)" : "rgba(255,255,255,0.1)"}` }}>
               <Crop className="w-3.5 h-3.5" /> {showCropBoxes ? "Hide Crops" : "Show Crops"}
             </button>
           </div>
           <div className="flex items-center gap-2 relative">
             <button onClick={() => setShowLayoutPanel(!showLayoutPanel)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold"
-              style={{ background: showLayoutPanel ? "rgba(0,230,118,0.12)" : "rgba(0,0,0,0.7)", color: showLayoutPanel ? G : "#aaa", border: `1px solid ${showLayoutPanel ? "rgba(0,230,118,0.35)" : "rgba(255,255,255,0.1)"}` }}>
+              style={{ background: showLayoutPanel ? "rgba(52, 235, 61,0.12)" : "rgba(0,0,0,0.7)", color: showLayoutPanel ? G : "#aaa", border: `1px solid ${showLayoutPanel ? "rgba(52, 235, 61,0.35)" : "rgba(255,255,255,0.1)"}` }}>
               <LayoutTemplate className="w-3.5 h-3.5" /> Layout: <span className="capitalize">{layoutMode}</span>
             </button>
             <button onClick={() => setShowDevicePreview(!showDevicePreview)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold"
-              style={{ background: showDevicePreview ? "rgba(0,230,118,0.12)" : "rgba(0,0,0,0.7)", color: showDevicePreview ? G : "#aaa", border: `1px solid ${showDevicePreview ? "rgba(0,230,118,0.35)" : "rgba(255,255,255,0.1)"}` }}>
+              style={{ background: showDevicePreview ? "rgba(52, 235, 61,0.12)" : "rgba(0,0,0,0.7)", color: showDevicePreview ? G : "#aaa", border: `1px solid ${showDevicePreview ? "rgba(52, 235, 61,0.35)" : "rgba(255,255,255,0.1)"}` }}>
               <Smartphone className="w-3.5 h-3.5" /> Device View: <span className="capitalize">{showDevicePreview ? "On" : "Off"}</span>
             </button>
             <div className="flex items-center gap-1 p-1 rounded-xl bg-white/5 border border-white/10">
               {['phone', 'tablet', 'laptop'].map(d => (
                 <button key={d} onClick={() => { setShowDevicePreview(true); setPreviewDevice(d as any); }}
-                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold ${showDevicePreview && previewDevice === d ? "bg-[#00e676]/20 text-[#00e676]" : "text-gray-400 hover:text-white"}`}>
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold ${showDevicePreview && previewDevice === d ? "bg-[#34eb3d]/20 text-[#34eb3d]" : "text-gray-400 hover:text-white"}`}>
                   {d === 'phone' && <Smartphone className="w-3 h-3" />}
                   {d === 'tablet' && <Tablet className="w-3 h-3" />}
                   {d === 'laptop' && <Laptop className="w-3 h-3" />}
@@ -185,10 +185,10 @@ export function PreviewPlayer({ drawFrame }: { drawFrame?: () => void } = {}) {
           {showDevicePreview && !isFullScreen && (
             <div className="flex flex-col items-center justify-center flex-shrink-0 z-20 space-y-2 animate-fadeIn">
               <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-bold text-gray-200">
-                <Smartphone className="w-3.5 h-3.5 text-[#00e676]" />
+                <Smartphone className="w-3.5 h-3.5 text-[#34eb3d]" />
                 <span className="capitalize">{previewDevice} Result View</span>
               </div>
-              <div className="relative flex flex-col items-center justify-center overflow-hidden bg-[#0c0c0c] border-[4px] border-[#00e676]/50 shadow-[0_0_50px_rgba(0,230,118,0.3)]"
+              <div className="relative flex flex-col items-center justify-center overflow-hidden bg-[#0c0c0c] border-[4px] border-[#34eb3d]/50 shadow-[0_0_50px_rgba(52, 235, 61,0.3)]"
                 style={{ width: deviceSize.width || 250, height: deviceSize.height || 480, borderRadius: previewDevice === "laptop" ? 18 : 36 }}>
                 <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-20 h-4 bg-black rounded-full z-50 flex items-center justify-center pointer-events-none">
                   <div className="w-2.5 h-2.5 rounded-full bg-white/30 mr-1.5" /><div className="w-6 h-1 rounded-full bg-white/20" />
@@ -293,8 +293,8 @@ export function PreviewPlayer({ drawFrame }: { drawFrame?: () => void } = {}) {
                     size={{ width: topCrop.width, height: topCrop.height }} position={{ x: topCrop.x, y: topCrop.y }}
                     onDragStop={(e, d) => updateVideoClip(activeVideoClip.id, { cropTop: { ...topCrop, x: d.x, y: d.y } })}
                     onResizeStop={(e, dir, ref, delta, pos) => updateVideoClip(activeVideoClip.id, { cropTop: { width: parseFloat(ref.style.width), height: parseFloat(ref.style.height), ...pos } })}
-                    className="border-[4px] border-[#00e676] bg-[#00e676]/20 z-50 shadow-[0_0_20px_rgba(0,230,118,0.4)]">
-                      <div className="absolute top-0 bg-[#00e676] text-black text-sm px-2 py-0.5 font-bold">TOP CROP</div>
+                    className="border-[4px] border-[#34eb3d] bg-[#34eb3d]/20 z-50 shadow-[0_0_20px_rgba(52, 235, 61,0.4)]">
+                      <div className="absolute top-0 bg-[#34eb3d] text-black text-sm px-2 py-0.5 font-bold">TOP CROP</div>
                   </Rnd>
                   
                   {layoutMode === "trio" && (
@@ -326,7 +326,7 @@ export function PreviewPlayer({ drawFrame }: { drawFrame?: () => void } = {}) {
           <button onClick={() => setCurrentTime(0)} className="p-1.5 rounded-lg hover:bg-white/[0.05] text-[#5a5a5a]"><SkipBack className="w-4 h-4" /></button>
           <button 
             onClick={() => hasMedia && setIsPlaying(!isPlaying)} 
-            className={`w-8 h-8 rounded-lg flex items-center justify-center ${hasMedia ? 'bg-[#00e676]/10 border border-[#00e676]/20' : 'bg-white/5 border border-white/5 opacity-50 cursor-not-allowed'}`}
+            className={`w-8 h-8 rounded-lg flex items-center justify-center ${hasMedia ? 'bg-[#34eb3d]/10 border border-[#34eb3d]/20' : 'bg-white/5 border border-white/5 opacity-50 cursor-not-allowed'}`}
           >
             {isPlaying ? <Pause className="w-4 h-4" style={{ color: hasMedia ? G : '#888' }} /> : <Play className="w-4 h-4 fill-current ml-0.5" style={{ color: hasMedia ? G : '#888' }} />}
           </button>
@@ -334,7 +334,7 @@ export function PreviewPlayer({ drawFrame }: { drawFrame?: () => void } = {}) {
           <span className="text-xs font-mono ml-2 text-[#5a5a5a]">{fmt(currentTime)} / {fmt(totalDuration)}</span>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => setIsFullScreen(!isFullScreen)} className={`p-1.5 rounded-lg transition-colors ${isFullScreen ? 'bg-[#00e676]/20 text-[#00e676]' : 'hover:bg-white/[0.05] text-[#5a5a5a]'}`}>
+          <button onClick={() => setIsFullScreen(!isFullScreen)} className={`p-1.5 rounded-lg transition-colors ${isFullScreen ? 'bg-[#34eb3d]/20 text-[#34eb3d]' : 'hover:bg-white/[0.05] text-[#5a5a5a]'}`}>
             {isFullScreen ? <ZoomOut className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
           </button>
         </div>

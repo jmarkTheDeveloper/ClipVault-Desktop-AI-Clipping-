@@ -10,7 +10,7 @@ interface ClipCustomizerModalProps {
 }
 
 const CAPTION_PRESETS = [
-  { id: "capcut_yellow", name: "Viral Yellow", color: "#FFE600", bg: "bg-amber-400/20 text-amber-300 border-amber-400/40" },
+  { id: "capcut_yellow", name: "Viral Yellow", color: "#FFE600", bg: "bg-emerald-400/20 text-emerald-300 border-emerald-400/40" },
   { id: "opus_green", name: "Neon Emerald", color: "#00FF66", bg: "bg-emerald-500/20 text-emerald-300 border-emerald-400/40" },
   { id: "neon_cyan", name: "Electric Cyan", color: "#00F0FF", bg: "bg-cyan-500/20 text-cyan-300 border-cyan-400/40" },
   { id: "fire_red", name: "Fire Red", color: "#FF3C3C", bg: "bg-red-500/20 text-red-300 border-red-400/40" },
@@ -22,14 +22,20 @@ const CAPTION_PRESETS = [
   { id: "single_word", name: "Single Pop", color: "#FFFFFF", bg: "bg-white/20 text-white border-white/40" },
 ];
 
-export const ClipCustomizerModal: React.FC<ClipCustomizerModalProps> = ({
+// NOTE: the "not open / no clip" early return used to sit ABOVE this component's hooks, so the hook
+// count changed whenever the modal toggled and React threw "Rendered fewer hooks than expected"
+// (the ErrorBoundary then replaced the whole UI). That check now lives in the exported wrapper at
+// the bottom of this file, and this body always runs with a clip present.
+type ClipCustomizerContentProps = Omit<ClipCustomizerModalProps, "clip"> & {
+  clip: NonNullable<ClipCustomizerModalProps["clip"]>;
+};
+
+const ClipCustomizerModalContent: React.FC<ClipCustomizerContentProps> = ({
   clip,
   isOpen,
   onClose,
   onClipUpdated,
 }) => {
-  if (!isOpen || !clip) return null;
-
   const initialWords = React.useMemo(() => {
     const rawText = clip.title || "VIRAL VIDEO HIGHLIGHT";
     return rawText.split(/\s+/).map((w, idx) => ({
@@ -146,7 +152,7 @@ export const ClipCustomizerModal: React.FC<ClipCustomizerModalProps> = ({
 
           {isRendering && (
             <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center p-4 text-center space-y-3">
-              <RefreshCw className="w-8 h-8 text-amber-400 animate-spin" />
+              <RefreshCw className="w-8 h-8 text-emerald-400 animate-spin" />
               <p className="text-xs font-bold text-white leading-relaxed">{renderProgress}</p>
             </div>
           )}
@@ -156,7 +162,7 @@ export const ClipCustomizerModal: React.FC<ClipCustomizerModalProps> = ({
         <div className="flex-1 flex flex-col justify-between space-y-5">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-[11px] bg-amber-400/20 text-amber-300 border border-amber-400/30 px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1">
+              <span className="text-[11px] bg-emerald-400/20 text-emerald-300 border border-emerald-400/30 px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1">
                 <Sparkles className="w-3 h-3" /> Live Caption & Framing Studio
               </span>
             </div>
@@ -169,7 +175,7 @@ export const ClipCustomizerModal: React.FC<ClipCustomizerModalProps> = ({
             <div className="mt-4 p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-gray-200 flex items-center gap-1.5">
-                  <Type className="w-3.5 h-3.5 text-amber-400" /> Click to Edit Words in Transcript:
+                  <Type className="w-3.5 h-3.5 text-emerald-400" /> Click to Edit Words in Transcript:
                 </label>
                 <span className="text-[10px] text-gray-400 font-mono">{words.length} words</span>
               </div>
@@ -180,7 +186,7 @@ export const ClipCustomizerModal: React.FC<ClipCustomizerModalProps> = ({
                       type="text"
                       value={w.word}
                       onChange={(e) => handleWordChange(idx, e.target.value)}
-                      className="px-2.5 py-1 text-xs font-black rounded-lg bg-black/60 border border-white/20 text-amber-300 hover:border-amber-400 focus:border-amber-400 focus:bg-black focus:outline-none transition-all w-24 text-center font-mono"
+                      className="px-2.5 py-1 text-xs font-black rounded-lg bg-black/60 border border-white/20 text-emerald-300 hover:border-emerald-400 focus:border-emerald-400 focus:bg-black focus:outline-none transition-all w-24 text-center font-mono"
                     />
                   </div>
                 ))}
@@ -190,7 +196,7 @@ export const ClipCustomizerModal: React.FC<ClipCustomizerModalProps> = ({
             {/* 2. Caption Style Presets */}
             <div className="mt-4 space-y-2">
               <label className="text-xs font-bold text-gray-200 flex items-center gap-1.5">
-                <Layers className="w-3.5 h-3.5 text-amber-400" /> Viral Caption Style:
+                <Layers className="w-3.5 h-3.5 text-emerald-400" /> Viral Caption Style:
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                 {CAPTION_PRESETS.map((preset) => {
@@ -201,7 +207,7 @@ export const ClipCustomizerModal: React.FC<ClipCustomizerModalProps> = ({
                       onClick={() => setSelectedStyle(preset.id)}
                       className={`px-3 py-2 rounded-xl text-xs font-black border text-center transition-all cursor-pointer flex items-center justify-between ${
                         isSelected
-                          ? `${preset.bg} ring-2 ring-amber-400/50 scale-[1.02]`
+                          ? `${preset.bg} ring-2 ring-emerald-400/50 scale-[1.02]`
                           : "bg-black/40 border-white/10 text-gray-400 hover:text-white hover:border-white/25"
                       }`}
                     >
@@ -222,9 +228,9 @@ export const ClipCustomizerModal: React.FC<ClipCustomizerModalProps> = ({
               <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-gray-200 flex items-center gap-1.5">
-                    <MoveVertical className="w-3.5 h-3.5 text-amber-400" /> Vertical Position:
+                    <MoveVertical className="w-3.5 h-3.5 text-emerald-400" /> Vertical Position:
                   </label>
-                  <span className="text-xs font-bold text-amber-400 font-mono">
+                  <span className="text-xs font-bold text-emerald-400 font-mono">
                     {Math.round(captionYPct * 100)}%
                   </span>
                 </div>
@@ -235,7 +241,7 @@ export const ClipCustomizerModal: React.FC<ClipCustomizerModalProps> = ({
                   step={0.01}
                   value={captionYPct}
                   onChange={(e) => setCaptionYPct(parseFloat(e.target.value))}
-                  className="w-full accent-amber-400 cursor-pointer"
+                  className="w-full accent-emerald-400 cursor-pointer"
                 />
                 <div className="flex justify-between text-[10px] text-gray-500 font-mono">
                   <span>Chest (45%)</span>
@@ -249,13 +255,13 @@ export const ClipCustomizerModal: React.FC<ClipCustomizerModalProps> = ({
                 onClick={() => setDynamicPunchIn(!dynamicPunchIn)}
                 className={`p-3.5 rounded-2xl border flex items-center justify-between cursor-pointer transition-all ${
                   dynamicPunchIn
-                    ? "bg-amber-400/10 border-amber-400/40 text-white"
+                    ? "bg-emerald-400/10 border-emerald-400/40 text-white"
                     : "bg-white/5 border-white/10 text-gray-400 hover:border-white/20"
                 }`}
               >
                 <div className="space-y-0.5">
                   <div className="text-xs font-bold flex items-center gap-1.5">
-                    <Zap className="w-3.5 h-3.5 text-amber-400" /> Energy Punch-Ins (1.12x)
+                    <Zap className="w-3.5 h-3.5 text-emerald-400" /> Energy Punch-Ins (1.12x)
                   </div>
                   <p className="text-[10px] text-gray-400">
                     Automatically zoom on punchlines for TikTok retention
@@ -264,7 +270,7 @@ export const ClipCustomizerModal: React.FC<ClipCustomizerModalProps> = ({
                 <div
                   className={`w-5 h-5 rounded-md flex items-center justify-center border transition-all ${
                     dynamicPunchIn
-                      ? "bg-amber-400 border-amber-400 text-black font-bold"
+                      ? "bg-emerald-400 border-emerald-400 text-black font-bold"
                       : "border-white/20 bg-black/40"
                   }`}
                 >
@@ -286,7 +292,7 @@ export const ClipCustomizerModal: React.FC<ClipCustomizerModalProps> = ({
             <button
               onClick={handleReRender}
               disabled={isRendering}
-              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-black text-xs font-extrabold flex items-center gap-2 transition-all shadow-lg cursor-pointer disabled:opacity-50"
+              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-400 to-yellow-500 hover:from-emerald-300 hover:to-yellow-400 text-black text-xs font-extrabold flex items-center gap-2 transition-all shadow-lg cursor-pointer disabled:opacity-50"
             >
               {isRendering ? (
                 <>
@@ -302,5 +308,24 @@ export const ClipCustomizerModal: React.FC<ClipCustomizerModalProps> = ({
         </div>
       </div>
     </div>
+  );
+};
+
+// Wrapper owns the open/clip check (it has no hooks, so the hook order inside the content
+// component is always identical). Explicit props are passed so TypeScript keeps the narrowing.
+export const ClipCustomizerModal: React.FC<ClipCustomizerModalProps> = ({
+  clip,
+  isOpen,
+  onClose,
+  onClipUpdated,
+}) => {
+  if (!isOpen || !clip) return null;
+  return (
+    <ClipCustomizerModalContent
+      clip={clip}
+      isOpen={isOpen}
+      onClose={onClose}
+      onClipUpdated={onClipUpdated}
+    />
   );
 };

@@ -95,9 +95,29 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
   const [defaultRes, setDefaultRes] = useState(() => localStorage.getItem("clipvault_def_res") || "1080p");
   const [defaultFps, setDefaultFps] = useState(() => parseInt(localStorage.getItem("clipvault_def_fps") || "60", 10));
 
+  useEffect(() => {
+    const handleResSync = (e?: any) => {
+      try {
+        const val = (e && e.detail) ? e.detail : localStorage.getItem("clipvault_def_res") || "1080p";
+        setDefaultRes(val);
+      } catch {}
+    };
+    window.addEventListener("clipvault-resolution-changed", handleResSync);
+    window.addEventListener("storage", handleResSync);
+    window.addEventListener("focus", handleResSync);
+    return () => {
+      window.removeEventListener("clipvault-resolution-changed", handleResSync);
+      window.removeEventListener("storage", handleResSync);
+      window.removeEventListener("focus", handleResSync);
+    };
+  }, []);
+
   const handleResChange = (e: any) => {
     setDefaultRes(e.target.value);
-    localStorage.setItem("clipvault_def_res", e.target.value);
+    try {
+      localStorage.setItem("clipvault_def_res", e.target.value);
+    } catch {}
+    window.dispatchEvent(new CustomEvent("clipvault-resolution-changed", { detail: e.target.value }));
   };
 
   const handleFpsChange = (val: number) => {
@@ -132,9 +152,9 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
   const [customApiKey, setCustomApiKey] = useState("");
   const [isGeneratingScript, setIsGeneratingScript] = useState(false);
   const [generatedScript, setGeneratedScript] = useState<{ hook: string; body: string; cta: string } | null>({
-    hook: "🚀 Stop scrolling! Here is the secret 3-step editing formula top creators use to get 1M+ views.",
+    hook: "Stop scrolling! Here is the secret 3-step editing formula top creators use to get 1M+ views.",
     body: "Step 1: Cut out dead air and silent pauses. Step 2: Add high-contrast animated captions. Step 3: Align visual cuts to the music beat drops.",
-    cta: "🔥 Hit follow for more studio-grade video editing hacks!"
+    cta: "Hit follow for more studio-grade video editing hacks!"
   });
 
   const handleGenerateScript = () => {
@@ -142,9 +162,9 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
     setIsGeneratingScript(true);
     setTimeout(() => {
       setGeneratedScript({
-        hook: `🔥 Attention! If you want to master ${aiTopic.trim()}, you need to hear this right now.`,
+        hook: `Attention! If you want to master ${aiTopic.trim()}, you need to hear this right now.`,
         body: `Here's what nobody tells you about ${aiTopic.trim()}: First, grab viewer attention in 2 seconds. Second, use dynamic jump cuts and fast text overlays. Third, deliver high-value insight with zero fluff.`,
-        cta: `👉 Save this video and try this exact formula in your next post!`
+        cta: `Save this video and try this exact formula in your next post!`
       });
       setIsGeneratingScript(false);
     }, 1200);
@@ -341,11 +361,11 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
       />
 
       {/* Background Ambient Glow */}
-      <div className="fixed pointer-events-none z-0" style={{ width: 600, height: 600, top: -200, right: -100, borderRadius: "50%", background: "radial-gradient(circle, rgba(0,230,118,0.06) 0%, transparent 70%)" }} />
+      <div className="fixed pointer-events-none z-0" style={{ width: 600, height: 600, top: -200, right: -100, borderRadius: "50%", background: "radial-gradient(circle, rgba(52, 235, 61,0.06) 0%, transparent 70%)" }} />
 
       {/* SIDEBAR */}
-      <aside className="w-[220px] flex-shrink-0 flex flex-col z-10 relative bg-[#070707] border-r border-[#00e676]/10 backdrop-blur-2xl">
-        <div className="flex items-center gap-2.5 px-5 h-14 border-b border-[#00e676]/10">
+      <aside className="w-[220px] flex-shrink-0 flex flex-col z-10 relative bg-[#070707] border-r border-[#34eb3d]/10 backdrop-blur-2xl">
+        <div className="flex items-center gap-2.5 px-5 h-14 border-b border-[#34eb3d]/10">
           <Logo size={32} />
           <span className="text-white font-bold text-base tracking-tight">ClipVault</span>
         </div>
@@ -357,7 +377,7 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
               onClick={() => setActiveNav(id)}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer ${
                 activeNav === id
-                  ? "bg-[#00e676]/10 text-[#00e676] border-l-2 border-[#00e676] shadow-[0_0_15px_rgba(0,230,118,0.15)] scale-[1.02]"
+                  ? "bg-[#34eb3d]/10 text-[#34eb3d] border-l-2 border-[#34eb3d] shadow-[0_0_15px_rgba(52, 235, 61,0.15)] scale-[1.02]"
                   : "text-gray-400 hover:text-white hover:bg-white/5 hover:scale-[1.02]"
               }`}
             >
@@ -378,7 +398,7 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
                 onClick={() => setActiveNav(id)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer ${
                   activeNav === id
-                    ? "bg-[#00e676]/10 text-[#00e676] scale-[1.02]"
+                    ? "bg-[#34eb3d]/10 text-[#34eb3d] scale-[1.02]"
                     : "text-gray-400 hover:text-white hover:bg-white/5 hover:scale-[1.02]"
                 }`}
               >
@@ -391,8 +411,8 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
 
         {/* GO PRO CARD */}
         <div className="px-3 mb-4">
-          <div className="rounded-2xl p-4 relative overflow-hidden bg-gradient-to-br from-[#00e676]/10 to-black/40 border border-[#00e676]/20 hover:border-[#00e676]/40 hover:scale-[1.02] transition-all duration-200 shadow-xl">
-            <Crown className="w-5 h-5 mb-2 text-[#00e676]" />
+          <div className="rounded-2xl p-4 relative overflow-hidden bg-gradient-to-br from-[#34eb3d]/10 to-black/40 border border-[#34eb3d]/20 hover:border-[#34eb3d]/40 hover:scale-[1.02] transition-all duration-200 shadow-xl">
+            <Crown className="w-5 h-5 mb-2 text-[#34eb3d]" />
             <p className="text-white text-xs font-bold mb-1">Go Pro</p>
             <p className="text-xs mb-3 text-gray-400">Unlimited Teams, 8K export & AI</p>
             <GreenBtn onClick={() => setShowPaywallModal(true)} size="sm" className="w-full">
@@ -404,7 +424,7 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
 
       {/* MAIN CONTAINER */}
       <main className="flex-1 flex flex-col overflow-hidden z-10 relative">
-        <header className="h-24 pt-12 flex items-center justify-between px-6 flex-shrink-0 border-b border-[#00e676]/10 bg-[#050505]/80 backdrop-blur-2xl">
+        <header className="h-24 pt-12 flex items-center justify-between px-6 flex-shrink-0 border-b border-[#34eb3d]/10 bg-[#050505]/80 backdrop-blur-2xl">
           <div className="flex items-center gap-3 flex-1 max-w-md" style={{ WebkitAppRegion: "no-drag" } as any}>
             <div className="relative flex-1">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
@@ -412,7 +432,7 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search projects, campaigns, team..."
-                className="w-full rounded-xl pl-9 pr-4 py-2 text-sm text-white placeholder-gray-500 bg-white/5 border border-white/10 outline-none focus:border-[#00e676]/40 focus:bg-white/10 transition-all duration-200"
+                className="w-full rounded-xl pl-9 pr-4 py-2 text-sm text-white placeholder-gray-500 bg-white/5 border border-white/10 outline-none focus:border-[#34eb3d]/40 focus:bg-white/10 transition-all duration-200"
               />
             </div>
           </div>
@@ -420,12 +440,12 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
           <div className="flex items-center gap-3 relative z-50">
             <button className="relative p-2 rounded-xl transition-all duration-200 hover:bg-white/10 hover:scale-105 active:scale-95 cursor-pointer border border-white/5" style={{ WebkitAppRegion: "no-drag", pointerEvents: "auto" } as any}>
               <Bell className="w-5 h-5 text-gray-300" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#00e676] shadow-[0_0_8px_#00e676]" />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#34eb3d] shadow-[0_0_8px_#34eb3d]" />
             </button>
             <button 
               type="button"
               onClick={() => setShowSettingsModal(true)}
-              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-black bg-gradient-to-br from-[#00e676] to-[#00a854] cursor-pointer hover:scale-105 transition-all shadow-[0_0_12px_rgba(0,230,118,0.4)] relative"
+              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-black bg-gradient-to-br from-[#34eb3d] to-[#25a92c] cursor-pointer hover:scale-105 transition-all shadow-[0_0_12px_rgba(52, 235, 61,0.4)] relative"
               style={{ WebkitAppRegion: "no-drag", pointerEvents: "auto" } as any}
             >
               JD
@@ -452,7 +472,7 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
                         <option key={t.id} value={t.id} style={{ background: "#111" }}>{t.name}</option>
                       ))}
                     </select>
-                    <span className="text-xs px-3 py-1 rounded-full font-bold bg-[#00e676]/10 text-[#00e676] border border-[#00e676]/20">
+                    <span className="text-xs px-3 py-1 rounded-full font-bold bg-[#34eb3d]/10 text-[#34eb3d] border border-[#34eb3d]/20">
                       {teams.length} / 5 Free Teams Created
                     </span>
                   </div>
@@ -480,20 +500,20 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
               </div>
 
               {/* ACCOUNT ID LINKING & USER ID BADGE */}
-              <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-[#00e676]/30 hover:scale-[1.01] transition-all duration-200 flex items-center justify-between shadow-xl">
+              <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-[#34eb3d]/30 hover:scale-[1.01] transition-all duration-200 flex items-center justify-between shadow-xl">
                 <div>
                   <p className="text-white text-xs font-bold mb-1">Your Personal Account ID</p>
                   <p className="text-xs text-gray-400">Share this ID with other users to let them add you to their teams.</p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="font-mono text-sm font-bold text-[#00e676] bg-[#00e676]/10 px-3 py-1.5 rounded-xl border border-[#00e676]/20 shadow-inner">
+                  <span className="font-mono text-sm font-bold text-[#34eb3d] bg-[#34eb3d]/10 px-3 py-1.5 rounded-xl border border-[#34eb3d]/20 shadow-inner">
                     {currentUserAccountId}
                   </span>
                   <button
                     onClick={copyMyAccountId}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/5 hover:bg-white/10 text-white border border-white/10 hover:scale-[1.03] active:scale-[0.97] transition-all duration-200 cursor-pointer"
                   >
-                    {accountCopied ? <Check className="w-3.5 h-3.5 text-[#00e676]" /> : <Copy className="w-3.5 h-3.5 text-gray-400" />}
+                    {accountCopied ? <Check className="w-3.5 h-3.5 text-[#34eb3d]" /> : <Copy className="w-3.5 h-3.5 text-gray-400" />}
                     {accountCopied ? "Copied ID!" : "Copy Account ID"}
                   </button>
                 </div>
@@ -503,7 +523,7 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
               <section className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-white font-bold text-lg flex items-center gap-2">
-                    <Target className="w-5 h-5 text-[#00e676]" /> {activeTeam?.name || "Primary Team"} Campaigns
+                    <Target className="w-5 h-5 text-[#34eb3d]" /> {activeTeam?.name || "Primary Team"} Campaigns
                   </h3>
                   <span className="text-xs text-gray-400">{campaigns.length} Active Campaigns</span>
                 </div>
@@ -512,11 +532,11 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
                   {campaigns.map((c) => (
                     <div
                       key={c.id}
-                      className="p-5 rounded-2xl bg-white/[0.03] border border-white/[0.08] hover:border-[#00e676]/40 hover:bg-white/[0.06] hover:scale-[1.02] hover:shadow-[0_12px_35px_rgba(0,230,118,0.15)] transition-all duration-200 flex flex-col justify-between cursor-pointer"
+                      className="p-5 rounded-2xl bg-white/[0.03] border border-white/[0.08] hover:border-[#34eb3d]/40 hover:bg-white/[0.06] hover:scale-[1.02] hover:shadow-[0_12px_35px_rgba(52, 235, 61,0.15)] transition-all duration-200 flex flex-col justify-between cursor-pointer"
                     >
                       <div>
                         <div className="flex items-start justify-between mb-3">
-                          <span className="text-[10px] font-bold px-2.5 py-1 rounded-full border bg-[#00e676]/10 text-[#00e676] border-[#00e676]/30">
+                          <span className="text-[10px] font-bold px-2.5 py-1 rounded-full border bg-[#34eb3d]/10 text-[#34eb3d] border-[#34eb3d]/30">
                             {c.status}
                           </span>
                           <button
@@ -529,7 +549,7 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
 
                         <h4 className="text-white text-base font-bold mb-1.5">{c.title}</h4>
                         <p className="text-xs text-gray-400 flex items-center gap-1.5 mb-4">
-                          <Video className="w-3.5 h-3.5 text-[#00e676]" /> {c.platform}
+                          <Video className="w-3.5 h-3.5 text-[#34eb3d]" /> {c.platform}
                         </p>
                       </div>
 
@@ -552,7 +572,7 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
               <div className="grid grid-cols-3 gap-6 pt-2">
                 <div className="col-span-2 space-y-4">
                   <h3 className="text-white font-bold text-lg flex items-center gap-2">
-                    <Users className="w-5 h-5 text-[#00e676]" /> Link Team Accounts (by Account ID)
+                    <Users className="w-5 h-5 text-[#34eb3d]" /> Link Team Accounts (by Account ID)
                   </h3>
 
                   <div className="space-y-3">
@@ -562,21 +582,21 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
                         className="flex items-center justify-between p-4 rounded-xl bg-white/[0.03] border border-white/5 hover:border-white/15 hover:bg-white/[0.05] transition-all duration-200"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold text-black bg-gradient-to-br from-[#00e676] to-[#00a854] flex-shrink-0">
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold text-black bg-gradient-to-br from-[#34eb3d] to-[#25a92c] flex-shrink-0">
                             {m.avatar}
                           </div>
                           <div>
                             <p className="text-white text-sm font-semibold flex items-center gap-2">
                               {m.name}
-                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-[#00e676]/10 text-[#00e676] border border-[#00e676]/20">
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-[#34eb3d]/10 text-[#34eb3d] border border-[#34eb3d]/20">
                                 {m.accountId}
                               </span>
                             </p>
                             <p className="text-xs text-gray-500">{m.role}</p>
                           </div>
                         </div>
-                        <span className="text-xs font-semibold text-[#00e676] flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full bg-[#00e676] animate-pulse" />
+                        <span className="text-xs font-semibold text-[#34eb3d] flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-[#34eb3d] animate-pulse" />
                           {m.status}
                         </span>
                       </div>
@@ -589,7 +609,7 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
                       value={inputAccountId}
                       onChange={(e) => setInputAccountId(e.target.value)}
                       placeholder="Enter user Account ID (e.g. CV-8812-SJ or CV-1092-AR)..."
-                      className="flex-1 rounded-xl px-4 py-2.5 text-xs text-white bg-white/5 border border-white/10 outline-none focus:border-[#00e676]/40 focus:bg-white/10 transition-all duration-200"
+                      className="flex-1 rounded-xl px-4 py-2.5 text-xs text-white bg-white/5 border border-white/10 outline-none focus:border-[#34eb3d]/40 focus:bg-white/10 transition-all duration-200"
                     />
                     <GreenBtn onClick={handleAddMemberByAccountId} size="sm">
                       + Link Account
@@ -600,14 +620,14 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
                 {/* Team Stream Activity Log */}
                 <div className="space-y-4">
                   <h3 className="text-white font-bold text-lg flex items-center gap-2">
-                    <Activity className="w-5 h-5 text-[#00e676]" /> Linked Team Activity
+                    <Activity className="w-5 h-5 text-[#34eb3d]" /> Linked Team Activity
                   </h3>
                   <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5 space-y-4 text-xs">
                     <div className="flex items-start gap-2.5 pb-3 border-b border-white/5">
-                      <div className="w-2 h-2 rounded-full bg-[#00e676] mt-1 flex-shrink-0" />
+                      <div className="w-2 h-2 rounded-full bg-[#34eb3d] mt-1 flex-shrink-0" />
                       <div>
                         <p className="text-gray-200 font-semibold">Jamie Dela Cruz</p>
-                        <p className="text-gray-400 mt-0.5">Created <span className="text-[#00e676] font-bold">{activeTeam?.name || "Primary Team"}</span></p>
+                        <p className="text-gray-400 mt-0.5">Created <span className="text-[#34eb3d] font-bold">{activeTeam?.name || "Primary Team"}</span></p>
                         <span className="text-[10px] text-gray-500 mt-1 block">Just now</span>
                       </div>
                     </div>
@@ -631,10 +651,10 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
                     <button
                       key={label}
                       onClick={action}
-                      className="group flex flex-col items-start gap-3 p-4 rounded-2xl text-left bg-white/[0.03] border border-white/[0.08] hover:border-[#00e676]/40 hover:bg-white/[0.07] hover:scale-[1.03] hover:shadow-[0_12px_35px_rgba(0,230,118,0.15)] active:scale-[0.97] transition-all duration-200 ease-out cursor-pointer"
+                      className="group flex flex-col items-start gap-3 p-4 rounded-2xl text-left bg-white/[0.03] border border-white/[0.08] hover:border-[#34eb3d]/40 hover:bg-white/[0.07] hover:scale-[1.03] hover:shadow-[0_12px_35px_rgba(52, 235, 61,0.15)] active:scale-[0.97] transition-all duration-200 ease-out cursor-pointer"
                     >
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[#00e676]/10 border border-[#00e676]/20 group-hover:scale-110 transition-transform duration-200">
-                        <Icon className="w-5 h-5 text-[#00e676]" />
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[#34eb3d]/10 border border-[#34eb3d]/20 group-hover:scale-110 transition-transform duration-200">
+                        <Icon className="w-5 h-5 text-[#34eb3d]" />
                       </div>
                       <div>
                         <p className="text-white text-sm font-semibold">{label}</p>
@@ -645,18 +665,18 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
                   
                   {/* High-End Pro Banner */}
                   <div 
-                    className="col-span-2 relative overflow-hidden rounded-2xl bg-[#0a0a0a] border border-[#00e676]/20 group cursor-pointer shadow-[0_8px_30px_rgba(0,0,0,0.4)]"
+                    className="col-span-2 relative overflow-hidden rounded-2xl bg-[#0a0a0a] border border-[#34eb3d]/20 group cursor-pointer shadow-[0_8px_30px_rgba(0,0,0,0.4)]"
                     onClick={() => setShowPaywallModal(true)}
                   >
                     {/* Animated Background Gradients */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-[#00e676]/10 via-transparent to-[#00a854]/10 z-0 group-hover:opacity-100 transition-opacity duration-500 opacity-60" />
-                    <div className="absolute -top-24 -right-10 w-64 h-64 bg-[#00e676]/20 blur-[60px] rounded-full group-hover:scale-125 transition-transform duration-700" />
+                    <div className="absolute inset-0 bg-gradient-to-br from-[#34eb3d]/10 via-transparent to-[#25a92c]/10 z-0 group-hover:opacity-100 transition-opacity duration-500 opacity-60" />
+                    <div className="absolute -top-24 -right-10 w-64 h-64 bg-[#34eb3d]/20 blur-[60px] rounded-full group-hover:scale-125 transition-transform duration-700" />
                     
                     {/* Grid Pattern Overlay */}
                     <div className="absolute inset-0 z-0 opacity-[0.06] pointer-events-none origin-bottom" style={{ backgroundImage: "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)", backgroundSize: "24px 24px", transform: "perspective(500px) rotateX(60deg) scale(2.5) translateY(-20px)" }} />
                     
                     {/* Decorative App UI Mockup (Abstracted) */}
-                    <div className="absolute right-[-10px] bottom-[-20px] w-52 h-40 bg-[#0f0f0f]/90 backdrop-blur-xl rounded-tl-2xl border-t border-l border-white/10 shadow-[-15px_-15px_40px_rgba(0,230,118,0.08)] transform rotate-[-8deg] group-hover:rotate-[-4deg] group-hover:-translate-y-3 transition-all duration-500 z-0 flex flex-col p-3 overflow-hidden">
+                    <div className="absolute right-[-10px] bottom-[-20px] w-52 h-40 bg-[#0f0f0f]/90 backdrop-blur-xl rounded-tl-2xl border-t border-l border-white/10 shadow-[-15px_-15px_40px_rgba(52, 235, 61,0.08)] transform rotate-[-8deg] group-hover:rotate-[-4deg] group-hover:-translate-y-3 transition-all duration-500 z-0 flex flex-col p-3 overflow-hidden">
                       {/* Window Header */}
                       <div className="w-full flex items-center gap-1.5 mb-2.5">
                         <div className="w-2 h-2 rounded-full bg-white/20" />
@@ -665,18 +685,18 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
                       </div>
                       {/* Video Player Mock */}
                       <div className="w-full h-16 rounded-lg bg-black/60 border border-white/5 mb-2.5 relative overflow-hidden flex-shrink-0">
-                         <div className="absolute inset-0 bg-gradient-to-tr from-[#00e676]/20 to-transparent opacity-50" />
+                         <div className="absolute inset-0 bg-gradient-to-tr from-[#34eb3d]/20 to-transparent opacity-50" />
                          <div className="absolute inset-0 flex items-center justify-center">
                            <Play className="w-4 h-4 text-white/40 fill-white/40" />
                          </div>
                          <div className="absolute bottom-1.5 left-2 w-16 h-1 rounded-full bg-white/20">
-                           <div className="w-1/2 h-full bg-[#00e676] rounded-full shadow-[0_0_8px_#00e676]" />
+                           <div className="w-1/2 h-full bg-[#34eb3d] rounded-full shadow-[0_0_8px_#34eb3d]" />
                          </div>
                       </div>
                       {/* Timeline Mock */}
                       <div className="w-full flex gap-1.5 mb-1.5">
-                         <div className="w-1/3 h-2.5 rounded bg-[#00e676]/50 border border-[#00e676]/20" />
-                         <div className="w-1/2 h-2.5 rounded bg-[#00a854]/40 border border-[#00a854]/20" />
+                         <div className="w-1/3 h-2.5 rounded bg-[#34eb3d]/50 border border-[#34eb3d]/20" />
+                         <div className="w-1/2 h-2.5 rounded bg-[#25a92c]/40 border border-[#25a92c]/20" />
                       </div>
                       <div className="w-full flex gap-1.5">
                          <div className="w-1/4 h-2 rounded bg-blue-500/40 border border-blue-500/20" />
@@ -688,9 +708,9 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
                     <div className="relative z-10 p-5 h-full flex flex-col justify-between pointer-events-none">
                       <div>
                         <div className="flex items-center gap-2 mb-1.5">
-                          <Crown className="w-4 h-4 text-[#00e676]" />
+                          <Crown className="w-4 h-4 text-[#34eb3d]" />
                           <h3 className="text-white font-black text-lg tracking-tight">
-                            ClipVault <span className="text-[#00e676]">PRO</span>
+                            ClipVault <span className="text-[#34eb3d]">PRO</span>
                           </h3>
                         </div>
                         <p className="text-xs text-gray-400 max-w-[200px] leading-relaxed font-medium">
@@ -701,9 +721,9 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
                       {/* Badges / CTA */}
                       <div className="flex items-center gap-2.5 mt-6">
                         <span className="px-2.5 py-1.5 rounded-lg bg-black/60 border border-white/10 text-[10px] font-bold text-gray-300 flex items-center gap-1.5 backdrop-blur-md shadow-lg">
-                          <Monitor className="w-3.5 h-3.5 text-[#00e676]" /> 8K Export
+                          <Monitor className="w-3.5 h-3.5 text-[#34eb3d]" /> 8K Export
                         </span>
-                        <button className="px-3 py-1.5 rounded-lg bg-[#00e676] text-[11px] font-bold text-black flex items-center gap-1.5 shadow-[0_0_15px_rgba(0,230,118,0.4)] group-hover:bg-white transition-colors pointer-events-auto">
+                        <button className="px-3 py-1.5 rounded-lg bg-[#34eb3d] text-[11px] font-bold text-black flex items-center gap-1.5 shadow-[0_0_15px_rgba(52, 235, 61,0.4)] group-hover:bg-white transition-colors pointer-events-auto">
                           <Sparkles className="w-3.5 h-3.5" /> Upgrade
                         </button>
                       </div>
@@ -720,7 +740,7 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
                     <div
                       key={p.id}
                       onClick={onOpenEditor}
-                      className="group p-4 rounded-2xl bg-white/[0.03] border border-white/[0.08] hover:border-[#00e676]/40 hover:bg-white/[0.07] hover:scale-[1.03] hover:shadow-[0_12px_35px_rgba(0,230,118,0.15)] active:scale-[0.98] cursor-pointer transition-all duration-200 ease-out"
+                      className="group p-4 rounded-2xl bg-white/[0.03] border border-white/[0.08] hover:border-[#34eb3d]/40 hover:bg-white/[0.07] hover:scale-[1.03] hover:shadow-[0_12px_35px_rgba(52, 235, 61,0.15)] active:scale-[0.98] cursor-pointer transition-all duration-200 ease-out"
                     >
                       <div className="aspect-video rounded-xl overflow-hidden mb-3 bg-black relative">
                         <img src={p.thumb} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
@@ -748,7 +768,7 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
             <section className="space-y-6">
               <h2 className="text-white font-bold text-xl flex items-center gap-3">
                 Video Templates
-                <span className="text-xs px-2.5 py-1 rounded-full font-bold bg-[#00e676]/10 text-[#00e676] border border-[#00e676]/20">
+                <span className="text-xs px-2.5 py-1 rounded-full font-bold bg-[#34eb3d]/10 text-[#34eb3d] border border-[#34eb3d]/20">
                   In Development
                 </span>
               </h2>
@@ -763,7 +783,7 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
                   <div
                     key={p.id}
                     onClick={onOpenEditor}
-                    className="group p-4 rounded-2xl bg-white/[0.03] border border-white/[0.08] hover:border-[#00e676]/40 hover:bg-white/[0.07] hover:scale-[1.03] hover:shadow-[0_12px_35px_rgba(0,230,118,0.15)] active:scale-[0.98] cursor-pointer transition-all duration-200 ease-out"
+                    className="group p-4 rounded-2xl bg-white/[0.03] border border-white/[0.08] hover:border-[#34eb3d]/40 hover:bg-white/[0.07] hover:scale-[1.03] hover:shadow-[0_12px_35px_rgba(52, 235, 61,0.15)] active:scale-[0.98] cursor-pointer transition-all duration-200 ease-out"
                   >
                     <div className="aspect-video rounded-xl overflow-hidden mb-3 bg-black relative">
                       <img src={p.thumb} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
@@ -789,12 +809,12 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
             <section className="space-y-6">
               <h2 className="text-white font-bold text-xl flex items-center gap-3">
                 Cloud Storage & Backup
-                <span className="text-xs px-2.5 py-1 rounded-full font-bold bg-[#00e676]/10 text-[#00e676] border border-[#00e676]/20 flex items-center gap-1.5">
-                  <Clock className="w-3.5 h-3.5 text-[#00e676]" /> Coming Soon
+                <span className="text-xs px-2.5 py-1 rounded-full font-bold bg-[#34eb3d]/10 text-[#34eb3d] border border-[#34eb3d]/20 flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-[#34eb3d]" /> Coming Soon
                 </span>
               </h2>
-              <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/[0.08] hover:border-[#00e676]/30 hover:scale-[1.02] transition-all duration-200 shadow-xl max-w-md">
-                <Cloud className="w-6 h-6 text-[#00e676] mb-3" />
+              <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/[0.08] hover:border-[#34eb3d]/30 hover:scale-[1.02] transition-all duration-200 shadow-xl max-w-md">
+                <Cloud className="w-6 h-6 text-[#34eb3d] mb-3" />
                 <p className="text-white text-sm font-bold">Cloud Sync is in development</p>
                 <p className="text-xs text-gray-400 mt-1">Currently all your projects and media are saved safely on your local device.</p>
               </div>
@@ -858,7 +878,7 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
                           onClick={() => handleRestoreFromTrash(p)}
                           className="flex-1 py-1.5 px-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                         >
-                          <RotateCcw className="w-3.5 h-3.5 text-[#00e676]" /> Restore
+                          <RotateCcw className="w-3.5 h-3.5 text-[#34eb3d]" /> Restore
                         </button>
                         <button
                           onClick={() => {
@@ -887,12 +907,12 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
             {/* Header */}
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl flex items-center justify-center bg-gradient-to-br from-[#00e676]/20 to-[#00a854]/20 border border-[#00e676]/30">
-                  <Wand2 className="w-5 h-5 text-[#00e676]" />
+                <div className="w-10 h-10 rounded-2xl flex items-center justify-center bg-gradient-to-br from-[#34eb3d]/20 to-[#25a92c]/20 border border-[#34eb3d]/30">
+                  <Wand2 className="w-5 h-5 text-[#34eb3d]" />
                 </div>
                 <div>
                   <h3 className="text-white font-bold text-lg flex items-center gap-2">
-                    AI Script Generator Studio <Sparkles className="w-4 h-4 text-amber-400" />
+                    AI Script Generator Studio <Sparkles className="w-4 h-4 text-emerald-400" />
                   </h3>
                   <p className="text-xs text-gray-400">Generate viral video scripts with AI prompt intelligence.</p>
                 </div>
@@ -906,14 +926,14 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
             <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 space-y-3">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-white flex items-center gap-2">
-                  <Key className="w-4 h-4 text-[#00e676]" /> API Key Mode (BYOK)
+                  <Key className="w-4 h-4 text-[#34eb3d]" /> API Key Mode (BYOK)
                 </label>
                 <div className="flex rounded-xl p-1 bg-black/50 border border-white/10 text-[10px] font-bold">
                   <button
                     onClick={() => setByokMode("developer")}
                     className={`px-2.5 py-1 rounded-lg transition-all ${
                       byokMode === "developer"
-                        ? "bg-[#00e676] text-black shadow-md"
+                        ? "bg-[#34eb3d] text-black shadow-md"
                         : "text-gray-400 hover:text-white"
                     }`}
                   >
@@ -923,7 +943,7 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
                     onClick={() => setByokMode("custom")}
                     className={`px-2.5 py-1 rounded-lg transition-all ${
                       byokMode === "custom"
-                        ? "bg-[#00e676] text-black shadow-md"
+                        ? "bg-[#34eb3d] text-black shadow-md"
                         : "text-gray-400 hover:text-white"
                     }`}
                   >
@@ -933,7 +953,7 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
               </div>
 
               {byokMode === "developer" ? (
-                <div className="p-2.5 rounded-xl bg-[#00e676]/10 border border-[#00e676]/20 flex items-center gap-2 text-xs text-[#00e676]">
+                <div className="p-2.5 rounded-xl bg-[#34eb3d]/10 border border-[#34eb3d]/20 flex items-center gap-2 text-xs text-[#34eb3d]">
                   <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
                   <span>Using ClipVault Developer API key (Built-in demo quota active).</span>
                 </div>
@@ -944,7 +964,7 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
                     value={customApiKey}
                     onChange={e => setCustomApiKey(e.target.value)}
                     placeholder="Enter OpenAI / Gemini API Key (e.g. sk-proj-...)"
-                    className="w-full rounded-xl px-3.5 py-2.5 text-xs text-white bg-white/5 border border-white/10 outline-none focus:border-[#00e676]/40"
+                    className="w-full rounded-xl px-3.5 py-2.5 text-xs text-white bg-white/5 border border-white/10 outline-none focus:border-[#34eb3d]/40"
                   />
                   <p className="text-[10px] text-gray-500">Your key is stored locally in memory for this session and never sent to third-party servers.</p>
                 </div>
@@ -960,7 +980,7 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
                   onChange={e => setAiTopic(e.target.value)}
                   rows={2}
                   placeholder="e.g. 5 Secrets to Editing Viral TikTok Videos..."
-                  className="w-full rounded-xl p-3 text-xs text-white bg-white/5 border border-white/10 outline-none focus:border-[#00e676]/40 resize-none"
+                  className="w-full rounded-xl p-3 text-xs text-white bg-white/5 border border-white/10 outline-none focus:border-[#34eb3d]/40 resize-none"
                 />
               </div>
 
@@ -1000,9 +1020,9 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
 
             {/* GENERATED SCRIPT PREVIEW BOX */}
             {generatedScript && (
-              <div className="p-4 rounded-2xl bg-white/[0.04] border border-[#00e676]/20 space-y-3 animate-fadeIn">
+              <div className="p-4 rounded-2xl bg-white/[0.04] border border-[#34eb3d]/20 space-y-3 animate-fadeIn">
                 <div className="flex items-center justify-between pb-2 border-b border-white/10">
-                  <span className="text-xs font-bold text-[#00e676] flex items-center gap-1.5">
+                  <span className="text-xs font-bold text-[#34eb3d] flex items-center gap-1.5">
                     <FileText className="w-3.5 h-3.5" /> AI Generated Script Output
                   </span>
                   <span className="text-[10px] text-gray-400 font-mono">Ready to import</span>
@@ -1010,7 +1030,7 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
 
                 <div className="space-y-2 text-xs">
                   <div>
-                    <span className="text-[10px] uppercase font-bold text-amber-400 block">Hook (0-3s)</span>
+                    <span className="text-[10px] uppercase font-bold text-emerald-400 block">Hook (0-3s)</span>
                     <p className="text-gray-200 mt-0.5">{generatedScript.hook}</p>
                   </div>
                   <div>
@@ -1038,7 +1058,7 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
           <div className="w-[480px] rounded-3xl p-6 bg-[#0d0d0d] border border-white/15 shadow-2xl space-y-5 animate-fadeIn">
             <div className="flex items-center justify-between">
               <h3 className="text-white font-bold text-lg flex items-center gap-2">
-                <Monitor className="w-5 h-5 text-[#00e676]" /> Screen Recorder Studio
+                <Monitor className="w-5 h-5 text-[#34eb3d]" /> Screen Recorder Studio
               </h3>
               <button onClick={() => { handleStopScreenRecording(); setShowScreenRecordModal(false); }} className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white">
                 <X className="w-4 h-4" />
@@ -1055,7 +1075,7 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
 
               {!isRecordingScreen && !screenPreviewUrl && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 p-6 text-center space-y-2">
-                  <Monitor className="w-10 h-10 text-[#00e676] animate-pulse" />
+                  <Monitor className="w-10 h-10 text-[#34eb3d] animate-pulse" />
                   <p className="text-xs font-bold text-white">Record Display / Web Browser Screen</p>
                   <p className="text-[10px] text-gray-400">Capture video tutorials, app demos, and presentation walkthroughs.</p>
                 </div>
@@ -1109,7 +1129,7 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
           <div className="w-[420px] rounded-3xl p-6 bg-[#0f0f0f] border border-white/10 shadow-2xl space-y-5 animate-fadeIn">
             <div className="flex items-center justify-between">
               <h3 className="text-white font-bold text-lg flex items-center gap-2">
-                <Users className="w-5 h-5 text-[#00e676]" /> Create New Team
+                <Users className="w-5 h-5 text-[#34eb3d]" /> Create New Team
               </h3>
               <button onClick={() => setShowCreateTeamModal(false)} className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white">
                 <X className="w-4 h-4" />
@@ -1122,7 +1142,7 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
                 value={newTeamName}
                 onChange={e => setNewTeamName(e.target.value)}
                 placeholder="e.g. Marketing Team, Video Creators..."
-                className="w-full rounded-xl px-4 py-2.5 text-xs text-white bg-white/5 border border-white/10 outline-none focus:border-[#00e676]/40"
+                className="w-full rounded-xl px-4 py-2.5 text-xs text-white bg-white/5 border border-white/10 outline-none focus:border-[#34eb3d]/40"
               />
             </div>
 
@@ -1172,24 +1192,24 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
               </div>
 
               {/* PLAN 2: PLUS */}
-              <div className="rounded-2xl p-6 bg-gradient-to-b from-[#00e676]/10 to-transparent border border-[#00e676]/30 flex flex-col relative shadow-[0_0_30px_rgba(0,230,118,0.1)] transform md:scale-105 z-10">
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-[#00e676] text-black text-[10px] font-bold rounded-full shadow-md uppercase tracking-wider">
+              <div className="rounded-2xl p-6 bg-gradient-to-b from-[#34eb3d]/10 to-transparent border border-[#34eb3d]/30 flex flex-col relative shadow-[0_0_30px_rgba(52, 235, 61,0.1)] transform md:scale-105 z-10">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-[#34eb3d] text-black text-[10px] font-bold rounded-full shadow-md uppercase tracking-wider">
                   Most Popular
                 </div>
-                <h3 className="text-white font-bold text-lg mb-1 flex items-center gap-2">Plus <Crown className="w-4 h-4 text-[#00e676]" /></h3>
+                <h3 className="text-white font-bold text-lg mb-1 flex items-center gap-2">Plus <Crown className="w-4 h-4 text-[#34eb3d]" /></h3>
                 <p className="text-xs text-gray-400 mb-4 h-8">Everything you need for viral content creation.</p>
                 <div className="mb-6">
                   <span className="text-white font-bold text-3xl">₱599</span><span className="text-sm text-gray-500"> / month</span>
                 </div>
-                <button className="w-full py-2.5 rounded-xl text-sm font-bold bg-[#00e676] hover:bg-white text-black transition-colors mb-6 shadow-[0_0_15px_rgba(0,230,118,0.3)] cursor-pointer">
+                <button className="w-full py-2.5 rounded-xl text-sm font-bold bg-[#34eb3d] hover:bg-white text-black transition-colors mb-6 shadow-[0_0_15px_rgba(52, 235, 61,0.3)] cursor-pointer">
                   Upgrade to Plus
                 </button>
                 <ul className="space-y-3 text-sm text-gray-200 flex-1">
-                  <li className="flex items-start gap-2"><Check className="w-4 h-4 text-[#00e676] shrink-0 mt-0.5" /> Up to 4K Hardware-Accelerated exports</li>
-                  <li className="flex items-start gap-2"><Check className="w-4 h-4 text-[#00e676] shrink-0 mt-0.5" /> 6 video exports / month</li>
-                  <li className="flex items-start gap-2"><Check className="w-4 h-4 text-[#00e676] shrink-0 mt-0.5" /> 5 Team Workspaces</li>
-                  <li className="flex items-start gap-2"><Check className="w-4 h-4 text-[#00e676] shrink-0 mt-0.5" /> Limitless AI Jump Cuts & Auto-Edits</li>
-                  <li className="flex items-start gap-2"><Check className="w-4 h-4 text-[#00e676] shrink-0 mt-0.5" /> No Watermarks on Exports</li>
+                  <li className="flex items-start gap-2"><Check className="w-4 h-4 text-[#34eb3d] shrink-0 mt-0.5" /> Up to 4K Hardware-Accelerated exports</li>
+                  <li className="flex items-start gap-2"><Check className="w-4 h-4 text-[#34eb3d] shrink-0 mt-0.5" /> 6 video exports / month</li>
+                  <li className="flex items-start gap-2"><Check className="w-4 h-4 text-[#34eb3d] shrink-0 mt-0.5" /> 5 Team Workspaces</li>
+                  <li className="flex items-start gap-2"><Check className="w-4 h-4 text-[#34eb3d] shrink-0 mt-0.5" /> Limitless AI Jump Cuts & Auto-Edits</li>
+                  <li className="flex items-start gap-2"><Check className="w-4 h-4 text-[#34eb3d] shrink-0 mt-0.5" /> No Watermarks on Exports</li>
                 </ul>
               </div>
 
@@ -1226,7 +1246,7 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
           <div className="w-[460px] rounded-3xl p-6 bg-[#0f0f0f] border border-white/10 shadow-2xl space-y-4 animate-fadeIn">
             <div className="flex items-center justify-between">
               <h3 className="text-white font-bold text-lg flex items-center gap-2">
-                <Target className="w-5 h-5 text-[#00e676]" /> {editingCampaign ? "Edit Campaign" : "New Campaign"}
+                <Target className="w-5 h-5 text-[#34eb3d]" /> {editingCampaign ? "Edit Campaign" : "New Campaign"}
               </h3>
               <button onClick={() => setShowCampaignModal(false)} className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white">
                 <X className="w-4 h-4" />
@@ -1240,7 +1260,7 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
                   value={campTitle}
                   onChange={e => setCampTitle(e.target.value)}
                   placeholder="e.g. Summer Promo Shorts..."
-                  className="w-full rounded-xl px-4 py-2.5 text-xs text-white bg-white/5 border border-white/10 outline-none focus:border-[#00e676]/40"
+                  className="w-full rounded-xl px-4 py-2.5 text-xs text-white bg-white/5 border border-white/10 outline-none focus:border-[#34eb3d]/40"
                 />
               </div>
 
@@ -1326,7 +1346,7 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
 
               <div className="p-3.5 rounded-2xl bg-red-500/[0.06] border border-red-500/20 space-y-2">
                 <span className="text-[11px] font-bold text-red-400 block uppercase tracking-wider">To confirm deletion, type the exact statement below:</span>
-                <div className="p-3 rounded-xl bg-black/70 border border-red-500/30 font-mono text-[11px] text-amber-300 select-all leading-relaxed break-words">
+                <div className="p-3 rounded-xl bg-black/70 border border-red-500/30 font-mono text-[11px] text-emerald-300 select-all leading-relaxed break-words">
                   {requiredDeletePhrase}
                 </div>
               </div>
@@ -1371,7 +1391,7 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
             {/* Settings Sidebar */}
             <div className="w-72 bg-[#0f0f0f] border-r border-white/5 p-6 flex flex-col">
               <div className="flex items-center gap-3 mb-8 px-2 mt-2">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-black bg-gradient-to-br from-[#00e676] to-[#00a854]">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-black bg-gradient-to-br from-[#34eb3d] to-[#25a92c]">
                   JD
                 </div>
                 <div>
@@ -1391,7 +1411,7 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
                     onClick={() => setActiveSettingsTab(id)}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                       activeSettingsTab === id 
-                        ? "bg-[#00e676]/10 text-[#00e676]" 
+                        ? "bg-[#34eb3d]/10 text-[#34eb3d]" 
                         : "text-gray-400 hover:text-white hover:bg-white/5"
                     }`}
                   >
@@ -1429,11 +1449,11 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <label className="text-xs text-gray-500 mb-1 block">Full Name</label>
-                          <input type="text" defaultValue="Jamie Dela Cruz" className="w-full bg-black border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white outline-none focus:border-[#00e676]/40" />
+                          <input type="text" defaultValue="Jamie Dela Cruz" className="w-full bg-black border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white outline-none focus:border-[#34eb3d]/40" />
                         </div>
                         <div>
                           <label className="text-xs text-gray-500 mb-1 block">Email Address</label>
-                          <input type="email" defaultValue="jamie@clipvault.ai" className="w-full bg-black border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white outline-none focus:border-[#00e676]/40" />
+                          <input type="email" defaultValue="jamie@clipvault.ai" className="w-full bg-black border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white outline-none focus:border-[#34eb3d]/40" />
                         </div>
                       </div>
                     </div>
@@ -1449,7 +1469,7 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
                           <p className="text-white text-sm font-semibold mb-0.5">Dark Mode (Default)</p>
                           <p className="text-xs text-gray-500">Keep the editor UI in dark mode.</p>
                         </div>
-                        <div className="w-10 h-5 rounded-full bg-[#00e676] relative cursor-pointer">
+                        <div className="w-10 h-5 rounded-full bg-[#34eb3d] relative cursor-pointer">
                           <div className="absolute right-1 top-0.5 w-4 h-4 bg-black rounded-full shadow" />
                         </div>
                       </div>
@@ -1458,7 +1478,7 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
                           <p className="text-white text-sm font-semibold mb-0.5">Hardware Acceleration</p>
                           <p className="text-xs text-gray-500">Use GPU for playback rendering (Recommended).</p>
                         </div>
-                        <div className="w-10 h-5 rounded-full bg-[#00e676] relative cursor-pointer">
+                        <div className="w-10 h-5 rounded-full bg-[#34eb3d] relative cursor-pointer">
                           <div className="absolute right-1 top-0.5 w-4 h-4 bg-black rounded-full shadow" />
                         </div>
                       </div>
@@ -1491,7 +1511,7 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
                             onClick={() => handleFpsChange(30)}
                             className={`flex-1 py-2 rounded-lg text-sm cursor-pointer transition-all ${
                               defaultFps === 30 
-                                ? "bg-[#00e676]/10 border border-[#00e676]/30 font-bold text-[#00e676]" 
+                                ? "bg-[#34eb3d]/10 border border-[#34eb3d]/30 font-bold text-[#34eb3d]" 
                                 : "bg-white/5 border border-white/10 text-gray-300 hover:text-white hover:bg-white/10"
                             }`}
                           >
@@ -1501,7 +1521,7 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
                             onClick={() => handleFpsChange(60)}
                             className={`flex-1 py-2 rounded-lg text-sm cursor-pointer transition-all ${
                               defaultFps === 60 
-                                ? "bg-[#00e676]/10 border border-[#00e676]/30 font-bold text-[#00e676]" 
+                                ? "bg-[#34eb3d]/10 border border-[#34eb3d]/30 font-bold text-[#34eb3d]" 
                                 : "bg-white/5 border border-white/10 text-gray-300 hover:text-white hover:bg-white/10"
                             }`}
                           >
@@ -1530,7 +1550,7 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
                           <p className="text-white text-sm font-semibold mb-0.5">Dual-Stream 1000% Audio Gain</p>
                           <p className="text-xs text-gray-500">Allow independent track amplification over standard limits.</p>
                         </div>
-                        <div className="w-10 h-5 rounded-full bg-[#00e676] relative cursor-pointer">
+                        <div className="w-10 h-5 rounded-full bg-[#34eb3d] relative cursor-pointer">
                           <div className="absolute right-1 top-0.5 w-4 h-4 bg-black rounded-full shadow" />
                         </div>
                       </div>

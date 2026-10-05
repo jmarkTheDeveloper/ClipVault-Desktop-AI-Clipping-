@@ -1,5 +1,6 @@
-import React, { useState, useRef, useEffect } from "react";
-import { ArrowLeft, Zap, FolderCheck, Cpu, Download, Folder, Plus, FolderOpen, AlertCircle, HardDrive, ShieldCheck, Sparkles } from "lucide-react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import { ArrowLeft, Zap, FolderCheck, Cpu, Download, Folder, Plus, FolderOpen, AlertCircle, HardDrive, ShieldCheck, Sparkles, Lock } from "lucide-react";
+import { CreatorMaxUpgradeModal } from "../components/CreatorMaxUpgradeModal";
 import { EngineSettingsModal } from "../components/clipper/EngineSettingsModal";
 import type { ByokMode } from "../components/clipper/EngineSettingsModal";
 import { CropEditorModal } from "../components/clipper/CropEditorModal";
@@ -19,6 +20,7 @@ interface Props {
   onStartTour?: () => void;
   onStartVaultTour?: () => void;
   onTriggerVaultWelcome?: () => void;
+  activeScreen?: string;
 }
 
 export const AI_ENGINES: EngineOption[] = [
@@ -152,6 +154,16 @@ const triggerDesktopNotification = (title: string, body: string) => {
         osc.start(now + idx * 0.09);
         osc.stop(now + idx * 0.09 + 0.5);
       });
+      // LEAK FIX: a new AudioContext was created for every completion and never closed,
+      // exhausting the browser/Electron hardware-audio context budget (Chromium caps ~6).
+      // Close it once the chime has finished; guarded for older engines without close().
+      setTimeout(() => {
+        try {
+          if (typeof (ctx as any).close === "function" && ctx.state !== "closed") {
+            (ctx as any).close();
+          }
+        } catch {}
+      }, 1400);
     }
   } catch {}
 
@@ -190,13 +202,115 @@ export const AiClipperScreen: React.FC<Props> = ({
   onStartTour,
   onStartVaultTour,
   onTriggerVaultWelcome,
+  activeScreen,
 }) => {
   // Navigation & View States
   const [viewMode, setViewMode] = useState<ViewMode>(initialViewMode);
-  
+
+  // Pro Manual Studio Credit Tracking ($15 Pro: 3 clips/wk, Max: unlimited)
+  const [studioCredits, setStudioCredits] = useState<{
+    plan: string;
+    is_max: boolean;
+    allowed: boolean;
+    unlimited: boolean;
+    clips_used: number;
+    max_weekly_clips: number;
+    remaining: number;
+    resets_in_days: number;
+    resets_at: string;
+    message: string;
+  } | null>(null);
+  const [showCreatorMaxModal, setShowCreatorMaxModal] = useState<boolean>(false);
+
+  const [simulatedTier, setSimulatedTier] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem("clipvault_dev_simulated_tier");
+    } catch {
+      return null;
+    }
+  });
+
+  useEffect(() => {
+    const handleTierChange = (e: any) => {
+      try {
+        const val = e?.detail !== undefined ? e.detail : localStorage.getItem("clipvault_dev_simulated_tier");
+        setSimulatedTier(val);
+      } catch {}
+    };
+    window.addEventListener("clipvault-dev-tier-changed", handleTierChange);
+    window.addEventListener("storage", handleTierChange);
+    return () => {
+      window.removeEventListener("clipvault-dev-tier-changed", handleTierChange);
+      window.removeEventListener("storage", handleTierChange);
+    };
+  }, []);
+
+  const effectiveStudioCredits = simulatedTier === "max"
+    ? { is_max: true, unlimited: true, remaining: 999, allowed: true, plan: "max", clips_used: 0, max_weekly_clips: 999, resets_in_days: 0, resets_at: "", message: "Unlimited" }
+    : simulatedTier === "pro"
+    ? { is_max: false, unlimited: false, remaining: 3, allowed: true, plan: "pro", clips_used: 0, max_weekly_clips: 3, resets_in_days: 7, resets_at: "in 7 days", message: "3 weekly credits" }
+    : studioCredits;
+
+  const isEffectivelyMax = Boolean(effectiveStudioCredits?.is_max || simulatedTier === "max");
+
+  const refreshCredits = useCallback(() => {
+    fetch("http://127.0.0.1:8000/api/license/manual_studio_credits")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data && typeof data === "object") {
+          setStudioCredits(data);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    refreshCredits();
+  }, [refreshCredits]);
+
+  // Always keep the latest requested view in a ref: the visibility effect below reads it
+  // when the screen is re-entered (a ref avoids re-subscribing the observer on every prop change).
+  const initialViewModeRef = useRef<ViewMode>(initialViewMode);
+  initialViewModeRef.current = initialViewMode;
+
+  // Prop-value sync: still needed when the parent changes the requested view while visible.
   useEffect(() => {
     if (initialViewMode) setViewMode(initialViewMode);
   }, [initialViewMode]);
+
+  // RE-ENTRY FIX: the parent keeps this screen permanently mounted and only toggles the
+  // wrapper's `display`, so re-selecting "AI Clipper" re-supplies the SAME prop value
+  // (e.g. "setup") and the effect above never fires — the user was dropped back into the
+  // Vault instead of Setup. The only reliable "screen was entered" signal the parent gives
+  // us is the wrapper becoming visible again, so we watch our own layout box: while the
+  // screen is hidden our container has zero size, and it becomes non-zero on re-entry.
+  const screenContainerRef = useRef<HTMLDivElement | null>(null);
+  const wasHiddenRef = useRef(false);
+  const viewModeRef = useRef<ViewMode>(viewMode);
+  viewModeRef.current = viewMode;
+  useEffect(() => {
+    if (typeof ResizeObserver === "undefined") return;
+    const el = screenContainerRef.current;
+    if (!el) return;
+
+    // Establish the visibility baseline synchronously (don't reset on the first callback)
+    wasHiddenRef.current = el.offsetWidth === 0 || el.offsetHeight === 0;
+
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      const box = entry.contentRect;
+      const hidden = box.width === 0 || box.height === 0;
+      if (wasHiddenRef.current && !hidden) {
+        // Screen (re)entered -> reliably land on the view the parent asked for
+        const requested = initialViewModeRef.current || "setup";
+        if (viewModeRef.current !== requested) setViewMode(requested);
+      }
+      wasHiddenRef.current = hidden;
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   // Request Desktop Notification Permissions for Background Alerts
   useEffect(() => {
@@ -374,9 +488,69 @@ export const AiClipperScreen: React.FC<Props> = ({
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [mediaDuration, setMediaDuration] = useState<number>(0);
 
-  // Processing Parameters (Clean studio defaults on every launch)
-  const [quality, setQuality] = useState("1080p");
-  const [exportResolution, setExportResolution] = useState("1080p");
+  // Processing Parameters (Clean studio defaults initialized from preferences)
+  const [quality, setQualityState] = useState(() => {
+    try {
+      return localStorage.getItem("clipvault_def_res") || "1080p";
+    } catch {
+      return "1080p";
+    }
+  });
+  const [exportResolution, setExportResolutionState] = useState(() => {
+    try {
+      return localStorage.getItem("clipvault_def_res") || "1080p";
+    } catch {
+      return "1080p";
+    }
+  });
+
+  // Reactive synchronization across Settings, 1-Click Clipper, and Pro Studio
+  useEffect(() => {
+    const handleResSync = (e?: any) => {
+      try {
+        const newRes = (e && e.detail) ? e.detail : localStorage.getItem("clipvault_def_res") || "1080p";
+        setQualityState(newRes);
+        setExportResolutionState(newRes);
+      } catch {}
+    };
+
+    handleResSync();
+    window.addEventListener("clipvault-resolution-changed", handleResSync);
+    window.addEventListener("storage", handleResSync);
+    window.addEventListener("focus", handleResSync);
+    return () => {
+      window.removeEventListener("clipvault-resolution-changed", handleResSync);
+      window.removeEventListener("storage", handleResSync);
+      window.removeEventListener("focus", handleResSync);
+    };
+  }, []);
+
+  // Re-sync immediately when screen becomes active or visible
+  useEffect(() => {
+    if (activeScreen === "ai-clipper" || activeScreen === "saved-vault") {
+      try {
+        const stored = localStorage.getItem("clipvault_def_res") || "1080p";
+        setQualityState(stored);
+        setExportResolutionState(stored);
+      } catch {}
+    }
+  }, [activeScreen]);
+
+  const setQuality = (q: string) => {
+    setQualityState(q);
+    try {
+      localStorage.setItem("clipvault_def_res", q);
+    } catch {}
+    window.dispatchEvent(new CustomEvent("clipvault-resolution-changed", { detail: q }));
+  };
+
+  const setExportResolution = (r: string) => {
+    setExportResolutionState(r);
+    try {
+      localStorage.setItem("clipvault_def_res", r);
+    } catch {}
+    window.dispatchEvent(new CustomEvent("clipvault-resolution-changed", { detail: r }));
+  };
   const [aspectRatio, setAspectRatio] = useState("9:16");
   const [maxDigitalZoom, setMaxDigitalZoom] = useState(1.35);
   const [minCropMargin, setMinCropMargin] = useState(0.30);
@@ -390,7 +564,7 @@ export const AiClipperScreen: React.FC<Props> = ({
   const [targetDuration, setTargetDuration] = useState<number | string>(30);
   const [topicPrompt, setTopicPrompt] = useState("");
   const [customOutputDir, setCustomOutputDir] = useState("");
-  const [customFolderName, setCustomFolderName] = useState("");
+  const [customFolderName, setCustomFolderName] = useState("Shorts Viral");
   const [exportFileName, setExportFileName] = useState("");
   const [transcriptionLanguage, setTranscriptionLanguage] = useState("auto");
   const [autoBroll, setAutoBroll] = useState(false);
@@ -489,7 +663,7 @@ export const AiClipperScreen: React.FC<Props> = ({
 
   // Saved Clips Vault State
   const [vaultClips, setVaultClips] = useState<ClipMetadata[]>([]);
-  const [vaultFolders, setVaultFolders] = useState<string[]>(["Main Library"]);
+  const [vaultFolders, setVaultFolders] = useState<string[]>(["Shorts Viral", "Movies", "Stream Highlights"]);
   const [vaultLoading, setVaultLoading] = useState(false);
   const [vaultError, setVaultError] = useState<string | null>(null);
   const [vaultSearch, setVaultSearch] = useState("");
@@ -529,35 +703,88 @@ export const AiClipperScreen: React.FC<Props> = ({
 
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const currentTaskIdRef = useRef<string | null>(null);
+  // Run-lifecycle tracking: a run generation invalidates every late response (POST or poll),
+  // the abort controller kills the in-flight POST on cancel, and pollInFlightRef stops polls
+  // from stacking so an older response can never move the progress bar backwards.
+  const runGenerationRef = useRef(0);
+  const processAbortRef = useRef<AbortController | null>(null);
+  const pollInFlightRef = useRef(false);
+  // YouTube preview retry chain + stale-attempt tracking (declared here so the mount
+  // effect's cleanup below can always tear them down)
+  const previewRetryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const previewAbortRef = useRef<AbortController | null>(null);
+  const previewRequestSeqRef = useRef(0);
 
-  // Load Saved Clips Vault with automatic startup retry poller
+  // Load Saved Clips Vault with automatic startup retry poller.
+  // The retry chain used a bare, untracked setTimeout: it could not be cancelled, so up to
+  // ~36s of spinner remained queued and stale responses could overwrite newer state.
+  // It is now cancellable + deduplicated (starting a new chain cancels the old one).
+  const vaultRetryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const vaultLoadGenerationRef = useRef(0);
+  const vaultFetchAbortRef = useRef<AbortController | null>(null);
+
+  const cancelVaultRetryChain = () => {
+    vaultLoadGenerationRef.current += 1;
+    if (vaultRetryTimeoutRef.current) {
+      clearTimeout(vaultRetryTimeoutRef.current);
+      vaultRetryTimeoutRef.current = null;
+    }
+    if (vaultFetchAbortRef.current) {
+      try { vaultFetchAbortRef.current.abort(); } catch {}
+      vaultFetchAbortRef.current = null;
+    }
+  };
+
   const loadVaultClips = async (silent = false, retries = 6) => {
-    if (!silent) { setVaultLoading(true); setVaultError(null); }
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s max wait
-      const res = await fetch("http://127.0.0.1:8000/api/saved_clips", { signal: controller.signal });
-      clearTimeout(timeoutId);
-      if (res.ok) {
-        const data = await res.json();
-        setVaultClips(data.clips || []);
-        setVaultFolders(data.folders || ["Main Library"]);
-        if (data.storage_dir || data.output_dir) setLastOutputFolder(data.storage_dir || data.output_dir);
-        setVaultError(null);
-        setVaultLoading(false);
-        return;
-      }
-      throw new Error(`HTTP ${res.status}`);
-    } catch (err) {
-      if (retries > 0) {
-        setTimeout(() => loadVaultClips(silent, retries - 1), 1000);
-      } else {
-        setVaultLoading(false);
-        if (!silent) {
-          setVaultError("Cannot connect to ClipVault engine. Make sure the backend is running.");
+    // Deduplicate: a new call invalidates + cancels any chain already in flight, then owns
+    // the new generation. Only a NEW external call bumps the generation — internal retries
+    // stay inside the same chain and keep using this id.
+    cancelVaultRetryChain();
+    const chainId = vaultLoadGenerationRef.current;
+
+    const fetchOnce = async (remainingAttempts: number): Promise<void> => {
+      if (chainId !== vaultLoadGenerationRef.current) return; // a newer chain took over
+      if (!silent) { setVaultLoading(true); setVaultError(null); }
+      try {
+        const controller = new AbortController();
+        vaultFetchAbortRef.current = controller;
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s max wait
+        const res = await fetch("http://127.0.0.1:8000/api/saved_clips", { signal: controller.signal });
+        clearTimeout(timeoutId);
+        // A newer chain superseded this one -> drop the stale response entirely
+        if (chainId !== vaultLoadGenerationRef.current) return;
+        if (vaultFetchAbortRef.current === controller) vaultFetchAbortRef.current = null;
+        if (res.ok) {
+          const data = await res.json();
+          if (chainId !== vaultLoadGenerationRef.current) return;
+          setVaultClips(data.clips || []);
+          const standardFolders = ["Shorts Viral", "Movies", "Stream Highlights"];
+          const fetchedFolders = (data.folders || []).filter((f: string) => f && f !== "Main Library" && f !== "all" && f !== "root");
+          const combined = Array.from(new Set([...standardFolders, ...fetchedFolders]));
+          setVaultFolders(combined);
+          if (data.storage_dir || data.output_dir) setLastOutputFolder(data.storage_dir || data.output_dir);
+          setVaultError(null);
+          setVaultLoading(false);
+          return;
+        }
+        throw new Error(`HTTP ${res.status}`);
+      } catch (err) {
+        if (chainId !== vaultLoadGenerationRef.current) return;
+        if (remainingAttempts > 0) {
+          vaultRetryTimeoutRef.current = setTimeout(() => {
+            vaultRetryTimeoutRef.current = null;
+            fetchOnce(remainingAttempts - 1);
+          }, 1000);
+        } else {
+          setVaultLoading(false);
+          if (!silent) {
+            setVaultError("Cannot connect to ClipVault engine. Make sure the backend is running.");
+          }
         }
       }
-    }
+    };
+
+    await fetchOnce(retries);
   };
 
   const loadBackgroundAssets = async () => {
@@ -631,11 +858,36 @@ export const AiClipperScreen: React.FC<Props> = ({
     loadBackgroundAssets();
     return () => {
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+      // Tear down the vault retry chain and any YouTube preview retry so nothing fires post-unmount
+      cancelVaultRetryChain();
+      if (previewRetryTimeoutRef.current) {
+        clearTimeout(previewRetryTimeoutRef.current);
+        previewRetryTimeoutRef.current = null;
+      }
+      if (previewAbortRef.current) {
+        try { previewAbortRef.current.abort(); } catch {}
+        previewAbortRef.current = null;
+      }
     };
   }, []);
 
-  // Automatically fetch YouTube stream preview when user types or pastes YouTube link
+  // Automatically fetch YouTube stream preview when user types or pastes YouTube link.
+  // The retry chain is tracked (cancellable) and every attempt is abortable so a slow older
+  // request can never overwrite the preview for a newer URL.
   const fetchYouTubePreview = async (urlToFetch: string, retries = 4) => {
+    // Supersede any older attempt (in-flight request + queued retry) immediately
+    previewRequestSeqRef.current += 1;
+    const seq = previewRequestSeqRef.current;
+    const isStale = () => seq !== previewRequestSeqRef.current;
+    if (previewRetryTimeoutRef.current) {
+      clearTimeout(previewRetryTimeoutRef.current);
+      previewRetryTimeoutRef.current = null;
+    }
+    if (previewAbortRef.current) {
+      try { previewAbortRef.current.abort(); } catch {}
+      previewAbortRef.current = null;
+    }
+
     if (isLikedVideosUrl(urlToFetch)) {
       setActiveVideoUrl("");
       const likedErr = "Liked Videos Playlist Link Detected: This link was copied from your private YouTube 'Liked videos' playlist (list=LL). YouTube blocks automated tools from accessing private playlists. Please use the direct video link instead.";
@@ -656,9 +908,18 @@ export const AiClipperScreen: React.FC<Props> = ({
     setLoadingPreview(true);
     setPreviewError("");
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/video_info?url=${encodeURIComponent(urlToFetch)}`);
+      const controller = new AbortController();
+      previewAbortRef.current = controller;
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // hung resolver can't wedge the preview
+      const res = await fetch(`http://127.0.0.1:8000/api/video_info?url=${encodeURIComponent(urlToFetch)}`, {
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      if (isStale()) return; // a newer URL/attempt already owns the preview state
+      if (previewAbortRef.current === controller) previewAbortRef.current = null;
       if (res.ok) {
         const data = await res.json();
+        if (isStale()) return;
         if (data.success && (data.stream_url || data.url)) {
           setActiveVideoUrl(data.stream_url || data.url);
           setPreviewError("");
@@ -679,9 +940,15 @@ export const AiClipperScreen: React.FC<Props> = ({
         setLoadingPreview(false);
       }
     } catch (err) {
+      if (isStale()) return;
+      if (previewAbortRef.current) previewAbortRef.current = null;
       // If backend is still initializing on app launch, silently auto-retry!
       if (retries > 0) {
-        setTimeout(() => fetchYouTubePreview(urlToFetch, retries - 1), 1200);
+        previewRetryTimeoutRef.current = setTimeout(() => {
+          previewRetryTimeoutRef.current = null;
+          if (isStale()) return;
+          fetchYouTubePreview(urlToFetch, retries - 1);
+        }, 1200);
         return;
       }
       console.error("YouTube preview stream note:", err);
@@ -771,6 +1038,22 @@ export const AiClipperScreen: React.FC<Props> = ({
     setStatusText("Initializing AI Clipper Engine...");
     setDone(false);
 
+    // Start a fresh run generation and kill any leftover poller / in-flight POST from a
+    // previous run, so a cancelled run can never re-arm polling.
+    runGenerationRef.current += 1;
+    const runGeneration = runGenerationRef.current;
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+    pollInFlightRef.current = false;
+    if (processAbortRef.current) {
+      try { processAbortRef.current.abort(); } catch {}
+      processAbortRef.current = null;
+    }
+    // A late response belongs to a cancelled/superseded run if either guard no longer matches
+    const isStaleRun = () => runGeneration !== runGenerationRef.current;
+
     try {
       // STRICT VALIDATION & REJECTION: For Dual-Layer Split, a secondary/B-roll video MUST be imported/selected
       if (layout === "gameplay_bg") {
@@ -843,49 +1126,79 @@ export const AiClipperScreen: React.FC<Props> = ({
         }
       }
 
-      // 1. Trigger process
-      const startRes = await fetch("http://127.0.0.1:8000/api/process", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          url: activeUrl,
-          num_clips: durationMode === "custom" ? (customRanges ? customRanges.length : 1) : (parseInt(numClips.toString()) || 1),
-          target_duration: calculatedTargetDuration,
-          custom_range: customRange,
-          custom_ranges: customRanges,
-          topic: topicPrompt || null,
-          quality,
-          export_resolution: exportResolution || quality,
-          aspect_ratio: aspectRatio,
-          max_digital_zoom: maxDigitalZoom,
-          min_crop_margin: minCropMargin,
-          adaptive_crop: adaptiveCrop,
-          enable_super_resolution: enableSuperResolution,
-          diagnostic_mode: false,
-          layout,
-          camera_style: enableFaceTracker ? cameraStyle : "off",
-          enable_face_tracker: enableFaceTracker,
-          add_captions: addCaptions,
-          caption_style: selectedEffectId,
-          caption_y_pct: captionYPct / 100.0,
-          add_bg_music: addBgMusic,
-          bg_music_vol: bgMusicVol,
-          bg_music_file: bgMusicFile || null,
-          gameplay_bg_video: gameplayBgVideo || null,
-          auto_sfx: autoSfx,
-          yt_bypass: avoidCopyright,
-          custom_folder_name: customFolderName || null,
-          custom_file_name: exportFileName || null,
-          output_dir: customOutputDir || null,
-          transcription_language: transcriptionLanguage,
-          api_key: isCloudEngine ? (activeEngineKey || null) : null,
-          ai_engine: selectedEngine,
-          custom_crop_boxes: layout === "custom_split" ? [
-            { x: (cropTop.x / 456) * 100, y: (cropTop.y / 256) * 100, width: (cropTop.width / 456) * 100, height: (cropTop.height / 256) * 100 },
-            { x: (cropBottom.x / 456) * 100, y: (cropBottom.y / 256) * 100, width: (cropBottom.width / 456) * 100, height: (cropBottom.height / 256) * 100 }
-          ] : null,
-        }),
-      });
+      // 0. Manual Studio Weekly Credit Verification ($15 Creator Pro: 3 clips/wk, Max: unlimited)
+      if (!isEffectivelyMax) {
+        try {
+          const creditRes = await fetch("http://127.0.0.1:8000/api/license/manual_studio_credits");
+          if (creditRes.ok) {
+            const creditData = await creditRes.json();
+            if (creditData && !creditData.is_max && !creditData.allowed) {
+              setStudioCredits(creditData);
+              setShowCreatorMaxModal(true);
+              setRunning(false);
+              return;
+            }
+          }
+        } catch {}
+      }
+
+      // 1. Trigger process (with a hard abort timeout so a hung engine can't freeze the UI at 5%)
+      const processController = new AbortController();
+      processAbortRef.current = processController;
+      const processTimeoutId = setTimeout(() => processController.abort(), 30000);
+      let startRes: Response;
+      try {
+        startRes = await fetch("http://127.0.0.1:8000/api/process", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: processController.signal,
+          body: JSON.stringify({
+            url: activeUrl,
+            num_clips: durationMode === "custom" ? (customRanges ? customRanges.length : 1) : (parseInt(numClips.toString()) || 1),
+            target_duration: calculatedTargetDuration,
+            custom_range: customRange,
+            custom_ranges: customRanges,
+            topic: topicPrompt || null,
+            quality,
+            export_resolution: exportResolution || quality,
+            aspect_ratio: aspectRatio,
+            max_digital_zoom: maxDigitalZoom,
+            min_crop_margin: minCropMargin,
+            adaptive_crop: adaptiveCrop,
+            enable_super_resolution: enableSuperResolution,
+            diagnostic_mode: false,
+            layout,
+            camera_style: enableFaceTracker ? cameraStyle : "off",
+            enable_face_tracker: enableFaceTracker,
+            add_captions: addCaptions,
+            caption_style: selectedEffectId,
+            caption_y_pct: captionYPct / 100.0,
+            add_bg_music: addBgMusic,
+            bg_music_vol: bgMusicVol,
+            bg_music_file: bgMusicFile || null,
+            gameplay_bg_video: gameplayBgVideo || null,
+            auto_sfx: autoSfx,
+            yt_bypass: avoidCopyright,
+            custom_folder_name: customFolderName || "Shorts Viral",
+            custom_file_name: exportFileName || null,
+            output_dir: customOutputDir || null,
+            transcription_language: transcriptionLanguage,
+            api_key: isCloudEngine ? (activeEngineKey || null) : null,
+            ai_engine: selectedEngine,
+            custom_crop_boxes: layout === "custom_split" ? [
+              { x: (cropTop.x / 456) * 100, y: (cropTop.y / 256) * 100, width: (cropTop.width / 456) * 100, height: (cropTop.height / 256) * 100 },
+              { x: (cropBottom.x / 456) * 100, y: (cropBottom.y / 256) * 100, width: (cropBottom.width / 456) * 100, height: (cropBottom.height / 256) * 100 }
+            ] : null,
+          }),
+        });
+      } finally {
+        clearTimeout(processTimeoutId);
+      }
+      if (processAbortRef.current === processController) processAbortRef.current = null;
+
+      // A run that was cancelled (or superseded) while the POST was in flight must not
+      // touch state or start polling. This is the "cancel doesn't stop the chain" fix.
+      if (isStaleRun()) return;
 
       if (!startRes.ok) {
         let errMsg = "Failed to start clipping task.";
@@ -902,18 +1215,49 @@ export const AiClipperScreen: React.FC<Props> = ({
       }
 
       const { task_id } = await startRes.json();
+      if (isStaleRun()) return;
       currentTaskIdRef.current = task_id;
+
+      // Deduct 1 credit for Pro Manual Studio
+      void fetch("http://127.0.0.1:8000/api/license/use_manual_studio_credit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clip_name: activeUrl || "manual_studio_clip" }),
+      })
+        .then((r) => r.json())
+        .then((d) => {
+          if (d && d.credits) setStudioCredits(d.credits);
+        })
+        .catch(() => {});
 
       // 2. Poll progress
       let consecutiveErrors = 0;
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+      pollInFlightRef.current = false;
       pollIntervalRef.current = setInterval(async () => {
+        // In-flight guard: only one poll at a time, so responses cannot stack and let an
+        // older response drag `progress` backwards.
+        if (pollInFlightRef.current) return;
+        // Stale-run / stale-task guard
+        if (isStaleRun() || currentTaskIdRef.current !== task_id) return;
+        pollInFlightRef.current = true;
+
+        // Hard per-poll abort timeout so a hung engine can never wedge the UI at 5%
+        const pollController = new AbortController();
+        const pollTimeoutId = setTimeout(() => pollController.abort(), 10000);
         try {
-          const pollRes = await fetch(`http://127.0.0.1:8000/api/progress/${task_id}`);
+          const pollRes = await fetch(`http://127.0.0.1:8000/api/progress/${task_id}`, {
+            signal: pollController.signal,
+          });
+          clearTimeout(pollTimeoutId);
+          // Ignore anything that arrived after a cancel / new run / different task
+          if (isStaleRun() || currentTaskIdRef.current !== task_id) return;
+
           if (!pollRes.ok) {
             consecutiveErrors++;
             if (consecutiveErrors >= 3) {
               if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+              pollIntervalRef.current = null;
               setRunning(false);
               setStatusText("Task interrupted or server was restarted.");
               setProgress(0);
@@ -923,11 +1267,15 @@ export const AiClipperScreen: React.FC<Props> = ({
           }
           consecutiveErrors = 0;
           const data = await pollRes.json();
+          if (isStaleRun() || currentTaskIdRef.current !== task_id) return;
           if (data.status) setStatusText(data.status);
-          if (typeof data.progress === "number") setProgress(data.progress);
+          // Never let a late/older poll value move the bar backwards
+          if (typeof data.progress === "number") setProgress((p) => Math.max(p, data.progress));
 
           if (data.completed) {
             if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+            pollIntervalRef.current = null;
+            currentTaskIdRef.current = null;
             setRunning(false);
             setDone(true);
             setGeneratedClips(data.clips || []);
@@ -941,6 +1289,8 @@ export const AiClipperScreen: React.FC<Props> = ({
             );
           } else if (data.cancelled) {
             if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+            pollIntervalRef.current = null;
+            currentTaskIdRef.current = null;
             setRunning(false);
             setStatusText(data.status || "Processing stopped.");
             setProgress(0);
@@ -948,6 +1298,8 @@ export const AiClipperScreen: React.FC<Props> = ({
             if (data.error) setErrorMsg(data.error);
           } else if (data.error) {
             if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+            pollIntervalRef.current = null;
+            currentTaskIdRef.current = null;
             setRunning(false);
             const errLower = (data.error || "").toLowerCase();
             if (data.is_rate_limit || errLower.includes("limit") || errLower.includes("quota") || errLower.includes("429")) {
@@ -955,15 +1307,25 @@ export const AiClipperScreen: React.FC<Props> = ({
             }
             setErrorMsg(data.error);
           }
-        } catch {
-          // ignore transient poll error
+        } catch (err: any) {
+          clearTimeout(pollTimeoutId);
+          // transient poll error / abort timeout: keep polling unless the run is gone
+          if (err?.name === "AbortError" && !isStaleRun()) {
+            consecutiveErrors++;
+          }
+        } finally {
+          pollInFlightRef.current = false;
         }
       }, 1000);
     } catch (err: any) {
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+      if (isStaleRun()) return; // cancelled mid-flight: don't overwrite the cancel state
       setRunning(false);
       let msg = err.message || "An unexpected error occurred.";
-      if (msg.includes("Failed to fetch") || msg.includes("NetworkError") || msg.includes("network")) {
+      if (err?.name === "AbortError") {
+        msg = "The ClipVault engine did not respond in time. Please try again in a moment.";
+      } else if (msg.includes("Failed to fetch") || msg.includes("NetworkError") || msg.includes("network")) {
         msg = "ClipVault Multi-Lingual AI Engine is initializing. Please try again in a moment.";
       }
       const msgLower = msg.toLowerCase();
@@ -975,9 +1337,17 @@ export const AiClipperScreen: React.FC<Props> = ({
   };
 
   const cancelClipper = () => {
+    // Invalidate the run generation FIRST: any late POST/poll response from this run is now stale
+    runGenerationRef.current += 1;
     if (pollIntervalRef.current) {
       clearInterval(pollIntervalRef.current);
       pollIntervalRef.current = null;
+    }
+    pollInFlightRef.current = false;
+    // Abort the in-flight POST so it cannot resolve and re-arm a new polling interval
+    if (processAbortRef.current) {
+      try { processAbortRef.current.abort(); } catch {}
+      processAbortRef.current = null;
     }
     // Instantly update UI so user is never locked or frozen
     setRunning(false);
@@ -985,6 +1355,7 @@ export const AiClipperScreen: React.FC<Props> = ({
     setProgress(0);
 
     const taskId = currentTaskIdRef.current;
+    currentTaskIdRef.current = null;
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 2500);
@@ -1391,12 +1762,12 @@ export const AiClipperScreen: React.FC<Props> = ({
   };
 
   return (
-    <div className="h-screen w-screen flex flex-col font-['Inter',sans-serif] overflow-hidden bg-[#050505] select-none">
+    <div ref={screenContainerRef} className="h-screen w-screen flex flex-col font-['Inter',sans-serif] overflow-hidden bg-[#050505] select-none">
       {/* Background Glow */}
       <div
         className="pointer-events-none fixed inset-0 z-0"
         style={{
-          background: "radial-gradient(ellipse 50% 40% at 50% 0%, rgba(251,191,36,0.07) 0%, transparent 70%)",
+          background: "radial-gradient(ellipse 50% 40% at 50% 0%, rgba(0,255,102,0.07) 0%, transparent 70%)",
         }}
       />
 
@@ -1411,11 +1782,8 @@ export const AiClipperScreen: React.FC<Props> = ({
           </button>
           <div className="w-px h-5 bg-white/10" />
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-xl flex items-center justify-center bg-gradient-to-r from-amber-400 to-amber-500 shadow-[0_0_15px_rgba(251,191,36,0.4)]">
-              <Zap className="w-3.5 h-3.5 text-black" strokeWidth={2.5} />
-            </div>
             <span className="text-white font-bold text-base">ClipVault Studio</span>
-            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-400/10 text-amber-400 border border-amber-400/25 tracking-wide">
+            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-[#34eb3d]/10 text-[#34eb3d] border border-[#34eb3d]/25 tracking-wide">
               V1
             </span>
           </div>
@@ -1427,7 +1795,7 @@ export const AiClipperScreen: React.FC<Props> = ({
               onClick={() => setViewMode("setup")}
               className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                 viewMode === "setup"
-                  ? "bg-amber-400 text-black shadow-md"
+                  ? "bg-gradient-to-r from-[#34eb3d] to-[#5def64] text-black shadow-[0_0_15px_rgba(52, 235, 61,0.4)]"
                   : "text-gray-400 hover:text-white hover:bg-white/5"
               }`}
             >
@@ -1441,13 +1809,13 @@ export const AiClipperScreen: React.FC<Props> = ({
               }}
               className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                 viewMode === "vault"
-                  ? "bg-amber-400 text-black shadow-md"
+                  ? "bg-gradient-to-r from-[#34eb3d] to-[#2dca34] text-black shadow-[0_0_12px_rgba(52, 235, 61,0.2)]"
                   : "text-gray-400 hover:text-white hover:bg-white/5"
               }`}
             >
-              <FolderCheck className="w-3.5 h-3.5 text-amber-400" /> Saved Clips Vault
+              <FolderCheck className={`w-3.5 h-3.5 ${viewMode === "vault" ? "text-black" : "text-emerald-400"}`} /> Saved Clips Vault
               {vaultClips.length > 0 && (
-                <span className="text-[10px] bg-white/15 px-1.5 py-0.2 rounded-full font-extrabold ml-0.5">
+                <span className="text-[10px] bg-white/20 px-1.5 py-0.2 rounded-full font-extrabold ml-0.5">
                   {vaultClips.length}
                 </span>
               )}
@@ -1455,29 +1823,50 @@ export const AiClipperScreen: React.FC<Props> = ({
           </div>
         </div>
 
-        {/* AI Engine Badge & BYOK Toggle */}
+        {/* Pro Manual Studio Credit Status & Engine */}
         <div className="flex items-center gap-3">
+          {/* Pro Manual Studio Credit Status / Upgrade Badge (Only shown when on limited credit plan, removed for Creator Max) */}
+          {!isEffectivelyMax && effectiveStudioCredits && (
+            <button
+              type="button"
+              onClick={() => setShowCreatorMaxModal(true)}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                effectiveStudioCredits.remaining > 0
+                  ? "bg-white/5 border-[#34eb3d]/30 text-white hover:border-[#34eb3d]"
+                  : "bg-amber-500/10 border-amber-500/40 text-amber-300 hover:bg-amber-500/20"
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-[#34eb3d]" />
+              <span>
+                {`Pro Studio: ${effectiveStudioCredits.remaining}/3 Weekly Clips`}
+              </span>
+              <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-white/10 text-zinc-300">
+                {effectiveStudioCredits.remaining > 0 ? "Upgrade" : `Resets in ${effectiveStudioCredits.resets_in_days}d`}
+              </span>
+            </button>
+          )}
+
           <button
             id="tour-step-3-engine"
             type="button"
             onClick={() => setShowKeySettings(!showKeySettings)}
             className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl border text-xs text-white transition-all cursor-pointer shadow-md ${
               isKeyMissingForActiveEngine
-                ? "bg-amber-500/15 border-amber-400 hover:bg-amber-500/25 shadow-amber-400/10"
-                : "bg-white/5 hover:bg-white/10 border-amber-400/30"
+                ? "bg-emerald-500/15 border-emerald-400 hover:bg-emerald-500/25 shadow-emerald-400/10"
+                : "bg-white/5 hover:bg-white/10 border-emerald-400/30"
             }`}
           >
-            <Cpu className="w-3.5 h-3.5 text-amber-400" />
+            <Cpu className="w-3.5 h-3.5 text-emerald-400" />
             <span className="font-bold text-gray-300">Engine:</span>
-            <span className="text-amber-400 font-bold">
+            <span className="text-emerald-400 font-bold">
               {(AI_ENGINES.find((e) => e.id === selectedEngine) || AI_ENGINES[0])?.name || "AI Engine"}
             </span>
             <span className={`text-[9px] px-1.5 py-0.5 rounded-md font-extrabold uppercase ${
               byokMode === "local" 
                 ? "bg-white/10 text-gray-300 border border-white/20"
                 : isKeyMissingForActiveEngine
-                ? "bg-amber-400/20 text-amber-300 border border-amber-400/40 animate-pulse"
-                : "bg-amber-400 text-black shadow-sm"
+                ? "bg-emerald-400/20 text-emerald-300 border border-emerald-400/40 animate-pulse"
+                : "bg-emerald-400 text-black shadow-sm"
             }`}>
               {byokMode === "local" ? "Local GPU / QSV" : isKeyMissingForActiveEngine ? "Key Missing (API)" : "Cloud AI (API)"}
             </span>
@@ -1519,9 +1908,9 @@ export const AiClipperScreen: React.FC<Props> = ({
       {/* Clean API Key Limit Security Modal */}
       {showRateLimitModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
-          <div className="relative w-full max-w-[480px] rounded-3xl bg-[#0d0d0f] border border-amber-400/30 shadow-[0_0_50px_rgba(251,191,36,0.15)] overflow-hidden p-6 space-y-4 text-left">
+          <div className="relative w-full max-w-[480px] rounded-3xl bg-[#0d0d0f] border border-emerald-400/30 shadow-[0_0_50px_rgba(0,255,102,0.15)] overflow-hidden p-6 space-y-4 text-left">
             <div className="flex items-center gap-3">
-              <div className="p-3 rounded-2xl bg-amber-400/10 border border-amber-400/20 text-amber-400">
+              <div className="p-3 rounded-2xl bg-emerald-400/10 border border-emerald-400/20 text-emerald-400">
                 <AlertCircle className="w-6 h-6" />
               </div>
               <div>
@@ -1535,7 +1924,7 @@ export const AiClipperScreen: React.FC<Props> = ({
             </div>
 
             <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/5 space-y-1.5 text-xs text-gray-300 leading-relaxed">
-              <p className="font-semibold text-amber-300">
+              <p className="font-semibold text-emerald-300">
                 Oh no! Your API key is at its limit already.
               </p>
               <p className="text-[11px] text-gray-400">
@@ -1552,7 +1941,7 @@ export const AiClipperScreen: React.FC<Props> = ({
                   setShowRateLimitModal(false);
                   setErrorMsg("");
                 }}
-                className="w-full py-2.5 px-4 rounded-xl bg-amber-400 text-black font-bold text-xs hover:bg-amber-300 transition-all cursor-pointer shadow-md flex items-center justify-center gap-2"
+                className="w-full py-2.5 px-4 rounded-xl bg-emerald-400 text-black font-bold text-xs hover:bg-emerald-300 transition-all cursor-pointer shadow-md flex items-center justify-center gap-2"
               >
                 <HardDrive className="w-4 h-4" />
                 <span>Switch to Free Local GPU / NPU Mode</span>
@@ -1566,7 +1955,7 @@ export const AiClipperScreen: React.FC<Props> = ({
                 }}
                 className="w-full py-2 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs transition-all cursor-pointer border border-white/10 flex items-center justify-center gap-2"
               >
-                <Cpu className="w-3.5 h-3.5 text-amber-400" />
+                <Cpu className="w-3.5 h-3.5 text-emerald-400" />
                 <span>Update API Key in Settings</span>
               </button>
 
@@ -1860,7 +2249,7 @@ export const AiClipperScreen: React.FC<Props> = ({
                     virality_score: 98,
                     created_at: Date.now(),
                     size_mb: 12,
-                    folder: customFolderName || "Main Library",
+                    folder: customFolderName || "Shorts Viral",
                   }
             }
             onClose={() => setViewMode("vault")}
@@ -1895,12 +2284,12 @@ export const AiClipperScreen: React.FC<Props> = ({
           onClick={() => setMoveModalClips(null)}
         >
           <div
-            className="bg-[#141414] border border-amber-400/30 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4"
+            className="bg-[#141414] border border-emerald-400/30 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between">
               <h3 className="text-white font-bold text-sm flex items-center gap-2">
-                <Folder className="w-5 h-5 text-amber-400" /> Move {moveModalClips.length} Clip(s) To:
+                <Folder className="w-5 h-5 text-emerald-400" /> Move {moveModalClips.length} Clip(s) To:
               </h3>
               <button onClick={() => setMoveModalClips(null)} className="text-gray-400 hover:text-white cursor-pointer">
                 ✕
@@ -1911,12 +2300,12 @@ export const AiClipperScreen: React.FC<Props> = ({
                 <button
                   key={folder}
                   onClick={() => handleMoveClips(moveModalClips, folder)}
-                  className="w-full text-left px-4 py-3 rounded-xl bg-white/5 hover:bg-amber-400/20 border border-white/10 hover:border-amber-400/50 text-white font-bold text-xs flex items-center justify-between transition-all cursor-pointer group"
+                  className="w-full text-left px-4 py-3 rounded-xl bg-white/5 hover:bg-emerald-400/20 border border-white/10 hover:border-emerald-400/50 text-white font-bold text-xs flex items-center justify-between transition-all cursor-pointer group"
                 >
                   <span className="flex items-center gap-2">
-                    <FolderOpen className="w-4 h-4 text-amber-400" /> {folder}
+                    <FolderOpen className="w-4 h-4 text-emerald-400" /> {folder}
                   </span>
-                  <span className="text-[10px] text-gray-500 group-hover:text-amber-300">Move Here →</span>
+                  <span className="text-[10px] text-gray-500 group-hover:text-emerald-300">Move Here →</span>
                 </button>
               ))}
             </div>
@@ -1926,7 +2315,7 @@ export const AiClipperScreen: React.FC<Props> = ({
                   setMoveModalClips(null);
                   setShowNewFolderModal(true);
                 }}
-                className="text-xs text-amber-400 hover:underline font-bold flex items-center gap-1 cursor-pointer"
+                className="text-xs text-emerald-400 hover:underline font-bold flex items-center gap-1 cursor-pointer"
               >
                 <Plus className="w-3 h-3" /> Create new folder first
               </button>
@@ -1948,12 +2337,12 @@ export const AiClipperScreen: React.FC<Props> = ({
           onClick={() => setShowNewFolderModal(false)}
         >
           <div
-            className="bg-[#141414] border border-amber-400/40 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4"
+            className="bg-[#141414] border border-emerald-400/40 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between">
               <h3 className="text-white font-bold text-base flex items-center gap-2">
-                <Folder className="w-5 h-5 text-amber-400" />{" "}
+                <Folder className="w-5 h-5 text-emerald-400" />{" "}
                 {newFolderParent && newFolderParent !== "root"
                   ? `New Subfolder in "${newFolderParent}"`
                   : "Create New Folder"}
@@ -1968,7 +2357,7 @@ export const AiClipperScreen: React.FC<Props> = ({
               <select
                 value={newFolderParent}
                 onChange={(e) => setNewFolderParent(e.target.value)}
-                className="w-full rounded-xl px-4 py-2.5 text-xs text-white bg-black/60 border border-white/15 outline-none focus:border-amber-400 cursor-pointer"
+                className="w-full rounded-xl px-4 py-2.5 text-xs text-white bg-black/60 border border-white/15 outline-none focus:border-emerald-400 cursor-pointer"
               >
                 <option value="root">Root / Top Level</option>
                 {vaultFolders.map((f) => (
@@ -1991,8 +2380,8 @@ export const AiClipperScreen: React.FC<Props> = ({
                   e.stopPropagation();
                   if (e.key === "Enter") handleCreateFolder();
                 }}
-                placeholder="e.g. Day 1, Stream Highlights, Shorts..."
-                className="w-full rounded-xl px-4 py-2.5 text-xs text-white bg-black/60 border border-white/20 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/50 cursor-text select-text pointer-events-auto shadow-inner"
+                placeholder="e.g. Movies, Shorts Viral, Stream Highlights..."
+                className="w-full rounded-xl px-4 py-2.5 text-xs text-white bg-black/60 border border-white/20 outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/50 cursor-text select-text pointer-events-auto shadow-inner"
               />
             </div>
 
@@ -2005,7 +2394,7 @@ export const AiClipperScreen: React.FC<Props> = ({
               </button>
               <button
                 onClick={handleCreateFolder}
-                className="px-5 py-2 rounded-xl text-xs font-black bg-amber-400 text-black hover:bg-amber-300 transition-all shadow-md cursor-pointer"
+                className="px-5 py-2 rounded-xl text-xs font-black bg-emerald-400 text-black hover:bg-emerald-300 transition-all shadow-md cursor-pointer"
               >
                 Create Folder
               </button>
@@ -2013,6 +2402,18 @@ export const AiClipperScreen: React.FC<Props> = ({
           </div>
         </div>
       )}
+
+      {/* Creator Max Studio Upgrade Modal */}
+      <CreatorMaxUpgradeModal
+        isOpen={showCreatorMaxModal}
+        onClose={() => setShowCreatorMaxModal(false)}
+        onSwitchToAutoClipper={() => {
+          setShowCreatorMaxModal(false);
+          onBack();
+        }}
+        resetsInDays={studioCredits?.resets_in_days || 7}
+        resetsAt={studioCredits?.resets_at || ""}
+      />
     </div>
   );
 };

@@ -69,8 +69,15 @@ from services.recap_generator import RecapGenerator
 from services.scene_detector import SceneDetector
 from services.source_analyzer import SourceAnalyzer
 from services.quality_engine import QualityEngine
+
+# Commercial license gate: every render entry point below calls require_render_license().
+try:
+    from services.license_service import require_render_license
+except Exception as _license_import_error:  # pragma: no cover - import guard only
+    require_render_license = None
+
 from services.super_resolution import SuperResolutionEngine
-from utils.helpers import cleanup_temp_files
+from utils.helpers import cleanup_task_temp_dir, cleanup_temp_files, make_task_temp_dir
 
 
 # ==============================================================================
@@ -115,7 +122,10 @@ class VideoProcessor:
     def __init__(self, api_key: Optional[str] = None, ai_engine: str = "openai_sora", caption_style: str = "capcut_yellow", **kwargs):
         self.api_key = api_key
         self.ai_engine = ai_engine
-        self.downloader = YouTubeDownloader(TEMP_DIR)
+        # Per-task temp directory: this task removes only its own files, so a concurrent
+        # render (or another task finishing) can no longer wipe intermediates mid-encode.
+        self.temp_dir = make_task_temp_dir(kwargs.get("task_id"))
+        self.downloader = YouTubeDownloader(self.temp_dir)
         self.transcriber = WhisperSingleton()
         self.ai_selector = AISelector(api_key or GEMINI_API_KEY, provider=ai_engine)
         self.caption_maker = CaptionMaker(selected_style=caption_style)
@@ -143,12 +153,15 @@ class VideoProcessor:
 
         try:
             ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
-            enc_res = subprocess.run([ffmpeg_exe, '-encoders'], capture_output=True, text=True, check=False)
+            # Every probe needs a timeout: a wedged ffmpeg/PowerShell would otherwise block this
+            # worker thread for the rest of the render with no way out.
+            enc_res = subprocess.run([ffmpeg_exe, '-encoders'], capture_output=True, text=True,
+                                     check=False, timeout=20)
             if 'h264_qsv' in enc_res.stdout:
                 test_res = subprocess.run([
                     ffmpeg_exe, '-f', 'lavfi', '-i', 'nullsrc=s=64x64:d=0.1',
                     '-c:v', 'h264_qsv', '-f', 'null', '-'
-                ], capture_output=True, text=True, check=False)
+                ], capture_output=True, text=True, check=False, timeout=20)
                 if test_res.returncode == 0:
                     print("    [Hardware Acceleration]: Intel Arc QuickSync (h264_qsv)...")
                     return 'h264_qsv', 'medium', ['-pix_fmt', 'nv12', '-global_quality', '15', '-b:v', '25M', '-maxrate', '35M', '-movflags', '+faststart'], thread_count
@@ -158,7 +171,7 @@ class VideoProcessor:
         try:
             output = subprocess.check_output(
                 ['powershell', '-NoProfile', '-Command', 'Get-CimInstance Win32_VideoController | Select-Object -ExpandProperty Name'],
-                text=True
+                text=True, timeout=25
             )
             if 'AMD' in output or 'Radeon' in output:
                 print("    [Hardware Acceleration]: AMD AMF (h264_amf)...")
@@ -221,6 +234,13 @@ class VideoProcessor:
         """
         Main entry point for processing and generating viral video clips.
         """
+        # ── Commercial license gate (enforce mode blocks render without a valid license)
+        if require_render_license is not None:
+            is_manual_studio = bool(custom_ranges or custom_range or custom_range_filter)
+            is_free_eligible = not is_manual_studio
+            eff_res = export_resolution or quality or "1080p"
+            require_render_license(is_free_1click=is_free_eligible, resolution=eff_res)
+
         # Lower process priority to prevent UI lag on low-spec hardware during video compilation
         try:
             import psutil
@@ -678,7 +698,7 @@ class VideoProcessor:
                     if not words_in_range and not clip_fallback_words and clip.audio is not None:
                         clip_audio_tmp = None
                         try:
-                            clip_audio_tmp = TEMP_DIR / f"clip_audio_{i}_{int(time.time()*1000)}.wav"
+                            clip_audio_tmp = self.temp_dir / f"clip_audio_{i}_{int(time.time()*1000)}.wav"
                             clip.audio.write_audiofile(
                                 str(clip_audio_tmp),
                                 fps=16000,
@@ -843,7 +863,7 @@ class VideoProcessor:
                     except Exception as recovery_err:
                         print(f"     Audio recovery note: {recovery_err}")
 
-                safe_temp_audio = str((TEMP_DIR / f'temp_audio_{i}_{os.getpid()}_{int(time.time())}.m4a').resolve())
+                safe_temp_audio = str((self.temp_dir / f'temp_audio_{i}_{os.getpid()}_{int(time.time())}.m4a').resolve())
 
                 try:
                     clip.write_videofile(
@@ -891,11 +911,16 @@ class VideoProcessor:
                     final_pct = min(99, int(60.0 + (i / max(1, len(clip_specs))) * 39.0))
                     progress_callback(f"Finalized Clip {i}/{len(clip_specs)}", final_pct)
 
-                # Save structured JSON and legacy text metadata files
+                # Save structured JSON and legacy text metadata files.
+                # These paths are resolved OUTSIDE the try so the thumbnail block further down can
+                # always reference them: a metadata failure used to leave `metadata_dir` unbound,
+                # and the resulting NameError was swallowed, silently skipping EVERY thumbnail for
+                # the whole run (the `'clean_title' in locals()` guard also leaked a previous
+                # iteration's title).
+                metadata_dir = (target_dir / "metadata").resolve()
+                clean_title = clip_info.get('content_title', title_text)
                 try:
-                    metadata_dir = (target_dir / "metadata").resolve()
                     metadata_dir.mkdir(parents=True, exist_ok=True)
-                    clean_title = clip_info.get('content_title', title_text)
                     clean_desc = clip_info.get('content_description', '')
                     curation_reason = clip_info.get('reason', '')
                     sub_scores = clip_info.get('sub_scores', {})
@@ -903,7 +928,7 @@ class VideoProcessor:
 
                     # 1. Structured JSON metadata for high-fidelity UI rendering
                     json_meta_path = (metadata_dir / f"{output_path.stem}_metadata.json").resolve()
-                    trans_conf = getattr(self.transcriber, 'last_confidence', 97)
+                    trans_conf = self.transcriber.get_last_confidence()
                     json_data = {
                         "title": clean_title,
                         "description": clean_desc,
@@ -941,7 +966,7 @@ class VideoProcessor:
                     thumb_gen = ThumbnailGenerator(self.face_tracker)
                     thumb_target = target_dir / f"{output_path.stem}_thumbnail.jpg"
                     hook_t = clip_info.get('hook_text', '') or hook_text or ''
-                    clean_t = clean_title if 'clean_title' in locals() else title_text
+                    clean_t = clean_title  # always bound - resolved above, outside the metadata try
                     thumb_gen.generate_thumbnail(
                         str(output_path),
                         output_path=str(thumb_target),
@@ -981,7 +1006,8 @@ class VideoProcessor:
                 gc.collect()
 
         self.face_tracker.close()
-        cleanup_temp_files()
+        # Only this task's temp dir is removed - never another running task's files.
+        cleanup_task_temp_dir(self.temp_dir)
 
         # Restore normal process priority
         try:
@@ -1055,6 +1081,10 @@ class VideoProcessor:
         Re-renders an existing clip with updated words/captions and dynamic framing
         in seconds without needing to re-download the source video!
         """
+        # ── Commercial license gate (same rule as process_video)
+        if require_render_license is not None:
+            require_render_license()
+
         from moviepy.editor import VideoFileClip
         from pathlib import Path
         import time
@@ -1091,7 +1121,7 @@ class VideoProcessor:
         out_path = (src_path.parent / out_name).resolve()
 
         best_codec, best_preset, ffmpeg_params, thread_count = self.detect_hardware_encoder()
-        safe_temp_audio = str((TEMP_DIR / f're_render_audio_{os.getpid()}_{int(time.time())}.m4a').resolve())
+        safe_temp_audio = str((self.temp_dir / f're_render_audio_{os.getpid()}_{int(time.time())}.m4a').resolve())
 
         processed.write_videofile(
             str(out_path),

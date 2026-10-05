@@ -315,7 +315,7 @@ class CaptionMaker:
 
     def create_phrase_image(self, words_in_phrase, font_size, active_idx=None, style_config=None):
         """
-        Renders a full multi-word phrase matching modern CapCut & Opus viral standards:
+        Renders a full multi-word phrase matching modern viral video standards:
         - Multi-radius Gaussian bloom glow with soft dark ambient vignette
         - Top floating contextual/custom emojis centered directly above active words
         - Stacked 2-line layout option
@@ -409,7 +409,7 @@ class CaptionMaker:
         base_color = style_config.get('text_color', (255, 255, 255, 255))
         highlight_color = style_config.get('highlight_color', (0, 255, 102, 255))
 
-        # --- A. NEON GLOW BRANCH (True CapCut Gaussian Bloom) ---
+        # --- A. NEON GLOW BRANCH (Gaussian Bloom) ---
         if is_neon_glow:
             # 1. Soft dark ambient vignette backing
             if style_config.get('ambient_shadow', True):
@@ -464,7 +464,7 @@ class CaptionMaker:
                     fg_draw.text((pos[0] + dx, pos[1] + dy), w_text, font=font, fill=(0, 0, 0, 160))
                 fg_draw.text(pos, w_text, font=font, fill=fg_col)
 
-        # --- B. CHUNKY OUTLINE BRANCH (CapCut Bold Green 'brown' style) ---
+        # --- B. CHUNKY OUTLINE BRANCH (Bold Outline style) ---
         elif is_outline:
             import cv2
             stroke_factor = style_config.get('stroke_factor', 0.18)
@@ -573,7 +573,7 @@ class CaptionMaker:
     def group_words_into_phrases(self, words, max_words=2, max_silence=0.35):
         """
         Groups individual words into punchy, high-energy 1-2 word bursts (max 3 short words)
-        matching modern TikTok, Alex Hormozi, and Opus Clip viral standards.
+        matching modern vertical short-form viral standards.
         """
         phrases = []
         if not words:
@@ -615,7 +615,7 @@ class CaptionMaker:
 
     def create_opus_hook_card(self, hook_text, video_width, video_height):
         """
-        Renders an OpusClip-signature white rounded top headline card.
+        Renders a clean white rounded top headline card.
         Clean white badge with bold dark typography at the top of the vertical frame (y ≈ 5.5%).
         """
         import textwrap
@@ -683,7 +683,7 @@ class CaptionMaker:
     def add_captions(self, clip, words, clip_start_time, layout="vertical_crop", movie_recap=False, hook_text=None, auto_sfx=False, caption_y_pct=0.63):
         """
         Adds word-by-word captions and an optional static video hook banner to a video clip.
-        Uses CapCut / Opus Clip multi-word bursts with active karaoke highlighting.
+        Uses multi-word bursts with active karaoke highlighting.
         """
         if not words:
             return clip
@@ -761,7 +761,7 @@ class CaptionMaker:
             except Exception:
                 pass
         
-        # Pre-render static video hook banner if provided (OpusClip signature white rounded top card)
+        # Pre-render static video hook banner if provided (Clean white rounded top card)
         hook_data = None
         if hook_text:
             try:
@@ -802,7 +802,7 @@ class CaptionMaker:
 
             is_karaoke = style_config.get('karaoke', True)
 
-            # CapCut / Opus Clip graceful lingering: keep phrase readable for 0.25s after speaking (or until next phrase)
+            # Graceful phrase lingering: keep phrase readable for 0.25s after speaking (or until next phrase)
             next_p_start = phrases[p_idx + 1]['start'] if p_idx + 1 < len(phrases) else clip.duration
             phrase_linger_end = min(next_p_start, phrase['end'] + 0.25)
 
@@ -901,7 +901,7 @@ class CaptionMaker:
                 w_w, w_h = s_data['w'], s_data['h']
                 x_pos, y_pos = s_data['x'], s_data['y']
                 
-                # Subtle Opus Clip & CapCut Pop Bounce on word entry (first 70ms)
+                # Subtle pop bounce animation on word entry (first 70ms)
                 elapsed = t - s_data['start']
                 if elapsed < 0.08:
                     scale = 1.0 + (1.0 - elapsed / 0.08) * 0.08  # Micro pop of 8%

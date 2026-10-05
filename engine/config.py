@@ -75,6 +75,11 @@ TEMP_DIR.mkdir(parents=True, exist_ok=True)
 BACKGROUNDS_DIR.mkdir(parents=True, exist_ok=True)
 MUSIC_DIR.mkdir(parents=True, exist_ok=True)
 
+# Standard common project folders
+DEFAULT_PROJECT_FOLDERS = ["Movies", "Shorts Viral", "Stream Highlights"]
+for _f in DEFAULT_PROJECT_FOLDERS:
+    (OUTPUT_DIR / _f).mkdir(parents=True, exist_ok=True)
+
 if GEMINI_API_KEY and "YOUR_API_KEY_HERE" in GEMINI_API_KEY:
     print("[WARNING] Please set your actual API key in the app's Engine Settings.")
 

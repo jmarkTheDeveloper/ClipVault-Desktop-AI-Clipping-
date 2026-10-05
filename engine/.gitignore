@@ -136,3 +136,6 @@ temp_files/
 *.mp4
 *.m4a
 *.txt
+# ...but the Python dependency manifest MUST be tracked, otherwise a fresh clone cannot
+# install the engine at all (a bare `*.txt` above was silently ignoring it).
+!requirements*.txt

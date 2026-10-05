@@ -1,6 +1,30 @@
 @custom-variant dark (&:is(.dark *));
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   ClipVault brand ramp
+
+   One authored green ramp anchored on #34eb3d — a vivid spring green (hue ~123°)
+   rather than the old flat Material Green A400, which was used identically for
+   text, fills, borders and glows and so left every control on one flat tone.
+
+   The ramp has a real light→dark spread, so fills, accent text, borders, glows
+   and dark surface tints each take the right tone. Every semantic token below
+   derives from it, and the emerald-* utilities are mapped onto it in @theme —
+   so the whole app follows one palette.
+   ───────────────────────────────────────────────────────────────────────────── */
 :root {
+  --brand-50: #ebfdec;
+  --brand-100: #cefad0;
+  --brand-200: #aaf7ae;
+  --brand-300: #81f387;
+  --brand-400: #5def64;
+  --brand-500: #34eb3d;
+  --brand-600: #2dca34;
+  --brand-700: #25a92c;
+  --brand-800: #1f8d25;
+  --brand-900: #186e1d;
+  --brand-950: #104612;
+
   --font-size: 14px;
   --background: #050505;
   --foreground: #e8e8e8;
@@ -8,37 +32,37 @@
   --card-foreground: #e8e8e8;
   --popover: #0e0e0e;
   --popover-foreground: #e8e8e8;
-  --primary: #00e676;
+  --primary: var(--brand-500);
   --primary-foreground: #000000;
   --secondary: rgba(255,255,255,0.04);
   --secondary-foreground: #e8e8e8;
   --muted: rgba(255,255,255,0.04);
   --muted-foreground: #5a5a5a;
-  --accent: #00e676;
+  --accent: var(--brand-500);
   --accent-foreground: #000000;
   --destructive: #ff4444;
   --destructive-foreground: #ffffff;
-  --border: rgba(0, 230, 118, 0.12);
+  --border: rgba(52, 235, 61, 0.12);
   --input: rgba(255,255,255,0.05);
   --input-background: rgba(255,255,255,0.05);
   --switch-background: #2a2a2a;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --ring: #00e676;
-  --chart-1: #00e676;
-  --chart-2: #00b859;
-  --chart-3: #f0fdf4;
-  --chart-4: #86efac;
-  --chart-5: #4ade80;
+  --ring: var(--brand-500);
+  --chart-1: var(--brand-500);
+  --chart-2: var(--brand-600);
+  --chart-3: var(--brand-50);
+  --chart-4: var(--brand-200);
+  --chart-5: var(--brand-300);
   --radius: 0.75rem;
   --sidebar: rgba(5,5,5,0.95);
   --sidebar-foreground: #e8e8e8;
-  --sidebar-primary: #00e676;
+  --sidebar-primary: var(--brand-500);
   --sidebar-primary-foreground: #000000;
-  --sidebar-accent: rgba(0,230,118,0.06);
+  --sidebar-accent: rgba(52, 235, 61,0.06);
   --sidebar-accent-foreground: #e8e8e8;
-  --sidebar-border: rgba(0,230,118,0.1);
-  --sidebar-ring: #00e676;
+  --sidebar-border: rgba(52, 235, 61,0.1);
+  --sidebar-ring: var(--brand-500);
 }
 
 .dark {
@@ -48,37 +72,66 @@
   --card-foreground: #e8e8e8;
   --popover: #0e0e0e;
   --popover-foreground: #e8e8e8;
-  --primary: #00e676;
+  --primary: var(--brand-500);
   --primary-foreground: #000000;
   --secondary: rgba(255,255,255,0.04);
   --secondary-foreground: #e8e8e8;
   --muted: rgba(255,255,255,0.04);
   --muted-foreground: #5a5a5a;
-  --accent: #00e676;
+  --accent: var(--brand-500);
   --accent-foreground: #000000;
   --destructive: #ff4444;
   --destructive-foreground: #ffffff;
-  --border: rgba(0,230,118,0.12);
+  --border: rgba(52, 235, 61,0.12);
   --input: rgba(255,255,255,0.05);
-  --ring: #00e676;
+  --ring: var(--brand-500);
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --chart-1: #00e676;
-  --chart-2: #00b859;
-  --chart-3: #f0fdf4;
-  --chart-4: #86efac;
-  --chart-5: #4ade80;
+  --chart-1: var(--brand-500);
+  --chart-2: var(--brand-600);
+  --chart-3: var(--brand-50);
+  --chart-4: var(--brand-200);
+  --chart-5: var(--brand-300);
   --sidebar: rgba(5,5,5,0.95);
   --sidebar-foreground: #e8e8e8;
-  --sidebar-primary: #00e676;
+  --sidebar-primary: var(--brand-500);
   --sidebar-primary-foreground: #000000;
-  --sidebar-accent: rgba(0,230,118,0.06);
+  --sidebar-accent: rgba(52, 235, 61,0.06);
   --sidebar-accent-foreground: #e8e8e8;
-  --sidebar-border: rgba(0,230,118,0.1);
-  --sidebar-ring: #00e676;
+  --sidebar-border: rgba(52, 235, 61,0.1);
+  --sidebar-ring: var(--brand-500);
 }
 
 @theme inline {
+  /* Brand ramp, exposed directly as brand-* utilities */
+  --color-brand-50: var(--brand-50);
+  --color-brand-100: var(--brand-100);
+  --color-brand-200: var(--brand-200);
+  --color-brand-300: var(--brand-300);
+  --color-brand-400: var(--brand-400);
+  --color-brand-500: var(--brand-500);
+  --color-brand-600: var(--brand-600);
+  --color-brand-700: var(--brand-700);
+  --color-brand-800: var(--brand-800);
+  --color-brand-900: var(--brand-900);
+  --color-brand-950: var(--brand-950);
+
+  /* The emerald-* utilities are the app's brand green, so the WHOLE ramp is
+     mapped onto brand. Previously only 300-600 were overridden, which meant
+     every emerald-200/900/950 in the code silently fell back to Tailwind's own
+     emerald — a different green sitting right beside the brand one. */
+  --color-emerald-50: var(--brand-50);
+  --color-emerald-100: var(--brand-100);
+  --color-emerald-200: var(--brand-200);
+  --color-emerald-300: var(--brand-300);
+  --color-emerald-400: var(--brand-400);
+  --color-emerald-500: var(--brand-500);
+  --color-emerald-600: var(--brand-600);
+  --color-emerald-700: var(--brand-700);
+  --color-emerald-800: var(--brand-800);
+  --color-emerald-900: var(--brand-900);
+  --color-emerald-950: var(--brand-950);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);

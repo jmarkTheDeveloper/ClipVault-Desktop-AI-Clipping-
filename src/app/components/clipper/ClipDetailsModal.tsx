@@ -147,11 +147,11 @@ export const ClipDetailsModal: React.FC<ClipDetailsModalProps> = ({
         <div className="flex-1 flex flex-col justify-between space-y-4">
           <div>
             <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <span className="text-xs bg-amber-400/20 text-amber-400 border border-amber-400/30 px-2.5 py-0.5 rounded-full font-bold">
+              <span className="text-xs bg-emerald-400/20 text-emerald-400 border border-emerald-400/30 px-2.5 py-0.5 rounded-full font-bold">
                 Score: {clip.virality_score || 99} pts
               </span>
               {clip.start !== undefined && clip.end !== undefined && (
-                <span className="text-xs bg-amber-400/10 text-amber-300 border border-amber-400/30 px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1">
+                <span className="text-xs bg-emerald-400/10 text-emerald-300 border border-emerald-400/30 px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1">
                   ⏱️ Timeline: {Math.floor(clip.start / 60)}:{(Math.floor(clip.start % 60) < 10 ? "0" : "") + Math.floor(clip.start % 60)} - {Math.floor(clip.end / 60)}:{(Math.floor(clip.end % 60) < 10 ? "0" : "") + Math.floor(clip.end % 60)}
                   {clip.duration ? ` (${Math.round(clip.duration)}s)` : ""}
                 </span>
@@ -167,7 +167,7 @@ export const ClipDetailsModal: React.FC<ClipDetailsModalProps> = ({
                 </span>
               )}
               <span className="text-xs bg-white/10 text-gray-300 px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1">
-                <Folder className="w-3 h-3 text-amber-400" /> {clip.folder}
+                <Folder className="w-3 h-3 text-emerald-400" /> {clip.folder}
               </span>
             </div>
 
@@ -190,7 +190,7 @@ export const ClipDetailsModal: React.FC<ClipDetailsModalProps> = ({
                         Audio Clarity {clip.transcription_confidence}%
                       </span>
                     )}
-                    <span className="text-[11px] font-mono text-amber-400 font-semibold">
+                    <span className="text-[11px] font-mono text-emerald-400 font-semibold">
                       Overall {clip.virality_score || 95}/100
                     </span>
                   </div>
@@ -203,7 +203,7 @@ export const ClipDetailsModal: React.FC<ClipDetailsModalProps> = ({
                       <span className="text-white font-mono font-bold">{clip.sub_scores.hook}</span>
                     </div>
                     <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden">
-                      <div className="bg-amber-400 h-1.5 rounded-full" style={{ width: `${clip.sub_scores.hook}%` }} />
+                      <div className="bg-emerald-400 h-1.5 rounded-full" style={{ width: `${clip.sub_scores.hook}%` }} />
                     </div>
                   </div>
 
@@ -256,7 +256,7 @@ export const ClipDetailsModal: React.FC<ClipDetailsModalProps> = ({
             <div className="p-4 rounded-2xl bg-zinc-900/90 border border-white/10 space-y-3 mb-4 shadow-lg">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-lg bg-amber-400/10 border border-amber-400/30 flex items-center justify-center text-amber-400">
+                  <div className="w-6 h-6 rounded-lg bg-emerald-400/10 border border-emerald-400/30 flex items-center justify-center text-emerald-400">
                     <Share2 className="w-3.5 h-3.5" />
                   </div>
                   <div>
@@ -269,7 +269,7 @@ export const ClipDetailsModal: React.FC<ClipDetailsModalProps> = ({
                   </div>
                 </div>
                 {platformCopied && (
-                  <span className="text-[11px] text-amber-400 font-bold bg-amber-400/10 border border-amber-400/30 px-2 py-0.5 rounded-full flex items-center gap-1 animate-pulse">
+                  <span className="text-[11px] text-emerald-400 font-bold bg-emerald-400/10 border border-emerald-400/30 px-2 py-0.5 rounded-full flex items-center gap-1 animate-pulse">
                     <Check className="w-3 h-3" /> Metadata Copied &amp; Web Opened!
                   </span>
                 )}
@@ -347,7 +347,7 @@ export const ClipDetailsModal: React.FC<ClipDetailsModalProps> = ({
           <div className="flex items-center gap-2.5 pt-3 border-t border-white/10 flex-wrap">
             <button
               onClick={() => setShowCustomizer(true)}
-              className="px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-black flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
+              className="px-4 py-2.5 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-black text-xs font-black flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
             >
               <Sparkles className="w-3.5 h-3.5" /> Customize Captions
             </button>
@@ -374,7 +374,7 @@ export const ClipDetailsModal: React.FC<ClipDetailsModalProps> = ({
                 onClick={() => onMove(clip.path)}
                 className="px-3 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-gray-200 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
               >
-                <Folder className="w-3.5 h-3.5 text-amber-400" /> Move
+                <Folder className="w-3.5 h-3.5 text-emerald-400" /> Move
               </button>
             )}
 
@@ -439,7 +439,7 @@ export const ClipDetailsModal: React.FC<ClipDetailsModalProps> = ({
 
             {/* Target Item Inset Card */}
             <div className="p-4 rounded-2xl bg-black/50 border border-white/10 flex items-center gap-3.5">
-              <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0 text-amber-400">
+              <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0 text-emerald-400">
                 <Film className="w-5 h-5" />
               </div>
               <div className="min-w-0 flex-1">

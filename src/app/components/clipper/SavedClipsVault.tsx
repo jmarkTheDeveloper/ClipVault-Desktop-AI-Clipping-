@@ -115,19 +115,19 @@ const FolderCard: React.FC<FolderCardProps> = ({
       onDragLeave={onDragLeave}
       className={`group relative p-4 rounded-2xl border transition-all duration-200 cursor-pointer flex flex-col justify-between select-none ${
         isDragOver
-          ? "bg-amber-400/20 border-amber-400 ring-2 ring-amber-400 scale-[1.02] shadow-[0_0_25px_rgba(251,191,36,0.35)]"
+          ? "bg-emerald-400/20 border-emerald-400 ring-2 ring-emerald-400 scale-[1.02] shadow-[0_0_25px_rgba(52, 235, 61,0.35)]"
           : isSelected
-          ? "bg-[#1e1a12] border-amber-400/70 shadow-lg ring-1 ring-amber-400/30"
-          : "bg-[#141414] hover:bg-[#1c1c1c] border-white/5 hover:border-amber-400/40 hover:shadow-xl"
+          ? "bg-[#1e1a12] border-emerald-400/70 shadow-lg ring-1 ring-emerald-400/30"
+          : "bg-[#141414] hover:bg-[#1c1c1c] border-white/5 hover:border-emerald-400/40 hover:shadow-xl"
       }`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-11 h-11 rounded-xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-            <Folder className="w-6 h-6 text-amber-400 fill-amber-400/20" />
+          <div className="w-11 h-11 rounded-xl bg-emerald-400/10 border border-emerald-400/20 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+            <Folder className="w-6 h-6 text-emerald-400 fill-emerald-400/20" />
           </div>
           <div className="min-w-0">
-            <h4 className="text-sm font-bold text-white truncate group-hover:text-amber-300 transition-colors">
+            <h4 className="text-sm font-bold text-white truncate group-hover:text-emerald-300 transition-colors">
               {displayName}
             </h4>
             <p className="text-[11px] text-gray-400 mt-0.5">
@@ -147,7 +147,7 @@ const FolderCard: React.FC<FolderCardProps> = ({
                 onOpenNewSubfolder();
               }}
               title="Add Subfolder"
-              className="p-1.5 rounded-lg bg-white/10 hover:bg-amber-400 hover:text-black text-gray-300 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg bg-white/10 hover:bg-emerald-400 hover:text-black text-gray-300 transition-colors cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
             </button>
@@ -160,7 +160,7 @@ const FolderCard: React.FC<FolderCardProps> = ({
                 onOpenInExplorer();
               }}
               title="Open in Windows Explorer"
-              className="p-1.5 rounded-lg bg-white/10 hover:bg-amber-400 hover:text-black text-gray-300 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg bg-white/10 hover:bg-emerald-400 hover:text-black text-gray-300 transition-colors cursor-pointer"
             >
               <FolderOpen className="w-3.5 h-3.5" />
             </button>
@@ -198,7 +198,7 @@ const FolderCard: React.FC<FolderCardProps> = ({
         <span className="flex items-center gap-1">
           <HardDrive className="w-3 h-3 text-gray-600" /> File folder
         </span>
-        <span className="text-amber-400/80 group-hover:text-amber-400 font-sans font-bold flex items-center gap-0.5">
+        <span className="text-emerald-400/80 group-hover:text-emerald-400 font-sans font-bold flex items-center gap-0.5">
           {isDragOver ? "Drop to Move Here" : "Open"} <ChevronRight className="w-3 h-3" />
         </span>
       </div>
@@ -234,15 +234,15 @@ const FolderRow: React.FC<FolderCardProps> = ({
       onDragLeave={onDragLeave}
       className={`group px-4 py-3 rounded-xl border transition-all duration-150 cursor-pointer flex items-center justify-between select-none ${
         isDragOver
-          ? "bg-amber-400/20 border-amber-400 ring-1 ring-amber-400"
+          ? "bg-emerald-400/20 border-emerald-400 ring-1 ring-emerald-400"
           : isSelected
-          ? "bg-[#1e1a12] border-amber-400/60"
-          : "bg-[#141414] hover:bg-[#1a1a1a] border-white/5 hover:border-amber-400/30"
+          ? "bg-[#1e1a12] border-emerald-400/60"
+          : "bg-[#141414] hover:bg-[#1a1a1a] border-white/5 hover:border-emerald-400/30"
       }`}
     >
       <div className="flex items-center gap-3 min-w-0 flex-1">
-        <Folder className="w-5 h-5 text-amber-400 fill-amber-400/20 shrink-0" />
-        <span className="text-xs font-bold text-white truncate group-hover:text-amber-300 transition-colors">
+        <Folder className="w-5 h-5 text-emerald-400 fill-emerald-400/20 shrink-0" />
+        <span className="text-xs font-bold text-white truncate group-hover:text-emerald-300 transition-colors">
           {displayName}
         </span>
       </div>
@@ -267,7 +267,7 @@ const FolderRow: React.FC<FolderCardProps> = ({
                 onOpenNewSubfolder();
               }}
               title="Add Subfolder"
-              className="p-1 rounded-lg bg-white/10 hover:bg-amber-400 hover:text-black text-gray-300 transition-colors cursor-pointer"
+              className="p-1 rounded-lg bg-white/10 hover:bg-emerald-400 hover:text-black text-gray-300 transition-colors cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
             </button>
@@ -280,7 +280,7 @@ const FolderRow: React.FC<FolderCardProps> = ({
                 onOpenInExplorer();
               }}
               title="Open in Windows Explorer"
-              className="p-1 rounded-lg bg-white/10 hover:bg-amber-400 hover:text-black text-gray-300 transition-colors cursor-pointer"
+              className="p-1 rounded-lg bg-white/10 hover:bg-emerald-400 hover:text-black text-gray-300 transition-colors cursor-pointer"
             >
               <FolderOpen className="w-3.5 h-3.5" />
             </button>
@@ -407,8 +407,8 @@ const VaultClipCard: React.FC<{
       onContextMenu={(e) => onContextMenu(e, clip)}
       className={`bg-[#141414] rounded-2xl border transition-transform duration-150 cursor-pointer group flex flex-col relative overflow-hidden will-change-transform ${
         isSelected
-          ? "border-amber-400 ring-1 ring-amber-400/40 shadow-xl scale-[1.01]"
-          : "border-white/5 hover:border-amber-400/50 hover:shadow-xl hover:scale-[1.01]"
+          ? "border-emerald-400 ring-1 ring-emerald-400/40 shadow-xl scale-[1.01]"
+          : "border-white/5 hover:border-emerald-400/50 hover:shadow-xl hover:scale-[1.01]"
       }`}
       onClick={onClick}
     >
@@ -449,7 +449,7 @@ const VaultClipCard: React.FC<{
               {/* Subtle play badge indicator */}
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none bg-black/20 group-hover:bg-transparent transition-colors">
                 <div className="w-9 h-9 rounded-full bg-black/60 border border-white/20 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                  <Play className="w-4 h-4 text-amber-400 fill-amber-400 ml-0.5" />
+                  <Play className="w-4 h-4 text-emerald-400 fill-emerald-400 ml-0.5" />
                 </div>
               </div>
             </div>
@@ -474,7 +474,7 @@ const VaultClipCard: React.FC<{
           className="absolute top-2 left-2 z-20 p-1.5 rounded-lg bg-black/80 hover:bg-black text-white border border-white/20 transition-all cursor-pointer shadow-lg"
         >
           {isSelected ? (
-            <CheckSquare className="w-4 h-4 text-amber-400" />
+            <CheckSquare className="w-4 h-4 text-emerald-400" />
           ) : (
             <Square className="w-4 h-4 text-gray-400 hover:text-white" />
           )}
@@ -502,7 +502,7 @@ const VaultClipCard: React.FC<{
 
         {/* Exact Video Timeline Range Badge */}
         {clip.start !== undefined && clip.end !== undefined && (
-          <div className="absolute top-2 left-11 bg-black/85 backdrop-blur-md px-2 py-0.5 rounded-md text-[10px] font-bold text-amber-300 border border-amber-400/30 flex items-center gap-1 shadow-md pointer-events-none z-10">
+          <div className="absolute top-2 left-11 bg-black/85 backdrop-blur-md px-2 py-0.5 rounded-md text-[10px] font-bold text-emerald-300 border border-emerald-400/30 flex items-center gap-1 shadow-md pointer-events-none z-10">
             <span>⏱️</span>
             <span>{Math.floor(clip.start / 60)}:{(Math.floor(clip.start % 60) < 10 ? "0" : "") + Math.floor(clip.start % 60)} - {Math.floor(clip.end / 60)}:{(Math.floor(clip.end % 60) < 10 ? "0" : "") + Math.floor(clip.end % 60)}</span>
           </div>
@@ -512,12 +512,12 @@ const VaultClipCard: React.FC<{
           9:16
         </div>
 
-        <div className="absolute bottom-2 left-2 bg-amber-400/90 text-black px-2 py-0.5 rounded-md text-[10px] font-extrabold shadow-lg flex items-center gap-1">
+        <div className="absolute bottom-2 left-2 bg-emerald-400/90 text-black px-2 py-0.5 rounded-md text-[10px] font-extrabold shadow-lg flex items-center gap-1">
           <Zap className="w-3 h-3 fill-black" /> Score: {clip.virality_score || 99}
         </div>
 
         {isSelected && selectedCount > 1 && (
-          <div className="absolute bottom-2 right-2 bg-amber-400 text-black px-2 py-0.5 rounded-md text-[10px] font-black shadow-lg">
+          <div className="absolute bottom-2 right-2 bg-emerald-400 text-black px-2 py-0.5 rounded-md text-[10px] font-black shadow-lg">
             +{selectedCount - 1} more
           </div>
         )}
@@ -545,7 +545,7 @@ const VaultClipCard: React.FC<{
           </span>
           <div className="flex items-center gap-1.5 shrink-0">
             {clip.start !== undefined && clip.end !== undefined && (
-              <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-400/10 text-amber-300 font-bold border border-amber-400/20" title={`Timeline: ${Math.floor(clip.start / 60)}:${(Math.floor(clip.start % 60) < 10 ? "0" : "") + Math.floor(clip.start % 60)} - ${Math.floor(clip.end / 60)}:${(Math.floor(clip.end % 60) < 10 ? "0" : "") + Math.floor(clip.end % 60)}`}>
+              <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-400/10 text-emerald-300 font-bold border border-emerald-400/20" title={`Timeline: ${Math.floor(clip.start / 60)}:${(Math.floor(clip.start % 60) < 10 ? "0" : "") + Math.floor(clip.start % 60)} - ${Math.floor(clip.end / 60)}:${(Math.floor(clip.end % 60) < 10 ? "0" : "") + Math.floor(clip.end % 60)}`}>
                 ⏱️ {Math.floor(clip.start / 60)}:{(Math.floor(clip.start % 60) < 10 ? "0" : "") + Math.floor(clip.start % 60)} - {Math.floor(clip.end / 60)}:{(Math.floor(clip.end % 60) < 10 ? "0" : "") + Math.floor(clip.end % 60)}
               </span>
             )}
@@ -824,10 +824,10 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
     >
       {/* External OS File Drop Overlay */}
       {isWindowFileDragging && (
-        <div className="fixed inset-0 z-50 bg-amber-400/20 backdrop-blur-md border-4 border-dashed border-amber-400 flex flex-col items-center justify-center p-8 text-center animate-fadeIn pointer-events-none">
-          <UploadCloud className="w-16 h-16 text-amber-400 animate-bounce mb-3" />
+        <div className="fixed inset-0 z-50 bg-emerald-400/20 backdrop-blur-md border-4 border-dashed border-emerald-400 flex flex-col items-center justify-center p-8 text-center animate-fadeIn pointer-events-none">
+          <UploadCloud className="w-16 h-16 text-emerald-400 animate-bounce mb-3" />
           <h2 className="text-2xl font-black text-white">Drop Video Files to Import</h2>
-          <p className="text-sm font-bold text-amber-300 mt-1">
+          <p className="text-sm font-bold text-emerald-300 mt-1">
             Files will be imported into:{" "}
             <span className="font-mono bg-black/50 px-2 py-0.5 rounded">
               {isRoot ? "Main Library" : vaultSelectedFolder}
@@ -843,11 +843,11 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
           onClick={() => setRenameModalState({ isOpen: false, oldFolder: "", newName: "" })}
         >
           <div
-            className="bg-[#141414] border border-amber-400/40 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4"
+            className="bg-[#141414] border border-emerald-400/40 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4"
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="text-white font-bold text-base flex items-center gap-2">
-              <Edit2 className="w-5 h-5 text-amber-400" /> Rename Folder
+              <Edit2 className="w-5 h-5 text-emerald-400" /> Rename Folder
             </h3>
             <p className="text-xs text-gray-400">
               Renaming <span className="font-bold text-white">"{renameModalState.oldFolder}"</span>
@@ -867,7 +867,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
                 }
               }}
               placeholder="Enter new folder name..."
-              className="w-full rounded-xl px-4 py-2.5 text-xs text-white bg-black/60 border border-white/20 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/50 cursor-text select-text pointer-events-auto shadow-inner"
+              className="w-full rounded-xl px-4 py-2.5 text-xs text-white bg-black/60 border border-white/20 outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/50 cursor-text select-text pointer-events-auto shadow-inner"
             />
             <div className="flex justify-end gap-2 pt-2">
               <button
@@ -885,7 +885,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
                   }
                   setRenameModalState({ isOpen: false, oldFolder: "", newName: "" });
                 }}
-                className="px-5 py-2 rounded-xl text-xs font-black bg-amber-400 text-black hover:bg-amber-300 transition-all shadow-md cursor-pointer"
+                className="px-5 py-2 rounded-xl text-xs font-black bg-emerald-400 text-black hover:bg-emerald-300 transition-all shadow-md cursor-pointer"
               >
                 Save Name
               </button>
@@ -934,7 +934,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
 
             {/* Target Item Inset Card */}
             <div className="p-4 rounded-2xl bg-black/50 border border-white/10 flex items-center gap-3.5">
-              <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0 text-amber-400">
+              <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0 text-emerald-400">
                 {deleteConfirmState.type === "folder" ? (
                   <Folder className="w-5 h-5" />
                 ) : (
@@ -1055,7 +1055,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
               }}
               className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-300 hover:text-white hover:bg-white/10 transition-colors text-left cursor-pointer"
             >
-              <Play className="w-4 h-4 text-amber-400" /> Play Preview
+              <Play className="w-4 h-4 text-emerald-400" /> Play Preview
             </button>
 
             <button
@@ -1151,7 +1151,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
               }}
               className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-300 hover:text-white hover:bg-white/10 transition-colors text-left cursor-pointer"
             >
-              <FolderOpen className="w-4 h-4 text-amber-400" /> Open Folder
+              <FolderOpen className="w-4 h-4 text-emerald-400" /> Open Folder
             </button>
 
             <button
@@ -1165,7 +1165,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
               }}
               className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-300 hover:text-white hover:bg-white/10 transition-colors text-left cursor-pointer"
             >
-              <Plus className="w-4 h-4 text-amber-400" /> New Subfolder inside...
+              <Plus className="w-4 h-4 text-emerald-400" /> New Subfolder inside...
             </button>
 
             {onRenameFolder && (
@@ -1221,10 +1221,10 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
         <div>
           <div className="flex items-center gap-3">
             <h2 className="text-xl font-black text-white flex items-center gap-2">
-              <FolderCheck className="text-amber-400 w-6 h-6" />
+              <FolderCheck className="text-emerald-400 w-6 h-6" />
               <span>Saved Clips Vault</span>
             </h2>
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-400/15 text-amber-400 border border-amber-400/30 font-extrabold tracking-wide">
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-400/15 text-emerald-400 border border-emerald-400/30 font-extrabold tracking-wide">
               {vaultClips.length} {vaultClips.length === 1 ? "Video" : "Videos"}
             </span>
           </div>
@@ -1234,7 +1234,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
           {/* Primary Action: Open in Windows Explorer */}
           <button
             onClick={() => openOutputFolder(vaultSelectedFolder !== "all" && vaultSelectedFolder !== "Main Library" ? vaultSelectedFolder : undefined)}
-            className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-extrabold text-xs transition-all shadow-[0_0_20px_rgba(251,191,36,0.25)] flex items-center gap-1.5 cursor-pointer shrink-0 hover:scale-[1.02] active:scale-95"
+            className="px-3 py-1.5 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-black font-extrabold text-xs transition-all shadow-[0_0_20px_rgba(52, 235, 61,0.25)] flex items-center gap-1.5 cursor-pointer shrink-0 hover:scale-[1.02] active:scale-95"
             title="Open the active folder in native Windows Explorer"
           >
             <FolderOpen className="w-3.5 h-3.5 text-black" />
@@ -1245,10 +1245,10 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
           <button
             onClick={handleCleanCache}
             disabled={isCleaningCache}
-            className="px-3 py-1.5 rounded-xl bg-[#141416] hover:bg-white/10 text-gray-200 hover:text-white font-bold text-xs border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0 hover:border-amber-400/40"
+            className="px-3 py-1.5 rounded-xl bg-[#141416] hover:bg-white/10 text-gray-200 hover:text-white font-bold text-xs border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0 hover:border-emerald-400/40"
             title="Clean temporary downloads, audio chunks, and frame cache to free up hard drive space"
           >
-            <Trash2 className="w-3.5 h-3.5 text-amber-400" />
+            <Trash2 className="w-3.5 h-3.5 text-emerald-400" />
             <span>{isCleaningCache ? "Cleaning..." : cacheSizeMb !== null && cacheSizeMb > 0 ? `Free Space (${cacheSizeMb} MB)` : "Free Space"}</span>
           </button>
 
@@ -1257,10 +1257,10 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
             <button
               onClick={onRefresh}
               disabled={vaultLoading}
-              className="px-3 py-1.5 rounded-xl bg-[#141416] hover:bg-white/10 text-gray-200 hover:text-white font-bold text-xs border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0 hover:border-amber-400/40"
+              className="px-3 py-1.5 rounded-xl bg-[#141416] hover:bg-white/10 text-gray-200 hover:text-white font-bold text-xs border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0 hover:border-emerald-400/40"
               title="Refresh and sync clips and folders directly from local disk"
             >
-              <RefreshCw className={`w-3.5 h-3.5 text-amber-400 ${vaultLoading ? "animate-spin" : ""}`} />
+              <RefreshCw className={`w-3.5 h-3.5 text-emerald-400 ${vaultLoading ? "animate-spin" : ""}`} />
               <span>{vaultLoading ? "Syncing..." : "Sync"}</span>
             </button>
           )}
@@ -1269,10 +1269,10 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
           {onStartVaultTour && (
             <button
               onClick={onStartVaultTour}
-              className="px-3 py-1.5 rounded-xl bg-amber-400/10 hover:bg-amber-400/20 text-amber-300 border border-amber-400/30 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 shadow-sm hover:scale-[1.02] active:scale-95"
+              className="px-3 py-1.5 rounded-xl bg-emerald-400/10 hover:bg-emerald-400/20 text-emerald-300 border border-emerald-400/30 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 shadow-sm hover:scale-[1.02] active:scale-95"
               title="Launch Saved Clips Vault Walkthrough"
             >
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
               <span>Walkthrough</span>
             </button>
           )}
@@ -1304,8 +1304,8 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
               title="Go Up One Level"
               className={`p-1.5 rounded-lg transition-colors flex items-center justify-center shrink-0 cursor-pointer ${
                 dragOverBreadcrumb === getParentFolder()
-                  ? "bg-amber-400 text-black ring-2 ring-amber-400"
-                  : "bg-white/10 hover:bg-amber-400 hover:text-black text-amber-400"
+                  ? "bg-emerald-400 text-black ring-2 ring-emerald-400"
+                  : "bg-white/10 hover:bg-emerald-400 hover:text-black text-emerald-400"
               }`}
             >
               <ArrowUp className="w-3.5 h-3.5" />
@@ -1323,9 +1323,9 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
             onDrop={(e) => handleDropClips(e, "Main Library")}
             className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${
               dragOverBreadcrumb === "all"
-                ? "bg-amber-400 text-black ring-2 ring-amber-400 shadow-lg scale-105"
+                ? "bg-emerald-400 text-black ring-2 ring-emerald-400 shadow-lg scale-105"
                 : isRoot
-                ? "bg-amber-400 text-black shadow-md font-extrabold"
+                ? "bg-emerald-400 text-black shadow-md font-extrabold"
                 : "bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white"
             }`}
           >
@@ -1349,9 +1349,9 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
                   onDrop={(e) => handleDropClips(e, segmentFullPath)}
                   className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${
                     isTarget
-                      ? "bg-amber-400 text-black ring-2 ring-amber-400 shadow-lg scale-105"
+                      ? "bg-emerald-400 text-black ring-2 ring-emerald-400 shadow-lg scale-105"
                       : isLast
-                      ? "bg-amber-400 text-black shadow-md font-extrabold"
+                      ? "bg-emerald-400 text-black shadow-md font-extrabold"
                       : "bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white"
                   }`}
                 >
@@ -1372,9 +1372,9 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
                   setShowNewFolderModal(true);
                 }
               }}
-              className="px-3 py-1 rounded-lg bg-amber-400/10 hover:bg-amber-400/20 text-amber-300 border border-amber-400/30 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+              className="px-3 py-1 rounded-lg bg-emerald-400/10 hover:bg-emerald-400/20 text-emerald-300 border border-emerald-400/30 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
             >
-              <Plus className="w-3.5 h-3.5 text-amber-400" />
+              <Plus className="w-3.5 h-3.5 text-emerald-400" />
               New Folder
             </button>
           ) : (
@@ -1388,7 +1388,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
                     newName: vaultSelectedFolder,
                   });
                 }}
-                className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-amber-400 hover:text-black text-gray-300 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-emerald-400 hover:text-black text-gray-300 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
                 title="Rename this folder"
               >
                 <Edit2 className="w-3.5 h-3.5" />
@@ -1430,7 +1430,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
         </div>
 
         <div className="flex items-center bg-[#111] border border-white/10 rounded-xl px-3 py-1.5">
-          <Filter className="w-3.5 h-3.5 text-amber-400 mr-2 shrink-0" />
+          <Filter className="w-3.5 h-3.5 text-emerald-400 mr-2 shrink-0" />
           <select
             value={vaultSelectedFolder}
             onChange={(e) => setVaultSelectedFolder(e.target.value)}
@@ -1448,7 +1448,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
         </div>
 
         <div className="flex items-center bg-[#111] border border-white/10 rounded-xl px-3 py-1.5">
-          <ArrowUpDown className="w-3.5 h-3.5 text-amber-400 mr-2 shrink-0" />
+          <ArrowUpDown className="w-3.5 h-3.5 text-emerald-400 mr-2 shrink-0" />
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as any)}
@@ -1478,9 +1478,9 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
             type="button"
             onClick={() => openOutputFolder(vaultSelectedFolder !== "all" && vaultSelectedFolder !== "Main Library" ? vaultSelectedFolder : undefined)}
             title="Click to open this folder in Windows Explorer"
-            className="text-xs font-mono text-amber-400 hover:text-amber-300 underline truncate text-left cursor-pointer flex items-center gap-1.5"
+            className="text-xs font-mono text-emerald-400 hover:text-emerald-300 underline truncate text-left cursor-pointer flex items-center gap-1.5"
           >
-            <FolderOpen className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <FolderOpen className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
             <span className="truncate">Open In Explorer</span>
           </button>
         </div>
@@ -1500,7 +1500,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
         <div className="mb-4">
           <div className="flex items-center justify-between gap-4 mb-2.5">
             <div className="flex items-center gap-2">
-              <Folder className="w-4 h-4 text-amber-400" />
+              <Folder className="w-4 h-4 text-emerald-400" />
               <h3 className="text-xs font-black text-white tracking-wide uppercase">
                 Project Folders
               </h3>
@@ -1516,7 +1516,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
                   onClick={() => setFolderViewMode("grid")}
                   title="Grid View"
                   className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                    folderViewMode === "grid" ? "bg-amber-400 text-black shadow" : "text-gray-400 hover:text-white"
+                    folderViewMode === "grid" ? "bg-emerald-400 text-black shadow" : "text-gray-400 hover:text-white"
                   }`}
                 >
                   <Grid className="w-3.5 h-3.5" />
@@ -1526,7 +1526,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
                   onClick={() => setFolderViewMode("list")}
                   title="List View"
                   className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                    folderViewMode === "list" ? "bg-amber-400 text-black shadow" : "text-gray-400 hover:text-white"
+                    folderViewMode === "list" ? "bg-emerald-400 text-black shadow" : "text-gray-400 hover:text-white"
                   }`}
                 >
                   <List className="w-3.5 h-3.5" />
@@ -1586,10 +1586,10 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
                     setShowNewFolderModal(true);
                   }
                 }}
-                className="p-3 rounded-2xl border border-dashed border-white/15 hover:border-amber-400/60 bg-[#121212] hover:bg-[#181818] transition-all cursor-pointer flex flex-col items-center justify-center gap-1.5 text-center group min-h-[90px]"
+                className="p-3 rounded-2xl border border-dashed border-white/15 hover:border-emerald-400/60 bg-[#121212] hover:bg-[#181818] transition-all cursor-pointer flex flex-col items-center justify-center gap-1.5 text-center group min-h-[90px]"
               >
-                <div className="w-8 h-8 rounded-full bg-white/5 group-hover:bg-amber-400/20 flex items-center justify-center transition-colors">
-                  <Plus className="w-4 h-4 text-gray-400 group-hover:text-amber-400 transition-colors" />
+                <div className="w-8 h-8 rounded-full bg-white/5 group-hover:bg-emerald-400/20 flex items-center justify-center transition-colors">
+                  <Plus className="w-4 h-4 text-gray-400 group-hover:text-emerald-400 transition-colors" />
                 </div>
                 <span className="text-[11px] font-bold text-gray-400 group-hover:text-white transition-colors">
                   + Add New Folder
@@ -1652,28 +1652,28 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
       )}
 
       {/* Drag & Drop Quick Bar */}
-      <div id="vault-tour-step-4-drag" className="mb-3 px-3 py-1.5 rounded-xl bg-amber-400/5 border border-amber-400/15 flex flex-wrap items-center justify-between gap-2 text-[11px] text-amber-300/80">
+      <div id="vault-tour-step-4-drag" className="mb-3 px-3 py-1.5 rounded-xl bg-emerald-400/5 border border-emerald-400/15 flex flex-wrap items-center justify-between gap-2 text-[11px] text-emerald-300/80">
         <div className="flex items-center gap-1.5">
-          <Move className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+          <Move className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
           <span>Drag clips directly into folders or drop external video files to import.</span>
         </div>
         <div className="flex items-center gap-1.5 text-[10px] text-gray-400">
-          <UploadCloud className="w-3 h-3 text-amber-400" />
+          <UploadCloud className="w-3 h-3 text-emerald-400" />
           <span>Desktop Drag & Drop Active</span>
         </div>
       </div>
 
       {/* Multi-Selection Batch Actions Bar */}
       {selectedClipPaths.length > 0 && (
-        <div className="mb-3 p-3 rounded-2xl bg-amber-400/10 border border-amber-400/30 flex items-center justify-between gap-4 animate-fadeIn">
-          <div className="flex items-center gap-2 text-xs font-bold text-amber-300">
-            <CheckSquare className="w-4 h-4 text-amber-400" />
+        <div className="mb-3 p-3 rounded-2xl bg-emerald-400/10 border border-emerald-400/30 flex items-center justify-between gap-4 animate-fadeIn">
+          <div className="flex items-center gap-2 text-xs font-bold text-emerald-300">
+            <CheckSquare className="w-4 h-4 text-emerald-400" />
             <span>{selectedClipPaths.length} Clip(s) Selected</span>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => setMoveModalClips(selectedClipPaths)}
-              className="px-3 py-1.5 rounded-xl bg-amber-400 text-black font-extrabold text-xs hover:bg-amber-300 transition-all flex items-center gap-1.5 shadow-md cursor-pointer"
+              className="px-3 py-1.5 rounded-xl bg-emerald-400 text-black font-extrabold text-xs hover:bg-emerald-300 transition-all flex items-center gap-1.5 shadow-md cursor-pointer"
             >
               <Folder className="w-3.5 h-3.5" /> Move to Folder...
             </button>
@@ -1719,7 +1719,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
       <div>
         <div className="flex items-center justify-between gap-4 mb-3 pb-2 border-b border-white/5">
           <div className="flex items-center gap-2">
-            <Play className="w-4 h-4 text-amber-400" />
+            <Play className="w-4 h-4 text-emerald-400" />
             <h3 className="text-sm font-black text-white tracking-wide uppercase">
               {isSearchActive
                 ? `Search Results for "${vaultSearch}"`
@@ -1727,7 +1727,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
                 ? "All Saved Videos"
                 : `Videos in ${currentPathSegments[currentPathSegments.length - 1]}`}
             </h3>
-            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30">
+            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-400/20 text-emerald-300 border border-emerald-400/30">
               {filteredClips.length}
             </span>
           </div>
@@ -1744,7 +1744,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
                 }}
                 className="text-xs text-gray-400 hover:text-white font-bold flex items-center gap-1.5 cursor-pointer"
               >
-                <CheckSquare className="w-3.5 h-3.5 text-amber-400" />
+                <CheckSquare className="w-3.5 h-3.5 text-emerald-400" />
                 {selectedClipPaths.length === filteredClips.length ? "Deselect All" : "Select All"}
               </button>
             </div>
@@ -1762,7 +1762,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
               onClick={() => setSelectedSource("all")}
               className={`px-3 py-1 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
                 selectedSource === "all"
-                  ? "bg-amber-400 text-black shadow-md font-extrabold"
+                  ? "bg-emerald-400 text-black shadow-md font-extrabold"
                   : "bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/5"
               }`}
             >
@@ -1775,7 +1775,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
                 onClick={() => setSelectedSource(sv.name)}
                 className={`px-3 py-1 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${
                   selectedSource === sv.name
-                    ? "bg-amber-400 text-black shadow-md font-extrabold"
+                    ? "bg-emerald-400 text-black shadow-md font-extrabold"
                     : "bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/5"
                 }`}
                 title={sv.name}
@@ -1793,7 +1793,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
 
         {vaultLoading && filteredClips.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center py-20">
-            <Loader2 className="w-10 h-10 text-amber-400 animate-spin mb-3" />
+            <Loader2 className="w-10 h-10 text-emerald-400 animate-spin mb-3" />
             <p className="text-sm font-bold text-gray-400">Loading your Saved Clips Vault...</p>
           </div>
         ) : vaultError && filteredClips.length === 0 ? (
@@ -1805,7 +1805,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
             <p className="text-xs text-gray-500 max-w-xs mb-4">{vaultError}</p>
             <button
               onClick={() => onRefresh?.()}
-              className="px-4 py-2 rounded-xl bg-amber-400/10 border border-amber-400/20 text-amber-400 text-xs font-bold hover:bg-amber-400/20 transition-all flex items-center gap-2"
+              className="px-4 py-2 rounded-xl bg-emerald-400/10 border border-emerald-400/20 text-emerald-400 text-xs font-bold hover:bg-emerald-400/20 transition-all flex items-center gap-2"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               Retry Connection

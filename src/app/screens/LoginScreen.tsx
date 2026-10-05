@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Check, Play, Film } from "lucide-react";
 import { Logo } from "../components/Logo";
 
-const G = "#00e676";
+const G = "#34eb3d";
 
 export function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const [tab, setTab] = useState<"login" | "signup">("login");
@@ -41,8 +41,8 @@ export function LoginScreen({ onLogin }: { onLogin: () => void }) {
         />
         <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, rgba(5,5,5,0.6) 0%, rgba(5,5,5,0.2) 40%, rgba(5,5,5,0.8) 100%)" }} />
         <div className="absolute inset-y-0 right-0 w-32" style={{ background: "linear-gradient(to right, transparent, #090909)" }} />
-        <div className="absolute pointer-events-none" style={{ width: 500, height: 500, bottom: -100, left: -80, borderRadius: "50%", background: "radial-gradient(circle, rgba(0,230,118,0.08) 0%, transparent 65%)" }} />
-        <div className="absolute pointer-events-none" style={{ width: 300, height: 300, top: 80, right: 60, borderRadius: "50%", background: "radial-gradient(circle, rgba(0,230,118,0.05) 0%, transparent 65%)" }} />
+        <div className="absolute pointer-events-none" style={{ width: 500, height: 500, bottom: -100, left: -80, borderRadius: "50%", background: "radial-gradient(circle, rgba(52, 235, 61,0.08) 0%, transparent 65%)" }} />
+        <div className="absolute pointer-events-none" style={{ width: 300, height: 300, top: 80, right: 60, borderRadius: "50%", background: "radial-gradient(circle, rgba(52, 235, 61,0.05) 0%, transparent 65%)" }} />
 
         <div className="relative z-10 flex flex-col h-full px-14 py-12">
           <style>{`
@@ -73,10 +73,10 @@ export function LoginScreen({ onLogin }: { onLogin: () => void }) {
               border-radius: 10px;
               margin-left: -10px;
             }
-            .login-feature-item:hover { background: rgba(0,230,118,0.04); }
+            .login-feature-item:hover { background: rgba(52, 235, 61,0.04); }
             .login-feature-item:hover .login-feature-check {
-              background: rgba(0,230,118,0.25) !important;
-              border-color: rgba(0,230,118,0.6) !important;
+              background: rgba(52, 235, 61,0.25) !important;
+              border-color: rgba(52, 235, 61,0.6) !important;
             }
             .login-feature-item:hover p { color: rgba(255,255,255,0.9) !important; }
           `}</style>
@@ -89,7 +89,7 @@ export function LoginScreen({ onLogin }: { onLogin: () => void }) {
                 Clip<span style={{ color: G }}>Vault</span>
               </span>
             </div>
-            <span className="text-xs font-bold tracking-[0.2em] uppercase" style={{ color: "rgba(0,230,118,0.55)" }}>
+            <span className="text-xs font-bold tracking-[0.2em] uppercase" style={{ color: "rgba(52, 235, 61,0.55)" }}>
               Professional Video Editing
             </span>
             <h1 className="mt-2 mb-3 leading-none tracking-tight"
@@ -115,7 +115,7 @@ export function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
             {/* Card B — hero */}
             <div className="absolute overflow-hidden rounded-2xl shadow-2xl"
-              style={{ width: 240, height: 142, top: "28%", left: "18%", border: "1.5px solid rgba(0,230,118,0.35)", boxShadow: "0 0 32px rgba(0,230,118,0.12), 0 20px 48px rgba(0,0,0,0.7)", animationName: "floatB", animationDuration: "6s", animationTimingFunction: "ease-in-out", animationIterationCount: "infinite" }}>
+              style={{ width: 240, height: 142, top: "28%", left: "18%", border: "1.5px solid rgba(52, 235, 61,0.35)", boxShadow: "0 0 32px rgba(52, 235, 61,0.12), 0 20px 48px rgba(0,0,0,0.7)", animationName: "floatB", animationDuration: "6s", animationTimingFunction: "ease-in-out", animationIterationCount: "infinite" }}>
               <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=480&h=288&fit=crop&auto=format" alt="" className="w-full h-full object-cover" style={{ opacity: 0.85 }} />
               <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.6), transparent 55%)" }} />
               <div className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center" style={{ background: "rgba(0,0,0,0.65)", border: `1px solid ${G}` }}>
@@ -145,7 +145,7 @@ export function LoginScreen({ onLogin }: { onLogin: () => void }) {
             <div className="flex items-end gap-[3px] mb-5" style={{ height: 36 }}>
               {[35,60,45,80,55,90,40,70,50,85,30,65,75,45,88,52,38,72,60,42].map((h, i) => (
                 <div key={i} className="rounded-full flex-shrink-0"
-                  style={{ width: 3, background: i % 5 === 0 ? G : `rgba(0,230,118,${0.18 + (i % 4) * 0.1})`, animationName: "waveBar", animationDuration: `${0.8 + (i % 7) * 0.15}s`, animationTimingFunction: "ease-in-out", animationIterationCount: "infinite", animationDirection: "alternate", animationDelay: `${i * 0.06}s`, height: `${h}%` }} />
+                  style={{ width: 3, background: i % 5 === 0 ? G : `rgba(52, 235, 61,${0.18 + (i % 4) * 0.1})`, animationName: "waveBar", animationDuration: `${0.8 + (i % 7) * 0.15}s`, animationTimingFunction: "ease-in-out", animationIterationCount: "infinite", animationDirection: "alternate", animationDelay: `${i * 0.06}s`, height: `${h}%` }} />
               ))}
             </div>
             <div className="space-y-0.5">
@@ -156,7 +156,7 @@ export function LoginScreen({ onLogin }: { onLogin: () => void }) {
               ].map(([title, desc]) => (
                 <div key={title} className="login-feature-item flex items-start gap-3 cursor-default">
                   <div className="login-feature-check w-4 h-4 rounded-full flex items-center justify-center mt-0.5 flex-shrink-0 transition-all duration-200"
-                    style={{ background: "rgba(0,230,118,0.12)", border: "1px solid rgba(0,230,118,0.28)" }}>
+                    style={{ background: "rgba(52, 235, 61,0.12)", border: "1px solid rgba(52, 235, 61,0.28)" }}>
                     <Check className="w-2.5 h-2.5" style={{ color: G }} />
                   </div>
                   <div>
@@ -240,21 +240,21 @@ export function LoginScreen({ onLogin }: { onLogin: () => void }) {
               <input type="text" placeholder="Full name"
                 className="w-full px-4 py-3 text-sm rounded-xl text-white outline-none transition-all"
                 style={{ background: "#141414", border: "1px solid #222" }}
-                onFocus={(e) => (e.target.style.borderColor = "rgba(0,230,118,0.45)")}
+                onFocus={(e) => (e.target.style.borderColor = "rgba(52, 235, 61,0.45)")}
                 onBlur={(e) => (e.target.style.borderColor = "#222")} />
             )}
             <input type="email" placeholder="Email address" value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full px-4 py-3 text-sm rounded-xl text-white outline-none transition-all"
               style={{ background: "#141414", border: "1px solid #222" }}
-              onFocus={(e) => (e.target.style.borderColor = "rgba(0,230,118,0.45)")}
+              onFocus={(e) => (e.target.style.borderColor = "rgba(52, 235, 61,0.45)")}
               onBlur={(e) => (e.target.style.borderColor = "#222")} />
             <div className="relative">
               <input type={showPw ? "text" : "password"} placeholder="Password" value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-4 py-3 pr-16 text-sm rounded-xl text-white outline-none transition-all"
                 style={{ background: "#141414", border: "1px solid #222" }}
-                onFocus={(e) => (e.target.style.borderColor = "rgba(0,230,118,0.45)")}
+                onFocus={(e) => (e.target.style.borderColor = "rgba(52, 235, 61,0.45)")}
                 onBlur={(e) => (e.target.style.borderColor = "#222")} />
               <button type="button" onClick={() => setShowPw(!showPw)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold hover:text-white transition-colors cursor-pointer"
@@ -283,7 +283,7 @@ export function LoginScreen({ onLogin }: { onLogin: () => void }) {
             <button type="submit"
               className="w-full py-3.5 rounded-xl text-sm font-bold text-black flex items-center justify-center gap-2 mt-1 cursor-pointer"
               style={{ background: G, opacity: loading ? 0.75 : 1, transition: "all 0.18s ease" }}
-              onMouseEnter={(e) => { if (!loading) { (e.currentTarget.style.boxShadow = "0 0 24px rgba(0,230,118,0.35)"); (e.currentTarget.style.transform = "translateY(-1px)"); }}}
+              onMouseEnter={(e) => { if (!loading) { (e.currentTarget.style.boxShadow = "0 0 24px rgba(52, 235, 61,0.35)"); (e.currentTarget.style.transform = "translateY(-1px)"); }}}
               onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.transform = "none"; }}>
               {loading
                 ? <div className="w-4 h-4 rounded-full border-2 border-black/20 border-t-black animate-spin" />

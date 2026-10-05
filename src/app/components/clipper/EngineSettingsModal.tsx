@@ -571,14 +571,14 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
         {/* 5-Second Popup Toast Notification */}
         {apiWarning && (
           <div className="absolute top-3 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-lg pointer-events-auto animate-fadeIn">
-            <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-2xl bg-amber-500/20 border border-amber-400/60 backdrop-blur-xl shadow-[0_0_30px_rgba(251,191,36,0.3)] text-amber-200">
+            <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-2xl bg-emerald-500/20 border border-emerald-400/60 backdrop-blur-xl shadow-[0_0_30px_rgba(251,191,36,0.3)] text-emerald-200">
               <div className="flex items-center gap-2.5 min-w-0">
-                <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 animate-bounce" />
+                <AlertCircle className="w-5 h-5 text-emerald-400 shrink-0 animate-bounce" />
                 <div className="min-w-0">
-                  <p className="text-xs font-black text-amber-300 truncate">
+                  <p className="text-xs font-black text-emerald-300 truncate">
                     Oops you have not yet put any API
                   </p>
-                  <p className="text-[11px] text-amber-200/80 truncate">
+                  <p className="text-[11px] text-emerald-200/80 truncate">
                     Please paste your API key below to enable Cloud AI features.
                   </p>
                 </div>
@@ -586,7 +586,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
               <button
                 type="button"
                 onClick={() => setApiWarning(null)}
-                className="text-amber-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors text-xs font-bold shrink-0 cursor-pointer"
+                className="text-emerald-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors text-xs font-bold shrink-0 cursor-pointer"
               >
                 ✕
               </button>
@@ -599,7 +599,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
           <div className="absolute inset-0 z-50 flex items-center justify-center p-6 bg-black/85 backdrop-blur-xl animate-fadeIn font-sans">
             <div className="w-full max-w-md rounded-2xl bg-[#0e0e12] border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.85)] p-6 space-y-4 text-left">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
                   <Lock className="w-5 h-5" />
                 </div>
                 <div>
@@ -608,9 +608,9 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                 </div>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-amber-500/[0.06] border border-amber-500/15 space-y-1 text-xs text-amber-200">
-                <p className="font-semibold text-amber-300 flex items-center gap-1.5 text-xs">
-                  <ShieldAlert className="w-3.5 h-3.5 text-amber-400" /> Screen Exposure Warning
+              <div className="p-3.5 rounded-xl bg-emerald-500/[0.06] border border-emerald-500/15 space-y-1 text-xs text-emerald-200">
+                <p className="font-semibold text-emerald-300 flex items-center gap-1.5 text-xs">
+                  <ShieldAlert className="w-3.5 h-3.5 text-emerald-400" /> Screen Exposure Warning
                 </p>
                 <p className="text-xs text-zinc-300 leading-relaxed">
                   Revealing this API key will display it in plain text. Make sure you are not streaming, recording your screen, or in the presence of unauthorized viewers.
@@ -619,7 +619,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
 
               <div className="space-y-2">
                 <label className="text-xs font-medium text-zinc-300 block">
-                  Please type <span className="text-amber-400 font-mono font-semibold select-all">"I understand to show my API"</span> to confirm:
+                  Please type <span className="text-emerald-400 font-mono font-semibold select-all">"I understand to show my API"</span> to confirm:
                 </label>
                 <input
                   type="text"
@@ -635,7 +635,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                   className={`w-full rounded-xl px-3.5 py-2.5 text-xs text-white bg-zinc-900/90 border outline-none font-mono transition-all shadow-inner ${
                     revealInputText.trim() === REVEAL_CONFIRMATION_PHRASE
                       ? "border-emerald-500/80 ring-1 ring-emerald-500/30"
-                      : "border-white/10 focus:border-amber-400/60"
+                      : "border-white/10 focus:border-emerald-400/60"
                   }`}
                 />
               </div>
@@ -654,7 +654,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                   onClick={handleConfirmReveal}
                   className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                     revealInputText.trim() === REVEAL_CONFIRMATION_PHRASE
-                      ? "bg-amber-400 text-zinc-950 hover:bg-amber-300 shadow-md cursor-pointer"
+                      ? "bg-emerald-400 text-zinc-950 hover:bg-emerald-300 shadow-md cursor-pointer"
                       : "bg-white/[0.05] text-zinc-600 border border-white/[0.05] cursor-not-allowed opacity-50"
                   }`}
                 >
@@ -671,7 +671,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
             <div className="w-full max-w-lg rounded-2xl bg-[#0e0e12] border border-white/10 shadow-[0_20px_70px_rgba(0,0,0,0.85)] p-6 space-y-4 text-left">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shrink-0">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
                     <ShieldAlert className="w-5 h-5" />
                   </div>
                   <div>
@@ -683,15 +683,15 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                     </p>
                   </div>
                 </div>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase bg-amber-500/10 text-amber-300 border border-amber-500/20 tracking-wide">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 tracking-wide">
                   Notice
                 </span>
               </div>
 
               <div className="space-y-3">
-                <div className="p-3.5 rounded-xl bg-amber-500/[0.06] border border-amber-500/15 space-y-1 text-xs">
-                  <div className="font-semibold text-amber-300 flex items-center gap-1.5 text-xs">
-                    <Lock className="w-3.5 h-3.5 text-amber-400" /> Never share your API key with anyone
+                <div className="p-3.5 rounded-xl bg-emerald-500/[0.06] border border-emerald-500/15 space-y-1 text-xs">
+                  <div className="font-semibold text-emerald-300 flex items-center gap-1.5 text-xs">
+                    <Lock className="w-3.5 h-3.5 text-emerald-400" /> Never share your API key with anyone
                   </div>
                   <p className="text-xs text-zinc-300 leading-relaxed">
                     Never share, stream, reveal, or paste your API key in public view, recordings, or third-party websites. Your API key provides direct access to your private AI provider account and usage quotas.
@@ -704,15 +704,15 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                   </p>
                   <ul className="space-y-1.5 text-xs text-zinc-400 leading-relaxed">
                     <li className="flex items-start gap-2">
-                      <span className="text-amber-400 mt-0.5 font-bold">•</span>
+                      <span className="text-emerald-400 mt-0.5 font-bold">•</span>
                       <span><strong className="text-zinc-200">We do NOT bear any responsibility</strong> for exposed, leaked, shared, or compromised API keys.</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-amber-400 mt-0.5 font-bold">•</span>
+                      <span className="text-emerald-400 mt-0.5 font-bold">•</span>
                       <span><strong className="text-zinc-200">We are NOT responsible for any causes</strong>, including unexpected billing charges, quota usage, account suspensions, or any financial/data damages resulting from your API credentials.</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-amber-400 mt-0.5 font-bold">•</span>
+                      <span className="text-emerald-400 mt-0.5 font-bold">•</span>
                       <span>ClipVault stores your credentials exclusively in your local device vault with zero telemetry. You are 100% solely responsible for securing and monitoring your key.</span>
                     </li>
                   </ul>
@@ -726,7 +726,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                 <button
                   type="button"
                   onClick={handleAcknowledgeLiability}
-                  className="px-5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-zinc-950 font-bold text-xs transition-all shadow-md shadow-amber-400/10 active:scale-[0.98] cursor-pointer flex items-center gap-1.5"
+                  className="px-5 py-2.5 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-zinc-950 font-bold text-xs transition-all shadow-md shadow-emerald-400/10 active:scale-[0.98] cursor-pointer flex items-center gap-1.5"
                 >
                   <Check className="w-4 h-4 stroke-[3]" /> I Understand &amp; Accept Full Responsibility
                 </button>
@@ -736,9 +736,9 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
         )}
 
         {/* Modal Header */}
-        <div className="p-6 border-b border-white/10 flex items-center justify-between bg-gradient-to-r from-amber-500/10 via-transparent to-purple-500/10">
+        <div className="p-6 border-b border-white/10 flex items-center justify-between bg-gradient-to-r from-emerald-500/10 via-transparent to-purple-500/10">
           <div className="flex items-center gap-3.5">
-            <div className="p-3 rounded-2xl bg-amber-400/10 border border-amber-400/25 text-amber-400 shadow-[0_0_20px_rgba(251,191,36,0.25)]">
+            <div className="p-3 rounded-2xl bg-emerald-400/10 border border-emerald-400/25 text-emerald-400 shadow-[0_0_20px_rgba(251,191,36,0.25)]">
               <Cpu className="w-6 h-6" />
             </div>
             <div>
@@ -780,14 +780,14 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                 }}
                 className={`py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2.5 cursor-pointer text-center ${
                   byokMode === "custom"
-                    ? "bg-amber-400 text-black shadow-lg font-extrabold ring-2 ring-amber-400/50"
+                    ? "bg-emerald-400 text-black shadow-lg font-extrabold ring-2 ring-emerald-400/50"
                     : "text-gray-400 hover:text-white hover:bg-white/5"
                 }`}
               >
                 <Globe className="w-4 h-4" />
                 <span>Cloud AI Models</span>
                 <span className={`text-[10px] px-2 py-0.5 rounded-md font-extrabold uppercase ${
-                  byokMode === "custom" ? "bg-black/20 text-black" : "bg-amber-400/20 text-amber-300 border border-amber-400/30"
+                  byokMode === "custom" ? "bg-black/20 text-black" : "bg-emerald-400/20 text-emerald-300 border border-emerald-400/30"
                 }`}>
                   Recommended
                 </span>
@@ -805,7 +805,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                 }}
                 className={`py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2.5 cursor-pointer text-center ${
                   byokMode === "local"
-                    ? "bg-amber-400 text-black shadow-lg font-extrabold ring-2 ring-amber-400/50"
+                    ? "bg-emerald-400 text-black shadow-lg font-extrabold ring-2 ring-emerald-400/50"
                     : "text-gray-400 hover:text-white hover:bg-white/5"
                 }`}
               >
@@ -819,17 +819,17 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
           </div>
 
           {/* Quick Setup Tutorial & Warning Advisory Banner */}
-          <div className="p-4 rounded-2xl bg-amber-500/[0.08] border border-amber-400/30 space-y-2 text-xs">
+          <div className="p-4 rounded-2xl bg-emerald-500/[0.08] border border-emerald-400/30 space-y-2 text-xs">
             <div className="flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
-              <span className="font-bold text-amber-300 text-xs uppercase tracking-wide">
+              <AlertCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span className="font-bold text-emerald-300 text-xs uppercase tracking-wide">
                 API Requirement &amp; Quality Notice
               </span>
             </div>
             <p className="text-xs text-zinc-300 leading-relaxed">
               Cloud AI models require your private API key to analyze transcripts and generate viral hooks. For <b>Local GPU mode</b>, an on-device graphics processor (NVIDIA RTX / AMD Radeon / Intel Arc) is recommended for fast video rendering.
             </p>
-            <div className="flex items-center gap-4 pt-1.5 border-t border-amber-500/20 text-xs text-amber-200/90 flex-wrap font-medium">
+            <div className="flex items-center gap-4 pt-1.5 border-t border-emerald-500/20 text-xs text-emerald-200/90 flex-wrap font-medium">
               <span>• <b>Free API Keys:</b> Available instantly via Google AI Studio &amp; Groq Console</span>
               <span>• <b>Always Reconfigurable:</b> Switch models anytime via the top Engine badge</span>
             </div>
@@ -853,32 +853,32 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                   disabled={isScanning}
                   className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-xs text-white font-bold transition-all cursor-pointer border border-white/10 disabled:opacity-50"
                 >
-                  <RefreshCw className={`w-4 h-4 ${isScanning ? "animate-spin text-amber-400" : "text-gray-300"}`} />
+                  <RefreshCw className={`w-4 h-4 ${isScanning ? "animate-spin text-emerald-400" : "text-gray-300"}`} />
                   <span>{isScanning ? "Scanning..." : "Rescan Hardware"}</span>
                 </button>
               </div>
 
               {/* Scanned Hardware Results */}
               {hardwareInfo ? (
-                <div className="p-5 rounded-2xl bg-amber-400/10 border border-amber-400/30 space-y-3.5">
+                <div className="p-5 rounded-2xl bg-emerald-400/10 border border-emerald-400/30 space-y-3.5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
                       <div className="w-3 h-3 rounded-full bg-emerald-400 animate-pulse" />
-                      <span className="font-bold text-base text-amber-300">
+                      <span className="font-bold text-base text-emerald-300">
                         {hardwareInfo.engine_name}
                       </span>
                     </div>
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-amber-400 text-black uppercase">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-400 text-black uppercase">
                       Active Engine
                     </span>
                   </div>
 
-                  <p className="text-xs text-amber-200/90 leading-relaxed">
+                  <p className="text-xs text-emerald-200/90 leading-relaxed">
                     {hardwareInfo.engine_desc}
                   </p>
 
                   {/* Hardware Specs Grid */}
-                  <div className="grid grid-cols-2 gap-2.5 pt-2 border-t border-amber-400/20 text-xs">
+                  <div className="grid grid-cols-2 gap-2.5 pt-2 border-t border-emerald-400/20 text-xs">
                     {hardwareInfo.specs.map((s, idx) => (
                       <div key={idx} className="p-2.5 rounded-xl bg-black/40 border border-white/5 flex flex-col">
                         <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
@@ -891,7 +891,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                     ))}
                   </div>
 
-                  <div className="pt-1 flex items-center justify-between text-xs text-amber-300/90 font-medium">
+                  <div className="pt-1 flex items-center justify-between text-xs text-emerald-300/90 font-medium">
                     <span className="flex items-center gap-1.5">
                       <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                       Hardware Acceleration: <b>{hardwareInfo.encoder}</b>
@@ -902,7 +902,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
               ) : (
                 /* Unscanned Prompt */
                 <div className="p-8 rounded-2xl bg-white/[0.02] border border-white/10 text-center space-y-3">
-                  <Activity className="w-10 h-10 text-amber-400 mx-auto" />
+                  <Activity className="w-10 h-10 text-emerald-400 mx-auto" />
                   <div>
                     <p className="text-white font-bold text-sm">No Hardware Profile Loaded</p>
                     <p className="text-xs text-gray-400 mt-1 max-w-sm mx-auto">
@@ -912,7 +912,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                   <button
                     type="button"
                     onClick={runHardwareScan}
-                    className="px-6 py-2.5 rounded-xl bg-amber-400 text-black font-bold text-xs hover:bg-amber-300 transition-all cursor-pointer shadow-md inline-flex items-center gap-2"
+                    className="px-6 py-2.5 rounded-xl bg-emerald-400 text-black font-bold text-xs hover:bg-emerald-300 transition-all cursor-pointer shadow-md inline-flex items-center gap-2"
                   >
                     <RefreshCw className="w-4 h-4" />
                     <span>Run Hardware Scan Now</span>
@@ -950,7 +950,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                       onClick={() => setActiveCloudTab(tab.id as any)}
                       className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
                         activeCloudTab === tab.id
-                          ? "bg-amber-400 text-black font-extrabold shadow"
+                          ? "bg-emerald-400 text-black font-extrabold shadow"
                           : "text-gray-400 hover:text-white hover:bg-white/5"
                       }`}
                     >
@@ -989,7 +989,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                       }}
                       className={`p-4 rounded-2xl text-left border transition-all cursor-pointer relative flex flex-col justify-between gap-3 ${
                         isSelected
-                          ? "bg-amber-400/10 border-amber-400 text-amber-300 shadow-lg ring-2 ring-amber-400/40"
+                          ? "bg-emerald-400/10 border-emerald-400 text-emerald-300 shadow-lg ring-2 ring-emerald-400/40"
                           : "bg-white/[0.03] border-white/10 text-gray-300 hover:bg-white/[0.06] hover:border-white/20"
                       }`}
                     >
@@ -1006,7 +1006,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                       </div>
                       <div className="flex items-center justify-between text-xs font-bold pt-2 border-t border-white/5">
                         {isSelected ? (
-                          <span className="text-amber-400 flex items-center gap-1.5 text-xs font-bold">
+                          <span className="text-emerald-400 flex items-center gap-1.5 text-xs font-bold">
                             <CheckCircle2 className="w-3.5 h-3.5" /> Selected Model
                           </span>
                         ) : (
@@ -1045,7 +1045,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                     </span>
                   ) : (
                     <span className="text-[10.5px] text-zinc-400 font-medium flex items-center gap-1.5 bg-white/5 px-2.5 py-0.5 rounded-full border border-white/10 shrink-0">
-                      <ShieldCheck className="w-3 h-3 text-amber-400" /> Auto-Saves to Device Vault
+                      <ShieldCheck className="w-3 h-3 text-emerald-400" /> Auto-Saves to Device Vault
                     </span>
                   )}
                 </div>
@@ -1059,7 +1059,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         href="https://aistudio.google.com/app/apikey"
                         target="_blank"
                         rel="noreferrer"
-                        className="text-amber-400 hover:text-amber-300 hover:underline flex items-center gap-1.5 text-xs font-semibold"
+                        className="text-emerald-400 hover:text-emerald-300 hover:underline flex items-center gap-1.5 text-xs font-semibold"
                       >
                         Get Free Gemini Key <ExternalLink className="w-3.5 h-3.5" />
                       </a>
@@ -1073,7 +1073,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         onFocus={() => handleEntryFieldInteraction(geminiKey)}
                         onPaste={() => handleEntryFieldInteraction(geminiKey)}
                         placeholder="AIzaSy..."
-                        className="w-full rounded-xl pl-4 pr-11 py-3 text-sm text-white bg-zinc-900/90 border border-white/15 outline-none focus:border-amber-400 font-mono shadow-inner transition-colors"
+                        className="w-full rounded-xl pl-4 pr-11 py-3 text-sm text-white bg-zinc-900/90 border border-white/15 outline-none focus:border-emerald-400 font-mono shadow-inner transition-colors"
                       />
                       <button
                         type="button"
@@ -1082,7 +1082,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer p-1 rounded"
                         title={showSecretKey ? "Hide key" : "Reveal key (Security confirmation required)"}
                       >
-                        {showSecretKey ? <EyeOff className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4" />}
+                        {showSecretKey ? <EyeOff className="w-4 h-4 text-emerald-400" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
                     <p className="text-xs text-zinc-400">
@@ -1100,7 +1100,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         href="https://console.groq.com/keys"
                         target="_blank"
                         rel="noreferrer"
-                        className="text-amber-400 hover:text-amber-300 hover:underline flex items-center gap-1.5 text-xs font-semibold"
+                        className="text-emerald-400 hover:text-emerald-300 hover:underline flex items-center gap-1.5 text-xs font-semibold"
                       >
                         Get Groq Key <ExternalLink className="w-3.5 h-3.5" />
                       </a>
@@ -1114,7 +1114,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         onFocus={() => handleEntryFieldInteraction(groqKey)}
                         onPaste={() => handleEntryFieldInteraction(groqKey)}
                         placeholder="gsk_..."
-                        className="w-full rounded-xl pl-4 pr-11 py-3 text-sm text-white bg-zinc-900/90 border border-white/15 outline-none focus:border-amber-400 font-mono shadow-inner transition-colors"
+                        className="w-full rounded-xl pl-4 pr-11 py-3 text-sm text-white bg-zinc-900/90 border border-white/15 outline-none focus:border-emerald-400 font-mono shadow-inner transition-colors"
                       />
                       <button
                         type="button"
@@ -1123,7 +1123,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer p-1 rounded"
                         title={showSecretKey ? "Hide key" : "Reveal key (Security confirmation required)"}
                       >
-                        {showSecretKey ? <EyeOff className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4" />}
+                        {showSecretKey ? <EyeOff className="w-4 h-4 text-emerald-400" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>
@@ -1138,7 +1138,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         href="https://platform.deepseek.com/api_keys"
                         target="_blank"
                         rel="noreferrer"
-                        className="text-amber-400 hover:text-amber-300 hover:underline flex items-center gap-1.5 text-xs font-semibold"
+                        className="text-emerald-400 hover:text-emerald-300 hover:underline flex items-center gap-1.5 text-xs font-semibold"
                       >
                         Get DeepSeek Key <ExternalLink className="w-3.5 h-3.5" />
                       </a>
@@ -1152,7 +1152,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         onFocus={() => handleEntryFieldInteraction(deepseekKey)}
                         onPaste={() => handleEntryFieldInteraction(deepseekKey)}
                         placeholder="sk-..."
-                        className="w-full rounded-xl pl-4 pr-11 py-3 text-sm text-white bg-zinc-900/90 border border-white/15 outline-none focus:border-amber-400 font-mono shadow-inner transition-colors"
+                        className="w-full rounded-xl pl-4 pr-11 py-3 text-sm text-white bg-zinc-900/90 border border-white/15 outline-none focus:border-emerald-400 font-mono shadow-inner transition-colors"
                       />
                       <button
                         type="button"
@@ -1161,7 +1161,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer p-1 rounded"
                         title={showSecretKey ? "Hide key" : "Reveal key (Security confirmation required)"}
                       >
-                        {showSecretKey ? <EyeOff className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4" />}
+                        {showSecretKey ? <EyeOff className="w-4 h-4 text-emerald-400" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>
@@ -1176,7 +1176,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         href="https://platform.openai.com/api-keys"
                         target="_blank"
                         rel="noreferrer"
-                        className="text-amber-400 hover:text-amber-300 hover:underline flex items-center gap-1.5 text-xs font-semibold"
+                        className="text-emerald-400 hover:text-emerald-300 hover:underline flex items-center gap-1.5 text-xs font-semibold"
                       >
                         Get OpenAI Key <ExternalLink className="w-3.5 h-3.5" />
                       </a>
@@ -1190,7 +1190,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         onFocus={() => handleEntryFieldInteraction(openAiKey)}
                         onPaste={() => handleEntryFieldInteraction(openAiKey)}
                         placeholder="sk-proj-..."
-                        className="w-full rounded-xl pl-4 pr-11 py-3 text-sm text-white bg-zinc-900/90 border border-white/15 outline-none focus:border-amber-400 font-mono shadow-inner transition-colors"
+                        className="w-full rounded-xl pl-4 pr-11 py-3 text-sm text-white bg-zinc-900/90 border border-white/15 outline-none focus:border-emerald-400 font-mono shadow-inner transition-colors"
                       />
                       <button
                         type="button"
@@ -1199,7 +1199,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer p-1 rounded"
                         title={showSecretKey ? "Hide key" : "Reveal key (Security confirmation required)"}
                       >
-                        {showSecretKey ? <EyeOff className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4" />}
+                        {showSecretKey ? <EyeOff className="w-4 h-4 text-emerald-400" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>
@@ -1214,7 +1214,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         href="https://console.anthropic.com/settings/keys"
                         target="_blank"
                         rel="noreferrer"
-                        className="text-amber-400 hover:text-amber-300 hover:underline flex items-center gap-1.5 text-xs font-semibold"
+                        className="text-emerald-400 hover:text-emerald-300 hover:underline flex items-center gap-1.5 text-xs font-semibold"
                       >
                         Get Claude Key <ExternalLink className="w-3.5 h-3.5" />
                       </a>
@@ -1228,7 +1228,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         onFocus={() => handleEntryFieldInteraction(anthropicKey)}
                         onPaste={() => handleEntryFieldInteraction(anthropicKey)}
                         placeholder="sk-ant-api03-..."
-                        className="w-full rounded-xl pl-4 pr-11 py-3 text-sm text-white bg-zinc-900/90 border border-white/15 outline-none focus:border-amber-400 font-mono shadow-inner transition-colors"
+                        className="w-full rounded-xl pl-4 pr-11 py-3 text-sm text-white bg-zinc-900/90 border border-white/15 outline-none focus:border-emerald-400 font-mono shadow-inner transition-colors"
                       />
                       <button
                         type="button"
@@ -1237,7 +1237,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer p-1 rounded"
                         title={showSecretKey ? "Hide key" : "Reveal key (Security confirmation required)"}
                       >
-                        {showSecretKey ? <EyeOff className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4" />}
+                        {showSecretKey ? <EyeOff className="w-4 h-4 text-emerald-400" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>
@@ -1252,7 +1252,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         href="https://platform.moonshot.cn/console/api-keys"
                         target="_blank"
                         rel="noreferrer"
-                        className="text-amber-400 hover:text-amber-300 hover:underline flex items-center gap-1.5 text-xs font-semibold"
+                        className="text-emerald-400 hover:text-emerald-300 hover:underline flex items-center gap-1.5 text-xs font-semibold"
                       >
                         Get Moonshot Key <ExternalLink className="w-3.5 h-3.5" />
                       </a>
@@ -1266,7 +1266,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         onFocus={() => handleEntryFieldInteraction(moonlightKey)}
                         onPaste={() => handleEntryFieldInteraction(moonlightKey)}
                         placeholder="sk-moon-..."
-                        className="w-full rounded-xl pl-4 pr-11 py-3 text-sm text-white bg-zinc-900/90 border border-white/15 outline-none focus:border-amber-400 font-mono shadow-inner transition-colors"
+                        className="w-full rounded-xl pl-4 pr-11 py-3 text-sm text-white bg-zinc-900/90 border border-white/15 outline-none focus:border-emerald-400 font-mono shadow-inner transition-colors"
                       />
                       <button
                         type="button"
@@ -1275,7 +1275,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer p-1 rounded"
                         title={showSecretKey ? "Hide key" : "Reveal key (Security confirmation required)"}
                       >
-                        {showSecretKey ? <EyeOff className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4" />}
+                        {showSecretKey ? <EyeOff className="w-4 h-4 text-emerald-400" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>
@@ -1290,7 +1290,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         href="https://dashscope.console.aliyun.com"
                         target="_blank"
                         rel="noreferrer"
-                        className="text-amber-400 hover:text-amber-300 hover:underline flex items-center gap-1.5 text-xs font-semibold"
+                        className="text-emerald-400 hover:text-emerald-300 hover:underline flex items-center gap-1.5 text-xs font-semibold"
                       >
                         Get DashScope Key <ExternalLink className="w-3.5 h-3.5" />
                       </a>
@@ -1304,7 +1304,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         onFocus={() => handleEntryFieldInteraction(qwenKey)}
                         onPaste={() => handleEntryFieldInteraction(qwenKey)}
                         placeholder="sk-qwen-..."
-                        className="w-full rounded-xl pl-4 pr-11 py-3 text-sm text-white bg-zinc-900/90 border border-white/15 outline-none focus:border-amber-400 font-mono shadow-inner transition-colors"
+                        className="w-full rounded-xl pl-4 pr-11 py-3 text-sm text-white bg-zinc-900/90 border border-white/15 outline-none focus:border-emerald-400 font-mono shadow-inner transition-colors"
                       />
                       <button
                         type="button"
@@ -1313,7 +1313,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer p-1 rounded"
                         title={showSecretKey ? "Hide key" : "Reveal key (Security confirmation required)"}
                       >
-                        {showSecretKey ? <EyeOff className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4" />}
+                        {showSecretKey ? <EyeOff className="w-4 h-4 text-emerald-400" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>
@@ -1328,7 +1328,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         href="https://higgsfield.ai"
                         target="_blank"
                         rel="noreferrer"
-                        className="text-amber-400 hover:text-amber-300 hover:underline flex items-center gap-1.5 text-xs font-semibold"
+                        className="text-emerald-400 hover:text-emerald-300 hover:underline flex items-center gap-1.5 text-xs font-semibold"
                       >
                         Get Higgsfield Key <ExternalLink className="w-3.5 h-3.5" />
                       </a>
@@ -1342,7 +1342,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         onFocus={() => handleEntryFieldInteraction(higgsfieldKey)}
                         onPaste={() => handleEntryFieldInteraction(higgsfieldKey)}
                         placeholder="hg-live-..."
-                        className="w-full rounded-xl pl-4 pr-11 py-3 text-sm text-white bg-zinc-900/90 border border-white/15 outline-none focus:border-amber-400 font-mono shadow-inner transition-colors"
+                        className="w-full rounded-xl pl-4 pr-11 py-3 text-sm text-white bg-zinc-900/90 border border-white/15 outline-none focus:border-emerald-400 font-mono shadow-inner transition-colors"
                       />
                       <button
                         type="button"
@@ -1351,7 +1351,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer p-1 rounded"
                         title={showSecretKey ? "Hide key" : "Reveal key (Security confirmation required)"}
                       >
-                        {showSecretKey ? <EyeOff className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4" />}
+                        {showSecretKey ? <EyeOff className="w-4 h-4 text-emerald-400" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>
@@ -1366,7 +1366,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         href="https://seedance.ai"
                         target="_blank"
                         rel="noreferrer"
-                        className="text-amber-400 hover:text-amber-300 hover:underline flex items-center gap-1.5 text-xs font-semibold"
+                        className="text-emerald-400 hover:text-emerald-300 hover:underline flex items-center gap-1.5 text-xs font-semibold"
                       >
                         Get SeeDance Key <ExternalLink className="w-3.5 h-3.5" />
                       </a>
@@ -1380,7 +1380,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         onFocus={() => handleEntryFieldInteraction(seeDanceKey)}
                         onPaste={() => handleEntryFieldInteraction(seeDanceKey)}
                         placeholder="sd-live-..."
-                        className="w-full rounded-xl pl-4 pr-11 py-3 text-sm text-white bg-zinc-900/90 border border-white/15 outline-none focus:border-amber-400 font-mono shadow-inner transition-colors"
+                        className="w-full rounded-xl pl-4 pr-11 py-3 text-sm text-white bg-zinc-900/90 border border-white/15 outline-none focus:border-emerald-400 font-mono shadow-inner transition-colors"
                       />
                       <button
                         type="button"
@@ -1389,7 +1389,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer p-0.5 rounded"
                         title={showSecretKey ? "Hide key" : "Reveal key (Security confirmation required)"}
                       >
-                        {showSecretKey ? <EyeOff className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4" />}
+                        {showSecretKey ? <EyeOff className="w-4 h-4 text-emerald-400" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>
@@ -1402,13 +1402,13 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                     <div className="p-4 rounded-2xl bg-zinc-900/90 border border-white/10 space-y-3 shadow-lg">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-xl bg-amber-400/10 border border-amber-400/30 flex items-center justify-center text-amber-400 shrink-0">
+                          <div className="w-7 h-7 rounded-xl bg-emerald-400/10 border border-emerald-400/30 flex items-center justify-center text-emerald-400 shrink-0">
                             <Sparkles className="w-4 h-4" />
                           </div>
                           <div>
                             <h4 className="text-sm font-bold text-white flex items-center gap-2 flex-wrap">
                               <span>AI Clipping Intelligence &amp; Model Output</span>
-                              <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                              <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-emerald-400/20 text-emerald-300 border border-emerald-400/30">
                                 Model Impact
                               </span>
                             </h4>
@@ -1420,7 +1420,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         <button
                           type="button"
                           onClick={() => setShowModelComparison(!showModelComparison)}
-                          className="text-xs text-amber-400 hover:text-amber-300 font-bold underline flex items-center gap-1 whitespace-nowrap cursor-pointer shrink-0"
+                          className="text-xs text-emerald-400 hover:text-emerald-300 font-bold underline flex items-center gap-1 whitespace-nowrap cursor-pointer shrink-0"
                         >
                           {showModelComparison ? "Hide Guide" : "Compare All Engines ↗"}
                         </button>
@@ -1431,7 +1431,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         <div className="flex items-center justify-between flex-wrap gap-1.5">
                           <div className="flex items-center gap-2">
                             <span className="text-xs font-bold text-zinc-200">
-                              Active Engine: <span className="text-amber-400">{currentProfile.title}</span>
+                              Active Engine: <span className="text-emerald-400">{currentProfile.title}</span>
                             </span>
                             <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-white/10 text-zinc-300">
                               {currentProfile.badge}
@@ -1462,7 +1462,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                         <div className="space-y-1.5 pt-2 border-t border-white/5">
                           {currentProfile.perks.map((perk, idx) => (
                             <div key={idx} className="flex items-center gap-2 text-xs text-zinc-300">
-                              <Check className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                              <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                               <span>{perk}</span>
                             </div>
                           ))}
@@ -1482,7 +1482,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                                 onClick={() => onSelectEngine(key)}
                                 className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all flex items-center justify-between ${
                                   selectedEngine === key
-                                    ? "bg-amber-400/10 border-amber-400/40 text-white"
+                                    ? "bg-emerald-400/10 border-emerald-400/40 text-white"
                                     : "bg-white/[0.02] border-white/5 hover:border-white/10 text-zinc-400"
                                 }`}
                               >
@@ -1493,7 +1493,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                                   </div>
                                   <p className="text-[11px] text-zinc-400 line-clamp-1 mt-0.5">{profile.bestFor}</p>
                                 </div>
-                                <span className="text-xs font-semibold text-amber-400/90 whitespace-nowrap pl-2">
+                                <span className="text-xs font-semibold text-emerald-400/90 whitespace-nowrap pl-2">
                                   {profile.viralityFocus}
                                 </span>
                               </div>
@@ -1506,16 +1506,16 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                 })()}
 
                 {/* Security & Confidentiality Warning Banner */}
-                <div className="p-4 rounded-2xl bg-amber-500/[0.06] border border-amber-500/15 space-y-1.5 text-xs text-zinc-300">
+                <div className="p-4 rounded-2xl bg-emerald-500/[0.06] border border-emerald-500/15 space-y-1.5 text-xs text-zinc-300">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 font-bold text-amber-300 text-xs">
-                      <ShieldAlert className="w-4 h-4 text-amber-400" />
+                    <div className="flex items-center gap-2 font-bold text-emerald-300 text-xs">
+                      <ShieldAlert className="w-4 h-4 text-emerald-400" />
                       <span>Security &amp; Confidentiality Policy</span>
                     </div>
                     <button
                       type="button"
                       onClick={() => setShowLiabilityWarningModal(true)}
-                      className="text-xs text-amber-400 hover:text-amber-300 font-bold underline cursor-pointer"
+                      className="text-xs text-emerald-400 hover:text-emerald-300 font-bold underline cursor-pointer"
                     >
                       Zero-Liability Policy ↗
                     </button>
@@ -1535,7 +1535,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                     value={customBaseUrl}
                     onChange={(e) => setCustomBaseUrl(e.target.value)}
                     placeholder="e.g. http://localhost:11434/v1 or https://api.chatanywhere.tech/v1"
-                    className="w-full rounded-xl px-4 py-2.5 text-xs text-white bg-white/5 border border-white/10 outline-none focus:border-amber-400 font-mono"
+                    className="w-full rounded-xl px-4 py-2.5 text-xs text-white bg-white/5 border border-white/10 outline-none focus:border-emerald-400 font-mono"
                   />
                 </div>
               </div>
@@ -1545,14 +1545,14 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
           {/* Commercial License Status Card */}
           <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center shrink-0">
-                <ShieldCheck className="w-4 h-4 text-amber-400" />
+              <div className="w-9 h-9 rounded-xl bg-emerald-400/10 border border-emerald-400/20 flex items-center justify-center shrink-0">
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
                   <h4 className="text-sm font-bold text-white">Commercial License</h4>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${licenseStatus?.licensed ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30" : "bg-amber-400/15 text-amber-300 border border-amber-400/30"}`}>
-                    {licenseStatus?.licensed ? "ACTIVE & BOUND" : "ACTIVATION PENDING"}
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${licenseStatus?.licensed ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30" : "bg-emerald-400/15 text-emerald-300 border border-emerald-400/30"}`}>
+                    {licenseStatus?.licensed ? "ACTIVE & VERIFIED" : "ACTIVATION PENDING"}
                   </span>
                 </div>
                 <p className="text-xs text-gray-400 mt-0.5">
@@ -1581,8 +1581,8 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
           {/* Storage & Disk Space Cache Cleaner */}
           <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center shrink-0">
-                <Trash2 className="w-4 h-4 text-amber-400" />
+              <div className="w-9 h-9 rounded-xl bg-emerald-400/10 border border-emerald-400/20 flex items-center justify-center shrink-0">
+                <Trash2 className="w-4 h-4 text-emerald-400" />
               </div>
               <div>
                 <h4 className="text-sm font-bold text-white">Temporary Cache &amp; Download Storage</h4>
@@ -1601,7 +1601,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
               type="button"
               onClick={handleClearCache}
               disabled={isCleaningCache}
-              className="px-4 py-2 rounded-xl bg-amber-400 text-black font-black text-xs hover:bg-amber-300 transition-all flex items-center gap-2 cursor-pointer shadow-md disabled:opacity-50"
+              className="px-4 py-2 rounded-xl bg-emerald-400 text-black font-black text-xs hover:bg-emerald-300 transition-all flex items-center gap-2 cursor-pointer shadow-md disabled:opacity-50"
             >
               <Trash2 className="w-3.5 h-3.5 text-black" />
               <span>{isCleaningCache ? "Cleaning..." : "Clear Cache"}</span>
@@ -1611,7 +1611,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
           {/* Compliance and Trademark Attribution Notice */}
           <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-1.5 text-xs text-gray-400">
             <div className="flex items-center gap-2 font-bold text-gray-300 text-xs">
-              <ShieldCheck className="w-4 h-4 text-amber-400/80" />
+              <ShieldCheck className="w-4 h-4 text-emerald-400/80" />
               <span>Compliance &amp; Trademark Attribution Notice</span>
             </div>
             <p className="leading-relaxed opacity-75 text-[10.5px]">
@@ -1623,7 +1623,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
         {/* Modal Footer */}
         <div className="p-5 border-t border-white/10 bg-black/70 flex items-center justify-between">
           <div className="flex items-center gap-2.5 text-xs text-gray-300 font-medium">
-            <span className={`w-2.5 h-2.5 rounded-full ${isKeyMissing ? "bg-amber-400" : "bg-emerald-400 animate-pulse"}`} />
+            <span className={`w-2.5 h-2.5 rounded-full ${isKeyMissing ? "bg-emerald-400" : "bg-emerald-400 animate-pulse"}`} />
             <span>
               Active Engine:{" "}
               <b className="text-white font-bold">
@@ -1632,7 +1632,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                   : (CLOUD_ENGINES.find((e) => e.id === selectedEngine) || CLOUD_ENGINES[0])?.name || "AI Engine"}
               </b>
               {isKeyMissing && (
-                <span className="ml-2 text-amber-400 font-bold tracking-wide animate-pulse">
+                <span className="ml-2 text-emerald-400 font-bold tracking-wide animate-pulse">
                   (Key Required)
                 </span>
               )}
@@ -1650,7 +1650,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
             className={`px-6 py-2.5 rounded-xl font-black text-xs transition-all shadow-md ${
               isKeyMissing
                 ? "bg-white/10 text-gray-500 border border-white/10 cursor-not-allowed opacity-40 shadow-none"
-                : "bg-amber-400 text-black hover:bg-amber-300 cursor-pointer shadow-amber-400/20 active:scale-95"
+                : "bg-emerald-400 text-black hover:bg-emerald-300 cursor-pointer shadow-emerald-400/20 active:scale-95"
             }`}
           >
             Done and Save Settings

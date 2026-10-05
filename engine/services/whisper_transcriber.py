@@ -1,4 +1,5 @@
 import os
+import threading
 import time
 from pathlib import Path
 from faster_whisper import WhisperModel
@@ -21,6 +22,17 @@ class WhisperSingleton:
     _instance = None
     _model = None
     last_confidence: int = 96
+    # faster-whisper / CTranslate2 is a process-wide singleton and is NOT safe for concurrent
+    # transcribe() calls. Two renders running at once corrupted word timings (which then desynced
+    # captions) and stamped each other's confidence. Loading and inference are serialized here,
+    # and per-call confidence is kept in thread-local storage instead of on the shared class.
+    _load_lock = threading.Lock()
+    _infer_lock = threading.Lock()
+    _local = threading.local()
+
+    def get_last_confidence(self) -> int:
+        """Confidence for the transcript produced by THIS thread (never another task's)."""
+        return int(getattr(self._local, "last_confidence", self.last_confidence))
 
     def __new__(cls):
         if cls._instance is None:
@@ -29,6 +41,17 @@ class WhisperSingleton:
         return cls._instance
 
     def _load_model(self):
+        """
+        Thread-safe lazy load. Two renders starting at once would otherwise each allocate a full
+        model (double RAM) because the check-then-load was unsynchronised.
+        """
+        if self._model is not None:
+            return
+        with self._load_lock:
+            if self._model is None:
+                self._load_model_unlocked()
+
+    def _load_model_unlocked(self):
         """Loads the faster-whisper model with optimized settings for CPU / GPU."""
         if self._model is None:
             # Upgrade default to 'small' (244M params, 3.3x more accurate than base) or medium if on CUDA
@@ -196,6 +219,12 @@ class WhisperSingleton:
                 initial_prompt="Accurate social media video captions with clear speech, slang, fast creator dialogue, and accurate punctuation.",
                 language=target_lang
             )
+            # faster-whisper decodes lazily: the returned generator does the real model work as it
+            # is consumed. Materialize it while holding the inference lock, otherwise decoding would
+            # happen outside the lock and two concurrent renders would still race the shared model.
+            with self._infer_lock:
+                segments = list(segments)
+
             total_dur = getattr(info, 'duration', 0.0) or 1.0
             print(f"[OK] Audio loaded ({total_dur:.1f}s). Detected language: {info.language}")
             
@@ -243,11 +272,16 @@ class WhisperSingleton:
                                 prob_count += 1
             
             if prob_count > 0:
-                self.last_confidence = int(max(60, min(99, round((total_prob / prob_count) * 100))))
+                confidence = int(max(60, min(99, round((total_prob / prob_count) * 100))))
             else:
-                self.last_confidence = 96
+                confidence = 96
 
-            print(f"[OK] Transcription complete! Found {len(words)} words in {len(segments_list)} segments (Clarity: {self.last_confidence}%)")
+            # Per-thread value is the source of truth; the class attribute is only a fallback for
+            # older call sites. This stops one task's confidence being reported for another's clip.
+            self.last_confidence = confidence
+            self._local.last_confidence = confidence
+
+            print(f"[OK] Transcription complete! Found {len(words)} words in {len(segments_list)} segments (Clarity: {confidence}%)")
             print(f"[OK] Transcript length: {len(full_text)} characters")
             return words, full_text, segments_list
 

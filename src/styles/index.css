@@ -23,12 +23,12 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(251, 191, 36, 0.25);
+  background: rgba(52, 235, 61, 0.3);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(251, 191, 36, 0.5);
+  background: rgba(52, 235, 61, 0.6);
 }
 
 /* Global Desktop App Lockdown: Prevent web-like text selection and ghost dragging */
@@ -63,6 +63,6 @@ input, textarea, select, [contenteditable="true"], .selectable-text {
 }
 
 input::selection, textarea::selection, select::selection, [contenteditable="true"]::selection, .selectable-text::selection {
-  background: rgba(0, 230, 118, 0.35) !important;
+  background: rgba(52, 235, 61, 0.35) !important;
   color: inherit !important;
 }

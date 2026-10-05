@@ -1,10 +1,11 @@
-import { app, BrowserWindow, shell, globalShortcut, nativeImage, protocol, net, dialog, ipcMain, Notification } from 'electron';
+import { app, BrowserWindow, session, shell, globalShortcut, nativeImage, protocol, net, dialog, ipcMain, Notification } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { spawn, exec } from 'child_process';
 import util from 'util';
+import nodeNet from 'node:net'; // Fix 3: TCP probe for port 8000 (never taskkill a foreign PID)
 import updaterPkg from 'electron-updater';
 const autoUpdater = updaterPkg.autoUpdater || (updaterPkg.default && updaterPkg.default.autoUpdater);
 
@@ -12,6 +13,8 @@ const execAsync = util.promisify(exec);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const isDev = process.env.NODE_ENV === 'development' && !app.isPackaged;
+const configuredEdition = (process.env.CLIPVAULT_EDITION || process.env.CLIPVAULT_MODE || '').toLowerCase();
+let currentEdition = configuredEdition === 'consumer' ? 'consumer' : (configuredEdition === 'developer' ? 'developer' : (isDev ? 'developer' : 'consumer'));
 
 // Security Guard 1: Anti-Malicious Debugger & CLI Flag Injection Lockdown
 const suspiciousFlags = ['--remote-debugging-port', '--inspect', '--inspect-brk', '--remote-debugging-targets'];
@@ -52,6 +55,52 @@ app.commandLine.appendSwitch('ignore-gpu-blocklist');
 
 let mainWindow;
 let pythonProcess;
+// Fix 1/4: single source of truth for the engine data directory. The spawn and the
+// open-path / local:// handlers all resolve through this, so a packaged build always
+// uses the writable userData path (never a path inside app.asar).
+let engineDataDir = null;
+
+function resolveEngineDataDir() {
+  if (!engineDataDir) {
+    engineDataDir = app.isPackaged
+      ? path.join(app.getPath('userData'), 'engine_data')
+      : path.resolve(__dirname, '..', 'engine');
+  }
+  return engineDataDir;
+}
+
+// Fix 1: containment check for the local:// handler. Compares fully resolved paths and
+// requires a trailing separator so "C:\data-evil" can never match the root "C:\data".
+function isPathInsideRoot(resolvedPath, root) {
+  if (!resolvedPath || !root) return false;
+  const normalizeCase = (value) => (process.platform === 'win32' ? value.toLowerCase() : value);
+  const target = normalizeCase(resolvedPath);
+  const base = normalizeCase(path.resolve(root));
+  const baseWithSep = base.endsWith(path.sep) ? base : base + path.sep;
+  return target === base || target.startsWith(baseWithSep);
+}
+
+// Fix 1: only the engine data dir (clips, temp, backgrounds, music) and the app's own
+// renderer assets may be served over local://.
+function getAllowedLocalRoots() {
+  const roots = [];
+  try {
+    roots.push(resolveEngineDataDir());
+  } catch (err) {
+    console.error('[Electron]: Could not resolve engine data dir for local:// roots:', err);
+  }
+  try {
+    roots.push(path.resolve(__dirname, '..', 'dist'));
+    roots.push(path.resolve(__dirname, '..', 'public'));
+  } catch (err) {
+    console.error('[Electron]: Could not resolve asset roots for local://:', err);
+  }
+  return roots.filter(Boolean);
+}
+
+function isAllowedLocalPath(resolvedPath) {
+  return getAllowedLocalRoots().some((root) => isPathInsideRoot(resolvedPath, root));
+}
 
 // Security Guard 2: Secure IPC Auth Token Handler with Frame Validation
 ipcMain.handle('get-auth-token', (event) => {
@@ -88,22 +137,21 @@ ipcMain.handle('get-auth-token', (event) => {
 
   ipcMain.handle('open-path', async (event, folderPath) => {
     try {
+      // Fix 4: resolve against the real engine data dir (writable outside app.asar).
+      // Resolving inside app.asar made mkdirSync throw into a swallowed catch, so the
+      // button silently did nothing in packaged builds.
+      const clipsDir = path.join(resolveEngineDataDir(), 'clips');
       let target = folderPath;
       if (!target || target === 'clips' || target === 'Default (engine/clips)' || target === 'Main Library' || target === 'all' || target === 'root') {
-        target = path.join(__dirname, '..', 'clips');
-        if (!fs.existsSync(target)) {
-          target = path.join(__dirname, '..', 'engine', 'clips');
-        }
+        target = clipsDir;
       } else if (!path.isAbsolute(target)) {
-        let base = path.join(__dirname, '..', 'clips');
-        if (!fs.existsSync(base)) {
-          base = path.join(__dirname, '..', 'engine', 'clips');
-        }
-        target = path.join(base, target);
+        target = path.join(clipsDir, target);
       }
       const norm = path.normalize(target);
       if (!fs.existsSync(norm)) {
-        try { fs.mkdirSync(norm, { recursive: true }); } catch (e) {}
+        try { fs.mkdirSync(norm, { recursive: true }); } catch (e) {
+          console.error('[Electron]: Could not create folder for open-path:', e);
+        }
       }
 
       if (process.platform === 'win32') {
@@ -180,20 +228,16 @@ ipcMain.handle('get-auth-token', (event) => {
     }
   });
 
+// Fix 5: this used to delete ANY *.lnk in the user's Start Menu whose name merely
+// contained "clipvault", so user-created shortcuts disappeared on every launch. It no
+// longer deletes anything; ClipVault only writes/updates its own ClipVault.lnk below.
 function cleanupLegacyWindowsShortcuts() {
   if (process.platform !== 'win32') return;
   try {
-    const shortcutDir = path.join(app.getPath('appData'), 'Microsoft', 'Windows', 'Start Menu', 'Programs');
-    if (fs.existsSync(shortcutDir)) {
-      const files = fs.readdirSync(shortcutDir);
-      for (const file of files) {
-        const fLower = file.toLowerCase();
-        if (fLower.endsWith('.lnk') && fLower.includes('clipvault') && file !== 'ClipVault.lnk') {
-          try { fs.unlinkSync(path.join(shortcutDir, file)); } catch (e) {}
-        }
-      }
-    }
-  } catch (e) {}
+    // Intentionally no unlink of pre-existing shortcuts.
+  } catch (err) {
+    console.error('[Electron]: Legacy shortcut cleanup error:', err);
+  }
 }
 
   ipcMain.handle('show-notification', async (event, { title, body, icon }) => {
@@ -294,33 +338,33 @@ function createWindow() {
   let loadAttempts = 0;
   const loadApp = () => {
     if (!mainWindow || mainWindow.isDestroyed()) return;
-    if (isDev) {
-      mainWindow.loadURL('http://localhost:54321').catch(() => {
+    if (isDev && currentEdition === 'developer') {
+      mainWindow.loadURL('http://localhost:54321?edition=developer').catch(() => {
         if (mainWindow && !mainWindow.isDestroyed() && fs.existsSync(distPath)) {
-          mainWindow.loadFile(distPath);
+          mainWindow.loadFile(distPath, { query: { edition: 'developer' } });
         }
       });
     } else {
-      mainWindow.loadFile(distPath);
+      mainWindow.loadFile(distPath, { query: { edition: currentEdition } });
     }
   };
 
   mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
     console.warn(`[Electron]: Page failed to load (${errorCode}: ${errorDescription}) at ${validatedURL}`);
-    if (isDev && loadAttempts < 5) {
+    if (isDev && currentEdition === 'developer' && loadAttempts < 5) {
       loadAttempts++;
       setTimeout(() => {
         if (!mainWindow || mainWindow.isDestroyed()) return;
         console.log(`[Electron]: Retrying connection to dev server (attempt ${loadAttempts})...`);
-        mainWindow.loadURL('http://localhost:54321').catch(() => {
+        mainWindow.loadURL('http://localhost:54321?edition=developer').catch(() => {
           if (mainWindow && !mainWindow.isDestroyed() && fs.existsSync(distPath)) {
-            mainWindow.loadFile(distPath);
+            mainWindow.loadFile(distPath, { query: { edition: 'developer' } });
           }
         });
       }, 1000);
     } else if (mainWindow && !mainWindow.isDestroyed() && fs.existsSync(distPath)) {
       console.log('[Electron]: Falling back to built bundle dist/index.html');
-      mainWindow.loadFile(distPath);
+      mainWindow.loadFile(distPath, { query: { edition: currentEdition } });
     }
   });
 
@@ -403,6 +447,112 @@ function createWindow() {
   });
 }
 
+// Fix 2: a zero-byte / truncated exe is what an antivirus quarantine usually leaves behind.
+function isBundledEngineUsable(exePath) {
+  try {
+    const stat = fs.statSync(exePath);
+    return stat.isFile() && stat.size > 0;
+  } catch {
+    return false;
+  }
+}
+
+// Fix 3: detect a busy port instead of killing whatever holds it. Probing with a socket
+// works for any program (HTTP or not) and on every platform.
+function isPortInUse(port) {
+  return new Promise((resolve) => {
+    const socket = nodeNet.connect({ host: '127.0.0.1', port });
+    const finish = (inUse) => {
+      socket.removeAllListeners();
+      socket.destroy();
+      resolve(inUse);
+    };
+    socket.setTimeout(800);
+    socket.once('connect', () => finish(true));
+    socket.once('timeout', () => finish(false));
+    socket.once('error', () => finish(false));
+  });
+}
+
+// Give our own just-killed engine (Ctrl+Shift+R restart) a moment to release the port
+// before we conclude that somebody else owns it.
+async function waitForPortFree(port, attempts = 6, delayMs = 300) {
+  for (let i = 0; i < attempts; i++) {
+    if (!(await isPortInUse(port))) return true;
+    if (i < attempts - 1) await new Promise((r) => setTimeout(r, delayMs));
+  }
+  return false;
+}
+
+function isClipVaultEngineHealthy(port = 8000) {
+  return new Promise((resolve) => {
+    const socket = nodeNet.connect({ host: '127.0.0.1', port });
+    socket.setTimeout(800);
+    socket.once('connect', () => {
+      socket.destroy();
+      try {
+        net.fetch(`http://127.0.0.1:${port}/api/health`, { method: 'GET' })
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data) => {
+            if (data && (data.status === 'ok' || data.app?.includes('Clip'))) {
+              resolve(true);
+            } else {
+              resolve(false);
+            }
+          })
+          .catch(() => resolve(false));
+      } catch {
+        resolve(false);
+      }
+    });
+    socket.once('timeout', () => { socket.destroy(); resolve(false); });
+    socket.once('error', () => { resolve(false); });
+  });
+}
+
+async function freePort(port) {
+  if (process.platform === 'win32') {
+    try {
+      await execAsync(`powershell -NoProfile -NonInteractive -Command "Get-NetTCPConnection -LocalPort ${port} -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }"`);
+    } catch (err) {
+      console.warn(`[Electron]: Could not force-free port ${port}:`, err);
+    }
+  }
+}
+
+// Fix 3: smart port conflict resolution — auto-adopt healthy engine or allow 1-click free port
+async function ensurePortAvailable(port) {
+  for (;;) {
+    if (await waitForPortFree(port)) return true;
+
+    // If port 8000 is occupied by a running, healthy ClipVault engine, re-use it immediately!
+    const healthy = await isClipVaultEngineHealthy(port);
+    if (healthy) {
+      console.log(`[Electron]: Port ${port} is occupied by an active, healthy ClipVault engine. Reusing instance.`);
+      return 'reused';
+    }
+
+    const choice = dialog.showMessageBoxSync({
+      type: 'warning',
+      title: 'ClipVault Port Conflict',
+      message: `Port ${port} is currently busy. An existing ClipVault background process or another program is using it.`,
+      detail: 'Choose "Free Port & Continue" to automatically close the old background process, or "Retry" after closing it manually.',
+      buttons: ['Free Port & Continue', 'Retry', 'Quit ClipVault'],
+      defaultId: 0,
+      cancelId: 2,
+      noLink: true,
+    });
+
+    if (choice === 0) {
+      console.log(`[Electron]: User requested to free port ${port}. Terminating stale process...`);
+      await freePort(port);
+      await new Promise((r) => setTimeout(r, 600));
+    } else if (choice === 2) {
+      return false;
+    }
+  }
+}
+
 function startPythonBackend() {
   // ── Locate backend: bundled exe (production) OR python source (dev) ──────
   const isPackaged = app.isPackaged;
@@ -415,22 +565,36 @@ function startPythonBackend() {
   // In dev mode, the backend runs from the source engine/ folder
   const devBackendPath = path.join(__dirname, '../engine');
 
+  // Fix 2: a packaged build must never fall back to system Python (customers do not have
+  // it) - that produced a UI that loaded, did nothing and explained nothing. This runs
+  // synchronously before createWindow(), and again on every Ctrl+Shift+R restart.
+  if (isPackaged && !isBundledEngineUsable(bundledExePath)) {
+    console.error('[Electron]: Bundled engine_server.exe is missing or unusable at:', bundledExePath);
+    dialog.showErrorBox(
+      'ClipVault Engine Missing',
+      "ClipVault's engine is missing or was blocked by antivirus. Please reinstall."
+    );
+    app.exit(1);
+    return;
+  }
+
   const spawnPython = () => {
     try {
-      let pythonCmd, args, cwd, engineDataDir;
+      let pythonCmd, args, cwd;
 
-      if (isPackaged && fs.existsSync(bundledExePath)) {
+      if (isPackaged) {
         // ── PRODUCTION: launch bundled standalone engine_server.exe ──────────
         // The exe has all Python + FastAPI + uvicorn embedded inside it.
         // We pass the data dir so it knows where to read/write clips and temp files.
-        engineDataDir = path.join(app.getPath('userData'), 'engine_data');
+        engineDataDir = resolveEngineDataDir();
         pythonCmd = bundledExePath;
         args = [];
         cwd = bundledExeDir;
         console.log('[Electron]: Launching bundled engine_server.exe...');
       } else {
         // ── DEV / SOURCE: launch via system python + uvicorn ─────────────────
-        engineDataDir = devBackendPath;
+        // Fix 2: --reload is a development-only flag; this branch only ever runs unpackaged.
+        engineDataDir = resolveEngineDataDir();
         pythonCmd = 'python';
         args = ['-m', 'uvicorn', 'server:app', '--host', '127.0.0.1', '--port', '8000', '--reload', '--timeout-graceful-shutdown', '2', '--log-level', 'info'];
         cwd = devBackendPath;
@@ -445,11 +609,22 @@ function startPythonBackend() {
           PYTHONUTF8: '1',
           CLIPVAULT_ENGINE_DATA: engineDataDir,
           CLIPVAULT_AUTH_TOKEN: BACKEND_AUTH_TOKEN,
+          // Fix 6: packaged-mode signal consumed by the engine's licence enforcement.
+          CLIPVAULT_PACKAGED: app.isPackaged ? '1' : '0',
         }
       });
 
       pythonProcess.on('error', (err) => {
         console.error('[Electron]: Failed to start backend process:', err);
+        // Fix 2: a failed spawn in a packaged build is fatal - say so instead of showing
+        // a UI that silently does nothing.
+        if (isPackaged) {
+          dialog.showErrorBox(
+            'ClipVault Engine Failed to Start',
+            "ClipVault's engine could not be started. Please reinstall."
+          );
+          app.exit(1);
+        }
       });
 
       const isNoisyLog = (str) => {
@@ -490,29 +665,24 @@ function startPythonBackend() {
     }
   };
 
-  // Prevent zombie processes from locking port 8000 if the app crashed previously
-  if (process.platform === 'win32') {
-    exec('netstat -aon | findstr :8000', (err, stdout) => {
-      if (stdout) {
-        const lines = stdout.trim().split(/\r?\n/);
-        for (const line of lines) {
-          if (line.includes('LISTENING')) {
-            const parts = line.trim().split(/\s+/);
-            const pid = parts[parts.length - 1];
-            if (pid && pid !== '0' && pid !== process.pid.toString()) {
-              console.log(`[Electron]: Killing zombie process (PID: ${pid}) on port 8000...`);
-              try { exec(`taskkill /F /T /PID ${pid}`); } catch (e) {}
-            }
-          }
-        }
-      }
-      setTimeout(spawnPython, 600);
-    });
-  } else {
-    exec('lsof -ti:8000 | xargs kill -9', () => {
-      setTimeout(spawnPython, 400);
-    });
-  }
+  // Fix 3: this used to parse `netstat -aon | findstr :8000` (a substring match, so
+  // :80000 etc. matched too) and taskkill /F /T every listening PID - which killed
+  // unrelated customer software. We now detect a busy port and let the user decide.
+  ensurePortAvailable(8000).then((status) => {
+    if (!status) {
+      console.log('[Electron]: Port 8000 is used by another program - user chose to quit.');
+      app.exit(1);
+      return;
+    }
+    if (status === 'reused') {
+      console.log('[Electron]: Port 8000 already running active ClipVault engine. Connected successfully.');
+      return;
+    }
+    setTimeout(spawnPython, 600);
+  }).catch((err) => {
+    console.error('[Electron]: Port availability check failed, starting engine anyway:', err);
+    setTimeout(spawnPython, 600);
+  });
 }
 
 function killPythonBackend() {
@@ -533,10 +703,27 @@ function killPythonBackend() {
     }
     pythonProcess = null;
   }
-  if (process.platform === 'win32') {
-    try {
-      exec('for /f "tokens=5" %a in (\'netstat -aon ^| findstr :8000 ^| findstr LISTENING\') do taskkill /f /t /pid %a');
-    } catch (e) {}
+  // Fix 3: the blanket `netstat | findstr :8000 | taskkill` sweep that ran here killed
+  // whatever held port 8000 even after our own engine had already exited. Removed -
+  // only the process tree we spawned (above) is ever terminated.
+}
+
+// Security Guard 3: Stamp every engine request with the per-session auth token at the network
+// layer. Renderer-side patching cannot do this reliably: with contextIsolation enabled the
+// preload's fetch wrapper lives in an isolated world and never reaches the React app's fetch, and
+// <img>/<video> subresource loads (thumbnails, /stream) carry no scriptable headers at all.
+// Hooking the session covers every request, which lets the Python shield verify first-party
+// identity even though Chromium omits the Origin header for this window (webSecurity is disabled
+// so local media loads freely).
+function installEngineAuthHeader() {
+  try {
+    const engineUrls = ['http://127.0.0.1:8000/*', 'http://localhost:8000/*'];
+    session.defaultSession.webRequest.onBeforeSendHeaders({ urls: engineUrls }, (details, callback) => {
+      details.requestHeaders['X-App-Auth-Token'] = BACKEND_AUTH_TOKEN;
+      callback({ requestHeaders: details.requestHeaders });
+    });
+  } catch (err) {
+    console.error('[Electron]: Failed to install engine auth header:', err);
   }
 }
 
@@ -571,6 +758,18 @@ app.whenReady().then(() => {
     }
   }
 
+  // Fix 1: this handler used to decode whatever followed local:// and hand it straight to
+  // net.fetch, so any renderer script could read ANY file on disk (e.g.
+  // local:///C:/Users/<user>/.clipvault/keys_vault.json). It is a media fallback, so it now
+  // only serves files inside the engine data dir / the app's own assets.
+  const refusedLocalRequests = new Set();
+  const logLocalRefusal = (reason, requested) => {
+    // Log each distinct refusal once so a hostile renderer cannot flood the console.
+    if (refusedLocalRequests.has(requested) || refusedLocalRequests.size >= 50) return;
+    refusedLocalRequests.add(requested);
+    console.warn(`[Electron]: Refused local:// request (${reason}).`);
+  };
+
   protocol.handle('local', async (request) => {
     try {
       const rawUrl = request.url.replace(/^local:\/\//i, '').replace(/^local:\//i, '');
@@ -579,7 +778,26 @@ app.whenReady().then(() => {
       if (process.platform === 'win32' && normPath.startsWith('/')) {
         normPath = normPath.slice(1);
       }
-      const fileUrl = 'file:///' + normPath;
+
+      // Reject empty requests, UNC / device paths (\\server\share, \\?\C:) and anything
+      // that is not an absolute path after normalisation.
+      const isUncPath = /^[\\/]{2}/.test(decodedPath);
+      const isAbsolutePath = process.platform === 'win32'
+        ? /^[a-zA-Z]:[\\/]/.test(normPath)
+        : normPath.startsWith('/');
+      if (!normPath.trim() || isUncPath || !isAbsolutePath) {
+        logLocalRefusal('not an absolute local path', decodedPath);
+        return new Response('Forbidden', { status: 403 });
+      }
+
+      const resolvedPath = path.resolve(normPath);
+      if (!isAllowedLocalPath(resolvedPath)) {
+        // Never echo the requested path back to the caller.
+        logLocalRefusal('outside allowed roots', decodedPath);
+        return new Response('Forbidden', { status: 403 });
+      }
+
+      const fileUrl = 'file:///' + resolvedPath.replace(/\\/g, '/');
       const response = await net.fetch(fileUrl, { bypassCustomProtocolHandlers: true }).catch(() => null);
       if (response) {
         return response;
@@ -590,6 +808,7 @@ app.whenReady().then(() => {
     }
   });
 
+  installEngineAuthHeader();
   startPythonBackend();
   createWindow();
 
@@ -657,10 +876,147 @@ ipcMain.on('quit-app', () => {
   app.exit(0);
 });
 
-// --- Free GitHub Auto-Updater Logic ---
+// --- Automated Weekly Software Updater Engine ---
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
+const PERIODIC_CHECK_TICK_MS = 6 * 60 * 60 * 1000; // Periodic 6-hour interval to evaluate weekly cadence
+
+function getUpdateStateFilePath() {
+  try {
+    return path.join(app.getPath('userData'), 'clipvault_updater_state.json');
+  } catch {
+    return null;
+  }
+}
+
+function loadUpdateState() {
+  const filePath = getUpdateStateFilePath();
+  const defaultState = {
+    lastUpdateCheck: 0,
+    lastCheckedVersion: app.getVersion(),
+    updateCadence: 'weekly',
+    updateIntervalDays: 7,
+    lastCheckStatus: 'never_checked',
+    lastErrorMessage: null,
+    pendingUpdate: null,
+  };
+
+  if (!filePath || !fs.existsSync(filePath)) {
+    return defaultState;
+  }
+  try {
+    const raw = fs.readFileSync(filePath, 'utf8');
+    const parsed = JSON.parse(raw);
+    return {
+      lastUpdateCheck: Number(parsed.lastUpdateCheck) || 0,
+      lastCheckedVersion: parsed.lastCheckedVersion || app.getVersion(),
+      updateCadence: 'weekly',
+      updateIntervalDays: 7,
+      lastCheckStatus: parsed.lastCheckStatus || 'idle',
+      lastErrorMessage: parsed.lastErrorMessage || null,
+      pendingUpdate: parsed.pendingUpdate || null,
+    };
+  } catch (err) {
+    console.warn('[AutoUpdater]: Could not parse updater state file, using defaults:', err);
+    return defaultState;
+  }
+}
+
+function saveUpdateState(state) {
+  try {
+    const filePath = getUpdateStateFilePath();
+    if (filePath) {
+      fs.writeFileSync(filePath, JSON.stringify(state, null, 2), 'utf8');
+    }
+  } catch (err) {
+    console.warn('[AutoUpdater]: Could not persist update state:', err);
+  }
+}
+
+let updaterState = loadUpdateState();
+let isUpdateCheckRunning = false;
+
+async function performWeeklyUpdateCheck(isManual = false) {
+  if (isUpdateCheckRunning) {
+    return { ok: true, inProgress: true, message: 'Update check is already in progress.' };
+  }
+
+  const now = Date.now();
+  const timeSinceLast = now - (updaterState.lastUpdateCheck || 0);
+  const isDue = timeSinceLast >= WEEK_MS;
+
+  if (!isManual && !isDue && updaterState.lastUpdateCheck > 0) {
+    const hoursRemaining = Math.max(0, (WEEK_MS - timeSinceLast) / (1000 * 60 * 60));
+    const daysRemaining = (hoursRemaining / 24).toFixed(1);
+    console.log(`[AutoUpdater]: Weekly schedule check skipped. Next scheduled weekly check in ~${daysRemaining} days (${Math.round(hoursRemaining)} hours).`);
+    return {
+      ok: true,
+      scheduled: true,
+      lastCheck: updaterState.lastUpdateCheck,
+      nextScheduled: updaterState.lastUpdateCheck + WEEK_MS,
+      currentVersion: app.getVersion(),
+    };
+  }
+
+  console.log(`[AutoUpdater]: Initiating ${isManual ? 'manual' : 'scheduled weekly'} software update inspection...`);
+  isUpdateCheckRunning = true;
+
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('checking-for-update');
+  }
+
+  if (isDev || !autoUpdater) {
+    updaterState.lastUpdateCheck = now;
+    updaterState.lastCheckStatus = 'dev_mode';
+    updaterState.lastCheckedVersion = app.getVersion();
+    saveUpdateState(updaterState);
+    isUpdateCheckRunning = false;
+    return {
+      ok: true,
+      status: 'dev_mode',
+      message: 'Running in development environment. Auto-updater operates on packaged desktop distributions.',
+      currentVersion: app.getVersion(),
+      lastCheck: now,
+      nextScheduled: now + WEEK_MS,
+    };
+  }
+
+  try {
+    const result = await autoUpdater.checkForUpdatesAndNotify();
+    updaterState.lastUpdateCheck = now;
+    updaterState.lastCheckStatus = 'success';
+    updaterState.lastCheckedVersion = app.getVersion();
+    updaterState.lastErrorMessage = null;
+    saveUpdateState(updaterState);
+    isUpdateCheckRunning = false;
+    return {
+      ok: true,
+      status: 'checked',
+      result,
+      currentVersion: app.getVersion(),
+      lastCheck: now,
+      nextScheduled: now + WEEK_MS,
+    };
+  } catch (err) {
+    console.warn('[AutoUpdater]: Weekly update inspection error:', err?.message || err);
+    updaterState.lastUpdateCheck = now;
+    updaterState.lastCheckStatus = 'error';
+    updaterState.lastErrorMessage = err?.message || String(err);
+    saveUpdateState(updaterState);
+    isUpdateCheckRunning = false;
+    return {
+      ok: false,
+      status: 'error',
+      error: err?.message || String(err),
+      currentVersion: app.getVersion(),
+      lastCheck: now,
+      nextScheduled: now + WEEK_MS,
+    };
+  }
+}
+
 function setupAutoUpdater() {
   if (isDev || !autoUpdater) {
-    console.log('[AutoUpdater]: Skipping auto-updater check in development mode.');
+    console.log('[AutoUpdater]: Skipping auto-updater background triggers in development environment.');
     return;
   }
   try {
@@ -668,22 +1024,40 @@ function setupAutoUpdater() {
     autoUpdater.autoInstallOnAppQuit = true;
 
     autoUpdater.on('checking-for-update', () => {
-      console.log('[AutoUpdater]: Checking for updates on GitHub Releases...');
+      console.log('[AutoUpdater]: Querying GitHub Releases weekly update channel...');
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('checking-for-update');
+      }
     });
 
     autoUpdater.on('update-available', (info) => {
-      console.log('[AutoUpdater]: New update found:', info?.version);
+      console.log('[AutoUpdater]: New weekly update found:', info?.version);
+      updaterState.pendingUpdate = info?.version || null;
+      saveUpdateState(updaterState);
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('update-available', info);
       }
     });
 
-    autoUpdater.on('update-not-available', () => {
-      console.log('[AutoUpdater]: ClipVault Studio is up to date.');
+    autoUpdater.on('update-not-available', (info) => {
+      console.log('[AutoUpdater]: ClipVault Studio is fully up to date.');
+      updaterState.pendingUpdate = null;
+      saveUpdateState(updaterState);
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('update-not-available', {
+          currentVersion: app.getVersion(),
+          checkedAt: Date.now(),
+        });
+      }
     });
 
     autoUpdater.on('error', (err) => {
       console.warn('[AutoUpdater]: Non-critical update check warning:', err?.message || err);
+      updaterState.lastErrorMessage = err?.message || String(err);
+      saveUpdateState(updaterState);
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('update-error', { message: err?.message || String(err) });
+      }
     });
 
     autoUpdater.on('download-progress', (progressObj) => {
@@ -693,33 +1067,81 @@ function setupAutoUpdater() {
     });
 
     autoUpdater.on('update-downloaded', (info) => {
-      console.log('[AutoUpdater]: Update downloaded cleanly:', info?.version);
+      console.log('[AutoUpdater]: Weekly update downloaded cleanly:', info?.version);
+      updaterState.pendingUpdate = info?.version || null;
+      saveUpdateState(updaterState);
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('update-downloaded', info);
       }
     });
 
+    // Initial check after startup: evaluate if 7 days have passed since previous check
     setTimeout(() => {
-      autoUpdater.checkForUpdatesAndNotify().catch((err) => {
-        console.warn('[AutoUpdater]: Background update check failed silently:', err?.message || err);
+      performWeeklyUpdateCheck(false).catch((err) => {
+        console.warn('[AutoUpdater]: Initial weekly update check error:', err?.message || err);
       });
     }, 8000);
+
+    // Periodic 6-hour schedule evaluation to handle long-running desktop sessions
+    setInterval(() => {
+      performWeeklyUpdateCheck(false).catch((err) => {
+        console.warn('[AutoUpdater]: Periodic weekly interval check error:', err?.message || err);
+      });
+    }, PERIODIC_CHECK_TICK_MS);
   } catch (err) {
     console.warn('[AutoUpdater]: Failed to initialize auto-updater:', err);
   }
 }
 
+// IPC Handlers for Weekly Auto-Updater
+ipcMain.handle('get-update-status', async () => {
+  const now = Date.now();
+  const lastCheck = updaterState.lastUpdateCheck || 0;
+  const nextCheck = lastCheck > 0 ? lastCheck + WEEK_MS : now;
+  return {
+    currentVersion: app.getVersion(),
+    lastUpdateCheck: lastCheck,
+    nextScheduledCheck: nextCheck,
+    updateIntervalDays: 7,
+    updateCadence: 'Continuous',
+    isDev: isDev || !app.isPackaged,
+    lastCheckStatus: updaterState.lastCheckStatus,
+    pendingUpdate: updaterState.pendingUpdate,
+    isChecking: isUpdateCheckRunning,
+  };
+});
+
 ipcMain.handle('check-for-updates', async () => {
-  if (!isDev && autoUpdater) {
-    return await autoUpdater.checkForUpdatesAndNotify();
-  }
-  return { status: 'dev_mode' };
+  return await performWeeklyUpdateCheck(true);
 });
 
 ipcMain.handle('restart-and-install-update', async () => {
-  if (autoUpdater) {
+  try {
+    if (!autoUpdater) {
+      return { ok: false, error: 'Auto-updater unavailable' };
+    }
     autoUpdater.quitAndInstall(false, true);
+    return { ok: true };
+  } catch (err) {
+    console.error('[AutoUpdater]: Failed to restart and install update:', err?.message || err);
+    return { ok: false, error: err?.message || String(err) };
   }
+});
+
+ipcMain.handle('get-app-edition', () => {
+  return currentEdition;
+});
+
+ipcMain.handle('set-app-edition', (event, newEdition) => {
+  if (newEdition === 'consumer' || newEdition === 'developer') {
+    currentEdition = newEdition;
+    console.log(`[Electron]: Application edition set to: ${newEdition}`);
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('app-edition-changed', newEdition);
+    }
+    return { ok: true, edition: currentEdition };
+  }
+  return { ok: false, error: 'Invalid edition' };
 });
 
 app.on('window-all-closed', function () {

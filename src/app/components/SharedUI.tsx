@@ -9,9 +9,9 @@ export function GlassCard({ children, className = "", glow = false, onClick }: {
       className={`relative rounded-2xl backdrop-blur-xl ${className}`}
       style={{
         background: "linear-gradient(135deg, rgba(255,255,255,0.055) 0%, rgba(255,255,255,0.02) 100%)",
-        border: `1px solid ${glow ? "rgba(0,230,118,0.35)" : "rgba(255,255,255,0.07)"}`,
+        border: `1px solid ${glow ? "rgba(52, 235, 61,0.35)" : "rgba(255,255,255,0.07)"}`,
         boxShadow: glow
-          ? "0 0 32px rgba(0,230,118,0.12), inset 0 1px 0 rgba(255,255,255,0.08)"
+          ? "0 0 32px rgba(52, 235, 61,0.12), inset 0 1px 0 rgba(255,255,255,0.08)"
           : "0 8px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05)",
       }}
     >
@@ -35,9 +35,9 @@ export function GreenBtn({ children, onClick, className = "", size = "md", disab
       disabled={disabled}
       className={`relative font-bold rounded-xl overflow-hidden transition-all duration-200 hover:scale-[1.03] active:scale-[0.97] flex items-center justify-center gap-1.5 cursor-pointer ${pad} ${disabled ? "opacity-40 cursor-not-allowed" : ""} ${className}`}
       style={{
-        background: "linear-gradient(135deg, #00e676 0%, #00b859 100%)",
+        background: "linear-gradient(135deg, #34eb3d 0%, #2dca34 100%)",
         color: "#000",
-        boxShadow: disabled ? "none" : "0 0 20px rgba(0,230,118,0.35), 0 4px 12px rgba(0,0,0,0.4)",
+        boxShadow: disabled ? "none" : "0 0 20px rgba(52, 235, 61,0.35), 0 4px 12px rgba(0,0,0,0.4)",
       }}
     >
       <span className="absolute inset-x-0 top-0 h-1/2 rounded-t-xl pointer-events-none" style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.22) 0%, transparent 100%)" }} />
@@ -64,7 +64,7 @@ export function PropRow({ label, value, unit, onChange }: { label: string; value
         onChange={(e) => onChange?.(e.target.value)}
         className="flex-1 rounded-lg px-2 py-1.5 text-xs text-white text-right outline-none transition-all font-mono"
         style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}
-        onFocus={(e) => (e.target.style.borderColor = "rgba(0,230,118,0.35)")}
+        onFocus={(e) => (e.target.style.borderColor = "rgba(52, 235, 61,0.35)")}
         onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.06)")}
       />
       <span className="text-xs w-5 flex-shrink-0" style={{ color: "#303030" }}>{unit}</span>

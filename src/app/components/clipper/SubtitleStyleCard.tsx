@@ -47,7 +47,7 @@ export const SUBTITLE_PRESETS: SubtitlePresetItem[] = [
   },
   {
     id: "hormozi_bold",
-    name: "Hormozi Punch",
+    name: "Impact Punch",
     badge: "HOOK",
     color: "#FFB800",
     desc: "Bold Anton heavy block typography with high-contrast black border",
@@ -61,10 +61,10 @@ export const SUBTITLE_PRESETS: SubtitlePresetItem[] = [
   },
   {
     id: "capcut_banner",
-    name: "Dark Banner",
-    badge: "BANNER",
-    color: "#FFE600",
-    desc: "High-contrast rounded black backdrop pill with gold karaoke word highlight",
+    name: "Studio Backdrop",
+    badge: "BACKDROP",
+    color: "#00e676",
+    desc: "High-contrast translucent dark backdrop box with clean word tracking",
   },
   {
     id: "glitch_purple",
@@ -89,8 +89,8 @@ export const SUBTITLE_PRESETS: SubtitlePresetItem[] = [
   },
   {
     id: "beast_yellow",
-    name: "Thunder Beast",
-    badge: "BEAST",
+    name: "Thunder Bolt",
+    badge: "BOLT",
     color: "#FFDE00",
     desc: "Explosive ultra-bold all-caps yellow with thick black stroke and punch",
   },
@@ -187,11 +187,11 @@ export const SubtitlePreviewSnippet: React.FC<{
           style={fontSans}
         >
           <span
-            className={`leading-none mb-0.5 filter drop-shadow transition-transform duration-200 ${
-              compact ? "text-xs" : "text-sm"
-            } ${isHovered ? "animate-bounce scale-125" : ""}`}
+            className={`leading-none mb-0.5 filter drop-shadow transition-transform duration-200 font-bold text-[9px] px-1 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30 ${
+              isHovered ? "scale-110" : ""
+            }`}
           >
-            🤩
+            POP
           </span>
           <span
             className={`text-[#FF3C30] transition-all duration-200 ${
@@ -249,22 +249,34 @@ export const SubtitlePreviewSnippet: React.FC<{
     case "capcut_bold_green":
       return (
         <div
-          className={`flex items-center justify-center select-none font-black lowercase tracking-tight ${
-            compact ? "text-xs" : "text-sm"
+          className={`flex items-center justify-center gap-1.5 select-none font-black uppercase tracking-wide ${
+            compact ? "text-[12px]" : "text-[14px]"
           }`}
           style={fontSans}
         >
           <span
-            className={`text-[#00FF66] font-extrabold transition-all duration-200 ${
-              isHovered ? "scale-115" : ""
+            className={`font-extrabold transition-all duration-200 ${
+              isHovered && animStep === 0 ? "scale-110 text-[#00FF66]" : "text-white"
             }`}
             style={{
-              WebkitTextStroke: "1.2px #000000",
               textShadow:
-                "-1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000, 1.5px 1.5px 0 #000, 0 3px 6px rgba(0,0,0,0.9)",
+                "0 0 4px rgba(255,255,255,0.3), 0 2px 4px rgba(0,0,0,0.8)",
             }}
           >
-            brown
+            THE
+          </span>
+          <span
+            className={`font-extrabold transition-all duration-200 ${
+              isHovered && animStep === 1 ? "scale-110 text-white" : "text-[#00FF66]"
+            }`}
+            style={{
+              textShadow:
+                isHovered && animStep === 1
+                  ? "0 0 4px rgba(255,255,255,0.3), 0 2px 4px rgba(0,0,0,0.8)"
+                  : "0 0 8px rgba(0,255,102,0.5), 0 2px 4px rgba(0,0,0,0.8)",
+            }}
+          >
+            QUICK
           </span>
         </div>
       );
@@ -303,31 +315,40 @@ export const SubtitlePreviewSnippet: React.FC<{
     case "hormozi_bold":
       return (
         <div
-          className={`flex items-center justify-center gap-1 font-black tracking-wider uppercase select-none ${
-            compact ? "text-[10px]" : "text-[11.5px]"
+          className={`flex flex-col items-center justify-center select-none tracking-wider uppercase leading-tight ${
+            compact ? "text-[10px]" : "text-[12px]"
           }`}
           style={fontAnton}
         >
           <span
-            className={`text-[#FFD700] transition-all duration-200 ${
-              isHovered && animStep === 0 ? "scale-115" : ""
+            className={`text-white font-black transition-all duration-200 ${
+              isHovered && animStep === 0 ? "scale-110 text-[#FFB800]" : ""
             }`}
             style={{
-              WebkitTextStroke: "1px #000000",
+              WebkitTextStroke: "0.8px rgba(0,0,0,0.6)",
               textShadow:
-                "-1.2px -1.2px 0 #000, 1.2px -1.2px 0 #000, -1.2px 1.2px 0 #000, 1.2px 1.2px 0 #000, 0 3px 6px rgba(0,0,0,0.9)",
+                isHovered && animStep === 0
+                  ? "0 0 8px rgba(255,184,0,0.5), 0 2px 4px rgba(0,0,0,0.9)"
+                  : "0 2px 4px rgba(0,0,0,0.9)",
+              letterSpacing: "0.15em",
             }}
           >
-            HORMOZI
+            IMPACT
           </span>
           <span
-            className={`text-white text-[9px] transition-all duration-200 ${
-              isHovered && animStep === 1 ? "scale-115" : ""
+            className={`font-black transition-all duration-200 ${
+              isHovered && animStep === 1
+                ? "scale-110 text-white"
+                : "text-[#FFB800]"
             }`}
             style={{
-              WebkitTextStroke: "0.8px #000000",
+              WebkitTextStroke: "0.8px rgba(0,0,0,0.6)",
               textShadow:
-                "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
+                isHovered && animStep === 1
+                  ? "0 2px 4px rgba(0,0,0,0.9)"
+                  : "0 0 6px rgba(255,184,0,0.4), 0 2px 4px rgba(0,0,0,0.9)",
+              letterSpacing: "0.2em",
+              fontSize: compact ? "9px" : "10.5px",
             }}
           >
             PUNCH
@@ -382,21 +403,28 @@ export const SubtitlePreviewSnippet: React.FC<{
 
     case "capcut_banner":
       return (
-        <div className="flex items-center justify-center select-none px-2 py-0.5 rounded-md bg-black/80 border border-white/10 shadow-sm" style={fontAnton}>
-          <span
-            className={`text-white mr-1 text-[10px] font-black transition-all duration-200 ${
-              isHovered && animStep === 0 ? "scale-110 text-yellow-300" : ""
-            }`}
-          >
-            DARK
-          </span>
-          <span
-            className={`px-1 py-0.2 rounded font-black text-[10px] transition-all duration-200 ${
-              isHovered && animStep === 1 ? "bg-white text-black scale-110" : "bg-[#FFE600] text-black"
-            }`}
-          >
-            BANNER
-          </span>
+        <div
+          className="flex items-center justify-center select-none w-full"
+          style={fontSans}
+        >
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black/85 border border-white/15 shadow-[0_2px_12px_rgba(0,0,0,0.5)]">
+            <span
+              className={`text-[11px] font-black uppercase tracking-wider transition-all duration-200 ${
+                isHovered && animStep === 0 ? "text-[#00e676]" : "text-white"
+              }`}
+            >
+              STUDIO
+            </span>
+            <span
+              className={`text-[11px] font-black uppercase tracking-wider transition-all duration-200 ${
+                isHovered && animStep === 1
+                  ? "text-[#00e676]"
+                  : "text-white/80"
+              }`}
+            >
+              BACKDROP
+            </span>
+          </div>
         </div>
       );
 
@@ -521,7 +549,7 @@ export const SubtitlePreviewSnippet: React.FC<{
               textShadow: "-1.2px -1.2px 0 #000, 1.2px -1.2px 0 #000, -1.2px 1.2px 0 #000, 1.2px 1.2px 0 #000",
             }}
           >
-            BEAST
+            BOLT
           </span>
         </div>
       );
@@ -634,7 +662,7 @@ export const SubtitlePreviewSnippet: React.FC<{
           <span
             key={currentWord}
             className={`text-white transition-all duration-200 ${
-              isHovered ? "scale-115 text-emerald-300 drop-shadow-[0_0_10px_rgba(0,230,118,0.8)]" : ""
+              isHovered ? "scale-115 text-emerald-300 drop-shadow-[0_0_10px_rgba(52, 235, 61,0.8)]" : ""
             }`}
             style={{
               WebkitTextStroke: "0.8px #000",
@@ -689,7 +717,7 @@ export const SubtitleStyleCard: React.FC<SubtitleStyleCardProps> = ({
         compact ? "p-2 min-h-[68px]" : "p-3 min-h-[78px] sm:min-h-[84px]"
       } ${
         isSelected
-          ? "bg-[#00e676]/10 border-[#00e676] ring-1 ring-[#00e676]/40 shadow-[0_0_16px_rgba(0,230,118,0.22)]"
+          ? "bg-[#34eb3d]/[0.06] border-[#34eb3d]/50 shadow-[0_0_8px_rgba(52, 235, 61,0.1)]"
           : isHovered
           ? "bg-[#151720] border-white/30 shadow-[0_4px_20px_rgba(0,0,0,0.5)] scale-[1.02]"
           : "bg-[#0E1015] border-white/[0.08] hover:border-white/[0.22] hover:bg-[#151720]"
@@ -705,7 +733,7 @@ export const SubtitleStyleCard: React.FC<SubtitleStyleCardProps> = ({
         <span
           className={`text-[9.5px] font-bold tracking-tight truncate transition-colors ${
             isSelected
-              ? "text-[#00e676]"
+              ? "text-[#34eb3d]"
               : isHovered
               ? "text-white"
               : "text-gray-400 group-hover:text-gray-200"
@@ -716,7 +744,7 @@ export const SubtitleStyleCard: React.FC<SubtitleStyleCardProps> = ({
         <span
           className={`text-[7.5px] font-mono font-bold px-1 py-0.2 rounded shrink-0 ${
             isSelected
-              ? "bg-[#00e676]/20 text-[#00e676]"
+              ? "bg-[#34eb3d]/20 text-[#34eb3d]"
               : "bg-white/[0.05] text-gray-400"
           }`}
         >
@@ -726,7 +754,7 @@ export const SubtitleStyleCard: React.FC<SubtitleStyleCardProps> = ({
 
       {/* Active Checkmark Pill */}
       {isSelected && (
-        <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#00e676] text-black flex items-center justify-center shadow-md">
+        <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#34eb3d] text-black flex items-center justify-center shadow-md">
           <Check className="w-2.5 h-2.5 stroke-[3]" />
         </div>
       )}

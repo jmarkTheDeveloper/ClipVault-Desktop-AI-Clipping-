@@ -69,7 +69,7 @@ for _log_name in ("uvicorn", "uvicorn.access", "uvicorn.error"):
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from fastapi import FastAPI, BackgroundTasks, Depends, HTTPException, Header, Body, UploadFile, File, Form, Request
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -78,9 +78,12 @@ import uuid
 import json
 import mimetypes
 import threading
+import time
 import gc
+import hmac
 import traceback
 import urllib.parse
+import re
 import requests
 from pathlib import Path
 
@@ -108,25 +111,53 @@ async def startup_event():
     except Exception as e:
         print(f" [Startup]: Non-critical startup task notification: {e}")
 
-# Allowed Origins: Local desktop Vite server, Electron, and local app schemes
+# ─────────────────────────────────────────────────────────────────────────────
+# ORIGIN POLICY
+# Only the local desktop shell is trusted. Opaque origins ("null", "file://") are
+# deliberately NOT trusted any more: any sandboxed iframe on any website can forge
+# `Origin: null`, and this server used to answer it with `Access-Control-Allow-Origin:
+# null` + `Allow-Credentials: true` — so a remote page could READ local responses,
+# including arbitrary files served by /api/download_clip. The desktop shell does not
+# need them: Chromium omits Origin entirely for this window (webSecurity is disabled)
+# and electron/main.js stamps a per-session token on every engine request instead.
+# ─────────────────────────────────────────────────────────────────────────────
 ALLOWED_ORIGIN_PATTERNS = [
     r"^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?$",
     r"^app://-",
-    r"^file://",
-    r"^vscode-webview://",
-    r"^null$",
 ]
 
-# Enable strict CORS for desktop frontend calls only
+def is_trusted_first_party_origin(origin: Optional[str]) -> bool:
+    """
+    True when the request provably comes from our own desktop shell.
+
+    A remote web page cannot forge an allow-listed Origin header, so this is a safe
+    way to distinguish first-party desktop traffic from hostile cross-site probes.
+    """
+    if not origin:
+        return False
+    return any(re.match(pat, origin, re.IGNORECASE) for pat in ALLOWED_ORIGIN_PATTERNS)
+
+# Strict CORS for desktop frontend calls only. Credentials are disabled: the app uses no
+# cookies, so reflecting an origin with credential access would only widen the attack surface.
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?$|^app://-|^file://|^null$",
-    allow_credentials=True,
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?$|^app://-",
+    allow_credentials=False,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
     allow_headers=["*"],
 )
 
 AUTH_TOKEN = os.getenv("CLIPVAULT_AUTH_TOKEN", "")
+
+# Routes that answer without the session token: readiness probes and the schema docs.
+PUBLIC_PATHS = {"/api/health", "/docs", "/redoc", "/openapi.json", "/docs/oauth2-redirect"}
+
+if not AUTH_TOKEN:
+    print(
+        "[SECURITY WARNING] CLIPVAULT_AUTH_TOKEN is not set - the local API is running WITHOUT "
+        "authentication, so any local process can call it. This is only acceptable for standalone "
+        "development; the Electron shell always injects a per-session token."
+    )
 
 @app.middleware("http")
 async def verify_app_auth(request: Request, call_next):
@@ -137,38 +168,57 @@ async def verify_app_auth(request: Request, call_next):
     path = request.url.path
     origin = request.headers.get("origin")
     sec_fetch_site = request.headers.get("sec-fetch-site")
+    sec_fetch_mode = request.headers.get("sec-fetch-mode")
+    sec_fetch_dest = request.headers.get("sec-fetch-dest")
+
+    client_token = request.headers.get("X-App-Auth-Token") or ""
+    has_valid_app_token = bool(AUTH_TOKEN) and hmac.compare_digest(client_token, AUTH_TOKEN)
+
+    origin_is_trusted = is_trusted_first_party_origin(origin)
 
     # ── SECURITY SHIELD: REJECT CROSS-SITE BROWSER ATTACKS ─────────────────
-    # If a malicious website inside a user's web browser tries to fetch 127.0.0.1, drop it
-    if sec_fetch_site == "cross-site":
-        from fastapi.responses import JSONResponse
+    # 1) Hard block. A remote page cannot forge its own Origin, and our desktop shell never sends
+    #    a foreign one, so any Origin outside the allow-list is hostile by definition.
+    if origin and not origin_is_trusted:
+        return JSONResponse(
+            status_code=403,
+            content={"detail": f"Forbidden: Untrusted cross-origin request from '{origin}' blocked."}
+        )
+
+    # 2) Cross-site shield. Chromium labels the desktop shell's OWN traffic as "cross-site": the UI
+    #    is served from localhost:<port> (or file://) while the engine binds 127.0.0.1:8000, and the
+    #    window runs with webSecurity disabled so that local media loads — which also makes Chromium
+    #    strip the Origin header entirely. First-party traffic is therefore accepted when it proves
+    #    itself with the per-session token electron/main.js stamps onto every engine request, when it
+    #    carries a trusted local Origin, or when it is a script-driven CORS fetch (mode=cors,
+    #    dest=empty) — a shape a hostile page cannot produce without also sending its Origin, which
+    #    step 1 already rejected. Origin-less probes from other sites (<img>, <script>, <form>,
+    #    no-cors fetches) keep their no-cors/navigate mode and are still dropped here.
+    is_first_party_request = (
+        has_valid_app_token
+        or origin_is_trusted
+        or (sec_fetch_mode == "cors" and sec_fetch_dest == "empty")
+    )
+    if sec_fetch_site == "cross-site" and not is_first_party_request:
         return JSONResponse(
             status_code=403,
             content={"detail": "Forbidden: Cross-site requests from external web browsers are strictly blocked."}
         )
 
-    if origin:
-        import re
-        is_allowed_origin = any(re.match(pat, origin, re.IGNORECASE) for pat in ALLOWED_ORIGIN_PATTERNS)
-        if not is_allowed_origin:
-            from fastapi.responses import JSONResponse
-            return JSONResponse(
-                status_code=403,
-                content={"detail": f"Forbidden: Untrusted cross-origin request from '{origin}' blocked."}
-            )
-
-    client_host = request.client.host if request.client else ""
-    if not path.startswith("/api/") or path == "/api/health" or path.startswith("/api/video_info") or path.startswith("/api/license") or client_host in ["127.0.0.1", "::1", "localhost"]:
-        return await call_next(request)
-    
-    if AUTH_TOKEN:
-        client_token = request.headers.get("X-App-Auth-Token")
-        if not client_token or client_token != AUTH_TOKEN:
-            from fastapi.responses import JSONResponse
-            return JSONResponse(
-                status_code=403,
-                content={"detail": "Forbidden: Access token validation failed."}
-            )
+    # ── 3) Session-token enforcement ─────────────────────────────────────────
+    # Previously this check was skipped for loopback clients — which is *every* request, because
+    # the engine only ever binds 127.0.0.1 — so the token was dead code: any local process (or any
+    # page served from localhost) could read the customer's API keys and delete files. It is now
+    # enforced for every route except PUBLIC_PATHS. When AUTH_TOKEN is unset (standalone dev) there
+    # is no secret to compare, so the check is skipped and the startup warning above applies.
+    if AUTH_TOKEN and path not in PUBLIC_PATHS and not has_valid_app_token:
+        # NOTE: JSONResponse must stay imported at module level. A local "from fastapi.responses import
+        # JSONResponse" inside the branches above made JSONResponse a function-local name, so reaching
+        # THIS branch first raised UnboundLocalError and answered 500 instead of 403.
+        return JSONResponse(
+            status_code=403,
+            content={"detail": "Forbidden: Access token validation failed. ClipVault's desktop shell must send X-App-Auth-Token."}
+        )
     return await call_next(request)
 
 auth_verifier = AuthVerifier()
@@ -178,6 +228,172 @@ OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 TEMP_DIR.mkdir(parents=True, exist_ok=True)
 BACKGROUNDS_DIR.mkdir(parents=True, exist_ok=True)
 MUSIC_DIR.mkdir(parents=True, exist_ok=True)
+
+# Standard common project folders
+DEFAULT_PROJECT_FOLDERS = ["Movies", "Shorts Viral", "Stream Highlights"]
+for _f in DEFAULT_PROJECT_FOLDERS:
+    (OUTPUT_DIR / _f).mkdir(parents=True, exist_ok=True)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PATH JAIL
+# Every endpoint that touches the filesystem resolves client-supplied paths through
+# these helpers. Before this, /api/download_clip did `OUTPUT_DIR / file` and served the
+# result, so `?file=../../.env` (or `?file=C:/Windows/win.ini`) returned any readable
+# file — an unauthenticated arbitrary file read. /api/delete_clips accepted absolute
+# paths verbatim and unlinked them. Both shapes are closed here.
+# ─────────────────────────────────────────────────────────────────────────────
+MEDIA_ROOTS = (OUTPUT_DIR, BACKGROUNDS_DIR, MUSIC_DIR)
+MEDIA_EXTS = {".mp4", ".mkv", ".mov", ".webm", ".avi", ".m4a", ".mp3", ".wav", ".aac",
+              ".jpg", ".jpeg", ".png", ".webp"}
+VIDEO_EXTS = {".mp4", ".mkv", ".mov", ".webm", ".avi", ".m4v", ".wmv", ".flv",
+              ".mpg", ".mpeg", ".ts", ".m2ts", ".3gp"}
+IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".bmp"}
+
+
+def _is_within(candidate: Path, root: Path) -> bool:
+    """True when `candidate` is `root` itself or lives underneath it."""
+    try:
+        candidate.relative_to(root)
+        return True
+    except ValueError:
+        return False
+
+
+def _clean_requested_path(raw) -> str:
+    """Strip the URL schemes/prefixes and quoting the renderer may prepend."""
+    value = urllib.parse.unquote(str(raw or "")).strip().strip('"').strip("'")
+    for prefix in ("local:///", "local://", "file:///", "file://", "app:///", "app://"):
+        if value.lower().startswith(prefix):
+            value = value[len(prefix):]
+    return value
+
+
+def safe_path(requested, roots=None, *, must_exist=True, allowed_ext=None,
+              label="path", basename_fallback=True) -> Path:
+    """
+    Resolve a client-supplied path inside one of `roots`.
+
+    400 when the value is missing, 403 when it escapes every allowed root (a traversal
+    attempt), 415 for a disallowed extension, 404 when nothing inside the roots matches.
+    Absolute paths are accepted only when they already live inside a root — the desktop
+    UI legitimately sends absolute clip paths returned by /api/saved_clips.
+    """
+    allowed_roots = tuple(Path(r).resolve() for r in (roots if roots is not None else MEDIA_ROOTS))
+    value = _clean_requested_path(requested)
+    if not value:
+        raise HTTPException(status_code=400, detail=f"Missing required '{label}'.")
+
+    candidates = []
+    raw_path = Path(value)
+    if raw_path.is_absolute():
+        candidates.append(raw_path)
+    else:
+        cleaned = value.replace("\\", "/").lstrip("/")
+        for root in allowed_roots:
+            candidates.append(root / cleaned)
+        # The basename fallback only applies to a plain relative name/label. A value that explicitly
+        # walks upwards ("../../.env") is a traversal attempt and must fail closed as a 403 escape
+        # instead of being silently re-pointed at a same-named file inside the vault (which used to
+        # surface as a 415/404 and hid the real escape).
+        if basename_fallback and ".." not in Path(cleaned).parts:
+            name = Path(cleaned).name
+            for root in allowed_roots:
+                direct = root / name
+                candidates.append(direct)
+                if not direct.exists():
+                    try:
+                        name_lower = name.lower()
+                        for sub in root.rglob("*"):
+                            if sub.is_file() and sub.name.lower() == name_lower:
+                                candidates.append(sub)
+                                break
+                    except Exception:
+                        pass
+
+    escaped = False
+    for candidate in candidates:
+        try:
+            resolved = candidate.resolve()
+        except (OSError, ValueError):
+            continue
+        if not any(_is_within(resolved, root) for root in allowed_roots):
+            escaped = True
+            continue
+        if allowed_ext is not None and resolved.suffix.lower() not in allowed_ext:
+            raise HTTPException(status_code=415, detail=f"Unsupported file type for '{label}'.")
+        if must_exist and not resolved.exists():
+            continue
+        return resolved
+
+    if escaped:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Access denied: '{label}' resolves outside the ClipVault media folders."
+        )
+    raise HTTPException(
+        status_code=404,
+        detail=f"{label.capitalize()} not found inside the ClipVault media folders."
+    )
+
+
+def safe_name(value, *, label="name") -> str:
+    """Validate a single folder/file name: no separators, no traversal, no drive letters."""
+    cleaned = _clean_requested_path(value).strip()
+    if not cleaned:
+        raise HTTPException(status_code=400, detail=f"Missing required '{label}'.")
+    if cleaned in {".", ".."} or any(sep in cleaned for sep in ("/", "\\")) or Path(cleaned).drive:
+        raise HTTPException(status_code=400, detail=f"Invalid {label}: '{value}'.")
+    if any(ch in cleaned for ch in ("\x00", "\n", "\r")):
+        raise HTTPException(status_code=400, detail=f"Invalid {label}.")
+    return cleaned
+
+
+def safe_upload_name(filename, *, allowed_ext=None) -> str:
+    """Reduce an uploaded filename to a safe basename so it can never traverse directories."""
+    base = Path(_clean_requested_path(filename)).name.strip()
+    base = re.sub(r'[\x00-\x1f<>:"/\\|?*]', "_", base).strip(" .")
+    if not base:
+        raise HTTPException(status_code=400, detail="Invalid upload filename.")
+    if allowed_ext is not None and Path(base).suffix.lower() not in allowed_ext:
+        raise HTTPException(status_code=415, detail=f"Unsupported file type: {Path(base).suffix or '(none)'}")
+    return base
+
+
+def _file_digest(path: Path, chunk: int = 1024 * 1024) -> str:
+    """
+    Cheap content fingerprint (first + last MB + size) used only to decide whether two files are
+    genuinely the same clip. Deliberately avoids hashing whole multi-GB videos.
+    """
+    import hashlib
+    digest = hashlib.sha256()
+    size = path.stat().st_size
+    with open(path, "rb") as handle:
+        digest.update(handle.read(chunk))
+        if size > chunk * 2:
+            handle.seek(-chunk, os.SEEK_END)
+            digest.update(handle.read(chunk))
+    digest.update(str(size).encode("ascii"))
+    return digest.hexdigest()
+
+
+def _is_vault_escape(raw) -> bool:
+    """
+    True when a client-supplied value provably points outside the clips vault — an absolute location
+    elsewhere on disk or an explicit "../" walk. Such a value is an escape attempt, not a missing
+    clip, so callers report "nothing done" instead of tombstoning the basename it happens to carry.
+    """
+    value = _clean_requested_path(raw).replace("\\", "/")
+    if not value:
+        return False
+    if ".." in Path(value).parts:
+        return True
+    candidate = Path(value)
+    if not candidate.is_absolute():
+        return False
+    try:
+        return not _is_within(candidate.resolve(), Path(OUTPUT_DIR).resolve())
+    except (OSError, ValueError):
+        return True
 
 app.mount("/outputs", StaticFiles(directory=str(OUTPUT_DIR.resolve())), name="outputs")
 app.mount("/clips", StaticFiles(directory=str(OUTPUT_DIR.resolve())), name="clips")
@@ -246,30 +462,42 @@ def stream_media(request: Request, path: Optional[str] = None, url: Optional[str
             raise HTTPException(status_code=502, detail=f"Failed to proxy stream: {e}")
 
     elif target_path:
-        # Resolve local video file on disk with path jail & media extension validation
+        # Local media is deliberately NOT jailed to the vault: the Local Upload feature streams files
+        # the user picked from anywhere on disk. Instead every candidate is passed through a sensitive
+        # path blocklist plus a media-extension allowlist below, and BOTH are re-applied to the final
+        # path — a value can therefore not slip through by URL-encoding or by a "local://" prefix
+        # (the prefix only produces a bogus path that fails these guards and never resolves to the
+        # sensitive file itself).
         file_path = Path(target_path).resolve()
 
-        # Security Guard 1: Block access to sensitive system paths, credentials, and configuration files
-        str_path = str(file_path).lower().replace("\\", "/")
         forbidden_keywords = [".ssh", ".clipvault", ".env", "system32", "etc/passwd", "credentials", "id_rsa", "config.py", "secrets", "wallet"]
-        if any(bad in str_path for bad in forbidden_keywords):
-            raise HTTPException(status_code=403, detail="Forbidden: Access to sensitive system or credential paths is strictly prohibited.")
-
-        # Security Guard 2: Enforce allowed media file extensions (prevent arbitrary file disclosure)
         ALLOWED_MEDIA_EXTS = {".mp4", ".mkv", ".mov", ".webm", ".avi", ".m4a", ".mp3", ".wav", ".aac", ".jpg", ".jpeg", ".png", ".webp"}
-        if file_path.suffix.lower() not in ALLOWED_MEDIA_EXTS:
-            raise HTTPException(status_code=403, detail="Forbidden: Only approved media file types can be streamed.")
+
+        def assert_streamable(candidate: Path) -> None:
+            """Guard 1 + Guard 2 applied to a concrete path (sensitive names, then media extensions)."""
+            str_candidate = str(candidate).lower().replace("\\", "/")
+            if any(bad in str_candidate for bad in forbidden_keywords):
+                raise HTTPException(status_code=403, detail="Forbidden: Access to sensitive system or credential paths is strictly prohibited.")
+            if candidate.suffix.lower() not in ALLOWED_MEDIA_EXTS:
+                raise HTTPException(status_code=403, detail="Forbidden: Only approved media file types can be streamed.")
+
+        # Security Guard 1: Block access to sensitive system paths, credentials, and configuration files
+        # Security Guard 2: Enforce allowed media file extensions (prevent arbitrary file disclosure)
+        assert_streamable(file_path)
 
         if not (file_path.is_absolute() and file_path.exists()):
             clean_name = target_path.replace("\\", "/").split("clips/")[-1].lstrip("/")
-            candidates = [
-                file_path.resolve(),
-                (Path.cwd() / target_path).resolve(),
-                (OUTPUT_DIR / target_path).resolve(),
-                (OUTPUT_DIR / clean_name).resolve(),
-                (OUTPUT_DIR.parent / target_path).resolve(),
-                (Path(os.path.dirname(os.path.abspath(__file__))).parent / target_path).resolve(),
+            # Relative lookups, restricted to the engine's own media locations. /stream itself stays
+            # unrestricted by design (see the comment above).
+            candidate_bases = [
+                Path.cwd(),
+                Path(OUTPUT_DIR),
+                Path(OUTPUT_DIR).parent,
+                Path(os.path.dirname(os.path.abspath(__file__))).parent,
             ]
+            candidates = [file_path.resolve()]
+            candidates.extend((base / target_path).resolve() for base in candidate_bases)
+            candidates.append((Path(OUTPUT_DIR) / clean_name).resolve())
             found = False
             for cand in candidates:
                 if cand.exists() and cand.is_file():
@@ -278,6 +506,9 @@ def stream_media(request: Request, path: Optional[str] = None, url: Optional[str
                     break
             if not found:
                 raise HTTPException(status_code=404, detail=f"Video file not found: {target_path}")
+            # Re-apply both guards to the path that was actually selected, so a fallback candidate can
+            # never serve a file the first pass rejected.
+            assert_streamable(file_path)
 
         file_size = file_path.stat().st_size
         mime_type, _ = mimetypes.guess_type(str(file_path))
@@ -636,7 +867,10 @@ def purge_ghost_files():
                 try:
                     if p.is_file():
                         p_norm = str(p.resolve()).lower()
-                        if p.name.startswith(".trash") or p.name.endswith(".trash") or ".trash" in p.name:
+                        # Only files the app itself names `.trash_<ts>_<original>` are leftovers.
+                        # The old test also matched ".trash" ANYWHERE in the name, so a legitimate
+                        # user clip called `my.trash.notes.mp4` was destroyed on the next scan.
+                        if p.name.startswith(".trash"):
                             try: p.unlink()
                             except Exception: pass
                         elif p.suffix.lower() == ".mp4":
@@ -654,31 +888,50 @@ def purge_ghost_files():
                 except Exception:
                     pass
 
-            # 2. Universal Multi-Folder Deduplication across ALL folders at any depth:
-            # Group all MP4 files by lowercase filename
+            # 2. Remove genuine duplicates across folders at any depth.
+            # Two files count as duplicates only when they are byte-identical. The previous version
+            # grouped by lowercase FILENAME and deleted every copy except the newest, which silently
+            # destroyed legitimately different clips that happened to share a name (re-clipping the
+            # same source title, or clips living in different folders).
             clips_by_name = {}
             for p in OUTPUT_DIR.rglob("*.mp4"):
-                if not p.name.startswith(".") and not p.name.startswith(".trash") and p.stat().st_size > 0:
+                if not p.name.startswith(".") and p.stat().st_size > 0:
                     if (time.time() - p.stat().st_mtime) < 20.0:
                         continue
                     clips_by_name.setdefault(p.name.lower(), []).append(p)
 
-            # For each clip with multiple copies, keep the NEWEST copy and purge all older stale copies!
             for name, paths in clips_by_name.items():
-                if len(paths) > 1:
-                    paths.sort(key=lambda x: x.stat().st_mtime, reverse=True)
-                    active_clip = paths[0]
-                    stale_clips = paths[1:]
-                    print(f" Deduplicating '{name}': keeping newest in '{active_clip.parent.name}', purging {len(stale_clips)} older copy/copies")
-                    for old_p in stale_clips:
+                if len(paths) < 2:
+                    continue
+                by_size = {}
+                for path in paths:
+                    try:
+                        by_size.setdefault(path.stat().st_size, []).append(path)
+                    except OSError:
+                        continue
+                for _size, size_group in by_size.items():
+                    if len(size_group) < 2:
+                        continue
+                    by_digest = {}
+                    for path in size_group:
                         try:
-                            old_p.unlink()
-                        except Exception:
+                            by_digest.setdefault(_file_digest(path), []).append(path)
+                        except OSError:
+                            continue
+                    for _digest, dupes in by_digest.items():
+                        if len(dupes) < 2:
+                            continue
+                        dupes.sort(key=lambda x: x.stat().st_mtime, reverse=True)
+                        keep = dupes[0]
+                        for stale in dupes[1:]:
+                            print(f" Removing byte-identical duplicate '{name}' in '{stale.parent.name}' (keeping '{keep.parent.name}')")
                             try:
-                                trash_target = old_p.with_name(f".trash_{int(time.time())}_{old_p.name}")
-                                old_p.rename(trash_target)
+                                stale.unlink()
                             except Exception:
-                                pass
+                                try:
+                                    stale.rename(stale.with_name(f".trash_{int(time.time())}_{stale.name}"))
+                                except Exception:
+                                    pass
     except Exception as e:
         print(f"Error in purge_ghost_files: {e}")
 
@@ -701,7 +954,7 @@ async def get_saved_clips():
         # 2. Search root output dir and all subdirectories for video files
         for path in sorted(OUTPUT_DIR.glob("**/*.mp4"), key=lambda p: p.stat().st_mtime, reverse=True):
             try:
-                if path.name.startswith(".") or path.name.startswith(".trash") or ".trash" in path.name:
+                if path.name.startswith("."):
                     continue
                 p_norm = str(path.resolve()).lower()
                 if (
@@ -786,14 +1039,11 @@ async def get_saved_clips():
                 # Intelligent Source Title Fallback Inference for legacy clips
                 if not source_title:
                     p_name_lower = path.stem.lower()
-                    if "mr. beast" in p_name_lower or "mr beast" in p_name_lower or "mrbeast" in p_name_lower:
-                        source_title = "MrBeast Answers The Web's Most Searched Questions"
-                    elif "tony stark" in p_name_lower or "meta's" in p_name_lower or "glasses" in p_name_lower:
-                        source_title = "The Real-Life Tony Stark Glasses Meta"
-                    elif "struggling to connect" in p_name_lower:
+                    if "struggling to connect" in p_name_lower:
                         source_title = "Why Are We Struggling to Connect AI"
-                    elif "doc alvin" in p_name_lower:
-                        source_title = "Doc Alvin Podcast"
+                    else:
+                        clean_stem = path.stem.replace("_", " ").replace("-", " ")
+                        source_title = clean_stem.strip().title() or "Video Clip"
 
                 # Try to extract score from filename e.g. clip_1_95pts_...
                 if "pts" in path.name:
@@ -876,17 +1126,11 @@ def get_clip_thumbnail(path: str):
     """
     Returns the cached thumbnail JPEG for a video clip, or extracts a frame on-the-fly.
     """
-    import urllib.parse
     import subprocess
-    clean_path = urllib.parse.unquote(path).replace("local:///", "").replace("local://", "").strip()
-    p = Path(clean_path)
-    if not p.is_absolute():
-        if p.exists():
-            p = p.resolve()
-        else:
-            p = (OUTPUT_DIR / clean_path).resolve()
-
-    if not p.exists():
+    # JAIL: ffmpeg used to be pointed at whatever path the caller sent ("../../.env" was read and
+    # probed as media). Only a real video inside the clips vault may be inspected/extracted.
+    p = safe_path(path, roots=(OUTPUT_DIR,), allowed_ext=VIDEO_EXTS, label="path")
+    if not p.is_file():
         raise HTTPException(status_code=404, detail="Video file not found")
 
     thumb_candidates = [
@@ -968,27 +1212,37 @@ def delete_clip(data: dict = Body(...)):
             for prefix in ["clips/", "outputs/"]:
                 if clean_rel.lower().startswith(prefix):
                     clean_rel = clean_rel[len(prefix):]
-            p_clean = clean_rel
         else:
-            p_clean = urllib.parse.unquote(raw_str)
-            for prefix in ['local:///', 'local://', 'file:///', 'file://']:
-                if p_clean.lower().startswith(prefix):
-                    p_clean = p_clean[len(prefix):]
-            fname = Path(p_clean).name
+            clean_rel = _clean_requested_path(raw_str)
+            fname = Path(clean_rel).name
 
-        target = Path(p_clean)
-        if not (target.is_absolute() and target.exists()):
-            rel_target = (OUTPUT_DIR / p_clean).resolve()
-            if rel_target.exists():
-                return rel_target
-            rel_fname = (OUTPUT_DIR / fname).resolve()
-            if rel_fname.exists():
-                return rel_fname
-            for candidate in OUTPUT_DIR.rglob("*.mp4"):
-                if candidate.name.lower() == fname.lower() or candidate.stem.lower() == Path(fname).stem.lower():
-                    return candidate
-            return None
-        return target
+        # JAIL: the target must resolve INSIDE the clips vault. This used to accept any absolute
+        # existing path verbatim and unlink it, so {"paths":["C:/Windows/win.ini"]} deleted files
+        # anywhere the engine could reach. Absolute clip paths from /api/saved_clips still work
+        # because they already live in OUTPUT_DIR.
+        for requested in (clean_rel, fname):
+            if not requested:
+                continue
+            try:
+                return safe_path(requested, roots=(OUTPUT_DIR,), must_exist=True, label="clip path")
+            except HTTPException:
+                continue
+
+        # Preserved fuzzy behaviour: fall back to a basename/stem match, but only ever inside the
+        # vault (the old code's rglob was already vault-scoped; nothing outside it is considered).
+        # A value that provably points outside the vault gets no such rescue: it must never be turned
+        # into a delete of a same-named clip that happens to live in the vault.
+        if fname and not _is_vault_escape(clean_rel):
+            stem = Path(fname).stem.lower()
+            for candidate in OUTPUT_DIR.rglob("*"):
+                try:
+                    if candidate.is_file() and (
+                        candidate.name.lower() == fname.lower() or candidate.stem.lower() == stem
+                    ):
+                        return candidate
+                except OSError:
+                    continue
+        return None
 
     gc.collect()
 
@@ -1073,6 +1327,11 @@ def delete_clip(data: dict = Body(...)):
             print(f" Permanently deleted clip: {norm_target.name}")
         else:
             raw_name = Path(urllib.parse.unquote(str(item))).name
+            # A path that provably points outside the vault is an escape attempt, not a missing clip:
+            # report nothing deleted instead of tombstoning an unrelated basename.
+            if _is_vault_escape(item):
+                print(f" [delete_clips] Refused path outside the clips vault: {raw_name}")
+                continue
             if raw_name:
                 DELETED_CLIPS_TOMBSTONES.add(raw_name.lower())
                 DELETED_CLIPS_TOMBSTONES.add(Path(raw_name).stem.lower())
@@ -1086,26 +1345,58 @@ def delete_clip(data: dict = Body(...)):
 @app.post("/api/copy_clips")
 def copy_clips_to_destination(data: dict = Body(...), current_user: dict = Depends(get_current_user)):
     """
-    Copies specified clips to a user-chosen destination directory on disk.
+    Copies selected clips to a user-chosen destination directory on disk.
     """
     import shutil
     dest_dir = data.get("destination_dir")
-    file_paths = data.get("file_paths", [])
-    
+    file_paths = data.get("file_paths") or data.get("clip_paths") or []
     if not dest_dir:
-        raise HTTPException(status_code=400, detail="Destination directory is required")
-    
-    dest_path = Path(dest_dir)
-    dest_path.mkdir(parents=True, exist_ok=True)
-    
+        return {"success": False, "error": "No destination directory specified"}
+
+    # JAIL (destination): the export folder is user-chosen, so it is deliberately NOT jailed to the
+    # vault — but it must be an ordinary absolute directory. UNC ("\\\\server\\share") and
+    # drive-relative ("C:folder") shapes are refused: they would make the engine write customer clips
+    # to an attacker-controlled network share (and leak NTLM credentials doing it).
+    raw_dest = _clean_requested_path(dest_dir)
+    dest_candidate = Path(raw_dest) if raw_dest else None
+    if (
+        not raw_dest
+        or re.match(r"^[\\/]{2}", raw_dest)
+        or (dest_candidate is not None and dest_candidate.drive and not dest_candidate.is_absolute())
+    ):
+        return {"success": False, "error": "Invalid destination directory"}
+    if not dest_candidate.is_absolute():
+        return {"success": False, "error": "Destination directory must be an absolute path"}
+    try:
+        dest_path = dest_candidate.resolve()
+    except (OSError, ValueError):
+        return {"success": False, "error": "Invalid destination directory"}
+
+    try:
+        dest_path.mkdir(parents=True, exist_ok=True)
+    except OSError as e:
+        return {"success": False, "error": f"Could not create destination directory: {e}"}
+    if not dest_path.is_dir():
+        return {"success": False, "error": "Destination is not a directory"}
+
     copied = []
     for f in file_paths:
-        src = Path(f)
-        if src.exists() and src.is_file():
+        if not f:
+            continue
+        # JAIL (sources): copies may only be made FROM the clips vault, so this route cannot be used
+        # to exfiltrate C:/Windows/win.ini or ../../.env into a folder the caller controls.
+        try:
+            src = safe_path(f, roots=(OUTPUT_DIR,), must_exist=True, label="file_path")
+        except HTTPException as exc:
+            print(f"Copy skipped (outside the clips vault): {getattr(exc, 'detail', exc)}")
+            continue
+        try:
             target = dest_path / src.name
-            shutil.copy2(src, target)
+            shutil.copy2(str(src), str(target))
             copied.append(str(target))
-            
+        except Exception as e:
+            print(f"Copy error for {src}: {e}")
+
     return {"success": True, "copied_count": len(copied), "destination": str(dest_path)}
 
 @app.post("/api/open_folder")
@@ -1118,12 +1409,30 @@ def open_system_folder(data: dict = Body(...)):
     if not raw_path or raw_path in ["clips", "Default (engine/clips)", "all", "Main Library", "root", ""]:
         target = OUTPUT_DIR
     else:
-        target = Path(raw_path)
-        if not target.is_absolute():
-            target = OUTPUT_DIR / target
-
-    if not target.exists():
-        target.mkdir(parents=True, exist_ok=True)
+        # JAIL: this used to mkdir + os.startfile ANY absolute path, so a caller could create folders
+        # anywhere on disk. Now only an already-existing path is opened, never created, and UNC paths
+        # ("\\\\server\\share") are refused so Explorer cannot be pointed at a hostile network share.
+        value = _clean_requested_path(raw_path)
+        if not value or re.match(r"^[\\/]{2}", value):
+            return {"success": False, "error": "Invalid folder path"}
+        candidate = Path(value)
+        if candidate.drive and not candidate.is_absolute():
+            return {"success": False, "error": "Invalid folder path"}
+        if candidate.is_absolute():
+            resolved = candidate.resolve()
+            inside_media_root = any(_is_within(resolved, Path(root).resolve()) for root in MEDIA_ROOTS)
+            # Outside the media roots this is a user-chosen export folder: no server-side "last export
+            # folder" is stored, so it must already exist to be opened.
+            if not inside_media_root and not resolved.is_dir():
+                return {"success": False, "error": "Folder not found"}
+        else:
+            # Relative values are always interpreted inside the clips vault, so ".." cannot escape.
+            try:
+                resolved = safe_path(value, roots=(OUTPUT_DIR,), must_exist=True, label="folder_path")
+            except HTTPException as exc:
+                return {"success": False, "error": str(getattr(exc, "detail", exc))}
+        # A file inside the vault (the UI sends the clip path here) has its containing folder opened.
+        target = resolved.parent if resolved.is_file() else resolved
 
     try:
         resolved = str(target.resolve())
@@ -1255,10 +1564,10 @@ def download_clip(file: str, name: str):
     Downloads a generated clip with a custom filename.
     """
     import os
-    file_path = OUTPUT_DIR / file
-    if not file_path.exists():
-        raise HTTPException(status_code=404, detail="File not found")
-        
+    # JAIL: only a real video inside the clips vault may be downloaded. This was an unauthenticated
+    # arbitrary file read — `?file=../../.env` and `?file=C:/Windows/win.ini` both served the file.
+    file_path = safe_path(file, roots=(OUTPUT_DIR,), allowed_ext=VIDEO_EXTS, label="file")
+
     safe_name = "".join([c for c in name if c.isalpha() or c.isdigit() or c==' ']).rstrip()
     if not safe_name:
         safe_name = "Viral_Clip"
@@ -1340,12 +1649,23 @@ def create_new_folder(data: dict = Body(...)):
     raw_name = data.get("folder_name", "").strip()
     if not raw_name:
         return {"success": False, "error": "Folder name cannot be empty"}
-    
+
+    # JAIL: reject separators, drive letters, UNC shapes and "."/".." outright — `folder_name: ".."`
+    # used to resolve to OUTPUT_DIR's parent and create a "metadata" folder outside the vault.
+    try:
+        raw_name = safe_name(raw_name, label="folder_name")
+    except HTTPException as exc:
+        return {"success": False, "error": str(getattr(exc, "detail", exc))}
+
     clean_name = "".join(c for c in raw_name if c.isalnum() or c in (' ', '_', '-', '.')).strip()
     if not clean_name:
         return {"success": False, "error": "Invalid folder name"}
-        
+
     new_dir = OUTPUT_DIR / clean_name
+    # Belt-and-braces: even after validation the name must resolve inside the vault.
+    if not _is_within(new_dir.resolve(), OUTPUT_DIR.resolve()):
+        return {"success": False, "error": "Invalid folder name"}
+
     new_dir.mkdir(parents=True, exist_ok=True)
     (new_dir / "metadata").mkdir(exist_ok=True)
     print(f" Created folder: {new_dir.resolve()}")
@@ -1364,8 +1684,17 @@ def delete_folder(data: dict = Body(...)):
     if not folder_name or folder_name.strip().lower() in ["all", "main library", "root", "", "none"]:
         return {"success": False, "error": "Cannot delete root library"}
         
-    clean_name = folder_name.split("/")[-1].split("\\")[-1].strip()
+    # JAIL: reduce the client name to its leaf segment and validate it, so "..", "C:\\x" or
+    # "a/../../b" can never point the rmtree below at anything outside OUTPUT_DIR.
+    leaf_name = folder_name.replace("\\", "/").rstrip("/").split("/")[-1].strip()
+    try:
+        clean_name = safe_name(leaf_name, label="folder_name")
+    except HTTPException as exc:
+        return {"success": False, "error": str(getattr(exc, "detail", exc))}
+
     target_dir = OUTPUT_DIR / clean_name
+    if not _is_within(target_dir.resolve(), OUTPUT_DIR.resolve()) or target_dir.resolve() == OUTPUT_DIR.resolve():
+        return {"success": False, "error": "Invalid folder name"}
     if not target_dir.exists() or not target_dir.is_dir():
         for p in OUTPUT_DIR.iterdir():
             if p.is_dir() and p.name.lower() == clean_name.lower():
@@ -1417,14 +1746,29 @@ def rename_folder(data: dict = Body(...)):
     if not new_name:
         return {"success": False, "error": "New folder name cannot be empty"}
         
-    old_clean = old_folder.split("/")[-1].split("\\")[-1].strip()
-    new_clean = "".join(c for c in new_name if c.isalnum() or c in (' ', '_', '-', '.')).strip()
+    # JAIL: both the source and the destination names are validated leaf names, so neither can walk
+    # out of OUTPUT_DIR (".." dropped the folder somewhere else entirely).
+    old_leaf = old_folder.replace("\\", "/").rstrip("/").split("/")[-1].strip()
+    try:
+        old_clean = safe_name(old_leaf, label="old_folder")
+        new_validated = safe_name(new_name, label="new_name")
+    except HTTPException as exc:
+        return {"success": False, "error": str(getattr(exc, "detail", exc))}
+
+    new_clean = "".join(c for c in new_validated if c.isalnum() or c in (' ', '_', '-', '.')).strip()
     if not new_clean:
         return {"success": False, "error": "Invalid new folder name"}
-        
+
     src_dir = OUTPUT_DIR / old_clean
     dest_dir = OUTPUT_DIR / new_clean
-    
+    if (
+        not _is_within(src_dir.resolve(), OUTPUT_DIR.resolve())
+        or not _is_within(dest_dir.resolve(), OUTPUT_DIR.resolve())
+        or src_dir.resolve() == OUTPUT_DIR.resolve()
+        or dest_dir.resolve() == OUTPUT_DIR.resolve()
+    ):
+        return {"success": False, "error": "Invalid folder name"}
+
     if not src_dir.exists():
         return {"success": False, "error": f"Source folder '{old_clean}' does not exist"}
         
@@ -1454,17 +1798,28 @@ async def import_clip(
     if target_folder in ["all", "Main Library", "Root", "", "none"]:
         dest_dir = OUTPUT_DIR
     else:
-        segments = [s.strip() for s in target_folder.replace("\\", "/").split("/") if s.strip()]
-        safe_segments = ["".join(c for c in seg if c.isalnum() or c in (' ', '_', '-', '.')).strip() for seg in segments]
-        dest_dir = OUTPUT_DIR / Path(*safe_segments)
-        
+        # JAIL: every segment of the chosen vault subfolder is validated, so "../../x" cannot make
+        # the import write outside OUTPUT_DIR (it previously kept ".." verbatim in a segment).
+        segments = [
+            safe_name(seg, label="target_folder")
+            for seg in target_folder.replace("\\", "/").split("/")
+            if seg.strip()
+        ]
+        dest_dir = OUTPUT_DIR.joinpath(*segments)
+        if not _is_within(dest_dir.resolve(), OUTPUT_DIR.resolve()):
+            raise HTTPException(status_code=403, detail="Access denied: target folder is outside the ClipVault media folders.")
+
     dest_dir.mkdir(parents=True, exist_ok=True)
     (dest_dir / "metadata").mkdir(exist_ok=True)
-    
-    clean_filename = "".join(c for c in file.filename if c.isalnum() or c in (' ', '_', '-', '.', '(', ')')).strip()
-    if not clean_filename.lower().endswith(('.mp4', '.mov', '.webm', '.mkv')):
-        clean_filename += ".mp4"
-        
+
+    # JAIL: reduce the client-supplied upload name to a bare filename — "..\\..\\evil.mp4" used to be
+    # written verbatim, which traversed out of the destination folder.
+    try:
+        clean_filename = safe_upload_name(file.filename, allowed_ext=VIDEO_EXTS)
+    except HTTPException:
+        # Legacy behaviour: an unrecognised extension is accepted as an .mp4 clip, name still sanitised.
+        clean_filename = safe_upload_name(file.filename) + ".mp4"
+
     target_path = dest_dir / clean_filename
     with open(target_path, "wb") as f:
         content = await file.read()
@@ -1495,10 +1850,18 @@ def move_clips_to_folder(data: dict = Body(...)):
         dest_dir = OUTPUT_DIR
         clean_name = "Main Library"
     else:
-        segments = [s.strip() for s in target_folder.replace("\\", "/").split("/") if s.strip()]
-        safe_segments = ["".join(c for c in seg if c.isalnum() or c in (' ', '_', '-', '.')).strip() for seg in segments]
-        dest_dir = OUTPUT_DIR / Path(*safe_segments)
+        # JAIL: validate every segment of the destination folder name. The old filter kept ".." in a
+        # segment, so a target of "../../x" moved clips out of the vault entirely. Nested vault
+        # folders ("Parent/Child") keep working because each segment is validated individually.
+        safe_segments = [
+            safe_name(seg, label="folder_name")
+            for seg in target_folder.replace("\\", "/").split("/")
+            if seg.strip()
+        ]
+        dest_dir = OUTPUT_DIR.joinpath(*safe_segments)
         clean_name = "/".join(safe_segments)
+        if not _is_within(dest_dir.resolve(), OUTPUT_DIR.resolve()):
+            raise HTTPException(status_code=403, detail="Access denied: target folder is outside the ClipVault media folders.")
         
     dest_dir.mkdir(parents=True, exist_ok=True)
     dest_meta_dir = dest_dir / "metadata"
@@ -1519,19 +1882,21 @@ def move_clips_to_folder(data: dict = Body(...)):
         else:
             fp = urllib.parse.unquote(fp)
             
-        src = Path(fp)
-        if not src.is_absolute():
-            src = (OUTPUT_DIR / fp).resolve()
-            
-        if not src.exists():
-            # Match by exact filename or stem
+        # JAIL: move sources must live inside the clips vault. The old code trusted any absolute path
+        # (and even resolved relative ones), so {"file_paths":["C:/Windows/win.ini"]} moved a system
+        # file into the vault. The fallback still matches a basename/stem, but only inside OUTPUT_DIR.
+        try:
+            src = safe_path(fp, roots=(OUTPUT_DIR,), must_exist=True, label="clip path")
+        except HTTPException:
+            src = None
             target_name = Path(fp).name
-            for cand in OUTPUT_DIR.rglob("*.mp4"):
-                if cand.name.lower() == target_name.lower():
-                    src = cand
-                    break
+            if target_name:
+                for cand in OUTPUT_DIR.rglob("*.mp4"):
+                    if cand.name.lower() == target_name.lower() or cand.stem.lower() == Path(target_name).stem.lower():
+                        src = cand
+                        break
 
-        if src.exists() and src.is_file():
+        if src is not None and src.exists() and src.is_file():
             try:
                 dest_file = dest_dir / src.name
                 if src.resolve() != dest_file.resolve():
@@ -1618,22 +1983,42 @@ def duplicate_clip(data: dict = Body(...)):
     file_path = data.get("file_path") or data.get("path", "")
     if not file_path:
         return {"success": False, "error": "file_path is required"}
-        
-    src = Path(file_path)
-    if not src.is_absolute():
-        src = (OUTPUT_DIR / file_path).resolve()
-    if not src.exists():
-        for cand in OUTPUT_DIR.rglob("*.mp4"):
-            if cand.name == src.name or cand.stem == src.stem:
-                src = cand
-                break
-                
-    if not src.exists() or not src.is_file():
+
+    # JAIL: the source must live inside the clips vault. Previously any absolute existing file was
+    # accepted, so the endpoint duplicated C:/Windows/win.ini (or ../../.env) into the vault.
+    try:
+        src = safe_path(file_path, roots=(OUTPUT_DIR,), must_exist=True, label="file_path")
+    except HTTPException:
+        src = None
+        target_name = _clean_requested_path(file_path)
+        if target_name:
+            for cand in OUTPUT_DIR.rglob("*.mp4"):
+                if cand.name.lower() == Path(target_name).name.lower() or cand.stem.lower() == Path(target_name).stem.lower():
+                    src = cand
+                    break
+
+    if src is None or not src.exists() or not src.is_file():
         return {"success": False, "error": "File not found on disk"}
 
     stem = src.stem
     ext = src.suffix
     parent = src.parent
+
+    # Optional target folder: validated so the copy can never land outside the vault.
+    requested_folder = str(data.get("target_folder") or data.get("folder_name") or "").strip()
+    if requested_folder and requested_folder.lower() not in ("main library", "root", "all", "."):
+        try:
+            folder = safe_name(requested_folder, label="target_folder")
+        except HTTPException as exc:
+            return {"success": False, "error": str(getattr(exc, "detail", exc))}
+        candidate_parent = OUTPUT_DIR / folder
+        if not _is_within(candidate_parent.resolve(), OUTPUT_DIR.resolve()):
+            return {"success": False, "error": "Invalid target_folder"}
+        try:
+            candidate_parent.mkdir(parents=True, exist_ok=True)
+            parent = candidate_parent
+        except OSError as e:
+            return {"success": False, "error": f"Could not create target folder: {e}"}
     
     counter = 1
     dest_name = f"{stem}_copy{ext}"
@@ -1662,29 +2047,6 @@ def duplicate_clip(data: dict = Body(...)):
         return {"success": False, "error": str(e)}
 
 
-@app.post("/api/copy_clips")
-def copy_clips_to_destination(data: dict = Body(...)):
-    """
-    Copies selected clips to a chosen destination directory.
-    """
-    import shutil
-    dest_dir = data.get("destination_dir")
-    file_paths = data.get("file_paths", [])
-    if not dest_dir:
-        return {"success": False, "error": "No destination directory specified"}
-    
-    os.makedirs(dest_dir, exist_ok=True)
-    copied = []
-    for fp in file_paths:
-        if os.path.exists(fp):
-            try:
-                dest_file = os.path.join(dest_dir, os.path.basename(fp))
-                shutil.copy2(fp, dest_file)
-                copied.append(dest_file)
-            except Exception as e:
-                print(f"Copy error for {fp}: {e}")
-    return {"success": True, "copied_count": len(copied), "destination": dest_dir}
-
 @app.get("/api/health")
 def health_check():
     """Simple API health check endpoint."""
@@ -1712,20 +2074,23 @@ async def upload_background_video(file: UploadFile = File(...)):
     if not file.filename:
         return {"success": False, "error": "No file uploaded"}
     valid_exts = {".mp4", ".mov", ".webm", ".mkv"}
-    ext = Path(file.filename).suffix.lower()
-    if ext not in valid_exts:
+    # JAIL: strip any directory component from the client-supplied name — it used to be joined to
+    # BACKGROUNDS_DIR verbatim, so "..\\..\\x.mp4" wrote outside the backgrounds folder.
+    try:
+        clean_name = safe_upload_name(file.filename, allowed_ext=valid_exts)
+    except HTTPException:
         return {"success": False, "error": "Invalid video format (supported: .mp4, .mov, .webm, .mkv)"}
-    
-    dest_path = BACKGROUNDS_DIR / file.filename
+
+    dest_path = BACKGROUNDS_DIR / clean_name
     with open(dest_path, "wb") as buffer:
         content = await file.read()
         buffer.write(content)
     print(f" Imported custom gameplay video: {dest_path.name}")
     return {
         "success": True, 
-        "name": file.filename, 
+        "name": clean_name, 
         "path": str(dest_path.resolve()), 
-        "url": f"http://127.0.0.1:8000/backgrounds/{file.filename}"
+        "url": f"http://127.0.0.1:8000/backgrounds/{clean_name}"
     }
 
 @app.post("/api/delete_background_video")
@@ -1734,8 +2099,13 @@ def delete_background_video(data: dict = Body(...)):
     filename = data.get("name") or data.get("filename")
     if not filename:
         return {"success": False, "error": "Filename required"}
-    target = BACKGROUNDS_DIR / filename
-    if target.exists() and target.is_file():
+    # JAIL: only a file that resolves inside BACKGROUNDS_DIR may be unlinked. "BACKGROUNDS_DIR / name"
+    # let a caller delete any file on disk with "../" or an absolute path.
+    try:
+        target = safe_path(filename, roots=(BACKGROUNDS_DIR,), must_exist=True, label="filename")
+    except HTTPException:
+        return {"success": False, "error": "File not found"}
+    if target.is_file():
         target.unlink()
         return {"success": True, "deleted": filename}
     return {"success": False, "error": "File not found"}
@@ -1762,20 +2132,23 @@ async def upload_background_music(file: UploadFile = File(...)):
     if not file.filename:
         return {"success": False, "error": "No file uploaded"}
     valid_exts = {".mp3", ".wav", ".m4a", ".aac", ".ogg"}
-    ext = Path(file.filename).suffix.lower()
-    if ext not in valid_exts:
+    # JAIL: same as the background-video upload — the client name is reduced to a bare filename so it
+    # can never traverse out of MUSIC_DIR.
+    try:
+        clean_name = safe_upload_name(file.filename, allowed_ext=valid_exts)
+    except HTTPException:
         return {"success": False, "error": "Invalid audio format (supported: .mp3, .wav, .m4a, .aac, .ogg)"}
-    
-    dest_path = MUSIC_DIR / file.filename
+
+    dest_path = MUSIC_DIR / clean_name
     with open(dest_path, "wb") as buffer:
         content = await file.read()
         buffer.write(content)
     print(f" Imported custom background music: {dest_path.name}")
     return {
         "success": True, 
-        "name": file.filename, 
+        "name": clean_name, 
         "path": str(dest_path.resolve()), 
-        "url": f"http://127.0.0.1:8000/music/{file.filename}"
+        "url": f"http://127.0.0.1:8000/music/{clean_name}"
     }
 
 @app.post("/api/process")
@@ -1810,8 +2183,14 @@ def process_video_endpoint(
 
     # Cap tasks_db and cancellation_events to prevent memory growth over long server uptime
     if len(tasks_db) > 50:
-        oldest_keys = list(tasks_db.keys())[:len(tasks_db) - 40]
-        for k in oldest_keys:
+        # Only finished tasks may be evicted. The old code took the first N keys in insertion
+        # order, so an early long render could be evicted while still running — after which
+        # /api/status reported "Task expired or server was restarted" while the render continued.
+        evictable = [
+            k for k, v in list(tasks_db.items())
+            if str(v.get("status") or "").lower() in {"completed", "failed", "cancelled"}
+        ]
+        for k in evictable[:max(0, len(tasks_db) - 40)]:
             tasks_db.pop(k, None)
             cancellation_events.pop(k, None)
 
@@ -1842,6 +2221,23 @@ async def cancel_clipping_task(task_id: Optional[str] = None):
             tasks_db[tid]["message"] = "Processing stopped by user."
     return {"success": True, "message": "Cancellation signal sent."}
 
+def _task_state(task: dict) -> str:
+    """
+    Normalised machine-readable task state: queued | running | completed | failed | cancelled.
+
+    The public `status` field carries human-readable text (e.g. "Clips successfully
+    generated!"), and the Movie Recapper used to compare that against "completed" — so it never
+    matched and the UI polled forever at a fake 95% while the clips were already on disk. The UI
+    now keys off this field and falls back to the legacy booleans.
+    """
+    raw = str(task.get("status") or "").strip().lower()
+    if raw in {"completed", "failed", "cancelled"}:
+        return raw
+    if raw in {"queued", "pending"}:
+        return "queued"
+    return "running"
+
+
 @app.get("/api/progress/{task_id}")
 @app.get("/api/status/{task_id}")
 async def get_task_status(task_id: str):
@@ -1852,6 +2248,7 @@ async def get_task_status(task_id: str):
         return {
             "task_id": task_id,
             "status": "Task expired or server was restarted.",
+            "state": "cancelled",
             "progress": 0,
             "completed": False,
             "cancelled": True,
@@ -1861,15 +2258,18 @@ async def get_task_status(task_id: str):
             "output_dir": "",
             "title": ""
         }
-    
+
     t = tasks_db[task_id]
     result = t.get("result") or {}
+    state = _task_state(t)
     return {
         "task_id": task_id,
         "status": t.get("message") or t.get("status"),
+        "state": state,
         "progress": t.get("progress", 0),
-        "completed": t.get("status") == "completed",
-        "cancelled": t.get("status") == "cancelled",
+        "completed": state == "completed",
+        "cancelled": state == "cancelled",
+        "failed": state == "failed",
         "is_rate_limit": t.get("is_rate_limit", False),
         "error": t.get("error"),
         "clips": result.get("clips", []),
@@ -1974,18 +2374,104 @@ def get_license_status():
     from services.license_service import LicenseService
     return LicenseService.get_status()
 
+_FAILED_LICENSE_ATTEMPTS = 0
+_MAX_LICENSE_ATTEMPTS = 5
+_LICENSE_LOCKOUT = False
+
 @app.post("/api/license/activate")
 def activate_license(payload: dict = Body(...)):
-    """Activates ClipVault with a Lemon Squeezy or Developer license key."""
+    """Activates ClipVault with anti-brute-force protection: 5 failures trigger application shutdown."""
+    global _FAILED_LICENSE_ATTEMPTS, _LICENSE_LOCKOUT
+
+    if _LICENSE_LOCKOUT:
+        return JSONResponse(
+            status_code=403,
+            content={
+                "success": False,
+                "locked": True,
+                "error": "SECURITY LOCKOUT: Maximum failed activation attempts exceeded. Application is shutting down.",
+                "attempts_remaining": 0,
+            },
+        )
+
     from services.license_service import LicenseService
     license_key = payload.get("license_key", "")
-    return LicenseService.activate(license_key)
+    res = LicenseService.activate(license_key)
+
+    if res.get("success") or res.get("licensed"):
+        _FAILED_LICENSE_ATTEMPTS = 0
+        return res
+
+    _FAILED_LICENSE_ATTEMPTS += 1
+    attempts_remaining = max(0, _MAX_LICENSE_ATTEMPTS - _FAILED_LICENSE_ATTEMPTS)
+
+    if _FAILED_LICENSE_ATTEMPTS >= _MAX_LICENSE_ATTEMPTS:
+        _LICENSE_LOCKOUT = True
+        logger.error(
+            f"[SECURITY LOCKOUT ACTIVATED] {_MAX_LICENSE_ATTEMPTS} consecutive invalid license attempts. "
+            "Anti-tamper protection triggered. Initiating immediate process termination."
+        )
+        def _emergency_kill():
+            time.sleep(0.8)
+            os._exit(42)
+        threading.Thread(target=_emergency_kill, daemon=True).start()
+
+        return JSONResponse(
+            status_code=403,
+            content={
+                "success": False,
+                "locked": True,
+                "error": f"SECURITY LOCKOUT ACTIVATED: {_MAX_LICENSE_ATTEMPTS} failed attempts exceeded. Shutting down application.",
+                "attempts_remaining": 0,
+                "failed_attempts": _FAILED_LICENSE_ATTEMPTS,
+            },
+        )
+
+    return {
+        "success": False,
+        "locked": False,
+        "error": f"Invalid license key. Warning: {attempts_remaining} attempt{'s' if attempts_remaining != 1 else ''} remaining before application security shutdown.",
+        "attempts_remaining": attempts_remaining,
+        "failed_attempts": _FAILED_LICENSE_ATTEMPTS,
+    }
 
 @app.post("/api/license/deactivate")
 def deactivate_license():
     """Deactivates the license on this PC and Lemon Squeezy."""
     from services.license_service import LicenseService
     return LicenseService.deactivate()
+
+@app.get("/api/license/manual_studio_credits")
+def get_manual_studio_credits():
+    """Returns weekly credit status for Pro Manual Studio (3 clips/week for Creator Pro, unlimited for Creator Max)."""
+    from services.license_service import LicenseService
+    return LicenseService.get_manual_studio_credits()
+
+@app.post("/api/license/use_manual_studio_credit")
+def use_manual_studio_credit(payload: dict = Body(default={})):
+    """Consumes 1 manual studio credit for Creator Pro users. Creator Max users are unlimited."""
+    from services.license_service import LicenseService
+    clip_name = payload.get("clip_name", "") if isinstance(payload, dict) else ""
+    return LicenseService.use_manual_studio_credit(clip_name)
+
+@app.get("/api/license/free_tier_credits")
+def get_free_tier_credits():
+    """Returns free tier credit status (2 clips/week, 720p/1080p only via 1-Click Auto Clipper)."""
+    from services.license_service import LicenseService
+    return LicenseService.get_free_tier_credits()
+
+@app.post("/api/license/use_free_tier_credit")
+def use_free_tier_credit(payload: dict = Body(default={})):
+    """Consumes 1 free tier credit for the 1-Click Auto Clipper."""
+    from services.license_service import LicenseService
+    clip_name = payload.get("clip_name", "") if isinstance(payload, dict) else ""
+    return LicenseService.use_free_tier_credit(clip_name)
+
+@app.get("/api/license/security_audit")
+def get_security_audit():
+    """Returns cryptographic security status and any detected tampering events."""
+    from services.license_service import LicenseService
+    return LicenseService.get_security_audit_summary()
 
 if __name__ == "__main__":
     import uvicorn

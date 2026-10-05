@@ -4,6 +4,22 @@ const path = require('path');
 
 const gitPath = path.join(process.env.LOCALAPPDATA || '', 'Programs', 'Git', 'cmd', 'git.exe');
 
+// ── Opt-in guard ─────────────────────────────────────────────────────────────
+// Every 3s of quiet after a src/engine/electron edit this watcher ran
+// `git add .` -> commit -> push to a PUBLIC remote, which can publish build
+// artifacts, scraped dumps and .env contents. The watcher is therefore disabled
+// (no watchers are even registered) unless CLIPVAULT_AUTO_PUSH=1 is set.
+if (process.env.CLIPVAULT_AUTO_PUSH !== '1') {
+  console.log('\x1b[33m👀 [Live Real-Time GitHub Watcher]\x1b[0m DISABLED (opt-in required).');
+  console.log('\x1b[90m   Nothing is being watched and nothing will be pushed.\x1b[0m');
+  console.log('\x1b[90m   Auto-push is off by default so build artifacts and secrets in the');
+  console.log('   working tree cannot be published by accident.\x1b[0m');
+  console.log('\x1b[90m   To run it anyway:\x1b[0m');
+  console.log('\x1b[90m     PowerShell : $env:CLIPVAULT_AUTO_PUSH=1; npm run sync:watch\x1b[0m');
+  console.log('\x1b[90m     cmd/bash   : CLIPVAULT_AUTO_PUSH=1 npm run sync:watch\x1b[0m');
+  process.exit(0);
+}
+
 let syncTimeout = null;
 let isSyncing = false;
 

@@ -124,10 +124,46 @@ export function MovieRecapperScreen({ onBack }: Props) {
   const [done, setDone]                 = useState(false);
   const [resultMsg, setResultMsg]       = useState("");
   const intervalRef                     = useRef<any>(null);
+  // Cancellable per-poll abort + unmount guard (so a pending poll can never touch state after teardown)
+  const pollAbortRef                    = useRef<AbortController | null>(null);
+  const isMountedRef                    = useRef(true);
+
+  // Central stop: clears the interval, aborts any in-flight status request and
+  // cancels the fake random-progress ticker. Called on EVERY terminal exit path.
+  const stopPolling = () => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    if (pollAbortRef.current) {
+      try { pollAbortRef.current.abort(); } catch {}
+      pollAbortRef.current = null;
+    }
+  };
+
+  // Refresh the on-disk clip list so finished recaps appear immediately.
+  // There is no vault API dependency here: the app listens for this event.
+  const refreshClipList = (clipCount: number) => {
+    try {
+      window.dispatchEvent(
+        new CustomEvent("clipvault-task-update", {
+          detail: {
+            running: false,
+            statusText: "Movie recap complete.",
+            progress: 100,
+            done: true,
+            clipCount,
+          },
+        })
+      );
+    } catch {}
+  };
 
   useEffect(() => {
+    isMountedRef.current = true;
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      isMountedRef.current = false;
+      stopPolling();
     };
   }, []);
 
@@ -176,34 +212,88 @@ export function MovieRecapperScreen({ onBack }: Props) {
       const data = await res.json();
       const taskId = data.task_id;
 
+      // Never leave a previous interval running when a new run starts
+      stopPolling();
+
+      // POLL FIX: the engine returns human-readable text in `status`, so the old
+      // `status === "completed"` check never matched -> infinite 2s polling with a fake
+      // 95% ceiling. We now read the normalized machine field `state` (plus legacy
+      // `completed` / `cancelled` booleans) and treat those as terminal.
       intervalRef.current = setInterval(async () => {
+        if (!isMountedRef.current) return;
+
+        // Hard 10s abort per poll so a hung engine can never freeze the run forever
+        const controller = new AbortController();
+        pollAbortRef.current = controller;
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+
         try {
           const statusRes = await fetch(`http://localhost:8000/api/status/${taskId}`, {
-            headers: { "Authorization": "Bearer dev-token" }
+            headers: { "Authorization": "Bearer dev-token" },
+            signal: controller.signal
           });
+          clearTimeout(timeoutId);
+          if (!isMountedRef.current) return;
+
+          if (!statusRes.ok) throw new Error(`HTTP ${statusRes.status}`);
+
           const statusData = await statusRes.json();
 
-          if (statusData.message) setResultMsg(statusData.message);
+          const isTerminal =
+            statusData.state === "completed" ||
+            statusData.state === "failed" ||
+            statusData.state === "cancelled" ||
+            statusData.completed === true ||
+            statusData.cancelled === true;
 
-          if (statusData.status === "completed") {
-            clearInterval(intervalRef.current);
-            setProgress(100);
-            setDone(true);
-            setRunning(false);
-            setResultMsg("Done! Movie Recap Generated.");
-          } else if (statusData.status === "failed") {
-            clearInterval(intervalRef.current);
-            setRunning(false);
-            setResultMsg(`Error: ${statusData.error}`);
-          } else {
-            setProgress(p => Math.min(95, p + Math.random() * 5));
+          if (isTerminal) {
+            // Terminal: kill the interval + abort handle so no ticker keeps running
+            stopPolling();
+
+            if (statusData.state === "failed" || statusData.error) {
+              setRunning(false);
+              setDone(false);
+              setResultMsg(`Error: ${statusData.error || statusData.message || "Movie recap failed."}`);
+            } else if (statusData.state === "cancelled" || statusData.cancelled === true) {
+              setRunning(false);
+              setDone(false);
+              setResultMsg(statusData.message || "Movie recap was cancelled.");
+            } else {
+              setProgress(100);
+              setDone(true);
+              setRunning(false);
+              setResultMsg(statusData.message || "Done! Movie Recap Generated.");
+              // Refresh the clip list now that files exist on disk
+              const clipCount =
+                (Array.isArray(statusData.clips) && statusData.clips.length) ||
+                statusData.clip_count ||
+                statusData.num_clips ||
+                0;
+              refreshClipList(clipCount);
+            }
+            return;
+          }
+
+          // Still running: show the real engine text and real progress when available.
+          // No fake random walk — progress may rise slowly or stay flat while the engine works.
+          if (statusData.message) setResultMsg(statusData.message);
+          else if (statusData.status && typeof statusData.status === "string") setResultMsg(statusData.status);
+          if (typeof statusData.progress === "number" && !isNaN(statusData.progress)) {
+            setProgress((p) => Math.max(p, Math.min(99, statusData.progress)));
           }
         } catch (err) {
-          console.error("Polling error:", err);
+          clearTimeout(timeoutId);
+          // Abort / network failure must not silently swallow the run
+          if (isMountedRef.current && (err as any)?.name !== "AbortError") {
+            console.error("Polling error:", err);
+          }
+        } finally {
+          if (pollAbortRef.current === controller) pollAbortRef.current = null;
         }
       }, 2000);
 
     } catch (error: any) {
+      stopPolling();
       setRunning(false);
       setResultMsg(`Error: ${error.message}`);
     }

@@ -1,0 +1,51 @@
+# ClipVault Studio AI - Python engine requirements
+# Install:  pip install -r engine/requirements.txt
+#
+# Versions are intentionally unpinned (matching the engine's existing style).
+# For reproducible release builds, freeze a --require-hashes lock file per
+# Python minor version; see docs/BUILD.md.
+
+# ── Web API layer ────────────────────────────────────────────────────────────
+fastapi
+uvicorn
+pydantic
+python-multipart        # REQUIRED by the UploadFile / File / Form routes in engine/server.py
+                        # (FastAPI raises at import time without it)
+python-dotenv
+requests
+
+# ── Transcription / AI ───────────────────────────────────────────────────────
+faster-whisper          # engine/services/whisper_transcriber.py
+google-generativeai     # engine/services/ai_selector.py (Gemini virality analysis)
+edge-tts                # engine/services/recap_generator.py (TTS voice-over)
+
+# ── Video / audio processing ─────────────────────────────────────────────────
+moviepy
+imageio-ffmpeg          # imported by engine/config.py and engine/services/video_processor.py
+opencv-python           # cv2 - face tracking, scene detection, color grading
+mediapipe               # engine/services/face_tracker.py
+Pillow
+numpy
+proglog                 # moviepy progress logger, imported directly in video_processor.py
+
+# ── Downloads ────────────────────────────────────────────────────────────────
+yt-dlp
+pytubefix               # engine/services/youtube_downloader.py
+
+# ── Auth / system ────────────────────────────────────────────────────────────
+python-jose             # `from jose import jwt, JWTError` in engine/services/auth_verifier.py
+psutil                  # engine/services/video_processor.py, hardware_scanner.py
+cryptography            # engine/services/license_service.py (Ed25519 license verification)
+
+# ── Optional accelerators ────────────────────────────────────────────────────
+# torch is NOT required. Every import site is guarded by try/except:
+#   video_processor.py:137 (CUDA NVENC detection), whisper_transcriber.py:7
+#   (HAS_CUDA check), system_guard.py:85 (CUDA cache release). Without it the
+#   engine simply falls back to CPU encoders / CPU Whisper.
+# Install the CUDA build explicitly if you want hardware acceleration:
+#   pip install torch --index-url https://download.pytorch.org/whl/cu124
+# torch
+#
+# PyAV is also optional: engine/services/source_analyzer.py falls back to the
+# ffmpeg binary from imageio-ffmpeg when `import av` fails.
+# av

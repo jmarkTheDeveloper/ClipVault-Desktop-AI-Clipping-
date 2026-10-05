@@ -60,9 +60,9 @@ export function PreviewPlayer({ drawFrame }: { drawFrame: () => void }) {
             onClick={() => setShowCropBoxes(!showCropBoxes)}
             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer hover:bg-white/10 hover:text-white hover:scale-105 active:scale-95"
             style={{
-              background: showCropBoxes ? "rgba(0,230,118,0.12)" : "rgba(0,0,0,0.7)",
+              background: showCropBoxes ? "rgba(52, 235, 61,0.12)" : "rgba(0,0,0,0.7)",
               color: showCropBoxes ? G : "#888",
-              border: `1px solid ${showCropBoxes ? "rgba(0,230,118,0.35)" : "rgba(255,255,255,0.1)"}`,
+              border: `1px solid ${showCropBoxes ? "rgba(52, 235, 61,0.35)" : "rgba(255,255,255,0.1)"}`,
               backdropFilter: "blur(8px)",
             }}
           >
@@ -77,9 +77,9 @@ export function PreviewPlayer({ drawFrame }: { drawFrame: () => void }) {
             onClick={() => setShowLayoutPanel(!showLayoutPanel)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer hover:bg-white/10 hover:text-white hover:scale-105 active:scale-95"
             style={{
-              background: showLayoutPanel ? "rgba(0,230,118,0.12)" : "rgba(0,0,0,0.7)",
+              background: showLayoutPanel ? "rgba(52, 235, 61,0.12)" : "rgba(0,0,0,0.7)",
               color: showLayoutPanel ? G : "#aaa",
-              border: `1px solid ${showLayoutPanel ? "rgba(0,230,118,0.35)" : "rgba(255,255,255,0.1)"}`,
+              border: `1px solid ${showLayoutPanel ? "rgba(52, 235, 61,0.35)" : "rgba(255,255,255,0.1)"}`,
               backdropFilter: "blur(8px)",
             }}
           >
@@ -92,9 +92,9 @@ export function PreviewPlayer({ drawFrame }: { drawFrame: () => void }) {
             onClick={() => setShowDevicePreview(!showDevicePreview)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer hover:bg-white/10 hover:text-white hover:scale-105 active:scale-95"
             style={{
-              background: showDevicePreview ? "rgba(0,230,118,0.12)" : "rgba(0,0,0,0.7)",
+              background: showDevicePreview ? "rgba(52, 235, 61,0.12)" : "rgba(0,0,0,0.7)",
               color: showDevicePreview ? G : "#aaa",
-              border: `1px solid ${showDevicePreview ? "rgba(0,230,118,0.35)" : "rgba(255,255,255,0.1)"}`,
+              border: `1px solid ${showDevicePreview ? "rgba(52, 235, 61,0.35)" : "rgba(255,255,255,0.1)"}`,
               backdropFilter: "blur(8px)",
             }}
           >
@@ -112,7 +112,7 @@ export function PreviewPlayer({ drawFrame }: { drawFrame: () => void }) {
               title="Phone Mockup (9:16)"
               className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
                 showDevicePreview && previewDevice === "phone"
-                  ? "bg-[#00e676]/20 text-[#00e676] border border-[#00e676]/40 shadow-[0_0_10px_rgba(0,230,118,0.3)]"
+                  ? "bg-[#34eb3d]/20 text-[#34eb3d] border border-[#34eb3d]/40 shadow-[0_0_10px_rgba(52, 235, 61,0.3)]"
                   : "text-gray-400 hover:text-white hover:bg-white/5"
               }`}
             >
@@ -126,7 +126,7 @@ export function PreviewPlayer({ drawFrame }: { drawFrame: () => void }) {
               title="Tablet Mockup (4:3)"
               className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
                 showDevicePreview && previewDevice === "tablet"
-                  ? "bg-[#00e676]/20 text-[#00e676] border border-[#00e676]/40 shadow-[0_0_10px_rgba(0,230,118,0.3)]"
+                  ? "bg-[#34eb3d]/20 text-[#34eb3d] border border-[#34eb3d]/40 shadow-[0_0_10px_rgba(52, 235, 61,0.3)]"
                   : "text-gray-400 hover:text-white hover:bg-white/5"
               }`}
             >
@@ -140,7 +140,7 @@ export function PreviewPlayer({ drawFrame }: { drawFrame: () => void }) {
               title="Laptop Mockup (16:9)"
               className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
                 showDevicePreview && previewDevice === "laptop"
-                  ? "bg-[#00e676]/20 text-[#00e676] border border-[#00e676]/40 shadow-[0_0_10px_rgba(0,230,118,0.3)]"
+                  ? "bg-[#34eb3d]/20 text-[#34eb3d] border border-[#34eb3d]/40 shadow-[0_0_10px_rgba(52, 235, 61,0.3)]"
                   : "text-gray-400 hover:text-white hover:bg-white/5"
               }`}
             >
@@ -188,18 +188,18 @@ export function PreviewPlayer({ drawFrame }: { drawFrame: () => void }) {
           {showDevicePreview && (
             <div className="flex flex-col items-center justify-center flex-shrink-0 z-20 space-y-2 animate-fadeIn">
               <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-bold text-gray-200 shadow-md">
-                <Smartphone className="w-3.5 h-3.5 text-[#00e676]" />
+                <Smartphone className="w-3.5 h-3.5 text-[#34eb3d]" />
                 <span className="capitalize">{previewDevice} Result View</span>
               </div>
 
               <div
-                className="relative flex flex-col items-center justify-center overflow-hidden transition-all duration-300 shadow-[0_0_50px_rgba(0,230,118,0.3)]"
+                className="relative flex flex-col items-center justify-center overflow-hidden transition-all duration-300 shadow-[0_0_50px_rgba(52, 235, 61,0.3)]"
                 style={{
                   width: deviceSize.width || 250,
                   height: deviceSize.height || 480,
                   borderRadius: previewDevice === "laptop" ? 18 : 36,
                   background: "#0c0c0c",
-                  border: "4px solid rgba(0,230,118,0.5)",
+                  border: "4px solid rgba(52, 235, 61,0.5)",
                 }}
               >
                 {/* Device Camera Notch / Speaker Grill */}
@@ -281,9 +281,9 @@ export function PreviewPlayer({ drawFrame }: { drawFrame: () => void }) {
                     cropTop: { width: parseFloat(ref.style.width), height: parseFloat(ref.style.height), ...pos },
                   })
                 }
-                className="border-2 border-[#00e676] bg-[#00e676]/20 z-50 shadow-[0_0_15px_rgba(0,230,118,0.5)]"
+                className="border-2 border-[#34eb3d] bg-[#34eb3d]/20 z-50 shadow-[0_0_15px_rgba(52, 235, 61,0.5)]"
               >
-                <div className="absolute top-0 left-0 bg-[#00e676] text-black text-[10px] px-1 font-bold">
+                <div className="absolute top-0 left-0 bg-[#34eb3d] text-black text-[10px] px-1 font-bold">
                   TOP CROP
                 </div>
               </Rnd>
@@ -357,7 +357,7 @@ export function PreviewPlayer({ drawFrame }: { drawFrame: () => void }) {
           <button
             onClick={() => setIsPlaying(!isPlaying)}
             className="w-8 h-8 rounded-lg flex items-center justify-center transition-all"
-            style={{ background: "rgba(0,230,118,0.1)", border: "1px solid rgba(0,230,118,0.2)" }}
+            style={{ background: "rgba(52, 235, 61,0.1)", border: "1px solid rgba(52, 235, 61,0.2)" }}
           >
             {isPlaying ? (
               <Pause className="w-4 h-4" style={{ color: G }} />

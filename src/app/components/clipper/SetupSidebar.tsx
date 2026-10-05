@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Link2,
   Clipboard,
@@ -63,9 +63,9 @@ function getSegmentDurationLabel(start: string, end: string): string {
   return "";
 }
 
-const Section = ({ title, children, accent = "text-amber-400" }: { title: string; children: React.ReactNode; accent?: string }) => (
+const Section = ({ title, children, accent = "text-[#34eb3d]" }: { title: string; children: React.ReactNode; accent?: string }) => (
   <div className="space-y-3">
-    <h3 className={`text-xs font-bold ${accent} uppercase tracking-wider`}>{title}</h3>
+    <h3 className={`text-xs font-black ${accent} uppercase tracking-wider`}>{title}</h3>
     {children}
   </div>
 );
@@ -88,10 +88,10 @@ const ASPECT_RATIOS = [
 ];
 
 const LAYOUTS = [
-  { id: "auto_split", label: "Auto Detect & Split (AI Auto)", desc: "Auto-detects 2-person dialogues or solo speaker" },
-  { id: "podcast_split", label: "Dual-Speaker Split (2 Persons Stacked)", desc: "Host on top & guest on bottom with center subtitle divider (OpusClip style)" },
   { id: "vertical_crop", label: "Auto Face-Tracking (9:16)", desc: "Zooms & tracks active speaker (Fills full 9:16 screen)" },
-  { id: "square_blur", label: "Square Focus + Blurred Canvas", desc: "1:1 / 4:5 centered speaker frame with blurred 9:16 background (Pawn Stars / Shorts style)" },
+  { id: "auto_split", label: "Auto Detect & Split (AI Auto)", desc: "Auto-detects 2-person dialogues or solo speaker" },
+  { id: "podcast_split", label: "Dual-Speaker Split (2 Persons Stacked)", desc: "Host on top & guest on bottom with center subtitle divider (Stacked Dialogue style)" },
+  { id: "square_blur", label: "Square Focus + Blurred Canvas", desc: "1:1 / 4:5 centered speaker frame with blurred 9:16 background (Portrait Shorts style)" },
   { id: "landscape_blur", label: "Landscape + Blurred Canvas", desc: "Full 16:9 video centered with soft blur background" },
   { id: "landscape_fit", label: "Landscape Fit (Letterbox)", desc: "Full 16:9 video centered with black letterbox bars" },
   { id: "custom_split", label: "Custom Split-Screen (2 Boxes)", desc: "Visual multi-box crop editor" },
@@ -297,6 +297,28 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
   onTogglePlay,
 }) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [isFolderDropdownOpen, setIsFolderDropdownOpen] = useState(false);
+  const folderDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (folderDropdownRef.current && !folderDropdownRef.current.contains(e.target as Node)) {
+        setIsFolderDropdownOpen(false);
+      }
+    };
+    if (isFolderDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isFolderDropdownOpen]);
+
+  const STANDARD_PROJECT_FOLDERS = ["Shorts Viral", "Movies", "Stream Highlights"];
+  const availableProjectFolders = Array.from(
+    new Set([
+      ...STANDARD_PROJECT_FOLDERS,
+      ...vaultFolders.filter((f) => f && f !== "Main Library" && f !== "all" && f !== "root")
+    ])
+  );
 
   return (
     <div className="w-[520px] flex-shrink-0 border-r border-white/5 overflow-y-auto px-8 py-6 bg-[#070707] flex flex-col">
@@ -307,16 +329,20 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
             <div className="flex items-center bg-white/5 rounded-xl p-1 mb-3 border border-white/10">
               <button
                 onClick={() => setInputType("youtube")}
-                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                  inputType === "youtube" ? "bg-amber-400 text-black shadow-md" : "text-gray-400 hover:text-white"
+                className={`flex-1 py-1.5 text-xs font-extrabold rounded-lg transition-all cursor-pointer ${
+                  inputType === "youtube"
+                    ? "bg-gradient-to-r from-[#34eb3d] to-[#5def64] text-black shadow-[0_0_12px_rgba(52, 235, 61,0.15)]"
+                    : "text-gray-400 hover:text-white"
                 }`}
               >
                 YouTube Link
               </button>
               <button
                 onClick={() => setInputType("local")}
-                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                  inputType === "local" ? "bg-amber-400 text-black shadow-md" : "text-gray-400 hover:text-white"
+                className={`flex-1 py-1.5 text-xs font-extrabold rounded-lg transition-all cursor-pointer ${
+                  inputType === "local"
+                    ? "bg-gradient-to-r from-[#34eb3d] to-[#5def64] text-black shadow-[0_0_12px_rgba(52, 235, 61,0.15)]"
+                    : "text-gray-400 hover:text-white"
                 }`}
               >
                 Local Upload
@@ -331,9 +357,9 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                 <div className={`flex items-center gap-2 rounded-xl px-3.5 py-2.5 bg-white/5 border transition-all ${
                   isLikedVideosUrl(ytUrl)
                     ? "border-red-500/80 bg-red-500/10 shadow-[0_0_20px_rgba(239,68,68,0.25)]"
-                    : "border-amber-400/30"
+                    : "border-emerald-400/30"
                 }`}>
-                  <Link2 className={`w-4 h-4 flex-shrink-0 ${isLikedVideosUrl(ytUrl) ? "text-red-400" : "text-amber-400"}`} />
+                  <Link2 className={`w-4 h-4 flex-shrink-0 ${isLikedVideosUrl(ytUrl) ? "text-red-400" : "text-emerald-400"}`} />
                   <input
                     value={ytUrl}
                     onChange={(e) => setYtUrl(e.target.value)}
@@ -349,7 +375,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                       } catch {}
                     }}
                     title="Paste link from clipboard"
-                    className="px-2 py-1 text-[10px] font-semibold bg-amber-400/10 text-amber-400 hover:bg-amber-400/20 border border-amber-400/30 rounded-md transition-all cursor-pointer flex items-center gap-1 flex-shrink-0"
+                    className="px-2 py-1 text-[10px] font-semibold bg-emerald-400/10 text-emerald-400 hover:bg-emerald-400/20 border border-emerald-400/30 rounded-md transition-all cursor-pointer flex items-center gap-1 flex-shrink-0"
                   >
                     <Clipboard className="w-3 h-3" />
                     Paste
@@ -384,7 +410,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                 )}
 
                 <p className="text-[11px] text-gray-400 mt-1.5 leading-relaxed">
-                  <span className="text-amber-300 font-medium">Tip:</span> Paste links directly from your browser. YouTube video IDs are strictly case-sensitive (e.g. <code className="text-amber-200 bg-amber-400/10 px-1 rounded">EI</code> vs <code className="text-amber-200 bg-amber-400/10 px-1 rounded">I1</code>).
+                  <span className="text-emerald-300 font-medium">Tip:</span> Paste links directly from your browser. YouTube video IDs are strictly case-sensitive (e.g. <code className="text-emerald-200 bg-emerald-400/10 px-1 rounded">EI</code> vs <code className="text-emerald-200 bg-emerald-400/10 px-1 rounded">I1</code>).
                 </p>
               </>
             ) : (
@@ -408,7 +434,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                       console.error("Failed to select file:", err);
                     }
                   }}
-                  className="w-full flex items-center justify-center gap-2 rounded-xl px-3.5 py-4 bg-white/5 border border-dashed border-amber-400/30 cursor-pointer hover:bg-white/10 transition-colors"
+                  className="w-full flex items-center justify-center gap-2 rounded-xl px-3.5 py-4 bg-white/5 border border-dashed border-emerald-400/30 cursor-pointer hover:bg-white/10 transition-colors"
                 >
                   {localFilePath ? (
                     <>
@@ -419,7 +445,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                     </>
                   ) : (
                     <>
-                      <Upload className="w-4 h-4 text-amber-400" />
+                      <Upload className="w-4 h-4 text-emerald-400" />
                       <span className="text-xs font-bold text-white">Choose Video File...</span>
                     </>
                   )}
@@ -439,15 +465,19 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                 onClick={() => {
                   setQuality(q.id);
                   if (setExportResolution) setExportResolution(q.id);
+                  try {
+                    localStorage.setItem("clipvault_def_res", q.id);
+                  } catch {}
+                  window.dispatchEvent(new CustomEvent("clipvault-resolution-changed", { detail: q.id }));
                 }}
                 className={`p-2.5 rounded-xl text-left border transition-all cursor-pointer ${
                   (exportResolution || quality) === q.id
-                    ? "bg-amber-400/10 border-amber-400/50 shadow-[0_0_15px_rgba(251,191,36,0.15)] ring-1 ring-amber-400/30"
+                    ? "bg-gradient-to-br from-[rgba(52, 235, 61,0.08)] to-transparent border-[#34eb3d]/50 shadow-[0_0_8px_rgba(52, 235, 61,0.1)]"
                     : "bg-white/[0.02] border-white/5 hover:border-white/10"
                 }`}
               >
-                <p className="text-white text-xs font-bold">{q.label}</p>
-                <p className="text-[10px] text-gray-500 mt-0.5">{q.desc}</p>
+                <p className={`text-xs font-bold ${(exportResolution || quality) === q.id ? "text-[#34eb3d]" : "text-white"}`}>{q.label}</p>
+                <p className="text-[10px] text-gray-400 mt-0.5">{q.desc}</p>
               </button>
             ))}
           </div>
@@ -463,12 +493,12 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                 onClick={() => setAspectRatio && setAspectRatio(ar.id)}
                 className={`p-2.5 rounded-xl text-left border transition-all cursor-pointer ${
                   (aspectRatio || "9:16") === ar.id
-                    ? "bg-amber-400/10 border-amber-400/50 shadow-[0_0_12px_rgba(251,191,36,0.15)] ring-1 ring-amber-400/30"
+                    ? "bg-gradient-to-br from-[rgba(52, 235, 61,0.08)] to-transparent border-[#34eb3d]/50 shadow-[0_0_8px_rgba(52, 235, 61,0.1)]"
                     : "bg-white/[0.02] border-white/5 hover:border-white/10"
                 }`}
               >
-                <p className="text-white text-xs font-bold truncate">{ar.label}</p>
-                <p className="text-[10px] text-gray-500 mt-0.5 truncate">{ar.desc}</p>
+                <p className={`text-xs font-bold truncate ${(aspectRatio || "9:16") === ar.id ? "text-[#34eb3d]" : "text-white"}`}>{ar.label}</p>
+                <p className="text-[10px] text-gray-400 mt-0.5 truncate">{ar.desc}</p>
               </button>
             ))}
           </div>
@@ -489,36 +519,36 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                     }}
                     className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-left border transition-all cursor-pointer ${
                       layout === l.id
-                        ? "bg-amber-400/10 border-amber-400/50 shadow-[0_0_12px_rgba(251,191,36,0.15)]"
+                        ? "bg-gradient-to-br from-[rgba(52, 235, 61,0.08)] to-transparent border-[#34eb3d]/50 shadow-[0_0_8px_rgba(52, 235, 61,0.1)]"
                         : "bg-white/[0.02] border-white/5 hover:border-white/10"
                     }`}
                   >
                     <span
                       className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                        layout === l.id ? "bg-amber-400 text-black" : "bg-white/10 text-gray-400"
+                        layout === l.id ? "bg-[#34eb3d] text-black" : "bg-white/10 text-gray-400"
                       }`}
                     >
                       {i + 1}
                     </span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-white truncate">{l.label}</p>
-                      <p className="text-[10px] text-gray-500 truncate">{l.desc}</p>
+                      <p className={`text-xs font-semibold truncate ${layout === l.id ? "text-[#34eb3d]" : "text-white"}`}>{l.label}</p>
+                      <p className="text-[10px] text-gray-400 truncate">{l.desc}</p>
                     </div>
-                    {layout === l.id && <Check className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />}
+                    {layout === l.id && <Check className="w-3.5 h-3.5 text-[#34eb3d] flex-shrink-0" />}
                   </button>
                   {layout === l.id && l.id === "custom_split" && (
                     <button
                       onClick={() => setCropModalOpen("top")}
-                      className="w-full py-2 bg-amber-400/20 text-amber-400 border border-amber-400/30 rounded-xl text-[10px] font-bold uppercase tracking-wider hover:bg-amber-400 hover:text-black transition-all flex items-center justify-center gap-2 cursor-pointer"
+                      className="w-full py-2 bg-emerald-400/20 text-emerald-400 border border-emerald-400/30 rounded-xl text-[10px] font-bold uppercase tracking-wider hover:bg-emerald-400 hover:text-black transition-all flex items-center justify-center gap-2 cursor-pointer"
                     >
                       <Move className="w-3.5 h-3.5" /> Adjust Crop Positions
                     </button>
                   )}
 
                   {layout === l.id && l.id === "gameplay_bg" && (
-                    <div className="p-3.5 mt-1.5 rounded-xl bg-amber-400/5 border border-amber-400/25 space-y-2.5 animate-fadeIn">
+                    <div className="p-3.5 mt-1.5 rounded-xl bg-emerald-400/5 border border-emerald-400/25 space-y-2.5 animate-fadeIn">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
                           <Layers className="w-3.5 h-3.5" /> Secondary B-Roll / Visuals Canvas
                         </span>
                         {gameplayBgVideo ? (
@@ -535,7 +565,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                       {gameplayBgVideo ? (
                         <div className="p-2.5 rounded-lg bg-black/50 border border-white/10 flex items-center justify-between gap-2">
                           <div className="flex items-center gap-2 min-w-0">
-                            <Film className="w-4 h-4 text-amber-400 shrink-0" />
+                            <Film className="w-4 h-4 text-emerald-400 shrink-0" />
                             <span className="text-xs text-white font-mono truncate" title={gameplayBgVideo}>
                               {gameplayBgVideo.split(/[\\/]/).pop()}
                             </span>
@@ -549,7 +579,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                           </button>
                         </div>
                       ) : (
-                        <div className="p-3 rounded-lg bg-black/30 border border-dashed border-amber-400/30 text-center space-y-1">
+                        <div className="p-3 rounded-lg bg-black/30 border border-dashed border-emerald-400/30 text-center space-y-1">
                           <p className="text-[11px] font-bold text-gray-200">No Secondary Video Selected</p>
                           <p className="text-[9px] text-gray-400">
                             Import secondary footage (B-roll clips, product demos, aesthetic motion, visual backdrops, etc.)
@@ -558,7 +588,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                       )}
 
                     {/* Import Button */}
-                    <label className="w-full py-2 px-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-extrabold text-[11px] transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md">
+                    <label className="w-full py-2 px-3 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-black font-extrabold text-[11px] transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md">
                       <Upload className="w-3.5 h-3.5 text-black" />
                       {gameplayBgVideo ? "Change / Import Another Video" : "Import Secondary / B-Roll Video (.mp4, .mov)"}
                       <input
@@ -586,8 +616,8 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                               onClick={() => setGameplayBgVideo(bg.path || bg.url)}
                               className={`text-[10px] px-2 py-1 rounded-md font-mono transition-all border cursor-pointer truncate max-w-[150px] ${
                                 gameplayBgVideo.includes(bg.name)
-                                  ? "bg-amber-400 text-black font-bold border-amber-400"
-                                  : "bg-white/5 text-gray-300 border-white/10 hover:border-amber-400/40"
+                                  ? "bg-emerald-400 text-black font-bold border-emerald-400"
+                                  : "bg-white/5 text-gray-300 border-white/10 hover:border-emerald-400/40"
                               }`}
                             >
                               {bg.name}
@@ -608,7 +638,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
         <div id="tour-step-camera" className={layout !== "vertical_crop" && layout !== "square_blur" ? "opacity-35 pointer-events-none transition-opacity" : "transition-opacity"}>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <h3 className="text-xs font-bold text-amber-400 uppercase tracking-wider">AI Face Tracking</h3>
+              <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">AI Face Tracking</h3>
               <button
                 type="button"
                 onClick={() => {
@@ -645,13 +675,13 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                 }}
                 className={`p-2 rounded-xl text-left border transition-all cursor-pointer ${
                   enableFaceTracker && cameraStyle === "instant"
-                    ? "bg-amber-400/10 border-amber-400/50 shadow-[0_0_15px_rgba(251,191,36,0.15)] ring-1 ring-amber-400/30"
+                    ? "bg-gradient-to-br from-[rgba(52, 235, 61,0.08)] to-transparent border-[#34eb3d]/50 shadow-[0_0_8px_rgba(52, 235, 61,0.1)]"
                     : "bg-white/[0.02] border-white/5 hover:border-white/10"
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <p className="text-white text-xs font-extrabold">Instant</p>
-                  <span className="text-[8px] font-bold px-1 py-0.2 rounded bg-amber-400/20 text-amber-300">Fast</span>
+                  <span className="text-[8px] font-bold px-1 py-0.2 rounded bg-[#34eb3d]/20 text-[#34eb3d]">Fast</span>
                 </div>
                 <p className="text-[10px] text-gray-400 mt-0.5 leading-tight">Hard cut to speaker</p>
               </button>
@@ -663,7 +693,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                 }}
                 className={`p-2 rounded-xl text-left border transition-all cursor-pointer ${
                   enableFaceTracker && cameraStyle === "snappy"
-                    ? "bg-amber-400/10 border-amber-400/50 shadow-[0_0_15px_rgba(251,191,36,0.15)] ring-1 ring-amber-400/30"
+                    ? "bg-gradient-to-br from-[rgba(52, 235, 61,0.08)] to-transparent border-[#34eb3d]/50 shadow-[0_0_8px_rgba(52, 235, 61,0.1)]"
                     : "bg-white/[0.02] border-white/5 hover:border-white/10"
                 }`}
               >
@@ -678,7 +708,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                 }}
                 className={`p-2 rounded-xl text-left border transition-all cursor-pointer ${
                   enableFaceTracker && cameraStyle === "smooth"
-                    ? "bg-amber-400/10 border-amber-400/50 shadow-[0_0_15px_rgba(251,191,36,0.15)] ring-1 ring-amber-400/30"
+                    ? "bg-gradient-to-br from-[rgba(52, 235, 61,0.08)] to-transparent border-[#34eb3d]/50 shadow-[0_0_8px_rgba(52, 235, 61,0.1)]"
                     : "bg-white/[0.02] border-white/5 hover:border-white/10"
                 }`}
               >
@@ -706,7 +736,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
             </div>
             {(!enableFaceTracker || cameraStyle === "off") && (
               <p className="text-[11px] text-gray-400 mt-2 bg-white/[0.03] border border-white/5 rounded-lg px-2.5 py-1.5 leading-relaxed">
-                <span className="text-amber-400 font-bold">Face Tracking Disabled:</span> Video is cropped cleanly down the center with zero camera pans, zooms, or subject following.
+                <span className="text-emerald-400 font-bold">Face Tracking Disabled:</span> Video is cropped cleanly down the center with zero camera pans, zooms, or subject following.
               </p>
             )}
           </div>
@@ -720,13 +750,13 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
             className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 text-xs font-semibold text-gray-300 hover:text-white transition-all cursor-pointer"
           >
             <div className="flex items-center gap-2">
-              <Sliders className="w-3.5 h-3.5 text-amber-400" />
+              <Sliders className="w-3.5 h-3.5 text-emerald-400" />
               <span>Advanced Camera & Quality Controls</span>
             </div>
             <div className="flex items-center gap-1.5 text-[10px] text-gray-400 font-medium">
               <span>{showAdvanced ? "Hide Options" : "Show Options"}</span>
               {showAdvanced ? (
-                <ChevronUp className="w-3.5 h-3.5 text-amber-400" />
+                <ChevronUp className="w-3.5 h-3.5 text-emerald-400" />
               ) : (
                 <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
               )}
@@ -742,7 +772,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
               >
                 <div className="pr-2">
                   <span className="text-xs text-white font-semibold flex items-center gap-1.5">
-                    <Maximize2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    <Maximize2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                     Adaptive Quality-Aware Framing
                   </span>
                   <span className="text-[10px] text-gray-400 block mt-0.5 leading-tight">
@@ -751,7 +781,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                 </div>
                 <div
                   className={`w-8 h-4 rounded-full flex items-center p-0.5 transition-colors shrink-0 ${
-                    adaptiveCrop ? "bg-amber-400" : "bg-white/20"
+                    adaptiveCrop ? "bg-emerald-400" : "bg-white/20"
                   }`}
                 >
                   <div
@@ -766,9 +796,9 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
               <div className="pt-2.5 border-t border-white/5 space-y-1.5">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] text-gray-300 font-medium flex items-center gap-1.5">
-                    <Sliders className="w-3 h-3 text-amber-400 shrink-0" /> Maximum Digital Zoom Limit
+                    <Sliders className="w-3 h-3 text-emerald-400 shrink-0" /> Maximum Digital Zoom Limit
                   </span>
-                  <span className="text-[11px] font-mono font-bold text-amber-400">
+                  <span className="text-[11px] font-mono font-bold text-emerald-400">
                     {(maxDigitalZoom ?? 1.35).toFixed(2)}x
                   </span>
                 </div>
@@ -779,7 +809,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                   step="0.05"
                   value={maxDigitalZoom ?? 1.35}
                   onChange={(e) => setMaxDigitalZoom && setMaxDigitalZoom(parseFloat(e.target.value))}
-                  className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-amber-400"
+                  className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-emerald-400"
                 />
                 <div className="flex justify-between text-[9px] text-gray-500 font-mono">
                   <span>1.0x (No zoom)</span>
@@ -795,7 +825,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
               >
                 <div className="pr-2">
                   <span className="text-xs text-white font-semibold flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                     AI Resolution Enhancer
                   </span>
                   <span className="text-[10px] text-gray-400 block mt-0.5 leading-tight">
@@ -804,7 +834,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                 </div>
                 <div
                   className={`w-8 h-4 rounded-full flex items-center p-0.5 transition-colors shrink-0 ${
-                    enableSuperResolution ? "bg-amber-400" : "bg-white/20"
+                    enableSuperResolution ? "bg-emerald-400" : "bg-white/20"
                   }`}
                 >
                   <div
@@ -828,12 +858,12 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                   type="button"
                   onClick={() => setDurationMode(d.id)}
                   className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-left border transition-all cursor-pointer ${
-                    durationMode === d.id ? "bg-amber-400/10 border-amber-400/50 shadow-sm" : "bg-white/[0.02] border-white/5 hover:bg-white/[0.05]"
+                    durationMode === d.id ? "bg-emerald-400/10 border-emerald-400/50 shadow-sm" : "bg-white/[0.02] border-white/5 hover:bg-white/[0.05]"
                   }`}
                 >
                   <span
                     className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                      durationMode === d.id ? "bg-amber-400 text-black" : "bg-white/10 text-gray-400"
+                      durationMode === d.id ? "bg-emerald-400 text-black" : "bg-white/10 text-gray-400"
                     }`}
                   >
                     {i + 1}
@@ -847,9 +877,9 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                 {/* Multi-Segment Custom Timestamp Range Inputs */}
                 {d.id === "custom" && (
                   durationMode === "custom" ? (
-                    <div className="space-y-3 p-3.5 rounded-xl bg-amber-400/5 border border-amber-400/30 animate-fadeIn">
+                    <div className="space-y-3 p-3.5 rounded-xl bg-emerald-400/5 border border-emerald-400/30 animate-fadeIn">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-extrabold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <span className="text-[10px] font-extrabold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
                           <Clock className="w-3.5 h-3.5" />
                           Custom Timestamp Segments ({customSegments.length})
                         </span>
@@ -864,7 +894,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                               setActiveSegmentId(newSeg.id);
                             }
                           }}
-                          className="text-[10px] bg-amber-400 hover:bg-amber-300 text-black font-extrabold px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-sm transition-all cursor-pointer"
+                          className="text-[10px] bg-emerald-400 hover:bg-emerald-300 text-black font-extrabold px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-sm transition-all cursor-pointer"
                         >
                           <Plus className="w-3 h-3 text-black" />
                           Add Segment
@@ -887,14 +917,14 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                               }}
                               className={`p-3 rounded-xl border transition-all cursor-pointer ${
                                 isActive
-                                  ? "bg-black/80 border-amber-400 ring-1 ring-amber-400/30 shadow-md"
+                                  ? "bg-black/80 border-emerald-400 ring-1 ring-emerald-400/30 shadow-md"
                                   : "bg-black/40 border-white/10 hover:border-white/20"
                               }`}
                             >
                               <div className="flex items-center justify-between mb-2">
                                 <div className="flex items-center gap-2">
                                   <span className="text-xs font-black text-white flex items-center gap-1.5">
-                                    <span className="w-4 h-4 rounded-md bg-amber-400/20 text-amber-400 text-[10px] font-black flex items-center justify-center border border-amber-400/30">
+                                    <span className="w-4 h-4 rounded-md bg-emerald-400/20 text-emerald-400 text-[10px] font-black flex items-center justify-center border border-emerald-400/30">
                                       {idx + 1}
                                     </span>
                                     Clip #{idx + 1}
@@ -905,7 +935,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                                     </span>
                                   )}
                                   {isActive && (
-                                    <span className="text-[9px] font-bold text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/20 flex items-center gap-1">
+                                    <span className="text-[9px] font-bold text-emerald-400 bg-emerald-400/10 px-1.5 py-0.5 rounded border border-emerald-400/20 flex items-center gap-1">
                                       <Pin className="w-2.5 h-2.5" /> Player Active
                                     </span>
                                   )}
@@ -925,8 +955,8 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                                     }}
                                     className={`px-2 py-0.5 rounded-lg text-[10px] font-extrabold flex items-center gap-1 transition-all shadow-sm cursor-pointer ${
                                       isActive && isPlaying
-                                        ? "bg-amber-400 text-black shadow-[0_0_12px_rgba(251,191,36,0.35)]"
-                                        : "bg-amber-400/15 hover:bg-amber-400 text-amber-400 hover:text-black border border-amber-400/30"
+                                        ? "bg-[#34eb3d] text-black shadow-[0_0_8px_rgba(52, 235, 61,0.15)]"
+                                        : "bg-[#34eb3d]/15 hover:bg-[#34eb3d] text-[#34eb3d] hover:text-black border border-[#34eb3d]/30"
                                     }`}
                                     title={isActive && isPlaying ? "Pause preview playback" : "Play this clip in video player"}
                                   >
@@ -992,7 +1022,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                                       if (idx === 0) setStartTs(val);
                                     }}
                                     placeholder="0:00"
-                                    className="w-full rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold text-white bg-black/60 border border-white/10 outline-none focus:border-amber-400 transition-colors"
+                                    className="w-full rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold text-white bg-black/60 border border-white/10 outline-none focus:border-emerald-400 transition-colors"
                                   />
                                 </div>
 
@@ -1024,7 +1054,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                                         ? `${Math.floor(mediaDuration / 60)}:${Math.floor(mediaDuration % 60).toString().padStart(2, "0")}`
                                         : "e.g. 1:45"
                                     }
-                                    className="w-full rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold text-white bg-black/60 border border-white/10 outline-none focus:border-amber-400 transition-colors"
+                                    className="w-full rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold text-white bg-black/60 border border-white/10 outline-none focus:border-emerald-400 transition-colors"
                                   />
                                 </div>
                               </div>
@@ -1035,22 +1065,22 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
 
                       <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[10px] text-gray-400">
                         <span>
-                          💡 Click <span className="text-amber-300 font-bold">Start</span> / <span className="text-cyan-300 font-bold">End</span> on player dock to pin times.
+                          Tip: Click <span className="text-emerald-300 font-bold">Start</span> / <span className="text-cyan-300 font-bold">End</span> on player dock to pin times.
                         </span>
                         {customSegments.length > 1 && (
-                          <span className="text-amber-400 font-bold">
+                          <span className="text-emerald-400 font-bold">
                             {customSegments.length} Clips in Batch
                           </span>
                         )}
                       </div>
                     </div>
                   ) : (
-                    <div className="px-3 py-1.5 rounded-lg bg-amber-400/10 border border-amber-400/20 text-[10px] font-bold text-amber-300 flex items-center justify-between">
+                    <div className="px-3 py-1.5 rounded-lg bg-emerald-400/10 border border-emerald-400/20 text-[10px] font-bold text-emerald-300 flex items-center justify-between">
                       <span>{customSegments.length} Custom Segment{customSegments.length > 1 ? "s" : ""} Configured</span>
                       <button
                         type="button"
                         onClick={() => setDurationMode("custom")}
-                        className="text-amber-400 underline hover:text-amber-300 cursor-pointer"
+                        className="text-emerald-400 underline hover:text-emerald-300 cursor-pointer"
                       >
                         Activate
                       </button>
@@ -1085,7 +1115,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                   onBlur={() => {
                     if (!numClips || isNaN(Number(numClips))) setNumClips(3);
                   }}
-                  className="w-14 rounded bg-black/40 border border-white/10 px-1 py-1 text-white text-xs font-bold text-center outline-none focus:border-amber-400"
+                  className="w-14 rounded bg-black/40 border border-white/10 px-1 py-1 text-white text-xs font-bold text-center outline-none focus:border-emerald-400"
                 />
                 <button
                   type="button"
@@ -1109,14 +1139,14 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                   onBlur={() => {
                     if (targetDuration === "") setTargetDuration(30);
                   }}
-                  className="w-16 rounded bg-black/40 border border-white/10 px-2 py-1 text-white text-xs font-bold text-center outline-none focus:border-amber-400"
+                  className="w-16 rounded bg-black/40 border border-white/10 px-2 py-1 text-white text-xs font-bold text-center outline-none focus:border-emerald-400"
                 />
                 <span className="text-gray-400 text-xs">sec</span>
               </div>
             </div>
 
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">
+              <label className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider block">
                 Include specific moments (Topic)
               </label>
               <input
@@ -1124,7 +1154,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                 value={topicPrompt}
                 onChange={(e) => setTopicPrompt(e.target.value)}
                 placeholder="e.g. Find moments when they talked about the playoffs"
-                className="w-full rounded-lg px-3 py-2 text-xs text-white bg-white/5 border border-white/10 outline-none focus:border-amber-400 placeholder-gray-600 transition-colors"
+                className="w-full rounded-lg px-3 py-2 text-xs text-white bg-white/5 border border-white/10 outline-none focus:border-emerald-400 placeholder-gray-600 transition-colors"
               />
             </div>
           </div>
@@ -1134,7 +1164,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
         {/* Output Directory & Batch Folder Settings */}
             <div className="space-y-2 mt-3 p-3 rounded-xl bg-white/[0.03] border border-white/10">
               <div className="flex items-center justify-between">
-                <label className="text-[10px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                <label className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
                   <Folder className="w-3.5 h-3.5" /> Output Destination Folder
                 </label>
                 {customOutputDir && (
@@ -1160,73 +1190,102 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                   onClick={chooseCustomDirectory}
                   className="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[11px] font-bold border border-white/10 flex items-center gap-1 shrink-0 transition-colors cursor-pointer"
                 >
-                  <FolderOpen className="w-3 h-3 text-amber-400" /> Browse
+                  <FolderOpen className="w-3 h-3 text-emerald-400" /> Browse
                 </button>
               </div>
 
               <div className="space-y-2 pt-1">
                 <div className="flex items-center justify-between">
                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
-                    Save into Subfolder / Batch
+                    Save into Project Folder
                   </label>
-                  {customFolderName && (
+                  {customFolderName && customFolderName !== "Shorts Viral" && (
                     <button
                       type="button"
-                      onClick={() => setCustomFolderName("")}
-                      className="text-[9px] text-amber-400/80 hover:text-amber-300 underline cursor-pointer"
+                      onClick={() => setCustomFolderName("Shorts Viral")}
+                      className="text-[9px] text-emerald-400/80 hover:text-emerald-300 underline cursor-pointer"
                     >
-                      Reset to Main Library
+                      Reset to Shorts Viral
                     </button>
                   )}
                 </div>
 
-                {/* Subfolder Dropdown Selector */}
-                <select
-                  value={customFolderName || ""}
-                  onChange={(e) => setCustomFolderName(e.target.value)}
-                  className="w-full rounded-lg px-3 py-2 text-xs text-white bg-black/50 border border-white/15 outline-none focus:border-amber-400 cursor-pointer"
-                >
-                  <option value="">Main Library (Root Directory)</option>
-                  {vaultFolders
-                    .filter((f) => f && f !== "Main Library" && f !== "all" && f !== "root")
-                    .map((folder) => (
-                      <option key={folder} value={folder}>
-                        {folder}
-                      </option>
-                    ))}
-                </select>
+                {/* Custom Styled Folder Dropdown Selector */}
+                <div ref={folderDropdownRef} className="relative w-full">
+                  <button
+                    type="button"
+                    onClick={() => setIsFolderDropdownOpen(!isFolderDropdownOpen)}
+                    className={`w-full rounded-xl px-3.5 py-2.5 text-xs text-white bg-black/60 border transition-all flex items-center justify-between cursor-pointer ${
+                      isFolderDropdownOpen
+                        ? "border-[#00e676] shadow-[0_0_12px_rgba(0,230,118,0.2)]"
+                        : "border-white/15 hover:border-white/25"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Folder className="w-3.5 h-3.5 text-[#00e676] shrink-0" />
+                      <span className="font-semibold text-white truncate">
+                        {customFolderName || "Shorts Viral"}
+                      </span>
+                    </div>
+                    <ChevronDown
+                      className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 shrink-0 ${
+                        isFolderDropdownOpen ? "rotate-180 text-[#00e676]" : ""
+                      }`}
+                    />
+                  </button>
 
-                {/* Quick Pick Chips for All Existing Folders */}
-                {vaultFolders.filter((f) => f && f !== "all").length > 0 && (
+                  {/* Dropdown Menu */}
+                  {isFolderDropdownOpen && (
+                    <div className="absolute top-full left-0 right-0 mt-1.5 py-1 bg-[#0e0e12] border border-white/10 rounded-xl shadow-[0_15px_40px_rgba(0,0,0,0.95)] z-50 backdrop-blur-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+                      {availableProjectFolders.map((folder) => {
+                        const isSelected = (customFolderName || "Shorts Viral") === folder;
+                        return (
+                          <button
+                            key={folder}
+                            type="button"
+                            onClick={() => {
+                              setCustomFolderName(folder);
+                              setIsFolderDropdownOpen(false);
+                            }}
+                            className={`w-full px-3.5 py-2 text-left text-xs flex items-center justify-between transition-colors cursor-pointer ${
+                              isSelected
+                                ? "bg-[#00e676]/15 text-[#00e676] font-bold"
+                                : "text-zinc-300 hover:text-white hover:bg-white/[0.06]"
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <Folder className={`w-3.5 h-3.5 ${isSelected ? "text-[#00e676]" : "text-gray-400"}`} />
+                              <span>{folder}</span>
+                            </div>
+                            {isSelected && <Check className="w-3.5 h-3.5 text-[#00e676]" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Quick Pick Chips for Standard Common Folders */}
+                {availableProjectFolders.length > 0 && (
                   <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
                     <span className="text-[9px] text-gray-500 font-bold uppercase">Folders:</span>
-                    <button
-                      type="button"
-                      onClick={() => setCustomFolderName("")}
-                      className={`text-[10px] px-2 py-0.5 rounded-md font-bold transition-all border cursor-pointer ${
-                        !customFolderName
-                          ? "bg-amber-400/20 text-amber-400 border-amber-400/40 shadow-sm"
-                          : "bg-white/5 text-gray-400 border-white/5 hover:border-white/20 hover:text-white"
-                      }`}
-                    >
-                      Main Library
-                    </button>
-                    {vaultFolders
-                      .filter((f) => f && f !== "Main Library" && f !== "all" && f !== "root")
-                      .map((folder) => (
+                    {availableProjectFolders.map((folder) => {
+                      const isSelected = (customFolderName || "Shorts Viral") === folder;
+                      return (
                         <button
                           key={folder}
                           type="button"
                           onClick={() => setCustomFolderName(folder)}
-                          className={`text-[10px] px-2 py-0.5 rounded-md font-bold transition-all border cursor-pointer ${
-                            customFolderName === folder
-                              ? "bg-amber-400/20 text-amber-400 border-amber-400/40 shadow-sm"
+                          className={`text-[10px] px-2.5 py-0.5 rounded-md font-bold transition-all border cursor-pointer ${
+                            isSelected
+                              ? "bg-emerald-400/20 text-emerald-400 border-emerald-400/40 shadow-sm"
                               : "bg-white/5 text-gray-400 border-white/5 hover:border-white/20 hover:text-white"
                           }`}
                         >
                           {folder}
                         </button>
-                      ))}
+                      );
+                    })}
                   </div>
                 )}
 
@@ -1235,8 +1294,8 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                   type="text"
                   value={customFolderName}
                   onChange={(e) => setCustomFolderName(e.target.value)}
-                  placeholder="Or type a new folder name (e.g. Movies, Gaming)..."
-                  className="w-full rounded-lg px-3 py-1.5 text-xs text-white bg-black/30 border border-white/10 outline-none focus:border-amber-400 placeholder-gray-600 transition-colors select-text cursor-text pointer-events-auto shadow-inner"
+                  placeholder="Or type a new folder name (e.g. Movies, Shorts Viral, Stream Highlights)..."
+                  className="w-full rounded-lg px-3 py-1.5 text-xs text-white bg-black/30 border border-white/10 outline-none focus:border-emerald-400 placeholder-gray-600 transition-colors select-text cursor-text pointer-events-auto shadow-inner"
                 />
               </div>
 
@@ -1250,20 +1309,20 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                   value={exportFileName}
                   onChange={(e) => setExportFileName(e.target.value)}
                   placeholder="e.g. MyViralClip"
-                  className="w-full rounded-lg px-3 py-1.5 text-xs text-white bg-black/30 border border-white/10 outline-none focus:border-amber-400 placeholder-gray-600 transition-colors select-text cursor-text pointer-events-auto shadow-inner"
+                  className="w-full rounded-lg px-3 py-1.5 text-xs text-white bg-black/30 border border-white/10 outline-none focus:border-emerald-400 placeholder-gray-600 transition-colors select-text cursor-text pointer-events-auto shadow-inner"
                 />
               </div>
             </div>
 
             <div className="space-y-1.5 mt-3 mb-2">
               <div className="flex items-center justify-between">
-                <label className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">Video Language</label>
+                <label className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider block">Video Language</label>
                 <span className="text-[9px] font-semibold text-gray-400">ClipVault Multi-Lingual AI</span>
               </div>
               <select
                 value={transcriptionLanguage}
                 onChange={(e) => setTranscriptionLanguage(e.target.value)}
-                className="w-full rounded-lg px-3 py-2 text-xs text-white bg-white/5 border border-white/10 outline-none focus:border-amber-400 cursor-pointer appearance-none"
+                className="w-full rounded-lg px-3 py-2 text-xs text-white bg-white/5 border border-white/10 outline-none focus:border-emerald-400 cursor-pointer appearance-none"
               >
                 <option className="bg-[#111] text-white" value="auto">
                   Auto-Detect Language
@@ -1349,10 +1408,10 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
               </select>
 
               {/* Language Accuracy Notice */}
-              <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/25 flex items-start gap-2 mt-2 text-[10px] leading-relaxed text-amber-200">
-                <AlertCircle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+              <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/25 flex items-start gap-2 mt-2 text-[10px] leading-relaxed text-emerald-200">
+                <AlertCircle className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-bold text-amber-300">On-Demand Language Models:</span> ClipVault AI language models download dynamically per language on first use (~140MB), keeping the app installer lightweight. Word timing & face sync may vary for dense non-English audio.
+                  <span className="font-bold text-emerald-300">On-Demand Language Models:</span> ClipVault AI language models download dynamically per language on first use (~140MB), keeping the app installer lightweight. Word timing & face sync may vary for dense non-English audio.
                 </div>
               </div>
             </div>
@@ -1368,13 +1427,13 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
               >
                 <div className="pr-2">
                   <span className="text-xs text-white font-medium flex items-center gap-1.5">
-                    <Music className="w-3.5 h-3.5 text-amber-400 shrink-0" /> Background Music
+                    <Music className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> Background Music
                   </span>
                   <span className="text-[10px] text-gray-500 block mt-0.5">Auto-ducked background soundtrack</span>
                 </div>
                 <div
                   className={`w-8 h-4 rounded-full flex items-center p-0.5 transition-colors shrink-0 ${
-                    addBgMusic ? "bg-amber-400" : "bg-white/20"
+                    addBgMusic ? "bg-emerald-400" : "bg-white/20"
                   }`}
                 >
                   <div
@@ -1389,7 +1448,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                 <div className="mt-2 pt-2 border-t border-white/5 pl-2 pr-2 space-y-2.5">
                   <div className="flex justify-between items-center mb-1">
                     <span className="text-[10px] text-gray-400">Volume</span>
-                    <span className="text-[10px] text-amber-400 font-bold">{Math.round(bgMusicVol * 100)}%</span>
+                    <span className="text-[10px] text-emerald-400 font-bold">{Math.round(bgMusicVol * 100)}%</span>
                   </div>
                   <input
                     type="range"
@@ -1398,7 +1457,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                     step="0.01"
                     value={bgMusicVol}
                     onChange={(e) => setBgMusicVol(parseFloat(e.target.value))}
-                    className="w-full accent-amber-400 cursor-pointer"
+                    className="w-full accent-emerald-400 cursor-pointer"
                   />
 
                   {/* Custom Background Music Track Selector */}
@@ -1409,20 +1468,20 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                         <button
                           type="button"
                           onClick={() => setBgMusicFile("")}
-                          className="text-[9px] text-amber-400/80 hover:text-amber-300 underline cursor-pointer"
+                          className="text-[9px] text-emerald-400/80 hover:text-emerald-300 underline cursor-pointer"
                         >
                           Reset to Random
                         </button>
                       )}
                     </div>
                     {bgMusicFile ? (
-                      <div className="p-2 rounded-lg bg-black/40 border border-white/10 flex items-center justify-between gap-1.5 text-xs text-amber-300">
+                      <div className="p-2 rounded-lg bg-black/40 border border-white/10 flex items-center justify-between gap-1.5 text-xs text-emerald-300">
                         <span className="font-mono text-[10px] truncate">{bgMusicFile.split(/[\\/]/).pop()}</span>
                         <span className="text-[9px] text-emerald-400 font-bold">Selected</span>
                       </div>
                     ) : null}
                     <label className="w-full py-1.5 px-2.5 rounded-lg bg-white/10 hover:bg-white/15 text-gray-300 hover:text-white text-[10px] font-bold border border-white/10 flex items-center justify-center gap-1.5 cursor-pointer transition-colors">
-                      <Upload className="w-3 h-3 text-amber-400" />
+                      <Upload className="w-3 h-3 text-emerald-400" />
                       {bgMusicFile ? "Change Music File" : "Import Custom Music (.mp3, .wav)"}
                       <input
                         type="file"
@@ -1448,13 +1507,13 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
             >
               <div className="pr-2">
                 <span className="text-xs text-white font-medium flex items-center gap-1.5">
-                  <Volume2 className="w-3.5 h-3.5 text-amber-400 shrink-0" /> Auto Emojis & SFX
+                  <Volume2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> Auto Emojis & SFX
                 </span>
                 <span className="text-[10px] text-gray-500 block mt-0.5">Pop sound effects and animated emojis</span>
               </div>
               <div
                 className={`w-8 h-4 rounded-full flex items-center p-0.5 transition-colors shrink-0 ${
-                  autoSfx ? "bg-amber-400" : "bg-white/20"
+                  autoSfx ? "bg-emerald-400" : "bg-white/20"
                 }`}
               >
                 <div
@@ -1475,13 +1534,13 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
               >
                 <div className="pr-2">
                   <span className="text-xs text-white font-medium flex items-center gap-1.5">
-                    <Type className="w-3.5 h-3.5 text-amber-400 shrink-0" /> AI Captions
+                    <Type className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> AI Captions
                   </span>
                   <span className="text-[10px] text-gray-500 block mt-0.5">Generate animated word-by-word subtitles</span>
                 </div>
                 <div
                   className={`w-8 h-4 rounded-full flex items-center p-0.5 transition-colors shrink-0 ${
-                    addCaptions ? "bg-amber-400" : "bg-white/20"
+                    addCaptions ? "bg-emerald-400" : "bg-white/20"
                   }`}
                 >
                   <div
@@ -1499,7 +1558,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                       <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
                         Subtitle Style
                       </label>
-                      <span className="text-[9px] text-[#00e676] font-mono font-bold">
+                      <span className="text-[9px] text-[#34eb3d] font-mono font-bold">
                         Visual Templates
                       </span>
                     </div>
@@ -1527,13 +1586,13 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
             >
               <div className="pr-2">
                 <span className="text-xs text-white font-medium flex items-center gap-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-amber-400 shrink-0" /> Anti-Duplicate Filter
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> Anti-Duplicate Filter
                 </span>
                 <span className="text-[10px] text-gray-500 block mt-0.5">Flips video & shifts tempo for fresh algorithmic ranking</span>
               </div>
               <div
                 className={`w-8 h-4 rounded-full flex items-center p-0.5 transition-colors shrink-0 ${
-                  avoidCopyright ? "bg-amber-400" : "bg-white/20"
+                  avoidCopyright ? "bg-emerald-400" : "bg-white/20"
                 }`}
               >
                 <div
@@ -1549,14 +1608,14 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
         {/* Run Button Panel */}
         <div id="tour-step-5-export" className="pt-4 border-t border-white/10 space-y-3">
           {running && (
-            <div className="p-4 rounded-2xl bg-amber-400/10 border border-amber-400/20 space-y-2">
+            <div className="p-4 rounded-2xl bg-emerald-400/10 border border-emerald-400/20 space-y-2">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-amber-400">{statusText}</span>
+                <span className="font-bold text-emerald-400">{statusText}</span>
                 <span className="font-mono text-gray-300">{Math.floor(progress)}%</span>
               </div>
               <div className="h-2 rounded-full bg-black/40 overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-amber-400 to-amber-500 transition-all duration-300"
+                  className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 transition-all duration-300"
                   style={{ width: `${progress}%` }}
                 />
               </div>
@@ -1566,15 +1625,15 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
           {isKeyMissingForActiveEngine && (
             <div
               onClick={onOpenEngineSettings}
-              className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center justify-between gap-2 cursor-pointer hover:bg-amber-500/20 transition-all shadow-inner"
+              className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center justify-between gap-2 cursor-pointer hover:bg-emerald-500/20 transition-all shadow-inner"
             >
               <div className="flex items-center gap-2 min-w-0">
-                <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 animate-pulse" />
+                <AlertCircle className="w-4 h-4 text-emerald-400 shrink-0 animate-pulse" />
                 <span className="truncate">
                   <b>API Key Required:</b> Missing for {activeEngineName}
                 </span>
               </div>
-              <span className="text-[11px] underline text-amber-400 hover:text-amber-300 font-bold shrink-0">Add Key ↗</span>
+              <span className="text-[11px] underline text-emerald-400 hover:text-emerald-300 font-bold shrink-0">Add Key ↗</span>
             </div>
           )}
 
@@ -1583,7 +1642,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
               <button
                 type="button"
                 disabled
-                className="flex-1 py-4 rounded-2xl font-bold text-sm bg-amber-400/20 border border-amber-400/30 text-amber-400 flex items-center justify-center gap-2 cursor-wait"
+                className="flex-1 py-4 rounded-2xl font-bold text-sm bg-emerald-400/20 border border-emerald-400/30 text-emerald-400 flex items-center justify-center gap-2 cursor-wait"
               >
                 <Loader2 className="w-4 h-4 animate-spin" /> Processing...
               </button>
@@ -1601,13 +1660,13 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
           ) : (
             <button
               onClick={runClipper}
-              className={`w-full py-4 rounded-2xl font-bold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer ${
+              className={`w-full py-4 rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-2 cursor-pointer ${
                 isKeyMissingForActiveEngine
-                  ? "bg-amber-500/20 text-amber-300 border border-amber-400/40 hover:bg-amber-500/30 shadow-[0_0_20px_rgba(251,191,36,0.15)]"
-                  : "bg-gradient-to-r from-amber-400 to-amber-500 text-black hover:opacity-95 shadow-[0_0_25px_rgba(251,191,36,0.3)]"
+                  ? "bg-[#34eb3d]/20 text-[#34eb3d] border border-[#34eb3d]/40 hover:bg-[#34eb3d]/30 shadow-[0_0_20px_rgba(52, 235, 61,0.25)]"
+                  : "bg-gradient-to-r from-[#34eb3d] to-[#2dca34] text-black hover:brightness-110 shadow-[0_0_16px_rgba(52, 235, 61,0.2)] hover:shadow-[0_0_24px_rgba(52, 235, 61,0.35)]"
               }`}
             >
-              <Zap className={`w-4 h-4 ${isKeyMissingForActiveEngine ? "fill-amber-400 text-amber-400" : "fill-black text-black"}`} />
+              <Zap className={`w-4 h-4 ${isKeyMissingForActiveEngine ? "fill-[#34eb3d] text-[#34eb3d]" : "fill-black text-black"}`} />
               {isKeyMissingForActiveEngine ? `Enter ${activeEngineName} API Key` : done ? "Re-Run AI Clipper" : "Run AI Clipper"}
             </button>
           )}
@@ -1635,7 +1694,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
               {isKeyMissingForActiveEngine && onOpenEngineSettings && (
                 <button
                   onClick={onOpenEngineSettings}
-                  className="mt-1 px-3 py-2 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold text-xs hover:bg-amber-500/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                  className="mt-1 px-3 py-2 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-bold text-xs hover:bg-emerald-500/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
                 >
                   <Key className="w-3.5 h-3.5" />
                   Enter {activeEngineName} API Key

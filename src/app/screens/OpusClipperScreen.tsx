@@ -26,21 +26,25 @@ import {
   FileVideo,
   X,
   ChevronDown,
-  Move
+  Move,
+  Lock,
+  ShieldCheck,
+  Key,
 } from "lucide-react";
 import { EngineSettingsModal } from "../components/clipper/EngineSettingsModal";
 import type { ByokMode } from "../components/clipper/EngineSettingsModal";
 import { AI_ENGINES } from "./AiClipperScreen";
 import { SUBTITLE_PRESETS, SubtitleStyleCard } from "../components/clipper/SubtitleStyleCard";
 import { isLikedVideosUrl, cleanYouTubeUrl } from "../components/clipper/types";
+import { CreatorProUpgradeModal } from "../components/CreatorProUpgradeModal";
 
-const G = "#00e676";
-
-
+const G = "#34eb3d";
 
 interface Props {
   onBack: () => void;
   onGoToVault?: () => void;
+  isLicensed?: boolean;
+  onOpenActivation?: () => void;
 }
 
 interface VideoInfo {
@@ -67,7 +71,7 @@ interface ClipResult {
   content_description?: string;
 }
 
-export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
+export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActivation }: Props) {
   // Input State
   const [url, setUrl] = useState("");
   const [resolvingInfo, setResolvingInfo] = useState(false);
@@ -83,8 +87,94 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
   const styleDropdownRef = useRef<HTMLDivElement>(null);
   const [layoutMode, setLayoutMode] = useState<"auto_split" | "podcast_split" | "vertical_crop" | "square_blur">("auto_split");
   const [aspectRatio, setAspectRatio] = useState<"9:16" | "1:1" | "16:9">("9:16");
-  const [quality, setQuality] = useState<"1080p" | "4k" | "720p">("1080p");
+  const [quality, setQuality] = useState<string>(() => {
+    try {
+      return localStorage.getItem("clipvault_def_res") || "1080p";
+    } catch {
+      return "1080p";
+    }
+  });
+
+  useEffect(() => {
+    const handleResSync = (e?: any) => {
+      try {
+        const val = (e && e.detail) ? e.detail : localStorage.getItem("clipvault_def_res") || "1080p";
+        setQuality(val);
+      } catch {}
+    };
+    window.addEventListener("clipvault-resolution-changed", handleResSync);
+    window.addEventListener("storage", handleResSync);
+    window.addEventListener("focus", handleResSync);
+    return () => {
+      window.removeEventListener("clipvault-resolution-changed", handleResSync);
+      window.removeEventListener("storage", handleResSync);
+      window.removeEventListener("focus", handleResSync);
+    };
+  }, []);
   const [clipYield, setClipYield] = useState<"auto" | "max" | "top10">("auto");
+
+  // Free Tier & Licensing State (Community Free: 2 clips/wk, 720p/1080p only)
+  const [freeCredits, setFreeCredits] = useState<{
+    plan: string;
+    allowed: boolean;
+    clips_used: number;
+    max_weekly_clips: number;
+    remaining: number;
+    resets_in_days: number;
+    resets_at: string;
+  } | null>(null);
+
+  const [licenseData, setLicenseData] = useState<{
+    licensed: boolean;
+    plan: string;
+    product_name?: string;
+  } | null>(null);
+
+  const [showUpgradeModal, setShowUpgradeModal] = useState<boolean>(false);
+  const [upgradeReason, setUpgradeReason] = useState<"free_limit_reached" | "4k_locked" | "upgrade_menu">("free_limit_reached");
+
+  useEffect(() => {
+    fetch("http://127.0.0.1:8000/api/license/status")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data && typeof data === "object") setLicenseData(data);
+      })
+      .catch(() => {});
+
+    fetch("http://127.0.0.1:8000/api/license/free_tier_credits")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data && typeof data === "object") setFreeCredits(data);
+      })
+      .catch(() => {});
+  }, []);
+
+  const [simulatedTier, setSimulatedTier] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem("clipvault_dev_simulated_tier");
+    } catch {
+      return null;
+    }
+  });
+
+  useEffect(() => {
+    const handleTierChange = (e: any) => {
+      try {
+        const val = e?.detail !== undefined ? e.detail : localStorage.getItem("clipvault_dev_simulated_tier");
+        setSimulatedTier(val);
+      } catch {}
+    };
+    window.addEventListener("clipvault-dev-tier-changed", handleTierChange);
+    window.addEventListener("storage", handleTierChange);
+    return () => {
+      window.removeEventListener("clipvault-dev-tier-changed", handleTierChange);
+      window.removeEventListener("storage", handleTierChange);
+    };
+  }, []);
+
+  const isEffectivelyLicensed = simulatedTier
+    ? (simulatedTier === "pro" || simulatedTier === "max")
+    : (isLicensed ?? (licenseData ? licenseData.licensed : false));
 
   // Dynamic Auto-Yield calculations based on video duration
   const dynamicAutoClips = videoInfo && videoInfo.duration > 0
@@ -257,17 +347,68 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
   useEffect(() => {
     if (!taskId || !isGenerating) return;
 
+    // Guard so a stalled engine or a late response can never touch state after teardown
+    let cancelled = false;
+    let inFlight = false;
+    let consecutiveErrors = 0;
+    let activeController: AbortController | null = null;
+
+    const finish = (message?: string) => {
+      if (cancelled) return;
+      setIsGenerating(false);
+      if (message) setErrorMsg(message);
+    };
+
     const pollInterval = setInterval(async () => {
+      // In-flight guard: never stack overlapping polls
+      if (cancelled || inFlight) return;
+      inFlight = true;
+
+      // Hard timeout per poll so a hung engine cannot leave the UI spinning forever
+      const controller = new AbortController();
+      activeController = controller;
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
       try {
-        const res = await fetch(`http://127.0.0.1:8000/api/progress/${taskId}`);
+        const res = await fetch(`http://127.0.0.1:8000/api/progress/${taskId}`, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (cancelled) return;
+
+        // FIX: check res.ok BEFORE parsing — an error body used to be swallowed by `catch {}`
+        if (!res.ok) {
+          consecutiveErrors++;
+          if (consecutiveErrors >= 3) {
+            clearInterval(pollInterval);
+            finish("Lost connection to the ClipVault engine. The task status could not be read — please try again.");
+          }
+          return;
+        }
+        consecutiveErrors = 0;
+
         const data = await res.json();
+        if (cancelled) return;
 
         setProgressPercent(data.progress || 0);
         setProgressStatus(data.status || "Generating viral clips...");
 
-        if (data.completed) {
-          setIsGenerating(false);
+        // Normalized terminal states (plus legacy flags for backward compatibility)
+        const state: string | undefined = data.state;
+        // With a normalized state the server is authoritative; otherwise fall back to legacy flags
+        const isCancelled = state ? state === "cancelled" : data.cancelled === true;
+        const isCompleted = state ? state === "completed" : data.completed === true;
+        const isFailed = state
+          ? state === "failed"
+          : data.completed !== true && (data.cancelled === true || Boolean(data.error));
+
+        if (isFailed) {
           clearInterval(pollInterval);
+          finish(data.error || data.message || "Clip generation failed on the engine.");
+        } else if (isCancelled) {
+          clearInterval(pollInterval);
+          finish(data.error || data.message || "Generation was stopped or encountered an issue.");
+        } else if (isCompleted) {
+          clearInterval(pollInterval);
+          setIsGenerating(false);
           if (Array.isArray(data.clips) && data.clips.length > 0) {
             const formatted: ClipResult[] = data.clips.map((c: any, idx: number) => ({
               filename: typeof c === "string" ? c : c.filename || `Clip_${idx + 1}.mp4`,
@@ -285,17 +426,29 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
           } else {
             setErrorMsg("No clips were generated. Please try a different video or link.");
           }
-        } else if (data.error || data.cancelled) {
-          setIsGenerating(false);
-          clearInterval(pollInterval);
-          setErrorMsg(data.error || "Generation was stopped or encountered an issue.");
         }
-      } catch {
-        // Transient network error
+      } catch (err: any) {
+        clearTimeout(timeoutId);
+        if (cancelled || err?.name === "AbortError") return;
+        // Surface real network errors instead of swallowing them (used to hang at isGenerating forever)
+        consecutiveErrors++;
+        if (consecutiveErrors >= 3) {
+          clearInterval(pollInterval);
+          finish("Lost connection to the ClipVault engine while tracking progress — please try again.");
+        }
+      } finally {
+        inFlight = false;
+        if (activeController === controller) activeController = null;
       }
     }, 1200);
 
-    return () => clearInterval(pollInterval);
+    return () => {
+      cancelled = true;
+      clearInterval(pollInterval);
+      if (activeController) {
+        try { activeController.abort(); } catch {}
+      }
+    };
   }, [taskId, isGenerating]);
 
   // Paste from clipboard helper
@@ -339,6 +492,22 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
       return;
     }
 
+    // Community Free Tier Enforcement (2 clips/week, 720p & 1080p only)
+    if (!isEffectivelyLicensed) {
+      if (freeCredits && freeCredits.remaining <= 0) {
+        setUpgradeReason("free_limit_reached");
+        setShowUpgradeModal(true);
+        setErrorMsg("Free Tier limit reached: You have used your 2 free clips for this week. Please upgrade to Creator Pro ($15/mo) for unlimited 1-click clipping.");
+        return;
+      }
+      if ((quality === "4k" || quality === "8k") && !isEffectivelyLicensed) {
+        setUpgradeReason("4k_locked");
+        setShowUpgradeModal(true);
+        setErrorMsg("4K and 8K master exports require Creator Pro or Creator Max. Please select 720p, 1080p, or upgrade your plan.");
+        return;
+      }
+    }
+
     setErrorMsg(null);
     setIsGenerating(true);
     setProgressPercent(5);
@@ -357,33 +526,58 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
       target_duration: -1,
       layout: aspectRatio === "16:9" ? "landscape" : layoutMode,
       aspect_ratio: aspectRatio,
-      quality: quality === "4k" ? "1080p" : quality, // Hardware optimal
-      export_resolution: quality === "4k" ? "2160p" : quality === "1080p" ? "1080p" : "720p",
+      quality: (quality === "4k" || quality === "8k") ? "1080p" : quality, // Hardware optimal
+      export_resolution: quality === "8k" ? "4320p" : quality === "4k" ? "2160p" : quality === "1440p" ? "1440p" : quality === "720p" ? "720p" : quality === "source" ? "source" : "1080p",
       add_captions: captionsEnabled,
       caption_style: captionStyle,
       caption_y_pct: yPct,
       camera_style: "instant",
       adaptive_crop: true,
-      enable_super_resolution: quality === "4k",
+      enable_super_resolution: quality === "4k" || quality === "8k",
       add_bg_music: false,
     };
 
     try {
+      // Hard timeout so a hung engine cannot leave the UI stuck on "Submitting..."
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 20000);
       const res = await fetch("http://127.0.0.1:8000/api/process", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
+        signal: controller.signal,
       });
-      const data = await res.json();
-      if (data.task_id) {
+      clearTimeout(timeoutId);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setIsGenerating(false);
+        setErrorMsg(data.detail || data.error || `Server rejected task submission (HTTP ${res.status}).`);
+      } else if (data.task_id) {
         setTaskId(data.task_id);
+        // Deduct 1 Free Tier credit for unlicensed users
+        if (!isEffectivelyLicensed) {
+          fetch("http://127.0.0.1:8000/api/license/use_free_tier_credit", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ clip_name: videoInfo?.title || "1-Click Auto Clip" }),
+          })
+            .then((r) => r.json())
+            .then((cData) => {
+              if (cData && cData.credits) setFreeCredits(cData.credits);
+            })
+            .catch(() => {});
+        }
       } else {
         setIsGenerating(false);
         setErrorMsg(data.detail || "Server rejected task submission.");
       }
-    } catch {
+    } catch (err: any) {
       setIsGenerating(false);
-      setErrorMsg("Failed to connect to local ClipVault engine on port 8000.");
+      setErrorMsg(
+        err?.name === "AbortError"
+          ? "The ClipVault engine did not respond in time while submitting the task. Please try again."
+          : "Failed to connect to local ClipVault engine on port 8000."
+      );
     }
   };
 
@@ -414,28 +608,59 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
         className="h-14 pl-6 pr-40 border-b border-white/[0.08] flex items-center justify-between bg-[#0b0b0e]/90 backdrop-blur-md z-20 flex-shrink-0"
         style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
       >
-        <div className="flex items-center gap-3" style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}>
+        <div className="flex items-center gap-4" style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}>
           <button
             type="button"
             onClick={onBack}
-            className="w-8 h-8 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] flex items-center justify-center transition-all cursor-pointer text-gray-300 hover:text-white"
+            className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors cursor-pointer"
             title="Back to Project Selector"
           >
             <ArrowLeft className="w-4 h-4" />
+            <span>Back</span>
           </button>
-          <div className="h-4 w-px bg-white/10" />
+          <div className="w-px h-5 bg-white/10" />
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-[#00e676]/10 border border-[#00e676]/30 flex items-center justify-center">
-              <Zap className="w-3.5 h-3.5 text-[#00e676]" />
-            </div>
             <span className="text-sm font-bold tracking-tight text-white">1-Click Auto Clipper</span>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#00e676]/10 text-[#00e676] font-semibold border border-[#00e676]/25">
-              Opus Concept
-            </span>
           </div>
         </div>
 
         <div className="flex items-center gap-2.5" style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}>
+          {/* Plan Status & Credits Badge */}
+          {!isEffectivelyLicensed && (
+            <div className="flex items-center gap-2">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/[0.1] text-[11px] font-mono font-bold text-gray-300">
+                <span className="w-2 h-2 rounded-full bg-[#34eb3d]" />
+                <span>Free: {freeCredits ? `${freeCredits.remaining}/2 Clips` : "2 Clips/Wk"}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setUpgradeReason("upgrade_menu");
+                  setShowUpgradeModal(true);
+                }}
+                className="px-2.5 py-1 rounded-lg bg-[#34eb3d]/15 hover:bg-[#34eb3d]/25 border border-[#34eb3d]/40 text-[#34eb3d] text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+              >
+                <Sparkles className="w-3 h-3" />
+                <span>Upgrade</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (onOpenActivation) {
+                    onOpenActivation();
+                  } else {
+                    window.dispatchEvent(new CustomEvent("clipvault-open-activation"));
+                  }
+                }}
+                className="px-2.5 py-1 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.1] text-gray-300 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                title="Activate License Key"
+              >
+                <Key className="w-3 h-3 text-[#34eb3d]" />
+                <span className="hidden sm:inline">Activate Key</span>
+              </button>
+            </div>
+          )}
+
           {/* AI Model & API Key Configuration */}
           <button
             type="button"
@@ -443,17 +668,17 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
             className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
               activeEngineKey || activeEngineObj?.providerType === "local"
                 ? "bg-white/[0.05] hover:bg-white/[0.1] text-gray-200 border-white/[0.1]"
-                : "bg-amber-400/10 hover:bg-amber-400/20 text-amber-300 border-amber-400/30"
+                : "bg-emerald-400/10 hover:bg-emerald-400/20 text-emerald-300 border-emerald-400/30"
             }`}
             title="Configure AI Model and API Key (Gemini, OpenAI, Groq, DeepSeek, Local Hardware)"
           >
-            <Sparkles className="w-3.5 h-3.5 text-[#00e676]" />
+            <Sparkles className="w-3.5 h-3.5 text-[#34eb3d]" />
             <span className="max-w-[130px] truncate">{activeEngineObj?.name || "AI Engine"}</span>
             <span
               className={`w-2 h-2 rounded-full shrink-0 ${
                 activeEngineKey || activeEngineObj?.providerType === "local"
-                  ? "bg-[#00e676] shadow-[0_0_6px_#00e676]"
-                  : "bg-amber-400 animate-pulse"
+                  ? "bg-[#34eb3d] shadow-[0_0_6px_#34eb3d]"
+                  : "bg-emerald-400 animate-pulse"
               }`}
             />
           </button>
@@ -464,7 +689,7 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
               onClick={onGoToVault}
               className="px-3 py-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-xs font-semibold text-gray-300 hover:text-white transition-all flex items-center gap-1.5 cursor-pointer border border-white/[0.08]"
             >
-              <FolderOpen className="w-3.5 h-3.5 text-amber-400" />
+              <FolderOpen className="w-3.5 h-3.5 text-emerald-400" />
               <span>Saved Vault</span>
             </button>
           )}
@@ -481,7 +706,7 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                    <CheckCircle2 className="w-5 h-5 text-[#00e676]" />
+                    <CheckCircle2 className="w-5 h-5 text-[#34eb3d]" />
                     <span>Generated {generatedClips.length} Viral Clips</span>
                   </h2>
                   <p className="text-xs text-gray-400 mt-0.5">
@@ -540,7 +765,7 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
                           }}
                           className="absolute inset-0 flex items-center justify-center bg-black/30 cursor-pointer transition-all"
                         >
-                          <div className="w-12 h-12 rounded-full bg-[#00e676] text-black flex items-center justify-center shadow-lg hover:scale-105 transition-all">
+                          <div className="w-12 h-12 rounded-full bg-[#34eb3d] text-black flex items-center justify-center shadow-lg hover:scale-105 transition-all">
                             <Play className="w-6 h-6 ml-0.5 fill-black" />
                           </div>
                         </div>
@@ -566,7 +791,7 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
                       {/* Virality Header */}
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
-                          <span className="px-2.5 py-1 rounded-md bg-amber-400/10 text-amber-400 border border-amber-400/30 text-xs font-bold">
+                          <span className="px-2.5 py-1 rounded-md bg-emerald-400/10 text-emerald-400 border border-emerald-400/30 text-xs font-bold">
                             Score: {activeClip.virality_score} pts
                           </span>
                           <span className="px-2 py-0.5 rounded-md bg-sky-400/10 text-sky-400 border border-sky-400/20 text-[11px] font-semibold">
@@ -590,22 +815,22 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
                         <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.06] flex flex-col gap-2.5 mb-4">
                           <div className="flex items-center justify-between text-xs">
                             <span className="text-gray-400 font-medium flex items-center gap-1.5">
-                              <Zap className="w-3.5 h-3.5 text-amber-400" /> Hook Strength
+                              <Zap className="w-3.5 h-3.5 text-emerald-400" /> Hook Strength
                             </span>
-                            <span className="font-bold text-amber-400">{activeClip.sub_scores.hook}/100</span>
+                            <span className="font-bold text-emerald-400">{activeClip.sub_scores.hook}/100</span>
                           </div>
                           <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
-                            <div className="h-full bg-amber-400 rounded-full" style={{ width: `${activeClip.sub_scores.hook}%` }} />
+                            <div className="h-full bg-emerald-400 rounded-full" style={{ width: `${activeClip.sub_scores.hook}%` }} />
                           </div>
 
                           <div className="flex items-center justify-between text-xs pt-1">
                             <span className="text-gray-400 font-medium flex items-center gap-1.5">
-                              <TrendingUp className="w-3.5 h-3.5 text-[#00e676]" /> Narrative Flow
+                              <TrendingUp className="w-3.5 h-3.5 text-[#34eb3d]" /> Narrative Flow
                             </span>
-                            <span className="font-bold text-[#00e676]">{activeClip.sub_scores.flow}/100</span>
+                            <span className="font-bold text-[#34eb3d]">{activeClip.sub_scores.flow}/100</span>
                           </div>
                           <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
-                            <div className="h-full bg-[#00e676] rounded-full" style={{ width: `${activeClip.sub_scores.flow}%` }} />
+                            <div className="h-full bg-[#34eb3d] rounded-full" style={{ width: `${activeClip.sub_scores.flow}%` }} />
                           </div>
                         </div>
                       )}
@@ -637,7 +862,7 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
                           onClick={handleOpenFolder}
                           className="px-3 py-2 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-xs font-semibold text-gray-200 transition-all flex items-center gap-1.5 cursor-pointer"
                         >
-                          <FolderOpen className="w-3.5 h-3.5 text-amber-400" />
+                          <FolderOpen className="w-3.5 h-3.5 text-emerald-400" />
                           <span>Open File</span>
                         </button>
                       </div>
@@ -646,7 +871,7 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
                         <button
                           type="button"
                           onClick={onGoToVault}
-                          className="px-4 py-2 rounded-lg bg-[#00e676] text-black text-xs font-bold hover:brightness-110 transition-all flex items-center gap-1.5 cursor-pointer shadow-lg shadow-[#00e676]/20"
+                          className="px-4 py-2 rounded-lg bg-[#34eb3d] text-black text-xs font-bold hover:brightness-110 transition-all flex items-center gap-1.5 cursor-pointer shadow-lg shadow-[#34eb3d]/20"
                         >
                           <span>Go to Vault</span>
                           <ExternalLink className="w-3.5 h-3.5" />
@@ -668,13 +893,13 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
                     }}
                     className={`p-3 rounded-xl border transition-all cursor-pointer flex flex-col gap-1.5 ${
                       activeClipIndex === idx
-                        ? "bg-[#00e676]/10 border-[#00e676] shadow-lg shadow-[#00e676]/10"
+                        ? "bg-[#34eb3d]/10 border-[#34eb3d] shadow-lg shadow-[#34eb3d]/10"
                         : "bg-white/[0.03] border-white/[0.08] hover:bg-white/[0.06]"
                     }`}
                   >
                     <div className="flex items-center justify-between text-xs">
                       <span className="font-bold text-white">Clip #{idx + 1}</span>
-                      <span className="font-bold text-amber-400 text-[11px]">{clip.virality_score} pts</span>
+                      <span className="font-bold text-emerald-400 text-[11px]">{clip.virality_score} pts</span>
                     </div>
                     <p className="text-[11px] text-gray-400 truncate">{clip.title}</p>
                     <span className="text-[10px] text-gray-500">{clip.duration.toFixed(0)}s</span>
@@ -688,7 +913,7 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
 
               {/* Header Title Hero */}
               <div className="text-center max-w-2xl mx-auto space-y-2.5">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#00e676]/10 border border-[#00e676]/25 text-[#00e676] text-[11px] font-bold tracking-wide uppercase shadow-sm">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#34eb3d]/10 border border-[#34eb3d]/25 text-[#34eb3d] text-[11px] font-bold tracking-wide uppercase shadow-sm">
                   <Sparkles className="w-3.5 h-3.5" />
                   <span>Next-Gen Autonomous Video Intelligence</span>
                 </div>
@@ -705,9 +930,9 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
                 
                 {/* AI API Key Setup Notice if not configured */}
                 {!activeEngineKey && activeEngineObj?.providerType !== "local" && (
-                  <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-between text-xs text-amber-300">
+                  <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-between text-xs text-emerald-300">
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+                      <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
                       <span className="truncate">
                         AI API Key not set: Click to add your free Google Gemini API key for instant viral hook discovery.
                       </span>
@@ -715,7 +940,7 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
                     <button
                       type="button"
                       onClick={() => setShowKeySettings(true)}
-                      className="px-3 py-1 rounded-lg bg-amber-400/20 hover:bg-amber-400/30 text-amber-200 font-bold text-xs transition-colors shrink-0 ml-3 cursor-pointer"
+                      className="px-3 py-1 rounded-lg bg-emerald-400/20 hover:bg-emerald-400/30 text-emerald-200 font-bold text-xs transition-colors shrink-0 ml-3 cursor-pointer"
                     >
                       Configure Key
                     </button>
@@ -723,7 +948,7 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
                 )}
 
                 {/* Hero Source Video Input Module */}
-                <div className="flex flex-col gap-3">
+                <div id="tour-opus-ingest" className="flex flex-col gap-3">
                   {/* Segmented Tab Switcher: URL vs Local File */}
                   <div className="flex items-center justify-between">
                     <div className="inline-flex p-1 rounded-xl bg-white/[0.03] border border-white/[0.08] gap-1">
@@ -732,7 +957,7 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
                         onClick={() => setSourceTab("url")}
                         className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                           sourceTab === "url"
-                            ? "bg-[#00e676] text-black shadow-md"
+                            ? "bg-[#34eb3d] text-black shadow-md"
                             : "text-gray-400 hover:text-white"
                         }`}
                       >
@@ -744,7 +969,7 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
                         onClick={() => setSourceTab("local")}
                         className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                           sourceTab === "local"
-                            ? "bg-[#00e676] text-black shadow-md"
+                            ? "bg-[#34eb3d] text-black shadow-md"
                             : "text-gray-400 hover:text-white"
                         }`}
                       >
@@ -774,7 +999,7 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
                           className={`w-full rounded-xl pl-10 pr-24 py-3.5 text-sm text-white placeholder-gray-500 focus:outline-none transition-all disabled:opacity-50 ${
                             isLikedVideosUrl(url)
                               ? "bg-red-500/10 border border-red-500/80 focus:border-red-500 focus:ring-1 focus:ring-red-500/30"
-                              : "bg-white/[0.03] border border-white/[0.12] focus:border-[#00e676] focus:ring-1 focus:ring-[#00e676]/40"
+                              : "bg-white/[0.03] border border-white/[0.12] focus:border-[#34eb3d] focus:ring-1 focus:ring-[#34eb3d]/40"
                           }`}
                         />
                         <div className="absolute right-2.5 flex items-center gap-1.5">
@@ -809,7 +1034,7 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
                             <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
                             <div>
                               <span className="font-bold text-red-300">Liked Videos Playlist Link Detected:</span>{" "}
-                              <span>This link was copied directly from your private YouTube &quot;Liked videos&quot; playlist (<code className="text-amber-300 bg-amber-500/10 px-1 py-0.5 rounded">list=LL</code>). YouTube blocks external software from accessing private playlists. Please use the direct video link instead.</span>
+                              <span>This link was copied directly from your private YouTube &quot;Liked videos&quot; playlist (<code className="text-emerald-300 bg-emerald-500/10 px-1 py-0.5 rounded">list=LL</code>). YouTube blocks external software from accessing private playlists. Please use the direct video link instead.</span>
                             </div>
                           </div>
                           {cleanYouTubeUrl(url) && (
@@ -819,7 +1044,7 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
                                 const clean = cleanYouTubeUrl(url);
                                 if (clean) setUrl(clean);
                               }}
-                              className="px-3.5 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-bold text-xs transition-all shrink-0 cursor-pointer shadow-md self-start sm:self-center"
+                              className="px-3.5 py-1.5 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-black font-bold text-xs transition-all shrink-0 cursor-pointer shadow-md self-start sm:self-center"
                             >
                               Clean Link &amp; Use Direct Video
                             </button>
@@ -831,14 +1056,14 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
                     /* Input View 2: Local Video File Browse Card */
                     <div
                       onClick={handleSelectLocalFile}
-                      className="border-2 border-dashed border-white/[0.12] hover:border-[#00e676]/60 rounded-xl p-5 bg-white/[0.02] hover:bg-white/[0.04] transition-all cursor-pointer flex flex-col items-center justify-center gap-2 text-center group"
+                      className="border-2 border-dashed border-white/[0.12] hover:border-[#34eb3d]/60 rounded-xl p-5 bg-white/[0.02] hover:bg-white/[0.04] transition-all cursor-pointer flex flex-col items-center justify-center gap-2 text-center group"
                     >
-                      <div className="w-10 h-10 rounded-full bg-white/[0.05] group-hover:bg-[#00e676]/10 flex items-center justify-center text-gray-400 group-hover:text-[#00e676] transition-colors">
+                      <div className="w-10 h-10 rounded-full bg-white/[0.05] group-hover:bg-[#34eb3d]/10 flex items-center justify-center text-gray-400 group-hover:text-[#34eb3d] transition-colors">
                         <UploadCloud className="w-5 h-5" />
                       </div>
                       <div className="text-xs font-bold text-gray-200 group-hover:text-white">
                         {url && videoInfo?.uploader === "Local Video File" ? (
-                          <span className="text-[#00e676]">Selected: {videoInfo.title}</span>
+                          <span className="text-[#34eb3d]">Selected: {videoInfo.title}</span>
                         ) : (
                           <span>Click to browse video file from your computer</span>
                         )}
@@ -850,7 +1075,7 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
                   {/* Live Video Info Card Preview */}
                   {resolvingInfo && (
                     <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] flex items-center gap-3 animate-pulse">
-                      <Loader2 className="w-4 h-4 text-[#00e676] animate-spin" />
+                      <Loader2 className="w-4 h-4 text-[#34eb3d] animate-spin" />
                       <span className="text-xs text-gray-400">Resolving video title, duration, and stream metadata...</span>
                     </div>
                   )}
@@ -863,7 +1088,7 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
                   )}
 
                   {videoInfo && !resolvingInfo && (
-                    <div className="p-3.5 rounded-xl bg-[#00e676]/[0.04] border border-[#00e676]/30 flex items-center justify-between gap-3.5">
+                    <div className="p-3.5 rounded-xl bg-[#34eb3d]/[0.04] border border-[#34eb3d]/30 flex items-center justify-between gap-3.5">
                       <div className="flex items-center gap-3.5 min-w-0">
                         {videoInfo.thumbnail ? (
                           <img
@@ -881,7 +1106,7 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
                           <p className="text-[11px] text-gray-400 flex items-center gap-2 mt-0.5">
                             {videoInfo.uploader && <span>{videoInfo.uploader}</span>}
                             {videoInfo.duration > 0 && (
-                              <span className="flex items-center gap-1 text-[#00e676] font-semibold">
+                              <span className="flex items-center gap-1 text-[#34eb3d] font-semibold">
                                 <Clock className="w-3 h-3" />
                                 {Math.floor(videoInfo.duration / 60)}m {Math.floor(videoInfo.duration % 60)}s
                               </span>
@@ -909,10 +1134,10 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 xl:gap-7 items-stretch">
 
                   {/* COLUMN 1: VIDEO FRAMING & RATIO */}
-                  <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.06] flex flex-col gap-4.5 shadow-sm">
+                  <div id="tour-opus-framing" className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.06] flex flex-col gap-4.5 shadow-sm">
                     <div className="flex items-center justify-between pb-1 border-b border-white/[0.06]">
                       <span className="text-xs font-bold text-white flex items-center gap-2">
-                        <Layers className="w-4 h-4 text-[#00e676]" />
+                        <Layers className="w-4 h-4 text-[#34eb3d]" />
                         <span>Framing & Video Size</span>
                       </span>
                       <span className="text-[10px] text-gray-500 font-medium">Core Visuals</span>
@@ -933,7 +1158,7 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
                             onClick={() => setAspectRatio(ar.id as any)}
                             className={`py-2.5 px-2 rounded-xl text-center border transition-all cursor-pointer ${
                               aspectRatio === ar.id
-                                ? "bg-[#00e676]/15 border-[#00e676] text-white shadow-sm font-bold"
+                                ? "bg-[#34eb3d]/15 border-[#34eb3d] text-white shadow-sm font-bold"
                                 : "bg-white/[0.02] border-white/[0.06] text-gray-400 hover:text-white hover:bg-white/[0.04]"
                             }`}
                           >
@@ -950,6 +1175,12 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
                       <div className="flex flex-col gap-2">
                         {[
                           {
+                            id: "vertical_crop",
+                            label: "Auto Face-Tracking (9:16)",
+                            badge: "9:16 SOLO",
+                            sub: "Full vertical crop locked on active speaker",
+                          },
+                          {
                             id: "auto_split",
                             label: "Auto Detect & Split",
                             badge: "AI AUTO",
@@ -960,12 +1191,6 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
                             label: "Dual-Speaker Split",
                             badge: "STACKED",
                             sub: "Host top & guest bottom with split line subtitle",
-                          },
-                          {
-                            id: "vertical_crop",
-                            label: "Solo Face-Tracking",
-                            badge: "9:16 SOLO",
-                            sub: "Full vertical crop locked on active speaker",
                           },
                           {
                             id: "square_blur",
@@ -985,7 +1210,7 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
                             }}
                             className={`p-3 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer group ${
                               layoutMode === item.id
-                                ? "bg-[#00e676]/10 border-[#00e676] text-white shadow-[0_0_14px_rgba(0,230,118,0.12)]"
+                                ? "bg-[#34eb3d]/10 border-[#34eb3d] text-white shadow-[0_0_14px_rgba(52, 235, 61,0.12)]"
                                 : "bg-white/[0.02] border-white/[0.06] text-gray-400 hover:text-white hover:bg-white/[0.04] hover:border-white/[0.12]"
                             }`}
                           >
@@ -995,7 +1220,7 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
                                 <span
                                   className={`text-[8.5px] px-1.5 py-0.5 rounded font-mono font-bold border transition-colors ${
                                     layoutMode === item.id
-                                      ? "bg-[#00e676]/20 text-[#00e676] border-[#00e676]/40"
+                                      ? "bg-[#34eb3d]/20 text-[#34eb3d] border-[#34eb3d]/40"
                                       : "bg-white/[0.04] text-gray-400 border-white/[0.08]"
                                   }`}
                                 >
@@ -1004,7 +1229,7 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
                               </div>
                               <div className="text-[10.5px] text-gray-400 mt-0.5 leading-tight">{item.sub}</div>
                             </div>
-                            {layoutMode === item.id && <Check className="w-4 h-4 text-[#00e676] shrink-0" />}
+                            {layoutMode === item.id && <Check className="w-4 h-4 text-[#34eb3d] shrink-0" />}
                           </button>
                         ))}
                       </div>
@@ -1012,17 +1237,17 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
                   </div>
 
                   {/* COLUMN 2: SUBTITLES & PRESETS */}
-                  <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.06] flex flex-col gap-4.5 shadow-sm relative z-20">
+                  <div id="tour-opus-captions" className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.06] flex flex-col gap-4.5 shadow-sm relative z-20">
                     <div className="flex items-center justify-between pb-1 border-b border-white/[0.06]">
                       <span className="text-xs font-bold text-white flex items-center gap-2">
-                        <Subtitles className="w-4 h-4 text-[#00e676]" />
+                        <Subtitles className="w-4 h-4 text-[#34eb3d]" />
                         <span>AI Captions & Styles</span>
                       </span>
                       <button
                         type="button"
                         onClick={() => setCaptionsEnabled(!captionsEnabled)}
                         className={`w-9 h-5 rounded-full p-0.5 transition-colors cursor-pointer flex items-center ${
-                          captionsEnabled ? "bg-[#00e676]" : "bg-white/20"
+                          captionsEnabled ? "bg-[#34eb3d]" : "bg-white/20"
                         }`}
                         title={captionsEnabled ? "Captions enabled" : "Captions disabled"}
                       >
@@ -1042,7 +1267,7 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
                             <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
                               Subtitle Style Preset
                             </span>
-                            <span className="text-[9.5px] text-[#00e676] font-mono font-bold">
+                            <span className="text-[9.5px] text-[#34eb3d] font-mono font-bold">
                               Kinetic Visuals
                             </span>
                           </div>
@@ -1062,8 +1287,10 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
 
                         {/* Active Style Details Callout */}
                         {(() => {
+                          // SUBTITLE_PRESETS is a static non-empty constant; the `!` keeps the
+                          // fallback non-optional under noUncheckedIndexedAccess.
                           const activePreset =
-                            SUBTITLE_PRESETS.find((p) => p.id === captionStyle) || SUBTITLE_PRESETS[0];
+                            SUBTITLE_PRESETS.find((p) => p.id === captionStyle) || SUBTITLE_PRESETS[0]!;
                           return (
                             <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.06] flex items-center justify-between text-xs">
                               <div className="flex items-center gap-2 min-w-0">
@@ -1081,7 +1308,7 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
                                   • {activePreset.desc}
                                 </span>
                               </div>
-                              <span className="text-[8.5px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#00e676]/15 text-[#00e676] border border-[#00e676]/30 shrink-0">
+                              <span className="text-[8.5px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#34eb3d]/15 text-[#34eb3d] border border-[#34eb3d]/30 shrink-0">
                                 {activePreset.badge}
                               </span>
                             </div>
@@ -1093,7 +1320,7 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
                           <div className="flex items-center justify-between">
                             <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Position</span>
                             {(layoutMode === "podcast_split" || layoutMode === "auto_split") && (
-                              <span className="text-[9.5px] text-[#00e676] font-medium">Split Seam (Middle)</span>
+                              <span className="text-[9.5px] text-[#34eb3d] font-medium">Split Seam (Middle)</span>
                             )}
                           </div>
                           <div className="grid grid-cols-3 gap-2">
@@ -1108,7 +1335,7 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
                                 onClick={() => setCaptionPlacement(pos.id as any)}
                                 className={`py-2.5 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
                                   captionPlacement === pos.id
-                                    ? "bg-[#00e676]/15 border-[#00e676] text-white shadow-sm"
+                                    ? "bg-[#34eb3d]/15 border-[#34eb3d] text-white shadow-sm"
                                     : "bg-white/[0.02] border-white/[0.06] text-gray-400 hover:text-white hover:bg-white/[0.04]"
                                 }`}
                               >
@@ -1119,7 +1346,7 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
                         </div>
 
                         <div className="p-2.5 rounded-xl bg-black/40 border border-white/[0.06] text-[10.5px] text-gray-400 flex items-center gap-2">
-                          <Sparkles className="w-3.5 h-3.5 text-[#00e676] shrink-0" />
+                          <Sparkles className="w-3.5 h-3.5 text-[#34eb3d] shrink-0" />
                           <span>Pre-rendered with multi-stage Gaussian bloom & genuine Montserrat-Black.</span>
                         </div>
                       </div>
@@ -1133,10 +1360,10 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
                   </div>
 
                   {/* COLUMN 3: VIRAL INTELLIGENCE & OUTPUT */}
-                  <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.06] flex flex-col gap-4.5 shadow-sm">
+                  <div id="tour-opus-curation" className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.06] flex flex-col gap-4.5 shadow-sm">
                     <div className="flex items-center justify-between pb-1 border-b border-white/[0.06]">
                       <span className="text-xs font-bold text-white flex items-center gap-2">
-                        <TrendingUp className="w-4 h-4 text-[#00e676]" />
+                        <TrendingUp className="w-4 h-4 text-[#34eb3d]" />
                         <span>Viral Intelligence & Output</span>
                       </span>
                       <span className="text-[10px] text-gray-500 font-medium">Export Master</span>
@@ -1172,7 +1399,7 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
                             onClick={() => setClipYield(item.id as any)}
                             className={`p-3.5 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer group ${
                               clipYield === item.id
-                                ? "bg-[#00e676]/10 border-[#00e676] text-white shadow-[0_0_14px_rgba(0,230,118,0.12)]"
+                                ? "bg-[#34eb3d]/10 border-[#34eb3d] text-white shadow-[0_0_14px_rgba(52, 235, 61,0.12)]"
                                 : "bg-white/[0.02] border-white/[0.06] text-gray-400 hover:text-white hover:bg-white/[0.04] hover:border-white/[0.12]"
                             }`}
                           >
@@ -1182,7 +1409,7 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
                                 <span
                                   className={`text-[8.5px] px-1.5 py-0.5 rounded font-mono font-bold border ${
                                     clipYield === item.id
-                                      ? "bg-[#00e676]/20 text-[#00e676] border-[#00e676]/40"
+                                      ? "bg-[#34eb3d]/20 text-[#34eb3d] border-[#34eb3d]/40"
                                       : "bg-white/[0.04] text-gray-400 border-white/[0.08]"
                                   }`}
                                 >
@@ -1191,7 +1418,7 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
                               </div>
                               <div className="text-[10.5px] text-gray-400 mt-0.5 leading-tight">{item.sub}</div>
                             </div>
-                            {clipYield === item.id && <Check className="w-4 h-4 text-[#00e676] shrink-0" />}
+                            {clipYield === item.id && <Check className="w-4 h-4 text-[#34eb3d] shrink-0" />}
                           </button>
                         ))}
                       </div>
@@ -1199,24 +1426,63 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
 
                     {/* Quality Selection */}
                     <div className="flex flex-col gap-1.5">
-                      <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Export Resolution</span>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Export Resolution</span>
+                        {!isEffectivelyLicensed && (
+                          <span className="text-[9.5px] text-amber-400 font-bold flex items-center gap-1 font-mono">
+                            <Lock className="w-2.5 h-2.5" />
+                            <span>Pro Resolution Locked</span>
+                          </span>
+                        )}
+                      </div>
                       <div className="grid grid-cols-3 gap-2">
                         {[
-                          { id: "1080p", label: "1080p", badge: "REC", sub: "Full HD 60fps" },
-                          { id: "4k", label: "4K PRO", badge: "UHD", sub: "Super-Resolution" },
-                          { id: "720p", label: "720p", badge: "FAST", sub: "Rapid Preview" },
+                          { id: "1080p", label: "1080p", badge: "REC", sub: "Full HD 60fps", locked: false },
+                          { id: "720p", label: "720p", badge: "FAST", sub: "Rapid Preview", locked: false },
+                          { id: "source", label: "Source", badge: "RAW", sub: "Native Match", locked: false },
+                          { id: "1440p", label: "1440p", badge: "2K", sub: "Quad HD Master", locked: false },
+                          {
+                            id: "4k",
+                            label: "4K PRO",
+                            badge: !isEffectivelyLicensed ? "PRO ONLY" : "UHD",
+                            sub: !isEffectivelyLicensed ? "Creator Pro Required" : "Super-Resolution",
+                            locked: !isEffectivelyLicensed,
+                          },
+                          {
+                            id: "8k",
+                            label: "8K CINEMA",
+                            badge: !isEffectivelyLicensed ? "PRO ONLY" : "8K",
+                            sub: !isEffectivelyLicensed ? "Creator Pro Required" : "Max Bitrate Master",
+                            locked: !isEffectivelyLicensed,
+                          },
                         ].map((q) => (
                           <button
                             key={q.id}
                             type="button"
-                            onClick={() => setQuality(q.id as any)}
-                            className={`py-2.5 px-2 rounded-xl text-center border transition-all cursor-pointer ${
+                            onClick={() => {
+                              if (q.locked) {
+                                setUpgradeReason("4k_locked");
+                                setShowUpgradeModal(true);
+                                return;
+                              }
+                              setQuality(q.id as any);
+                              try {
+                                localStorage.setItem("clipvault_def_res", q.id);
+                              } catch {}
+                              window.dispatchEvent(new CustomEvent("clipvault-resolution-changed", { detail: q.id }));
+                            }}
+                            className={`py-2.5 px-2 rounded-xl text-center border transition-all cursor-pointer relative ${
                               quality === q.id
-                                ? "bg-[#00e676]/15 border-[#00e676] text-white shadow-sm font-bold"
+                                ? "bg-[#34eb3d]/15 border-[#34eb3d] text-white shadow-sm font-bold"
+                                : q.locked
+                                ? "bg-white/[0.01] border-white/[0.04] text-gray-500 hover:border-amber-500/40"
                                 : "bg-white/[0.02] border-white/[0.06] text-gray-400 hover:text-white hover:bg-white/[0.04]"
                             }`}
                           >
-                            <div className="text-xs font-black">{q.label}</div>
+                            <div className="text-xs font-black flex items-center justify-center gap-1">
+                              {q.locked && <Lock className="w-3 h-3 text-amber-400 shrink-0" />}
+                              <span>{q.label}</span>
+                            </div>
                             <div className="text-[10px] text-gray-400 mt-0.5">{q.sub}</div>
                           </button>
                         ))}
@@ -1236,18 +1502,18 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
 
                 {/* Progress Bar (Active Rendering) */}
                 {isGenerating && (
-                  <div className="p-4 rounded-2xl bg-[#00e676]/5 border border-[#00e676]/20 flex flex-col gap-2.5">
+                  <div className="p-4 rounded-2xl bg-[#34eb3d]/5 border border-[#34eb3d]/20 flex flex-col gap-2.5">
                     <div className="flex items-center justify-between text-xs">
                       <span className="font-bold text-white flex items-center gap-2">
-                        <Loader2 className="w-4 h-4 text-[#00e676] animate-spin" />
+                        <Loader2 className="w-4 h-4 text-[#34eb3d] animate-spin" />
                         {progressStatus}
                       </span>
-                      <span className="font-bold text-[#00e676]">{progressPercent}%</span>
+                      <span className="font-bold text-[#34eb3d]">{progressPercent}%</span>
                     </div>
 
                     <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
                       <div
-                        className="h-full bg-[#00e676] rounded-full transition-all duration-300"
+                        className="h-full bg-[#34eb3d] rounded-full transition-all duration-300"
                         style={{ width: `${progressPercent}%` }}
                       />
                     </div>
@@ -1269,7 +1535,7 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
 
                 {/* Action CTA Button */}
                 {!isGenerating && (
-                  <div className="flex flex-col gap-2 pt-1">
+                  <div id="tour-opus-generate" className="flex flex-col gap-2 pt-1">
                     <button
                       type="button"
                       onClick={handleGenerate}
@@ -1277,7 +1543,7 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
                       className={`w-full py-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2.5 transition-all cursor-pointer shadow-xl ${
                         !url.trim() || resolvingInfo
                           ? "bg-white/[0.05] text-gray-500 border border-white/[0.08] cursor-not-allowed"
-                          : "bg-gradient-to-r from-[#00E676] via-[#00DF6D] to-[#00C853] text-black hover:brightness-110 shadow-[0_4px_24px_rgba(0,230,118,0.30)] hover:shadow-[0_6px_32px_rgba(0,230,118,0.45)] hover:-translate-y-0.5 active:translate-y-0"
+                          : "bg-gradient-to-r from-[#34eb3d] via-[#5def64] to-[#2dca34] text-black hover:brightness-110 shadow-[0_4px_24px_rgba(52, 235, 61,0.30)] hover:shadow-[0_6px_32px_rgba(52, 235, 61,0.45)] hover:-translate-y-0.5 active:translate-y-0"
                       }`}
                     >
                       <Sparkles className="w-4 h-4 fill-black" />
@@ -1328,6 +1594,24 @@ export function OpusClipperScreen({ onBack, onGoToVault }: Props) {
         customBaseUrl={customBaseUrl}
         setCustomBaseUrl={setCustomBaseUrl}
       />
+
+      {/* Creator Pro Upgrade Modal for Free Tier Users */}
+      <CreatorProUpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        reason={upgradeReason}
+        resetsInDays={freeCredits?.resets_in_days || 7}
+        resetsAt={freeCredits?.resets_at || ""}
+        onOpenActivation={() => {
+          setShowUpgradeModal(false);
+          if (onOpenActivation) {
+            onOpenActivation();
+          } else {
+            window.dispatchEvent(new CustomEvent("clipvault-open-activation"));
+          }
+        }}
+      />
+
     </div>
   );
 }

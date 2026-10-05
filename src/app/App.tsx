@@ -40,7 +40,7 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
               localStorage.removeItem("clipvault_history");
               window.location.reload();
             }}
-            className="px-5 py-2.5 rounded-xl bg-[#00e676] text-black font-bold text-xs hover:brightness-110 transition-all cursor-pointer shadow-lg"
+            className="px-5 py-2.5 rounded-xl bg-[#34eb3d] text-black font-bold text-xs hover:brightness-110 transition-all cursor-pointer shadow-lg"
           >
             Reload ClipVault Cleanly
           </button>
@@ -64,7 +64,7 @@ export default function App() {
 
   // Tour States
   const [tourActive, setTourActive] = useState(false);
-  const [tourType, setTourType] = useState<"clipper" | "vault">("clipper");
+  const [tourType, setTourType] = useState<"clipper" | "vault" | "opus">("clipper");
   const [tourStep, setTourStep] = useState(1);
   const [showWelcomePrompt, setShowWelcomePrompt] = useState(() => {
     try {
@@ -84,60 +84,68 @@ export default function App() {
     }
   });
 
-  // Commercial Licensing State (Lemon Squeezy)
-  const [isLicensed, setIsLicensed] = useState<boolean>(() => {
+  // Commercial Licensing State (offline Ed25519 license verified by the engine).
+  //
+  // localStorage is ONLY a first-paint cache: it avoids flashing the activation
+  // dialog while the engine is queried. It is never proof of a license — the
+  // engine's /api/license/status response always wins, and if that endpoint is
+  // unreachable the app stays gated (it does not fail open).
+  const cachedLicense = (() => {
     try {
       return localStorage.getItem("clipvault_license_active") === "true";
     } catch {
       return false;
     }
-  });
-  const [showLicenseModal, setShowLicenseModal] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem("clipvault_license_active") !== "true";
-    } catch {
-      return true;
-    }
-  });
-  const [licenseData, setLicenseData] = useState<{ key_preview?: string; user_email?: string } | null>(null);
+  })();
+  const [isLicensed, setIsLicensed] = useState<boolean>(cachedLicense);
+  const [licenseStatus, setLicenseStatus] = useState<"checking" | "online" | "unreachable">("checking");
+  const [showActivationModal, setShowActivationModal] = useState<boolean>(false);
 
   useEffect(() => {
-    let isMounted = true;
-    const checkLicense = () => {
-      fetch("http://127.0.0.1:8000/api/license/status")
-        .then((r) => r.json())
-        .then((data) => {
-          if (!isMounted) return;
-          if (data && data.licensed) {
-            setIsLicensed(true);
-            setShowLicenseModal(false);
-            try {
-              localStorage.setItem("clipvault_license_active", "true");
-            } catch {}
-            setLicenseData({ key_preview: data.key_preview, user_email: data.user_email });
-          } else {
-            try {
-              if (localStorage.getItem("clipvault_license_active") !== "true") {
-                setIsLicensed(false);
-                setShowLicenseModal(true);
-              }
-            } catch {}
-          }
-        })
-        .catch(() => {
-          try {
-            if (localStorage.getItem("clipvault_license_active") === "true") {
-              setIsLicensed(true);
-              setShowLicenseModal(false);
-            }
-          } catch {}
-        });
-    };
-    checkLicense();
-    return () => {
-      isMounted = false;
-    };
+    const handleOpenActivation = () => setShowActivationModal(true);
+    window.addEventListener("clipvault-open-activation", handleOpenActivation);
+    return () => window.removeEventListener("clipvault-open-activation", handleOpenActivation);
   }, []);
+
+  const checkLicense = React.useCallback((retries = 4, delay = 1000) => {
+    setLicenseStatus("checking");
+    return fetch("http://127.0.0.1:8000/api/license/status")
+      .then((r) => r.json())
+      .then((data) => {
+        setLicenseStatus("online");
+        if (data && data.licensed) {
+          // The engine verified a signed license: automatically detect and unlock.
+          setIsLicensed(true);
+          try {
+            localStorage.setItem("clipvault_license_active", "true");
+          } catch {}
+        } else {
+          // Engine explicitly says "not licensed" -> lock and never trust the cache.
+          setIsLicensed(false);
+          try {
+            localStorage.removeItem("clipvault_license_active");
+          } catch {}
+        }
+      })
+      .catch(() => {
+        if (retries > 0) {
+          // Engine may still be booting; automatically retry in background to detect existing license
+          setTimeout(() => checkLicense(retries - 1, delay), delay);
+        } else {
+          // FAIL CLOSED: without the engine we cannot verify a license, so the app
+          // stays gated. The cache is dropped; the modal explains the situation.
+          setLicenseStatus("unreachable");
+          setIsLicensed(false);
+          try {
+            localStorage.removeItem("clipvault_license_active");
+          } catch {}
+        }
+      });
+  }, []);
+
+  useEffect(() => {
+    checkLicense();
+  }, [checkLicense]);
 
   // Background Task State Tracking
   const [taskState, setTaskState] = useState<{
@@ -307,11 +315,22 @@ export default function App() {
   };
 
   const handleNextTourStep = () => {
-    if (tourType === "clipper") {
-      if (tourStep === 1) {
+    if (tourType === "opus") {
+      if (tourStep < 6) {
+        setTourStep((prev) => prev + 1);
+      } else {
+        // Complete Opus Tour and transition directly into Pro Manual Studio!
+        setTourType("clipper");
         setClipperViewMode("setup");
         setScreen("ai-clipper");
         setTourStep(2);
+      }
+    } else if (tourType === "clipper") {
+      if (tourStep === 1) {
+        // When clicking Next Step on mode selection, start with 1-Click Auto Clipper!
+        setTourType("opus");
+        setScreen("opus-clipper");
+        setTourStep(1);
       } else if (tourStep === 9) {
         // Step 9 is Hardware Export. Next step is Saved Clips Vault!
         setClipperViewMode("vault");
@@ -320,7 +339,7 @@ export default function App() {
       } else if (tourStep < 13) {
         setTourStep((prev) => prev + 1);
       } else {
-        // Completed Full 13-Step Master Tour
+        // Completed Full Master Tour
         setTourActive(false);
         try {
           localStorage.setItem("clipvault_tutorial_completed", "true");
@@ -340,10 +359,20 @@ export default function App() {
   };
 
   const handlePrevTourStep = () => {
-    if (tourType === "clipper") {
-      if (tourStep === 2) {
+    if (tourType === "opus") {
+      if (tourStep === 1) {
+        setTourType("clipper");
         setScreen("project-select");
         setTourStep(1);
+      } else {
+        setTourStep((prev) => prev - 1);
+      }
+    } else if (tourType === "clipper") {
+      if (tourStep === 2) {
+        // Step back to Opus Tour step 6
+        setTourType("opus");
+        setScreen("opus-clipper");
+        setTourStep(6);
       } else if (tourStep === 10) {
         // Step back from Vault to Clipper Setup
         setClipperViewMode("setup");
@@ -390,15 +419,26 @@ export default function App() {
           <ProjectSelectorScreen
             onBack={() => {}}
             onStartTour={handleStartTour}
+            isLicensed={isLicensed}
+            onOpenActivation={() => setShowActivationModal(true)}
             onSelect={(mode) => {
               if (mode === "ai-clipper") {
+                if (!isLicensed) {
+                  setShowActivationModal(true);
+                  return;
+                }
                 setClipperViewMode("setup");
                 setScreen("ai-clipper");
                 if (tourActive && tourStep === 1) {
+                  setTourType("clipper");
                   setTourStep(2);
                 }
               } else if (mode === "opus-clipper") {
                 setScreen("opus-clipper");
+                if (tourActive && tourStep === 1) {
+                  setTourType("opus");
+                  setTourStep(1);
+                }
               } else if (mode === "movie-recapper") {
                 setScreen("movie-recapper");
               } else if (mode === "saved-vault") {
@@ -413,6 +453,8 @@ export default function App() {
         {screen === "opus-clipper" && (
           <OpusClipperScreen
             onBack={() => setScreen("project-select")}
+            isLicensed={isLicensed}
+            onOpenActivation={() => setShowActivationModal(true)}
             onGoToVault={() => {
               setClipperViewMode("vault");
               setScreen("saved-vault");
@@ -428,6 +470,7 @@ export default function App() {
             onStartTour={handleStartTour}
             onStartVaultTour={handleStartVaultTour}
             onTriggerVaultWelcome={() => setShowVaultWelcomePrompt(true)}
+            activeScreen={screen}
           />
         </div>
 
@@ -459,9 +502,12 @@ export default function App() {
           onExit={handleExitTour}
           onSelectMode={(mode) => {
             if (mode === "opus-clipper") {
+              setTourType("opus");
+              setTourStep(1);
               setScreen("opus-clipper");
-              setTourActive(false);
+              setTourActive(true);
             } else {
+              setTourType("clipper");
               setClipperViewMode("setup");
               setScreen("ai-clipper");
               setTourActive(true);
@@ -477,38 +523,38 @@ export default function App() {
               setClipperViewMode("setup");
               setScreen("ai-clipper");
             }}
-            className="fixed bottom-6 right-6 z-[9999] bg-[#0d0f12]/95 border border-[#00e676]/40 shadow-[0_12px_36px_rgba(0,0,0,0.8),0_0_24px_rgba(0,230,118,0.25)] rounded-2xl p-4 flex items-center gap-4 cursor-pointer hover:border-[#00e676] hover:scale-[1.02] transition-all backdrop-blur-xl animate-in fade-in slide-in-from-bottom-4 duration-300 max-w-md group"
+            className="fixed bottom-6 right-6 z-[9999] bg-[#0d0f12]/95 border border-[#34eb3d]/40 shadow-[0_12px_36px_rgba(0,0,0,0.8),0_0_24px_rgba(52, 235, 61,0.25)] rounded-2xl p-4 flex items-center gap-4 cursor-pointer hover:border-[#34eb3d] hover:scale-[1.02] transition-all backdrop-blur-xl animate-in fade-in slide-in-from-bottom-4 duration-300 max-w-md group"
           >
             <div className="relative flex-shrink-0">
-              <div className="w-10 h-10 rounded-xl bg-[#00e676]/15 border border-[#00e676]/30 flex items-center justify-center text-[#00e676]">
+              <div className="w-10 h-10 rounded-xl bg-[#34eb3d]/15 border border-[#34eb3d]/30 flex items-center justify-center text-[#34eb3d]">
                 <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                 </svg>
               </div>
-              <span className="absolute -top-1 -right-1 w-3 h-3 bg-[#00e676] rounded-full animate-ping" />
+              <span className="absolute -top-1 -right-1 w-3 h-3 bg-[#34eb3d] rounded-full animate-ping" />
             </div>
 
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-2 mb-1">
                 <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-[#00e676] animate-pulse" />
+                  <span className="w-2 h-2 rounded-full bg-[#34eb3d] animate-pulse" />
                   AI Clipping in Background
                 </span>
-                <span className="text-xs font-extrabold text-[#00e676]">{taskState.progress}%</span>
+                <span className="text-xs font-extrabold text-[#34eb3d]">{taskState.progress}%</span>
               </div>
               <p className="text-[11px] text-gray-400 truncate max-w-[220px]">
                 {taskState.statusText || "Rendering high-resolution vertical clips..."}
               </p>
               <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden mt-2">
                 <div
-                  className="bg-gradient-to-r from-[#00e676] to-[#00C853] h-full rounded-full transition-all duration-300"
+                  className="bg-gradient-to-r from-[#34eb3d] to-[#2dca34] h-full rounded-full transition-all duration-300"
                   style={{ width: `${Math.max(5, taskState.progress)}%` }}
                 />
               </div>
             </div>
 
-            <div className="px-2.5 py-1.5 rounded-lg bg-white/10 group-hover:bg-[#00e676] group-hover:text-black text-gray-300 text-[11px] font-bold transition-all flex items-center gap-1 flex-shrink-0">
+            <div className="px-2.5 py-1.5 rounded-lg bg-white/10 group-hover:bg-[#34eb3d] group-hover:text-black text-gray-300 text-[11px] font-bold transition-all flex items-center gap-1 flex-shrink-0">
               View
               <span>→</span>
             </div>
@@ -518,14 +564,14 @@ export default function App() {
         {/* Auto-Update Notification Banner */}
         {updateNotification.status === "ready" && (
           <div className="fixed top-6 right-6 z-[9999] animate-in fade-in slide-in-from-top-4 duration-300">
-            <div className="flex items-center gap-3.5 bg-[#0a1811]/95 border border-[#00e676]/60 shadow-[0_12px_36px_rgba(0,0,0,0.9),0_0_25px_rgba(0,230,118,0.3)] px-4 py-3 rounded-2xl backdrop-blur-xl">
-              <div className="w-2.5 h-2.5 rounded-full bg-[#00e676] animate-pulse flex-shrink-0" />
+            <div className="flex items-center gap-3.5 bg-[#07150a]/95 border border-[#34eb3d]/60 shadow-[0_12px_36px_rgba(0,0,0,0.9),0_0_25px_rgba(52, 235, 61,0.3)] px-4 py-3 rounded-2xl backdrop-blur-xl">
+              <div className="w-2.5 h-2.5 rounded-full bg-[#34eb3d] animate-pulse flex-shrink-0" />
               <div className="text-xs text-white">
-                <span className="font-bold text-[#00e676]">ClipVault v{updateNotification.version || "New"}</span> is ready to install!
+                <span className="font-bold text-[#34eb3d]">ClipVault v{updateNotification.version || "New"}</span> is ready to install!
               </div>
               <button
                 onClick={() => (window as any).electronAPI?.restartAndInstallUpdate?.()}
-                className="px-3.5 py-1.5 bg-[#00e676] hover:brightness-110 text-black text-xs font-bold rounded-xl transition-all cursor-pointer shadow-sm"
+                className="px-3.5 py-1.5 bg-[#34eb3d] hover:brightness-110 text-black text-xs font-bold rounded-xl transition-all cursor-pointer shadow-sm"
               >
                 Restart & Update
               </button>
@@ -549,9 +595,9 @@ export default function App() {
               setScreen("saved-vault");
               setShowDoneToast(false);
             }}
-            className="fixed top-6 right-6 z-[9999] bg-[#0d1f14]/95 border border-[#00e676] shadow-[0_12px_36px_rgba(0,0,0,0.9),0_0_30px_rgba(0,230,118,0.4)] rounded-2xl p-4 flex items-center gap-3 cursor-pointer hover:scale-[1.02] transition-all backdrop-blur-xl animate-in fade-in slide-in-from-top-4 duration-300"
+            className="fixed top-6 right-6 z-[9999] bg-[#0a1d0c]/95 border border-[#34eb3d] shadow-[0_12px_36px_rgba(0,0,0,0.9),0_0_30px_rgba(52, 235, 61,0.4)] rounded-2xl p-4 flex items-center gap-3 cursor-pointer hover:scale-[1.02] transition-all backdrop-blur-xl animate-in fade-in slide-in-from-top-4 duration-300"
           >
-            <div className="w-10 h-10 rounded-xl bg-[#00e676] text-black font-extrabold flex items-center justify-center shadow-lg">
+            <div className="w-10 h-10 rounded-xl bg-[#34eb3d] text-black font-extrabold flex items-center justify-center shadow-lg">
               <Check className="w-5 h-5 stroke-[2.5]" />
             </div>
             <div>
@@ -574,20 +620,24 @@ export default function App() {
           </div>
         )}
 
-        {/* Commercial Licensing & Lemon Squeezy Activation Gate */}
-        {!isLicensed && (
-          <LicenseActivationModal
-            isOpen={!isLicensed}
-            onActivated={(data) => {
-              setIsLicensed(true);
-              setShowLicenseModal(false);
-              try {
-                localStorage.setItem("clipvault_license_active", "true");
-              } catch {}
-              setLicenseData(data);
-            }}
-          />
-        )}
+        {/* Commercial Licensing Activation Dialog */}
+        <LicenseActivationModal
+          isOpen={showActivationModal}
+          engineReachable={licenseStatus === "online"}
+          onClose={() => setShowActivationModal(false)}
+          canDismiss={true}
+          onRetry={() => {
+            void checkLicense();
+          }}
+          onActivated={() => {
+            // Only reached after the ENGINE verified and activated the license.
+            setIsLicensed(true);
+            setShowActivationModal(false);
+            try {
+              localStorage.setItem("clipvault_license_active", "true");
+            } catch {}
+          }}
+        />
 
         {/* Active Clipping Task Exit Confirmation Guard Overlay */}
         {showExitConfirmModal && (
@@ -611,14 +661,14 @@ export default function App() {
               <div className="bg-white/5 border border-white/10 p-3.5 rounded-2xl text-left space-y-2">
                 <div className="flex items-center justify-between text-xs font-bold">
                   <span className="text-gray-300 flex items-center gap-2 truncate max-w-[220px]">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#00e676] animate-pulse flex-shrink-0" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#34eb3d] animate-pulse flex-shrink-0" />
                     <span className="truncate">{taskState.statusText || "Processing video clips..."}</span>
                   </span>
-                  <span className="text-[#00e676] font-extrabold ml-2">{taskState.progress}%</span>
+                  <span className="text-[#34eb3d] font-extrabold ml-2">{taskState.progress}%</span>
                 </div>
                 <div className="w-full bg-white/10 h-2 rounded-full overflow-hidden">
                   <div
-                    className="bg-gradient-to-r from-[#00e676] to-[#00C853] h-full rounded-full transition-all duration-300"
+                    className="bg-gradient-to-r from-[#34eb3d] to-[#2dca34] h-full rounded-full transition-all duration-300"
                     style={{ width: `${Math.max(5, taskState.progress)}%` }}
                   />
                 </div>
@@ -630,7 +680,7 @@ export default function App() {
                   onClick={() => {
                     setShowExitConfirmModal(false);
                   }}
-                  className="w-full sm:flex-1 py-3 px-4 rounded-xl bg-[#00e676] text-black font-extrabold text-xs hover:brightness-110 shadow-[0_0_20px_rgba(0,230,118,0.3)] transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                  className="w-full sm:flex-1 py-3 px-4 rounded-xl bg-[#34eb3d] text-black font-extrabold text-xs hover:brightness-110 shadow-[0_0_20px_rgba(52, 235, 61,0.3)] transition-all cursor-pointer flex items-center justify-center gap-1.5"
                 >
                   Keep Clipping in Background
                 </button>

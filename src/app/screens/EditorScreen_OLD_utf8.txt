@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef, useCallback, useReducer } from "react";
+import React, { useState, useEffect, useRef, useCallback, useReducer } from "react";
 import {
   Home, Search, Bell, Plus, Play, Pause, SkipBack, SkipForward,
   Volume2, Maximize2, Scissors, Type, Music, Smile, Sparkles, Layers,
@@ -903,7 +903,7 @@ export function EditorScreen({ onBack }: { onBack: () => void }) {
   }, [currentTime, drawFrame, activeVideoClips, isPlaying]);
 
   const panelBg = "rgba(6,6,6,0.97)";
-  const panelBorder = "rgba(0,230,118,0.07)";
+  const panelBorder = "rgba(52, 235, 61,0.07)";
 
   // "Ã¢Â¬"Ã¢Â¬ Render "Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬"Ã¢Â¬
   return (
@@ -916,7 +916,7 @@ export function EditorScreen({ onBack }: { onBack: () => void }) {
           </button>
           <div className="w-px h-5" style={{ background: "rgba(255,255,255,0.07)" }} />
           <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded-lg flex items-center justify-center" style={{ background: "linear-gradient(135deg, #00e676, #00a854)" }}>
+            <div className="w-5 h-5 rounded-lg flex items-center justify-center" style={{ background: "linear-gradient(135deg, #34eb3d, #25a92c)" }}>
               <Film className="w-3 h-3 text-black" strokeWidth={2.5} />
             </div>
             <input defaultValue="Summer Vlog 2024" className="bg-transparent text-white text-sm font-semibold outline-none hover:bg-white/[0.03] focus:bg-white/[0.04] px-2 rounded-lg transition-all" style={{ WebkitAppRegion: "no-drag" } as any} />
@@ -946,10 +946,10 @@ export function EditorScreen({ onBack }: { onBack: () => void }) {
             { id: "filters", icon: SlidersHorizontal, label: "Filters" },
             { id: "transitions", icon: Layers, label: "Transitions" }
           ].map(t => (
-            <button key={t.id} onClick={() => setActiveTool(t.id as any)} className="w-12 h-12 rounded-xl mb-2 flex flex-col items-center justify-center gap-1 transition-all group relative" style={activeTool === t.id ? { background: "rgba(0,230,118,0.1)", color: G } : { color: "#666" }}>
+            <button key={t.id} onClick={() => setActiveTool(t.id as any)} className="w-12 h-12 rounded-xl mb-2 flex flex-col items-center justify-center gap-1 transition-all group relative" style={activeTool === t.id ? { background: "rgba(52, 235, 61,0.1)", color: G } : { color: "#666" }}>
               <t.icon className="w-4 h-4 transition-transform group-hover:scale-110" />
               <span className="text-[8px] font-medium">{t.label}</span>
-              {activeTool === t.id && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full" style={{ background: G, boxShadow: "0 0 10px rgba(0,230,118,0.5)" }} />}
+              {activeTool === t.id && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full" style={{ background: G, boxShadow: "0 0 10px rgba(52, 235, 61,0.5)" }} />}
             </button>
           ))}
         </div>
@@ -1007,7 +1007,7 @@ export function EditorScreen({ onBack }: { onBack: () => void }) {
                         onChange={(e) => setYtUrl(e.target.value)}
                         placeholder="Paste YouTube URL..."
                         className="flex-1 bg-transparent text-xs text-white outline-none placeholder-[#404040] min-w-0"
-                        onFocus={(e) => (e.currentTarget.parentElement!.style.borderColor = "rgba(0,230,118,0.3)")}
+                        onFocus={(e) => (e.currentTarget.parentElement!.style.borderColor = "rgba(52, 235, 61,0.3)")}
                         onBlur={(e) => (e.currentTarget.parentElement!.style.borderColor = "rgba(255,255,255,0.07)")} />
                     </div>
                     <GreenBtn size="sm" className="w-full justify-center" onClick={async () => {
@@ -1072,7 +1072,7 @@ export function EditorScreen({ onBack }: { onBack: () => void }) {
                           {item.type === "video" && (
                             <div className="absolute bottom-1 right-1 text-white text-[9px] px-1 rounded font-mono" style={{ background: "rgba(0,0,0,0.8)" }}>{item.duration}s</div>
                           )}
-                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: "rgba(0,230,118,0.15)" }}>
+                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: "rgba(52, 235, 61,0.15)" }}>
                             <Plus className="w-5 h-5" style={{ color: G }} />
                           </div>
                         </div>
@@ -1098,7 +1098,7 @@ export function EditorScreen({ onBack }: { onBack: () => void }) {
                         onChange={(e) => setYtAudioUrl(e.target.value)}
                         placeholder="Paste YouTube URL..."
                         className="flex-1 bg-transparent text-xs text-white outline-none placeholder-[#404040] min-w-0"
-                        onFocus={(e) => (e.currentTarget.parentElement!.style.borderColor = "rgba(0,230,118,0.3)")}
+                        onFocus={(e) => (e.currentTarget.parentElement!.style.borderColor = "rgba(52, 235, 61,0.3)")}
                         onBlur={(e) => (e.currentTarget.parentElement!.style.borderColor = "rgba(255,255,255,0.07)")} />
                     </div>
                     <GreenBtn size="sm" className="w-full justify-center" onClick={async () => {
@@ -1142,7 +1142,7 @@ export function EditorScreen({ onBack }: { onBack: () => void }) {
                         draggable={true}
                         onDragStart={(e) => e.dataTransfer.setData("application/json", JSON.stringify({ type: "audio", id: track.id }))}
                         onClick={() => addAudioToTimeline(track.id)}>
-                        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "rgba(0,230,118,0.1)", border: "1px solid rgba(0,230,118,0.2)" }}>
+                        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "rgba(52, 235, 61,0.1)", border: "1px solid rgba(52, 235, 61,0.2)" }}>
                           <Music className="w-4 h-4" style={{ color: G }} />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -1193,7 +1193,7 @@ export function EditorScreen({ onBack }: { onBack: () => void }) {
                 {["Glitch", "VHS Tape", "Film Grain", "Motion Blur", "Shake", "Light Leak", "Mirror", "Bokeh"].map((fx) => (
                   <div key={fx} className="flex items-center justify-between px-3 py-2 rounded-xl cursor-pointer group transition-all hover:bg-white/[0.03]">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(0,230,118,0.06)" }}>
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(52, 235, 61,0.06)" }}>
                         <Sparkles className="w-3.5 h-3.5" style={{ color: G }} />
                       </div>
                       <span className="text-white text-xs">{fx}</span>
@@ -1207,7 +1207,7 @@ export function EditorScreen({ onBack }: { onBack: () => void }) {
 
             {activeTool === "transitions" && (
               <div className="flex flex-col items-center justify-center h-48 gap-3 px-4">
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: "rgba(0,230,118,0.06)", border: "1px solid rgba(0,230,118,0.15)" }}>
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: "rgba(52, 235, 61,0.06)", border: "1px solid rgba(52, 235, 61,0.15)" }}>
                   {activeTool === "transitions" && <Layers className="w-6 h-6" style={{ color: G }} />}
                 </div>
                 <p className="text-xs text-center" style={{ color: "#5a5a5a" }}>
@@ -1232,7 +1232,7 @@ export function EditorScreen({ onBack }: { onBack: () => void }) {
                             return (
                               <button key={a} onClick={() => setter(selectedClip.id, { [key]: a })}
                                 className="py-2 rounded-xl text-[11px] border transition-all truncate px-1"
-                                style={val === a ? { background: "rgba(0,230,118,0.08)", borderColor: "rgba(0,230,118,0.3)", color: G } : { background: "rgba(255,255,255,0.03)", borderColor: "rgba(255,255,255,0.06)", color: "#5a5a5a" }}>
+                                style={val === a ? { background: "rgba(52, 235, 61,0.08)", borderColor: "rgba(52, 235, 61,0.3)", color: G } : { background: "rgba(255,255,255,0.03)", borderColor: "rgba(255,255,255,0.06)", color: "#5a5a5a" }}>
                                 {a}
                               </button>
                             );
@@ -1244,7 +1244,7 @@ export function EditorScreen({ onBack }: { onBack: () => void }) {
                       <>
                         <PropGroup label="Keyframes">
                           <p className="text-[10px] text-zinc-500 text-center py-2">Click on canvas to add keyframe points</p>
-                          <button className="w-full py-2 rounded-xl text-xs border transition-all" style={{ background: "rgba(0,230,118,0.04)", borderColor: "rgba(0,230,118,0.15)", color: G }}>+ Add Keyframe at Playhead</button>
+                          <button className="w-full py-2 rounded-xl text-xs border transition-all" style={{ background: "rgba(52, 235, 61,0.04)", borderColor: "rgba(52, 235, 61,0.15)", color: G }}>+ Add Keyframe at Playhead</button>
                         </PropGroup>
                         <PropGroup label="Easing">
                           <div className="grid grid-cols-2 gap-1.5">
@@ -1271,7 +1271,7 @@ export function EditorScreen({ onBack }: { onBack: () => void }) {
               <button
                 onClick={() => setShowCropBoxes(p => !p)}
                 className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all"
-                style={{ background: showCropBoxes ? "rgba(0,230,118,0.12)" : "rgba(0,0,0,0.7)", color: showCropBoxes ? G : "#888", border: `1px solid ${showCropBoxes ? "rgba(0,230,118,0.35)" : "rgba(255,255,255,0.1)"}`, backdropFilter: "blur(8px)" }}>
+                style={{ background: showCropBoxes ? "rgba(52, 235, 61,0.12)" : "rgba(0,0,0,0.7)", color: showCropBoxes ? G : "#888", border: `1px solid ${showCropBoxes ? "rgba(52, 235, 61,0.35)" : "rgba(255,255,255,0.1)"}`, backdropFilter: "blur(8px)" }}>
                 <Crop className="w-3 h-3" />
                 {showCropBoxes ? "Hide Crops" : "Show Crops"}
               </button>
@@ -1281,14 +1281,14 @@ export function EditorScreen({ onBack }: { onBack: () => void }) {
               <button
                 onClick={() => setShowLayoutPanel(p => !p)}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
-                style={{ background: showLayoutPanel ? "rgba(0,230,118,0.12)" : "rgba(0,0,0,0.7)", color: showLayoutPanel ? G : "#aaa", border: `1px solid ${showLayoutPanel ? "rgba(0,230,118,0.35)" : "rgba(255,255,255,0.1)"}`, backdropFilter: "blur(8px)" }}>
+                style={{ background: showLayoutPanel ? "rgba(52, 235, 61,0.12)" : "rgba(0,0,0,0.7)", color: showLayoutPanel ? G : "#aaa", border: `1px solid ${showLayoutPanel ? "rgba(52, 235, 61,0.35)" : "rgba(255,255,255,0.1)"}`, backdropFilter: "blur(8px)" }}>
                 <LayoutTemplate className="w-3.5 h-3.5" />
                 Layout: <span className="capitalize">{layoutMode}</span>
               </button>
               <button
                 onClick={() => setShowDevicePreview(!showDevicePreview)}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
-                style={{ background: showDevicePreview ? "rgba(0,230,118,0.12)" : "rgba(0,0,0,0.7)", color: showDevicePreview ? G : "#aaa", border: `1px solid ${showDevicePreview ? "rgba(0,230,118,0.35)" : "rgba(255,255,255,0.1)"}`, backdropFilter: "blur(8px)" }}>
+                style={{ background: showDevicePreview ? "rgba(52, 235, 61,0.12)" : "rgba(0,0,0,0.7)", color: showDevicePreview ? G : "#aaa", border: `1px solid ${showDevicePreview ? "rgba(52, 235, 61,0.35)" : "rgba(255,255,255,0.1)"}`, backdropFilter: "blur(8px)" }}>
                 <Smartphone className="w-3.5 h-3.5" />
                 Preview: <span className="capitalize">{showDevicePreview ? "On" : "Off"}</span>
               </button>
@@ -1298,7 +1298,7 @@ export function EditorScreen({ onBack }: { onBack: () => void }) {
                   {[{ id: "vertical", label: "Vertical (9:16)" }, { id: "split", label: "Split Screen" }, { id: "trio", label: "Trio (3 panels)" }, { id: "spotlight", label: "Spotlight" }, { id: "centered", label: "Centered" }].map(m => (
                     <button key={m.id} onClick={() => { setLayoutMode(m.id); setShowLayoutPanel(false); }}
                       className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition-all"
-                      style={{ color: layoutMode === m.id ? G : "#aaa", background: layoutMode === m.id ? "rgba(0,230,118,0.08)" : "transparent" }}>
+                      style={{ color: layoutMode === m.id ? G : "#aaa", background: layoutMode === m.id ? "rgba(52, 235, 61,0.08)" : "transparent" }}>
                       {layoutMode === m.id && <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: G }} />}
                       {m.label}
                     </button>
@@ -1312,7 +1312,7 @@ export function EditorScreen({ onBack }: { onBack: () => void }) {
           <ContextMenu.Root>
             <ContextMenu.Trigger asChild>
               <div className="flex-1 relative flex items-center justify-center overflow-hidden p-6" style={{ background: "#030303" }}>
-            <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: "linear-gradient(rgba(0,230,118,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(0,230,118,0.015) 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
+            <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: "linear-gradient(rgba(52, 235, 61,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(52, 235, 61,0.015) 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
 
             {/* Video Player + Rnd Crop Selectors */}
             <div className={`group relative transition-all duration-300 ${isFullScreen ? "fixed inset-4 z-[100] rounded-2xl flex items-center justify-center bg-black/95 backdrop-blur-md border border-zinc-700 shadow-[0_0_50px_rgba(0,0,0,0.8)]" : "w-full h-full bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden shadow-2xl"}`}>
@@ -1377,8 +1377,8 @@ export function EditorScreen({ onBack }: { onBack: () => void }) {
                   onResizeStop={(e, dir, ref, delta, pos) => activeVideoClip && updateVideoClip(activeVideoClip.id, {
                     cropTop: { width: parseFloat(ref.style.width), height: parseFloat(ref.style.height), ...pos }
                   }, true)}
-                  className="border-2 border-[#00e676] bg-[#00e676]/20 z-50 shadow-[0_0_15px_rgba(0,230,118,0.5)]">
-                  <div className="absolute top-0 left-0 bg-[#00e676] text-black text-[10px] px-1 font-bold">TOP CROP</div>
+                  className="border-2 border-[#34eb3d] bg-[#34eb3d]/20 z-50 shadow-[0_0_15px_rgba(52, 235, 61,0.5)]">
+                  <div className="absolute top-0 left-0 bg-[#34eb3d] text-black text-[10px] px-1 font-bold">TOP CROP</div>
                 </Rnd>
               )}
 
@@ -1441,7 +1441,7 @@ export function EditorScreen({ onBack }: { onBack: () => void }) {
               </button>
               <button onClick={() => setIsPlaying(!isPlaying)}
                 className="w-8 h-8 rounded-lg flex items-center justify-center transition-all"
-                style={{ background: "rgba(0,230,118,0.1)", border: "1px solid rgba(0,230,118,0.2)" }}>
+                style={{ background: "rgba(52, 235, 61,0.1)", border: "1px solid rgba(52, 235, 61,0.2)" }}>
                 {isPlaying
                   ? <Pause className="w-4 h-4" style={{ color: G }} />
                   : <Play className="w-4 h-4 fill-current ml-0.5" style={{ color: G }} />}
@@ -1475,7 +1475,7 @@ export function EditorScreen({ onBack }: { onBack: () => void }) {
                     onClick={() => setTimelineTool(id)}
                     className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs transition-all"
                     style={timelineTool === id
-                      ? { color: G, background: "rgba(0,230,118,0.08)", border: `1px solid rgba(0,230,118,0.2)` }
+                      ? { color: G, background: "rgba(52, 235, 61,0.08)", border: `1px solid rgba(52, 235, 61,0.2)` }
                       : { color: "#5a5a5a", border: "1px solid transparent" }}>
                     <Icon className="w-3 h-3" />{label}
                   </button>
@@ -1666,7 +1666,7 @@ export function EditorScreen({ onBack }: { onBack: () => void }) {
                                 left: clip.startTime * pxPerSec,
                                 width: Math.max(24, clip.duration * pxPerSec - 2),
                                 borderColor: selectedId === clip.id ? G : "rgba(255,255,255,0.1)",
-                                boxShadow: selectedId === clip.id ? `0 0 10px rgba(0,230,118,0.3)` : "none",
+                                boxShadow: selectedId === clip.id ? `0 0 10px rgba(52, 235, 61,0.3)` : "none",
                               }}>
                               <div className="absolute inset-0 opacity-70 pointer-events-none" 
                                    style={{ backgroundImage: `url(${clip.thumb})`, backgroundSize: `auto 100%`, backgroundRepeat: 'repeat-x', backgroundPosition: 'left center' }} />
@@ -1722,9 +1722,9 @@ export function EditorScreen({ onBack }: { onBack: () => void }) {
                               top: (clip.track || 0) * 44 + 6,
                               left: clip.startTime * pxPerSec,
                               width: Math.max(24, clip.duration * pxPerSec - 2),
-                              background: "rgba(0,230,118,0.05)",
-                              borderColor: selectedId === clip.id ? G : "rgba(0,230,118,0.2)",
-                              boxShadow: selectedId === clip.id ? `0 0 10px rgba(0,230,118,0.3)` : "none",
+                              background: "rgba(52, 235, 61,0.05)",
+                              borderColor: selectedId === clip.id ? G : "rgba(52, 235, 61,0.2)",
+                              boxShadow: selectedId === clip.id ? `0 0 10px rgba(52, 235, 61,0.3)` : "none",
                             }}>
                             <div className="absolute inset-x-1 inset-y-1 flex items-center gap-[1px] overflow-hidden pointer-events-none">
                               {Array.from({ length: Math.floor(clip.duration * pxPerSec / 3) }).map((_, i) => (
@@ -1762,7 +1762,7 @@ export function EditorScreen({ onBack }: { onBack: () => void }) {
                               width: Math.max(24, clip.duration * pxPerSec - 2),
                               background: "rgba(255,255,255,0.03)",
                               borderColor: selectedId === clip.id ? G : "rgba(255,255,255,0.12)",
-                              boxShadow: selectedId === clip.id ? `0 0 10px rgba(0,230,118,0.3)` : "none",
+                              boxShadow: selectedId === clip.id ? `0 0 10px rgba(52, 235, 61,0.3)` : "none",
                             }}>
                             <Type className="w-2.5 h-2.5 mr-1 flex-shrink-0 pointer-events-none" style={{ color: "#888" }} />
                             <span className="text-[9px] truncate pointer-events-none" style={{ color: "#888" }}>{clip.text}</span>
@@ -1810,7 +1810,7 @@ export function EditorScreen({ onBack }: { onBack: () => void }) {
 
           {selectedId == null ? (
             <div className="flex-1 flex flex-col items-center justify-center gap-3 px-6">
-              <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: "rgba(0,230,118,0.04)", border: "1px solid rgba(0,230,118,0.1)" }}>
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: "rgba(52, 235, 61,0.04)", border: "1px solid rgba(52, 235, 61,0.1)" }}>
                 <SlidersHorizontal className="w-5 h-5" style={{ color: "#2a2a2a" }} />
               </div>
               <p className="text-xs text-center" style={{ color: "#404040" }}>Select a clip on the timeline to edit its properties</p>
@@ -1846,12 +1846,12 @@ export function EditorScreen({ onBack }: { onBack: () => void }) {
                           <div className="flex gap-2">
                             <button onClick={() => updateVideoClip(vc.id, { flipH: !vc.flipH })}
                               className="flex-1 flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs transition-all"
-                              style={{ background: vc.flipH ? "rgba(0,230,118,0.1)" : "rgba(255,255,255,0.03)", color: vc.flipH ? G : "#5a5a5a", border: `1px solid ${vc.flipH ? "rgba(0,230,118,0.3)" : "rgba(255,255,255,0.06)"}` }}>
+                              style={{ background: vc.flipH ? "rgba(52, 235, 61,0.1)" : "rgba(255,255,255,0.03)", color: vc.flipH ? G : "#5a5a5a", border: `1px solid ${vc.flipH ? "rgba(52, 235, 61,0.3)" : "rgba(255,255,255,0.06)"}` }}>
                               <FlipHorizontal className="w-3.5 h-3.5" />H-Flip
                             </button>
                             <button onClick={() => updateVideoClip(vc.id, { flipV: !vc.flipV })}
                               className="flex-1 flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs transition-all"
-                              style={{ background: vc.flipV ? "rgba(0,230,118,0.1)" : "rgba(255,255,255,0.03)", color: vc.flipV ? G : "#5a5a5a", border: `1px solid ${vc.flipV ? "rgba(0,230,118,0.3)" : "rgba(255,255,255,0.06)"}` }}>
+                              style={{ background: vc.flipV ? "rgba(52, 235, 61,0.1)" : "rgba(255,255,255,0.03)", color: vc.flipV ? G : "#5a5a5a", border: `1px solid ${vc.flipV ? "rgba(52, 235, 61,0.3)" : "rgba(255,255,255,0.06)"}` }}>
                               <FlipHorizontal className="w-3.5 h-3.5 rotate-90" />V-Flip
                             </button>
                           </div>
@@ -1906,7 +1906,7 @@ export function EditorScreen({ onBack }: { onBack: () => void }) {
                             {[0.25, 0.5, 1, 1.5, 2, 3, 4, 8].map((s) => (
                               <button key={s} onClick={() => updateVideoClip(vc.id, { speed: s, duration: MEDIA_LIBRARY.find((m: typeof MEDIA_LIBRARY[number]) => m.id === vc.mediaId)!.duration / s })}
                                 className="py-2 rounded-lg text-[10px] font-semibold border transition-all"
-                                style={Math.abs(vc.speed - s) < 0.01 ? { background: "rgba(0,230,118,0.1)", borderColor: "rgba(0,230,118,0.4)", color: G } : { background: "rgba(255,255,255,0.03)", borderColor: "rgba(255,255,255,0.06)", color: "#5a5a5a" }}>
+                                style={Math.abs(vc.speed - s) < 0.01 ? { background: "rgba(52, 235, 61,0.1)", borderColor: "rgba(52, 235, 61,0.4)", color: G } : { background: "rgba(255,255,255,0.03)", borderColor: "rgba(255,255,255,0.06)", color: "#5a5a5a" }}>
                                 {s}
                               </button>
                             ))}
@@ -1982,7 +1982,7 @@ export function EditorScreen({ onBack }: { onBack: () => void }) {
                             rows={2}
                             className="w-full rounded-lg px-3 py-2 text-xs text-white outline-none resize-none transition-all"
                             style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}
-                            onFocus={(e) => (e.target.style.borderColor = "rgba(0,230,118,0.35)")}
+                            onFocus={(e) => (e.target.style.borderColor = "rgba(52, 235, 61,0.35)")}
                             onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.06)")} />
                         </PropGroup>
                         <PropGroup label="Position">
@@ -2006,12 +2006,12 @@ export function EditorScreen({ onBack }: { onBack: () => void }) {
                           <div className="flex gap-2">
                             <button onClick={() => updateTextClip(tc.id, { fontWeight: tc.fontWeight === "700" ? "400" : "700" })}
                               className="p-2 rounded-lg text-xs transition-all"
-                              style={tc.fontWeight === "700" ? { background: "rgba(0,230,118,0.1)", color: G, border: "1px solid rgba(0,230,118,0.3)" } : { background: "rgba(255,255,255,0.03)", color: "#5a5a5a", border: "1px solid rgba(255,255,255,0.06)" }}>
+                              style={tc.fontWeight === "700" ? { background: "rgba(52, 235, 61,0.1)", color: G, border: "1px solid rgba(52, 235, 61,0.3)" } : { background: "rgba(255,255,255,0.03)", color: "#5a5a5a", border: "1px solid rgba(255,255,255,0.06)" }}>
                               <Bold className="w-3.5 h-3.5" />
                             </button>
                             <button onClick={() => updateTextClip(tc.id, { fontStyle: tc.fontStyle === "italic" ? "normal" : "italic" })}
                               className="p-2 rounded-lg text-xs transition-all"
-                              style={tc.fontStyle === "italic" ? { background: "rgba(0,230,118,0.1)", color: G, border: "1px solid rgba(0,230,118,0.3)" } : { background: "rgba(255,255,255,0.03)", color: "#5a5a5a", border: "1px solid rgba(255,255,255,0.06)" }}>
+                              style={tc.fontStyle === "italic" ? { background: "rgba(52, 235, 61,0.1)", color: G, border: "1px solid rgba(52, 235, 61,0.3)" } : { background: "rgba(255,255,255,0.03)", color: "#5a5a5a", border: "1px solid rgba(255,255,255,0.06)" }}>
                               <Italic className="w-3.5 h-3.5" />
                             </button>
                           </div>
@@ -2036,8 +2036,8 @@ export function EditorScreen({ onBack }: { onBack: () => void }) {
                     {activeRightTab === "basic" && (
                       <>
                         <PropGroup label="Track Info">
-                          <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: "rgba(0,230,118,0.05)", border: "1px solid rgba(0,230,118,0.15)" }}>
-                            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "rgba(0,230,118,0.1)" }}>
+                          <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: "rgba(52, 235, 61,0.05)", border: "1px solid rgba(52, 235, 61,0.15)" }}>
+                            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "rgba(52, 235, 61,0.1)" }}>
                               <Music className="w-4 h-4" style={{ color: G }} />
                             </div>
                             <div>
@@ -2089,13 +2089,13 @@ export function EditorScreen({ onBack }: { onBack: () => void }) {
               {(["phone", "tablet", "laptop"] as const).map(d => (
                 <button key={d} onClick={() => setPreviewDevice(d)}
                   className="text-[8px] px-2 py-1 rounded transition-all whitespace-nowrap"
-                  style={previewDevice === d ? { background: "rgba(0,230,118,0.15)", color: G } : { color: "#777" }}>
+                  style={previewDevice === d ? { background: "rgba(52, 235, 61,0.15)", color: G } : { color: "#777" }}>
                   {d === "phone" ? "Phone" : d === "tablet" ? "Tablet" : "Laptop"}
                 </button>
               ))}
             </div>
 
-            <div className="w-full h-full flex flex-col rounded-2xl overflow-hidden shadow-[0_0_30px_rgba(0,230,118,0.3)] cursor-move" style={{ background: "rgba(0,0,0,0.92)", border: "1px solid rgba(255,255,255,0.18)" }}>
+            <div className="w-full h-full flex flex-col rounded-2xl overflow-hidden shadow-[0_0_30px_rgba(52, 235, 61,0.3)] cursor-move" style={{ background: "rgba(0,0,0,0.92)", border: "1px solid rgba(255,255,255,0.18)" }}>
               {/* Canvas */}
               <div className="flex-1 overflow-hidden pointer-events-none">
                 <canvas id="liveCanvas"
@@ -2117,7 +2117,7 @@ export function EditorScreen({ onBack }: { onBack: () => void }) {
           onClick={() => exportDone && closeExportModal()}>
           <GlassCard className="w-[380px] p-8 text-center" glow onClick={(e: React.MouseEvent) => e.stopPropagation()}>
             <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-5"
-              style={{ background: exportDone ? "linear-gradient(135deg, #00e676, #00a854)" : "rgba(0,230,118,0.1)", border: "1px solid rgba(0,230,118,0.3)" }}>
+              style={{ background: exportDone ? "linear-gradient(135deg, #34eb3d, #25a92c)" : "rgba(52, 235, 61,0.1)", border: "1px solid rgba(52, 235, 61,0.3)" }}>
               {exportDone ? <Check className="w-7 h-7 text-black" /> : <Download className="w-7 h-7" style={{ color: G }} />}
             </div>
             <h3 className="text-white font-bold text-lg mb-1">{exportDone ? "Export Complete!" : "Exporting Video"}</h3>
@@ -2137,7 +2137,7 @@ export function EditorScreen({ onBack }: { onBack: () => void }) {
             )}
             {!exportDone && exportProgress > 0 && (
               <div className="w-full rounded-full h-2 mb-6" style={{ background: "rgba(255,255,255,0.08)" }}>
-                <div className="h-2 rounded-full transition-all duration-200" style={{ width: `${exportProgress}%`, background: "linear-gradient(90deg, #00e676, #00a854)", boxShadow: "0 0 12px rgba(0,230,118,0.5)" }} />
+                <div className="h-2 rounded-full transition-all duration-200" style={{ width: `${exportProgress}%`, background: "linear-gradient(90deg, #34eb3d, #25a92c)", boxShadow: "0 0 12px rgba(52, 235, 61,0.5)" }} />
               </div>
             )}
             <div className="flex gap-3">

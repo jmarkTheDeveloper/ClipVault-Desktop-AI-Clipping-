@@ -71,7 +71,7 @@ def parse_stamp_to_sec(stamp: str) -> float:
 
 class VideoQAService:
     """
-    Ask Studio AI Video Assistant Service.
+    Ask ClipVault AI Video Assistant Service.
     Protected with multi-layered security firewalls:
     1. Mandatory user API Key requirement (gated).
     2. Anti-Exfiltration & Credential Shield (Zero key/token leakage).
@@ -131,18 +131,18 @@ class VideoQAService:
 
         # ── SECURITY LAYER 1: STRICT API KEY REQUIREMENT ─────────────────────────
         # AI execution is strictly dependent on the user configuring a valid API key.
+        # Placeholder values that must never count as a usable key. This list used to contain the
+        # vendor's own LIVE Gemini key as a "blocklist" entry — which leaked that credential into
+        # git history, the compiled renderer bundle and engine_server.exe. Never put a real
+        # credential in source, even as a comparison value.
+        placeholder_keys = {"YOUR_API_KEY_HERE", "demo", "null", "undefined"}
         eff_api_key = (api_key or "").strip()
         if not eff_api_key:
             fallback = (GEMINI_API_KEY or "").strip()
-            if fallback and fallback not in ["YOUR_API_KEY_HERE", "demo", "null", "undefined", "AIzaSyD5W1DeEq8IRQNskd_ntZYsMsdXhxj3i0s"]:
+            if fallback and fallback not in placeholder_keys:
                 eff_api_key = fallback
 
-        has_api_key = bool(
-            eff_api_key and eff_api_key not in [
-                "YOUR_API_KEY_HERE", "demo", "null", "undefined", "",
-                "AIzaSyD5W1DeEq8IRQNskd_ntZYsMsdXhxj3i0s"
-            ]
-        )
+        has_api_key = bool(eff_api_key and eff_api_key not in placeholder_keys)
 
         if not has_api_key:
             return {
@@ -167,7 +167,7 @@ class VideoQAService:
             if re.search(pat, clean_q, re.IGNORECASE):
                 return {
                     "status": "scope_restricted",
-                    "answer": "Scope Notice: Ask Studio is strictly restricted to analyzing the current video's spoken dialogue. I cannot assist with general programming languages, political opinions, or off-topic queries. Please ask questions about the moments, topics, or dialogue in this video.",
+                    "answer": "Scope Notice: Ask ClipVault is strictly restricted to analyzing the current video's spoken dialogue. I cannot assist with general programming languages, political opinions, or off-topic queries. Please ask questions about the moments, topics, or dialogue in this video.",
                     "moments": []
                 }
 
@@ -194,7 +194,7 @@ class VideoQAService:
         # Step 3: LLM Generation with Hardened Security Directives
         try:
             selector = AISelector(api_key=eff_api_key, provider=ai_engine or "gemini")
-            system_prompt = f"""You are "Ask Studio", an ultra-secure AI assistant for video creators inside ClipVault.
+            system_prompt = f"""You are "Ask ClipVault", an ultra-secure AI assistant for video creators inside ClipVault.
 Your SOLE purpose is to analyze the provided video transcript and identify timestamped moments for video clipping.
 
 CRITICAL SECURITY & BEHAVIORAL DIRECTIVES:
@@ -453,15 +453,30 @@ INSTRUCTIONS:
         top_blocks = matched_blocks[:4]
 
         moments = []
-        for b in top_blocks:
+        for idx, b in enumerate(top_blocks, 1):
             st = round(b['start'], 1)
             et = round(min(b['end'], st + 60.0), 1)
-            snippet = b['text'][:80].strip() + "..."
+            raw_text = b['text']
+            clean_text = re.sub(r'>>|&gt;&gt;', '', raw_text)
+            clean_text = re.sub(r'\[(?:Music|Applause|Laughter)\]', '', clean_text, flags=re.IGNORECASE)
+            clean_text = re.sub(r'\s+', ' ', clean_text).strip()
+            
+            snippet = clean_text[:85].strip()
+            if len(clean_text) > 85:
+                snippet += "..."
+                
+            words = clean_text.split()
+            if len(words) >= 3:
+                first_words = " ".join(words[:5]).strip('.,!?":;')
+                title = f"{first_words.capitalize()}..."
+            else:
+                title = f"Key Discussion Highlight #{idx}"
+
             moments.append({
                 "start": st,
                 "end": et,
                 "label": f"{format_sec_to_stamp(st)} - {format_sec_to_stamp(et)}",
-                "title": f"Key Discussion ({format_sec_to_stamp(st)})",
+                "title": title,
                 "reason": f"\"{snippet}\""
             })
 

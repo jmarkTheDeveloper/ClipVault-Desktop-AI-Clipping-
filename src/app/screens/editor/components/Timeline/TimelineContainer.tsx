@@ -254,7 +254,7 @@ export function TimelineContainer() {
               className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs transition-all cursor-pointer"
               style={
                 timelineTool === id
-                  ? { color: G, background: 'rgba(0,230,118,0.08)', border: `1px solid rgba(0,230,118,0.2)` }
+                  ? { color: G, background: 'rgba(52, 235, 61,0.08)', border: `1px solid rgba(52, 235, 61,0.2)` }
                   : { color: '#5a5a5a', border: '1px solid transparent' }
               }
             >
@@ -285,7 +285,7 @@ export function TimelineContainer() {
             onClick={handleAutoSilence}
             title="Auto Trim Silence"
             className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs transition-all hover:bg-white/[0.04] cursor-pointer"
-            style={{ color: G, background: "rgba(0,230,118,0.05)", border: "1px solid rgba(0,230,118,0.15)" }}
+            style={{ color: G, background: "rgba(52, 235, 61,0.05)", border: "1px solid rgba(52, 235, 61,0.15)" }}
           >
             <Scissors className="w-3 h-3" /> Auto Cut Silence
           </button>
@@ -334,7 +334,7 @@ export function TimelineContainer() {
             <Minus className="w-3.5 h-3.5" />
           </button>
 
-          <span className="text-xs font-mono font-bold w-12 text-center" style={{ color: '#00e676' }}>
+          <span className="text-xs font-mono font-bold w-12 text-center" style={{ color: '#34eb3d' }}>
             {Math.round(zoomLevel || 100)}%
           </span>
 
@@ -551,7 +551,7 @@ export function TimelineContainer() {
                               left:   clip.startTime * pxPerSec,
                               width:  Math.max(24, clip.duration * pxPerSec - 2),
                               borderColor: selectedId === clip.id ? G : 'rgba(255,255,255,0.1)',
-                              boxShadow:   selectedId === clip.id ? `0 0 10px rgba(0,230,118,0.3)` : 'none',
+                              boxShadow:   selectedId === clip.id ? `0 0 10px rgba(52, 235, 61,0.3)` : 'none',
                             }}
                           >
                             <div className="absolute inset-0 opacity-70 pointer-events-none"
@@ -615,9 +615,9 @@ export function TimelineContainer() {
                           top:   (clip.track || 0) * 44 + 6,
                           left:  clip.startTime * pxPerSec,
                           width: Math.max(24, clip.duration * pxPerSec - 2),
-                          background:  'rgba(0,230,118,0.05)',
-                          borderColor: selectedId === clip.id ? G : 'rgba(0,230,118,0.2)',
-                          boxShadow:   selectedId === clip.id ? `0 0 10px rgba(0,230,118,0.3)` : 'none',
+                          background:  'rgba(52, 235, 61,0.05)',
+                          borderColor: selectedId === clip.id ? G : 'rgba(52, 235, 61,0.2)',
+                          boxShadow:   selectedId === clip.id ? `0 0 10px rgba(52, 235, 61,0.3)` : 'none',
                         }}
                       >
                         <div className="absolute inset-x-1 inset-y-1 overflow-hidden pointer-events-none opacity-40"
@@ -670,7 +670,7 @@ export function TimelineContainer() {
                           width: Math.max(24, clip.duration * pxPerSec - 2),
                           background:  'rgba(255,255,255,0.03)',
                           borderColor: selectedId === clip.id ? G : 'rgba(255,255,255,0.12)',
-                          boxShadow:   selectedId === clip.id ? `0 0 10px rgba(0,230,118,0.3)` : 'none',
+                          boxShadow:   selectedId === clip.id ? `0 0 10px rgba(52, 235, 61,0.3)` : 'none',
                         }}
                       >
                         <Type className="w-2.5 h-2.5 mr-1 flex-shrink-0 pointer-events-none" style={{ color: '#888' }} />

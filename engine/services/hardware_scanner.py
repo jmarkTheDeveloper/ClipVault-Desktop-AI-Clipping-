@@ -99,28 +99,29 @@ class HardwareScanner:
             info['engine_name'] = 'AMD Ryzen AI Engine'
             info['engine_desc'] = f"Detected {info['cpu']} with Radeon hardware acceleration."
 
-        # CapCut-style Compatibility Evaluation
+        # Workstation Hardware Compatibility Evaluation
         has_hw_accel = info['is_intel'] or info['is_nvidia'] or info['is_amd']
-        is_potato = (info['ram_gb'] < 7.5) or (info['cores'] <= 4 and not has_hw_accel) or (not has_hw_accel and 'software' in info['encoder'].lower())
-        info['is_potato'] = is_potato
+        is_cpu_only = (info['ram_gb'] < 7.5) or (info['cores'] <= 4 and not has_hw_accel) or (not has_hw_accel and 'software' in info['encoder'].lower())
+        info['is_potato'] = is_cpu_only  # Retained for schema backwards compatibility
+        info['is_cpu_only'] = is_cpu_only
 
         if (info['is_nvidia'] or (info['is_intel'] and info.get('npu'))) and info['ram_gb'] >= 14:
             info['compatibility_level'] = 'ultra'
-            info['performance_tag'] = 'Ultra Performance (Pro Hardware)'
-            info['summary_headline'] = "Your computer can run ClipVault smoothly!"
+            info['performance_tag'] = 'Workstation Pro (Hardware Accelerated)'
+            info['summary_headline'] = 'Hardware Verified - Full Acceleration Enabled'
             info['potato_warning'] = None
         elif has_hw_accel and info['ram_gb'] >= 7.5:
             info['compatibility_level'] = 'smooth'
-            info['performance_tag'] = 'Smooth Performance (Hardware Accelerated)'
-            info['summary_headline'] = "Your computer can run ClipVault smoothly!"
+            info['performance_tag'] = 'High Performance (Hardware Accelerated)'
+            info['summary_headline'] = 'Hardware Verified - Ready for Studio Workloads'
             info['potato_warning'] = None
         else:
-            info['compatibility_level'] = 'potato'
-            info['performance_tag'] = 'Entry Hardware (CPU Multi-Threaded Mode)'
-            info['summary_headline'] = "Your system can handle ClipVault, but might see some performance issues."
-            info['potato_warning'] = "Your hardware meets baseline requirements to run ClipVault, but you might experience slower processing or performance issues during heavy video encoding and frame analysis on this configuration."
+            info['compatibility_level'] = 'standard'
+            info['performance_tag'] = 'Standard Workstation (Multi-Threaded CPU Pipeline)'
+            info['summary_headline'] = 'Hardware Verified - CPU Multi-Threaded Pipeline'
+            info['potato_warning'] = 'System meets baseline requirements with multi-threaded CPU rendering enabled. For accelerated export throughput, a hardware video encoder (NVIDIA NVENC, Intel QuickSync, or AMD AMF) is recommended.'
 
-        info['apology_notice'] = "Sorry for inconvenience this application is still undergoing for system updates"
+        info['apology_notice'] = None
 
         # Structured Environment Verification Checks
         info['checks'] = [

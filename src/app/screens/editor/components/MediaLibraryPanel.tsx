@@ -176,7 +176,7 @@ export function MediaLibraryPanel() {
           </div>
 
           <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 space-y-2">
-            <h4 className="text-xs font-bold text-[#00e676]">🎥 AI Movie Recapper</h4>
+            <h4 className="text-xs font-bold text-[#34eb3d]">🎥 AI Movie Recapper</h4>
             <p className="text-[10px] text-gray-400">Slows playback, adds cinematic color grading, and drops an AI voiceover.</p>
             <button 
               onClick={() => {
@@ -211,7 +211,7 @@ export function MediaLibraryPanel() {
                 });
                 alert("AI Movie Recapper applied! Cinematic filters, slow motion, and voiceover added.");
               }}
-              className="w-full py-1.5 rounded-lg text-xs font-bold bg-[#00e676]/20 text-[#00e676] border border-[#00e676]/30 hover:bg-[#00e676]/30 transition-all cursor-pointer">
+              className="w-full py-1.5 rounded-lg text-xs font-bold bg-[#34eb3d]/20 text-[#34eb3d] border border-[#34eb3d]/30 hover:bg-[#34eb3d]/30 transition-all cursor-pointer">
               Apply Recap Magic
             </button>
           </div>
@@ -227,7 +227,7 @@ export function MediaLibraryPanel() {
                 startTime: baseTime + (i * 0.4), // Fast pacing
                 duration: 0.4,
                 x: 50, y: 75, fontSize: 48,
-                color: i % 2 === 0 ? "#00e676" : "#ffffff", 
+                color: i % 2 === 0 ? "#34eb3d" : "#ffffff", 
                 fontWeight: "900", fontStyle: "italic",
                 fontFamily: "Inter", animIn: "Zoom In", animOut: "none", track: 1,
               }));
@@ -267,8 +267,8 @@ export function MediaLibraryPanel() {
                   onClick={() => addVideoClip(item)}>
                   <div className="relative rounded-xl overflow-hidden aspect-video bg-[#0a0a0a]">
                     <img src={item.thumb} alt={item.name} className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-[#00e676]/10 transition-opacity">
-                      <Plus className="w-5 h-5 text-[#00e676]" />
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-[#34eb3d]/10 transition-opacity">
+                      <Plus className="w-5 h-5 text-[#34eb3d]" />
                     </div>
                     <button
                       onClick={(e) => {
@@ -313,7 +313,7 @@ export function MediaLibraryPanel() {
           <div>
             <p className="text-[10px] font-bold uppercase tracking-widest mb-2 text-[#5a5a5a]">Extract Music / Audio</p>
             <div className="space-y-2">
-              <div className="flex items-center gap-1.5 rounded-lg px-2.5 py-2 border border-white/5 bg-white/5 focus-within:border-[#00e676]/30">
+              <div className="flex items-center gap-1.5 rounded-lg px-2.5 py-2 border border-white/5 bg-white/5 focus-within:border-[#34eb3d]/30">
                 <Link2 className="w-3 h-3 flex-shrink-0 text-[#404040]" />
                 <input
                   value={ytAudioUrl}
@@ -350,14 +350,14 @@ export function MediaLibraryPanel() {
             <p className="text-[10px] font-bold uppercase tracking-widest mb-2 text-[#5a5a5a]">Audio Library</p>
             <div className="space-y-1.5">
               {AUDIO_LIBRARY.map((item: any) => (
-                <div key={item.id} className="group flex items-center justify-between p-2.5 rounded-xl cursor-pointer bg-white/5 hover:bg-[#00e676]/10 border border-transparent hover:border-[#00e676]/30 transition-all"
+                <div key={item.id} className="group flex items-center justify-between p-2.5 rounded-xl cursor-pointer bg-white/5 hover:bg-[#34eb3d]/10 border border-transparent hover:border-[#34eb3d]/30 transition-all"
                   onClick={() => addAudioClip(item.id)}>
                   <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-[#00e676]/10 text-[#00e676] flex-shrink-0">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-[#34eb3d]/10 text-[#34eb3d] flex-shrink-0">
                       <Music className="w-3.5 h-3.5" />
                     </div>
                     <div className="flex flex-col min-w-0 flex-1">
-                      <span className="text-xs font-semibold text-white group-hover:text-[#00e676] truncate">{item.name}</span>
+                      <span className="text-xs font-semibold text-white group-hover:text-[#34eb3d] truncate">{item.name}</span>
                       <span className="text-[10px] text-gray-500">{item.artist || 'Audio Track'}</span>
                     </div>
                   </div>
@@ -377,7 +377,7 @@ export function MediaLibraryPanel() {
                     >
                       <Trash2 className="w-3 h-3" />
                     </button>
-                    <Plus className="w-3.5 h-3.5 text-[#5a5a5a] group-hover:text-[#00e676]" />
+                    <Plus className="w-3.5 h-3.5 text-[#5a5a5a] group-hover:text-[#34eb3d]" />
                   </div>
                 </div>
               ))}
@@ -394,13 +394,13 @@ export function MediaLibraryPanel() {
             <div
               key={preset}
               onClick={addTextClip}
-              className="p-3 rounded-xl bg-white/5 hover:bg-[#00e676]/10 border border-white/5 hover:border-[#00e676]/30 cursor-pointer transition-all flex items-center justify-between group"
+              className="p-3 rounded-xl bg-white/5 hover:bg-[#34eb3d]/10 border border-white/5 hover:border-[#34eb3d]/30 cursor-pointer transition-all flex items-center justify-between group"
             >
               <div className="flex items-center gap-2.5">
-                <Type className="w-4 h-4 text-gray-400 group-hover:text-[#00e676]" />
-                <span className="text-xs font-medium text-white group-hover:text-[#00e676]">{preset}</span>
+                <Type className="w-4 h-4 text-gray-400 group-hover:text-[#34eb3d]" />
+                <span className="text-xs font-medium text-white group-hover:text-[#34eb3d]">{preset}</span>
               </div>
-              <Plus className="w-3.5 h-3.5 text-gray-500 group-hover:text-[#00e676]" />
+              <Plus className="w-3.5 h-3.5 text-gray-500 group-hover:text-[#34eb3d]" />
             </div>
           ))}
         </div>
@@ -422,13 +422,13 @@ export function MediaLibraryPanel() {
                   alert("Please select a video clip to apply effects.");
                 }
               }}
-              className="flex items-center justify-between p-3 rounded-xl bg-white/5 hover:bg-[#00e676]/10 border border-white/5 hover:border-[#00e676]/30 cursor-pointer transition-all group"
+              className="flex items-center justify-between p-3 rounded-xl bg-white/5 hover:bg-[#34eb3d]/10 border border-white/5 hover:border-[#34eb3d]/30 cursor-pointer transition-all group"
             >
               <div className="flex items-center gap-2.5">
-                <Sparkles className="w-4 h-4 text-[#00e676]" />
+                <Sparkles className="w-4 h-4 text-[#34eb3d]" />
                 <span className="text-xs text-white font-medium">{fx}</span>
               </div>
-              <Plus className="w-3.5 h-3.5 text-gray-500 group-hover:text-[#00e676]" />
+              <Plus className="w-3.5 h-3.5 text-gray-500 group-hover:text-[#34eb3d]" />
             </div>
           ))}
         </div>
@@ -477,13 +477,13 @@ export function MediaLibraryPanel() {
                   alert("Please select a video or text clip to apply a transition.");
                 }
               }}
-              className="flex items-center justify-between p-3 rounded-xl bg-white/5 hover:bg-[#00e676]/10 border border-white/5 hover:border-[#00e676]/30 cursor-pointer transition-all group"
+              className="flex items-center justify-between p-3 rounded-xl bg-white/5 hover:bg-[#34eb3d]/10 border border-white/5 hover:border-[#34eb3d]/30 cursor-pointer transition-all group"
             >
               <div className="flex items-center gap-2.5">
-                <Layers className="w-4 h-4 text-[#00e676]" />
+                <Layers className="w-4 h-4 text-[#34eb3d]" />
                 <span className="text-xs text-white font-medium">{tr}</span>
               </div>
-              <Plus className="w-3.5 h-3.5 text-gray-500 group-hover:text-[#00e676]" />
+              <Plus className="w-3.5 h-3.5 text-gray-500 group-hover:text-[#34eb3d]" />
             </div>
           ))}
         </div>
@@ -506,7 +506,7 @@ export function MediaLibraryPanel() {
                         key={a}
                         onClick={() => setter(selectedClip.id, { animIn: a })}
                         className="py-1.5 rounded-lg text-[11px] border transition-all truncate px-2"
-                        style={val === a ? { background: "rgba(0,230,118,0.1)", borderColor: G, color: G } : { background: "rgba(255,255,255,0.03)", borderColor: "rgba(255,255,255,0.06)", color: "#888" }}
+                        style={val === a ? { background: "rgba(52, 235, 61,0.1)", borderColor: G, color: G } : { background: "rgba(255,255,255,0.03)", borderColor: "rgba(255,255,255,0.06)", color: "#888" }}
                       >
                         {a}
                       </button>
@@ -525,7 +525,7 @@ export function MediaLibraryPanel() {
                         key={a}
                         onClick={() => setter(selectedClip.id, { animOut: a })}
                         className="py-1.5 rounded-lg text-[11px] border transition-all truncate px-2"
-                        style={val === a ? { background: "rgba(0,230,118,0.1)", borderColor: G, color: G } : { background: "rgba(255,255,255,0.03)", borderColor: "rgba(255,255,255,0.06)", color: "#888" }}
+                        style={val === a ? { background: "rgba(52, 235, 61,0.1)", borderColor: G, color: G } : { background: "rgba(255,255,255,0.03)", borderColor: "rgba(255,255,255,0.06)", color: "#888" }}
                       >
                         {a}
                       </button>

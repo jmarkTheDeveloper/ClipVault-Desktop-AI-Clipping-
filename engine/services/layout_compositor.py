@@ -137,7 +137,7 @@ class LayoutCompositor:
             return composed
 
         elif layout in ("square_blur", "expanded_blur", "portrait_blur", "1:1_blur"):
-            print(f"    [LayoutCompositor] Applying Square Focus + Blurred Canvas layout ({target_width}x{target_height}, Shorts/Pawn Stars style)...")
+            print(f"    [LayoutCompositor] Applying Square Focus + Blurred Canvas layout ({target_width}x{target_height}, Portrait Shorts style)...")
             W, H = clip.size
             target_ratio = target_width / float(target_height)
 
@@ -163,7 +163,7 @@ class LayoutCompositor:
 
             # 2. Foreground: 1:1 to 4:5 expanded focus frame (58% of vertical screen)
             fg_w = target_width
-            fg_h = int(target_width * 1.10)  # 1188px on 1080x1920 (exact 0.9 aspect ratio matching YouTube Shorts / Pawn Stars)
+            fg_h = int(target_width * 1.10)  # 1188px on 1080x1920 (exact 0.9 aspect ratio matching Portrait Shorts)
             if fg_h % 2 != 0: fg_h -= 1
             fg_ratio = float(fg_w) / float(fg_h)
 

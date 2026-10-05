@@ -101,6 +101,10 @@ ClipVault Studio/
 └── qa_check.py                # Automated 14-point Quality Assurance suite
 ```
 
+### Development / Architecture Docs
+- **[`docs/BUILD.md`](./docs/BUILD.md)** — build & release guide: PyInstaller engine bundle → Vite renderer → electron-builder NSIS installer, clean-VM installer testing, the GitHub auto-update feed requirement, and Windows code signing.
+- **[`docs/HANDOFF.md`](./docs/HANDOFF.md)** — developer hand-off notes and in-depth architecture walkthrough.
+
 ---
 
 ## 💻 Installation & Quick Start
@@ -125,8 +129,9 @@ ClipVault Studio/
 
 3. **Install Python backend requirements:**
    ```bash
-   pip install -r requirements.txt
+   pip install -r engine/requirements.txt
    ```
+   *(The engine's requirements file lives inside `engine/` — there is no requirements file at the repository root.)*
 
 4. **Configure Environment Variables (Optional):**
    Create a `.env` file in the root directory:
@@ -139,7 +144,12 @@ ClipVault Studio/
 
 5. **Start the Development Studio:**
    ```bash
-   # Launch both FastAPI engine and Vite/Electron UI
+   # Launch the FastAPI engine + Vite dev server + Electron UI together
+   npm run dev:electron
+   ```
+
+   *Frontend-only (`vite`) dev server, without Electron or the Python engine:*
+   ```bash
    npm run dev
    ```
 

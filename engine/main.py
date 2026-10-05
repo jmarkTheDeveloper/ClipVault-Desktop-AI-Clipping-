@@ -322,13 +322,13 @@ def main(url=None):
                         split_choice = input("Select option (1-2) [1]: ").strip() or "1"
                         split_screen = split_choice == "2"
                 else:
-                    print("📺 Select Video Layout:")
-                    print("1. Vertical Crop (9:16) - Fills the entire vertical screen (Best for TikTok/Reels/Shorts)")
-                    print("2. Square Focus + Blurred Canvas (9:16) - 1:1 speaker focus frame with blurred background (Shorts/Pawn Stars)")
+                    print("Select Video Layout:")
+                    print("1. Vertical Crop (9:16) - Fills the entire vertical screen (Best for Vertical Feeds)")
+                    print("2. Square Focus + Blurred Canvas (9:16) - 1:1 speaker focus frame with blurred background (Portrait Feed Style)")
                     print("3. Landscape Fit (9:16) - Keeps full original width with black bars on top/bottom")
                     print("4. Blurred Background Fit (9:16) - Keeps full width centered with a blurred, zoomed background")
-                    print("5. Streamer Facecam Split-Screen (9:16) - Facecam on top, gameplay on bottom (CaseOh style!)")
-                    print("6. Podcast/Interview Split-Screen (9:16) - Left speaker on top, right speaker on bottom (Clipzi style!)")
+                    print("5. Streamer Facecam Split-Screen (9:16) - Facecam on top, gameplay on bottom (Reaction Layout)")
+                    print("6. Podcast/Interview Split-Screen (9:16) - Left speaker on top, right speaker on bottom (Stacked Dialogue)")
                     layout_choice = input("Select layout (1-6) [1]: ").strip() or "1"
                     layout_map = {
                         "1": "vertical_crop",

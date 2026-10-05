@@ -6,12 +6,12 @@ export function Logo({ size = 36 }: { size?: number }) {
     <svg width={size} height={size} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0, display: "block" }}>
       <defs>
         <linearGradient id={`cv-tile-${uid}`} x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#2cf590" />
-          <stop offset="100%" stopColor="#00bf53" />
+          <stop offset="0%" stopColor="#5def64" />
+          <stop offset="100%" stopColor="#2dca34" />
         </linearGradient>
         <linearGradient id={`cv-inner-${uid}`} x1="0" y1="8" x2="40" y2="40" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#20e880" />
-          <stop offset="100%" stopColor="#009e44" />
+          <stop offset="0%" stopColor="#34eb3d" />
+          <stop offset="100%" stopColor="#25a92c" />
         </linearGradient>
       </defs>
       <rect width="40" height="40" rx="10" fill={`url(#cv-tile-${uid})`} />

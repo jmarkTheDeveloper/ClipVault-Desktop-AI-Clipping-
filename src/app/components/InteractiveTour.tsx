@@ -31,7 +31,7 @@ export const TOUR_STEPS: TourStepInfo[] = [
         label: "1-Click Auto Clipper (Opus Style)",
         desc: "Autonomous zero-touch pipeline: drop a video or URL, and the local AI Engine automatically runs Whisper transcription, discovers top viral hooks, frames speakers, and exports batches in 1 click.",
         badge: "Autonomous",
-        badgeColor: "#00e676",
+        badgeColor: "#34eb3d",
       },
       {
         label: "Pro Manual Clipper Studio",
@@ -76,7 +76,7 @@ export const TOUR_STEPS: TourStepInfo[] = [
         label: "Free Local GPU / Intel Arc QSV Engine",
         desc: "100% Free & Offline. Powered by local Python engine on port 8000 using faster-whisper, MediaPipe face tracking, and NVIDIA CUDA / Intel QSV / AMD DirectML with zero subscription costs.",
         badge: "Free & Offline",
-        badgeColor: "#00e676",
+        badgeColor: "#34eb3d",
       },
       {
         label: "Cloud AI (Groq, Gemini, OpenAI, Claude)",
@@ -106,7 +106,7 @@ export const TOUR_STEPS: TourStepInfo[] = [
         label: "Interactive Custom Segments",
         desc: "Pin start and end timestamps, create multi-clip batches, and click any segment card or 'Play Clip' to instantly preview that scene.",
         badge: "Interactive",
-        badgeColor: "#00e676",
+        badgeColor: "#34eb3d",
       },
     ],
     tipNotice: "In Custom mode, click 'Play Clip' on any segment card or mark Start/End bounds directly from the player dock.",
@@ -123,7 +123,7 @@ export const TOUR_STEPS: TourStepInfo[] = [
         label: "Auto Face-Tracking (9:16)",
         desc: "MediaPipe computer vision tracks the active speaker smoothly across horizontal video frames with zero dead zones.",
         badge: "AI Vision",
-        badgeColor: "#00e676",
+        badgeColor: "#34eb3d",
       },
       {
         label: "Dual-Layer Split & Square Blur",
@@ -174,7 +174,7 @@ export const TOUR_STEPS: TourStepInfo[] = [
         label: "Auto-Ducked Soundtrack & SFX",
         desc: "Balanced background music that automatically dips when speakers speak, plus pop sound effects and animated emojis.",
         badge: "Auto-Ducking",
-        badgeColor: "#00e676",
+        badgeColor: "#34eb3d",
       },
     ],
     tipNotice: "Toggle 'Anti-Duplicate Filter' to flip footage and subtly shift tempo for fresh algorithmic ranking on TikTok and YouTube.",
@@ -191,7 +191,7 @@ export const TOUR_STEPS: TourStepInfo[] = [
         label: "9:16 Mobile Viewport",
         desc: "Live interactive preview with draggable kinetic captions, aspect ratio framing, and real-time speaker tracking.",
         badge: "Live Canvas",
-        badgeColor: "#00e676",
+        badgeColor: "#34eb3d",
       },
       {
         label: "Transport Dock & Segment Looping",
@@ -214,7 +214,7 @@ export const TOUR_STEPS: TourStepInfo[] = [
         label: "Lossless GPU / QSV Pipeline",
         desc: "Intel QuickSync, NVIDIA NVENC, and AMD AMF hardware acceleration render pristine MP4 master files at lightning speeds.",
         badge: "Hardware Render",
-        badgeColor: "#00e676",
+        badgeColor: "#34eb3d",
       },
       {
         label: "Folder Assignment & Custom Output",
@@ -259,7 +259,7 @@ export const TOUR_STEPS: TourStepInfo[] = [
         label: "Project Category Folders",
         desc: "Create, nest, and rename folders for Gaming, Podcasts, Highlights, or Client Deliverables.",
         badge: "Categories",
-        badgeColor: "#00e676",
+        badgeColor: "#34eb3d",
       },
       {
         label: "Folder Breadcrumbs",
@@ -303,7 +303,7 @@ export const TOUR_STEPS: TourStepInfo[] = [
         label: "Folder Drag & Drop",
         desc: "Drag clips directly between project folders, or drop external MP4 files from Windows into ClipVault.",
         badge: "Drag & Drop",
-        badgeColor: "#00e676",
+        badgeColor: "#34eb3d",
       },
       {
         label: "Drag Out to Desktop / Editors",
@@ -351,7 +351,7 @@ export const VAULT_TOUR_STEPS: TourStepInfo[] = [
         label: "Project Category Folders",
         desc: "Create and rename custom folders for Gaming, Podcasts, Highlights, or Client batches.",
         badge: "Categories",
-        badgeColor: "#00e676",
+        badgeColor: "#34eb3d",
       },
       {
         label: "Folder Breadcrumbs",
@@ -395,7 +395,7 @@ export const VAULT_TOUR_STEPS: TourStepInfo[] = [
         label: "Drag & Drop Organizing",
         desc: "Drag clips between project folders, or drop external video files into ClipVault to import.",
         badge: "Drag & Drop",
-        badgeColor: "#00e676",
+        badgeColor: "#34eb3d",
       },
       {
         label: "Drag Out to Desktop",
@@ -409,9 +409,135 @@ export const VAULT_TOUR_STEPS: TourStepInfo[] = [
   },
 ];
 
+export const OPUS_TOUR_STEPS: TourStepInfo[] = [
+  {
+    step: 1,
+    title: "Video Ingest (Web Link or Local File)",
+    subtitle: "1-Click Auto Clipper • Step 1 of 6",
+    description: "Provide your footage via public streaming link or local storage:",
+    options: [
+      {
+        label: "Public Video Link",
+        desc: "Paste any YouTube, Twitch, or Rumble URL for instant streaming ingest.",
+        badge: "Stream",
+        badgeColor: "#34eb3d",
+      },
+      {
+        label: "Local Video File",
+        desc: "Upload MP4, MOV, MKV from your PC for zero-latency local processing.",
+        badge: "Local File",
+        badgeColor: "#38bdf8",
+      },
+    ],
+    tipNotice: "Paste a URL or browse a file to activate the autonomous clipping engine.",
+    targetId: "tour-opus-ingest",
+    position: "bottom",
+  },
+  {
+    step: 2,
+    title: "Canvas Ratio & Subject Reframing",
+    subtitle: "1-Click Auto Clipper • Step 2 of 6",
+    description: "Select target dimensions and intelligent camera reframing modes:",
+    options: [
+      {
+        label: "Canvas Aspect Ratio",
+        desc: "9:16 Vertical (Shorts, TikTok, Reels), 1:1 Square, or 16:9 Landscape.",
+        badge: "9:16 Shorts",
+        badgeColor: "#34eb3d",
+      },
+      {
+        label: "AI Auto Detect & Split",
+        desc: "Automatically detects 2-person dialogues or tracks active solo speakers.",
+        badge: "Computer Vision",
+        badgeColor: "#a855f7",
+      },
+    ],
+    targetId: "tour-opus-framing",
+    position: "right",
+  },
+  {
+    step: 3,
+    title: "Kinetic Subtitles & Word Tracking",
+    subtitle: "1-Click Auto Clipper • Step 3 of 6",
+    description: "Engage viewers with automated animated karaoke captions:",
+    options: [
+      {
+        label: "High-Retention Presets",
+        desc: "Choose between Viral Neon, Studio Backdrop, Clean White, and Electric Cyan.",
+        badge: "Karaoke",
+        badgeColor: "#34eb3d",
+      },
+      {
+        label: "Dynamic Placement",
+        desc: "Anchor subtitles to bottom, center, or top to avoid UI obstructions.",
+        badge: "Placement",
+        badgeColor: "#38bdf8",
+      },
+    ],
+    targetId: "tour-opus-captions",
+    position: "left",
+  },
+  {
+    step: 4,
+    title: "AI Virality Intelligence & Quality",
+    subtitle: "1-Click Auto Clipper • Step 4 of 6",
+    description: "Configure how ClipVault identifies viral hooks and renders outputs:",
+    options: [
+      {
+        label: "Auto Hook Discovery",
+        desc: "AI scans whole video for peak emotional moments, questions, and punchlines.",
+        badge: "AI Scoring",
+        badgeColor: "#a855f7",
+      },
+      {
+        label: "Export Resolution",
+        desc: "Render in 1080p Full HD, 4K Super-Resolution, or 720p rapid preview.",
+        badge: "Hardware Output",
+        badgeColor: "#34eb3d",
+      },
+    ],
+    targetId: "tour-opus-curation",
+    position: "left",
+  },
+  {
+    step: 5,
+    title: "Autonomous 1-Click Generation",
+    subtitle: "1-Click Auto Clipper • Step 5 of 6",
+    description: "Launch the zero-touch pipeline:",
+    options: [
+      {
+        label: "One-Click Execution",
+        desc: "Runs Whisper transcription, face tracking, dynamic cropping, and subtitle burning simultaneously.",
+        badge: "Autonomous",
+        badgeColor: "#34eb3d",
+      },
+    ],
+    tipNotice: "Click 'Next Step' to learn how Pro Manual Clipper Studio gives you frame-accurate control.",
+    targetId: "tour-opus-generate",
+    position: "top",
+  },
+  {
+    step: 6,
+    title: "Transition to Pro Manual Studio",
+    subtitle: "1-Click Auto Clipper • Step 6 of 6",
+    description: "You have mastered autonomous 1-click clipping! Next, let's explore Pro Manual Clipper Studio for custom multi-range timestamp slicing, interactive timeline scrubbing, and virtual camera bounding boxes.",
+    options: [
+      {
+        label: "Pro Manual Clipper Studio",
+        desc: "Click Next Step to transition into the pro creative workspace and continue the guided tour.",
+        badge: "Next Workspace",
+        badgeColor: "#00e676",
+      },
+    ],
+    tipNotice: "Click 'Next Step' to enter Pro Manual Clipper Studio.",
+    targetId: "tour-opus-generate",
+    position: "top",
+  },
+];
+
 interface Props {
   active: boolean;
-  tourType?: "clipper" | "vault";
+  tourType?: "clipper" | "vault" | "opus";
   currentStep: number;
   onNext: () => void;
   onPrev: () => void;
@@ -430,7 +556,7 @@ export const InteractiveTour: React.FC<Props> = ({
 }) => {
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
 
-  const steps = tourType === "vault" ? VAULT_TOUR_STEPS : TOUR_STEPS;
+  const steps = tourType === "vault" ? VAULT_TOUR_STEPS : tourType === "opus" ? OPUS_TOUR_STEPS : TOUR_STEPS;
   const stepInfo = (steps.find((s) => s.step === currentStep) || steps[0])!;
 
   // 1. Auto-scroll target element into view whenever tour step changes
@@ -560,8 +686,8 @@ export const InteractiveTour: React.FC<Props> = ({
             width: targetRect.width + 16,
             height: targetRect.height + 16,
             borderRadius: 16,
-            border: "2.5px solid #00e676",
-            boxShadow: "0 0 0 9999px rgba(0, 0, 0, 0.78), 0 0 45px rgba(0, 230, 118, 0.65), inset 0 0 25px rgba(0, 230, 118, 0.35)",
+            border: "2.5px solid #34eb3d",
+            boxShadow: "0 0 0 9999px rgba(0, 0, 0, 0.78), 0 0 45px rgba(52, 235, 61, 0.65), inset 0 0 25px rgba(52, 235, 61, 0.35)",
             pointerEvents: "none",
             animation: "pulseGlow 2s infinite ease-in-out",
             zIndex: 10000,
@@ -574,7 +700,7 @@ export const InteractiveTour: React.FC<Props> = ({
               position: "absolute",
               top: -15,
               left: 16,
-              background: "#00e676",
+              background: "#34eb3d",
               color: "#000",
               fontSize: 11,
               fontWeight: 800,
@@ -584,7 +710,7 @@ export const InteractiveTour: React.FC<Props> = ({
               display: "flex",
               alignItems: "center",
               gap: 5,
-              boxShadow: "0 4px 16px rgba(0,230,118,0.6)",
+              boxShadow: "0 4px 16px rgba(52, 235, 61,0.6)",
               letterSpacing: "0.05em",
               textTransform: "uppercase",
             }}
@@ -605,8 +731,8 @@ export const InteractiveTour: React.FC<Props> = ({
           transform: "translateX(-50%)",
           width: "min(640px, 92vw)",
           background: "#0d0d11",
-          border: "1px solid rgba(0, 230, 118, 0.4)",
-          boxShadow: "0 24px 60px rgba(0,0,0,0.95), 0 0 35px rgba(0, 230, 118, 0.25)",
+          border: "1px solid rgba(52, 235, 61, 0.4)",
+          boxShadow: "0 24px 60px rgba(0,0,0,0.95), 0 0 35px rgba(52, 235, 61, 0.25)",
           borderRadius: 18,
           padding: "20px 24px",
           pointerEvents: "auto",
@@ -626,12 +752,12 @@ export const InteractiveTour: React.FC<Props> = ({
                 width: 24,
                 height: 24,
                 borderRadius: "50%",
-                background: "rgba(0,230,118,0.15)",
-                border: "1px solid #00e676",
+                background: "rgba(52, 235, 61,0.15)",
+                border: "1px solid #34eb3d",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "#00e676",
+                color: "#34eb3d",
                 fontSize: 11,
                 fontWeight: 800,
               }}
@@ -643,7 +769,7 @@ export const InteractiveTour: React.FC<Props> = ({
                 fontSize: 11,
                 fontFamily: "'Geist Mono', monospace",
                 fontWeight: 700,
-                color: "#00e676",
+                color: "#34eb3d",
                 letterSpacing: "0.06em",
                 textTransform: "uppercase",
               }}
@@ -725,10 +851,10 @@ export const InteractiveTour: React.FC<Props> = ({
                     }}
                     onMouseEnter={(e) => {
                       if (isStep1) {
-                        e.currentTarget.style.background = isOpus ? "rgba(0, 230, 118, 0.08)" : "rgba(56, 189, 248, 0.08)";
-                        e.currentTarget.style.borderColor = isOpus ? "rgba(0, 230, 118, 0.45)" : "rgba(56, 189, 248, 0.45)";
+                        e.currentTarget.style.background = isOpus ? "rgba(52, 235, 61, 0.08)" : "rgba(56, 189, 248, 0.08)";
+                        e.currentTarget.style.borderColor = isOpus ? "rgba(52, 235, 61, 0.45)" : "rgba(56, 189, 248, 0.45)";
                         e.currentTarget.style.transform = "translateY(-1.5px)";
-                        e.currentTarget.style.boxShadow = isOpus ? "0 6px 20px rgba(0,230,118,0.2)" : "0 6px 20px rgba(56,189,248,0.2)";
+                        e.currentTarget.style.boxShadow = isOpus ? "0 6px 20px rgba(52, 235, 61,0.2)" : "0 6px 20px rgba(56,189,248,0.2)";
                       }
                     }}
                     onMouseLeave={(e) => {
@@ -775,7 +901,7 @@ export const InteractiveTour: React.FC<Props> = ({
                         gap: 4,
                         fontSize: 10.5,
                         fontWeight: 700,
-                        color: isOpus ? "#00e676" : "#38bdf8",
+                        color: isOpus ? "#34eb3d" : "#38bdf8",
                       }}>
                         <span>Click to Enter Studio</span>
                         <ChevronRight style={{ width: 12, height: 12 }} />
@@ -851,7 +977,7 @@ export const InteractiveTour: React.FC<Props> = ({
                   width: s.step === currentStep ? 20 : 6,
                   height: 6,
                   borderRadius: 999,
-                  background: s.step === currentStep ? "#00e676" : s.step < currentStep ? "rgba(0,230,118,0.5)" : "rgba(255,255,255,0.15)",
+                  background: s.step === currentStep ? "#34eb3d" : s.step < currentStep ? "rgba(52, 235, 61,0.5)" : "rgba(255,255,255,0.15)",
                   transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
                 }}
               />
@@ -895,21 +1021,21 @@ export const InteractiveTour: React.FC<Props> = ({
                 gap: 6,
                 padding: "8px 18px",
                 borderRadius: 8,
-                background: "#00e676",
+                background: "#34eb3d",
                 border: "none",
                 color: "#000",
                 fontSize: 12,
                 fontWeight: 800,
                 cursor: "pointer",
-                boxShadow: "0 0 16px rgba(0, 230, 118, 0.35)",
+                boxShadow: "0 0 16px rgba(52, 235, 61, 0.35)",
                 transition: "all 0.15s",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = "#33eb91";
+                e.currentTarget.style.background = "#5def64";
                 e.currentTarget.style.transform = "translateY(-1px)";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = "#00e676";
+                e.currentTarget.style.background = "#34eb3d";
                 e.currentTarget.style.transform = "none";
               }}
             >
@@ -924,12 +1050,12 @@ export const InteractiveTour: React.FC<Props> = ({
       <style>{`
         @keyframes pulseGlow {
           0%, 100% {
-            box-shadow: 0 0 25px rgba(0, 230, 118, 0.35), inset 0 0 15px rgba(0, 230, 118, 0.2);
-            border-color: #00e676;
+            box-shadow: 0 0 25px rgba(52, 235, 61, 0.35), inset 0 0 15px rgba(52, 235, 61, 0.2);
+            border-color: #34eb3d;
           }
           50% {
-            box-shadow: 0 0 45px rgba(0, 230, 118, 0.7), inset 0 0 25px rgba(0, 230, 118, 0.4);
-            border-color: #55f5a8;
+            box-shadow: 0 0 45px rgba(52, 235, 61, 0.7), inset 0 0 25px rgba(52, 235, 61, 0.4);
+            border-color: #81f387;
           }
         }
         @keyframes slideUpHUD {
@@ -986,8 +1112,8 @@ export const FirstTimeWelcomeModal: React.FC<FirstTimeWelcomeModalProps> = ({
         style={{
           width: "min(520px, 94vw)",
           background: "#0c0c10",
-          border: isVault ? "1px solid rgba(251, 191, 36, 0.35)" : "1px solid rgba(0, 230, 118, 0.35)",
-          boxShadow: isVault ? "0 32px 100px rgba(0,0,0,0.95), 0 0 40px rgba(251, 191, 36, 0.2)" : "0 32px 100px rgba(0,0,0,0.95), 0 0 40px rgba(0, 230, 118, 0.2)",
+          border: isVault ? "1px solid rgba(251, 191, 36, 0.35)" : "1px solid rgba(52, 235, 61, 0.35)",
+          boxShadow: isVault ? "0 32px 100px rgba(0,0,0,0.95), 0 0 40px rgba(251, 191, 36, 0.2)" : "0 32px 100px rgba(0,0,0,0.95), 0 0 40px rgba(52, 235, 61, 0.2)",
           borderRadius: 24,
           padding: "32px 36px",
           display: "flex",
@@ -1007,9 +1133,9 @@ export const FirstTimeWelcomeModal: React.FC<FirstTimeWelcomeModalProps> = ({
               gap: 6,
               padding: "4px 10px",
               borderRadius: 999,
-              background: isVault ? "rgba(251,191,36,0.1)" : "rgba(0,230,118,0.1)",
-              border: isVault ? "1px solid rgba(251,191,36,0.3)" : "1px solid rgba(0,230,118,0.3)",
-              color: isVault ? "#fbbf24" : "#00e676",
+              background: isVault ? "rgba(251,191,36,0.1)" : "rgba(52, 235, 61,0.1)",
+              border: isVault ? "1px solid rgba(251,191,36,0.3)" : "1px solid rgba(52, 235, 61,0.3)",
+              color: isVault ? "#fbbf24" : "#34eb3d",
               fontSize: 11,
               fontWeight: 700,
               fontFamily: "'Geist Mono', monospace",
@@ -1088,21 +1214,21 @@ export const FirstTimeWelcomeModal: React.FC<FirstTimeWelcomeModalProps> = ({
               gap: 8,
               padding: "12px 20px",
               borderRadius: 12,
-              background: isVault ? "#fbbf24" : "#00e676",
+              background: isVault ? "#fbbf24" : "#34eb3d",
               border: "none",
               color: "#000",
               fontSize: 13,
               fontWeight: 800,
               cursor: "pointer",
-              boxShadow: isVault ? "0 0 24px rgba(251, 191, 36, 0.4)" : "0 0 24px rgba(0, 230, 118, 0.4)",
+              boxShadow: isVault ? "0 0 24px rgba(251, 191, 36, 0.4)" : "0 0 24px rgba(52, 235, 61, 0.4)",
               transition: "all 0.15s",
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = isVault ? "#fcd34d" : "#33eb91";
+              e.currentTarget.style.background = isVault ? "#fcd34d" : "#5def64";
               e.currentTarget.style.transform = "translateY(-1px)";
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = isVault ? "#fbbf24" : "#00e676";
+              e.currentTarget.style.background = isVault ? "#fbbf24" : "#34eb3d";
               e.currentTarget.style.transform = "none";
             }}
           >

@@ -6,6 +6,78 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [Unreleased] — Security & Stability Remediation
+
+A full third-party audit was run against the codebase. **Every critical and high finding
+is fixed in this pass**; the two items that require the owner's cloud consoles (key
+rotation, code signing) are listed as owner actions. Full detail: `docs/SECURITY.md`
+(findings register) and `docs/HANDOFF.md`.
+
+### Security (breaking for the local API)
+- **Arbitrary file read fixed.** `/api/download_clip` joined the client string onto the
+  clips directory with no jail, so `?file=../../.env` or `?file=C:/Windows/win.ini`
+  returned any readable file. All file endpoints now resolve through
+  `safe_path()`/`safe_name()`/`safe_upload_name()` (403 on escape).
+- **Authentication now actually applies.** The middleware short-circuited for loopback
+  clients — which is every request, since the engine only binds `127.0.0.1` — making the
+  `X-App-Auth-Token` handshake dead code. The token is now enforced on every route except
+  `/api/health` and the docs routes, and is stamped onto engine requests at the network
+  layer (`session.webRequest.onBeforeSendHeaders`), which also covers `<img>`/`<video>`.
+  **A plain browser on `localhost:54321` can no longer call the API.**
+- **Remote exfiltration chain closed.** `Origin: null` was trusted *and* answered with
+  `Access-Control-Allow-Origin: null` plus credentials, letting a sandboxed iframe on any
+  website read local responses. Opaque origins are no longer trusted and credentialed
+  CORS is disabled.
+- **Leaked credential removed** from `video_qa_service.py` / `AskStudioPanel.tsx` (it had
+  been committed to git history, compiled into the renderer bundle and embedded in
+  `engine_server.exe`). **The key must still be rotated and history purged.**
+- **Licence bypasses removed**: hardcoded master keys, the `CV-VIP-*` wildcard, the
+  pre-filled master key in the activation dialog, and the close button that unlocked the
+  app. Licensing is now Ed25519-verified offline and **enforced in the engine** at the
+  render layer (`warn` in development, `enforce` when packaged).
+- Duplicate `/api/copy_clips` route removed (it shadowed an auth-guarded handler);
+  `local://` protocol restricted to allow-listed roots; upload filenames sanitised;
+  `engine_server.spec` no longer ships readable Python source.
+
+### Stability
+- **Fixed a crash**: three components returned early *above* their hooks, so toggling
+  AI Captions (or the clip customiser / crop editor) threw "Rendered fewer hooks than
+  expected" and replaced the whole UI with the recovery screen.
+- **AI Movie Recapper now completes.** It compared a human-readable status string against
+  `"completed"`, so it polled forever at a fake 95% while clips sat on disk. It now reads
+  a normalised machine state, stops the poll on terminal states, and shows real errors.
+- **Renders no longer kill each other.** All tasks shared one temp directory and each
+  completion wiped it, deleting files another render was reading. Each task now owns
+  `TEMP_DIR/task_<id>/` and cleans up only its own directory.
+- Clipper/Movie-Recapper/Opus polling: added request timeouts, in-flight guards, stale-run
+  rejection, monotonic progress (no more backwards jumps) and a Cancel that actually stops
+  the chain. Re-entering the Clipper no longer lands on the Vault.
+- Thumbnails no longer silently disappear after a metadata save failure (an unbound
+  variable was swallowed). `/api/shutdown` no longer raises `NameError` (missing module
+  import). Whisper inference is serialised with a lock and reports per-thread confidence,
+  so two concurrent renders can no longer corrupt each other's word timings.
+- Removed an `AudioContext` leak (one per completed run) and fixed the last five
+  pre-existing TypeScript errors — `tsc --noEmit` is now clean.
+
+### Packaging & repo hygiene
+- Removed `!node_modules/**/*` from the electron-builder `files` list (it stripped all
+  production dependencies, so a packaged build could not start) and demoted 60
+  renderer-only packages to `devDependencies` (only `electron-updater` is a runtime
+  dependency now).
+- `engine/requirements.txt` is tracked again (a bare `*.txt` ignore rule had hidden it)
+  and now lists the missing `python-multipart`, `imageio-ffmpeg`, `python-jose`, `psutil`
+  and `proglog`; `package-lock.json` re-synced.
+- PyInstaller spec: no longer ships Python source as data, ships the `bg_music` fallback
+  asset, fails loudly instead of silently when a package can't be collected, and `upx` is
+  disabled for the AI DLLs.
+- Removed 4.8 MB of scraped `*-player-script.js` dumps and a stray directory from the
+  repo; build outputs and signing keys are gitignored; the auto-push helper scripts now
+  require `CLIPVAULT_AUTO_PUSH=1` instead of pushing on every file edit.
+- Added `qa/run_qa.py` (boots a real engine and replays the original exploits),
+  `tools/test_licensing.py`, `docs/SECURITY.md`, `docs/HANDOFF.md` and `docs/BUILD.md`.
+
+---
+
 ## [1.0.0] - 2026-08-26
 
 ### Major Milestones & Performance

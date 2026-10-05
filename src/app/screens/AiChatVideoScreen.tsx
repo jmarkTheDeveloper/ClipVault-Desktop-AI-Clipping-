@@ -192,7 +192,7 @@ export function AiChatVideoScreen({ onBack, onOpenEditor }: Props) {
       startTime: 5,
       duration: 20,
       track: 1,
-      style: { color: "#00e676", fontSize: 20, fontWeight: "bold" },
+      style: { color: "#34eb3d", fontSize: 20, fontWeight: "bold" },
     };
 
     const textCta = {
@@ -221,7 +221,7 @@ export function AiChatVideoScreen({ onBack, onOpenEditor }: Props) {
   return (
     <div className="h-screen w-screen flex flex-col bg-[#050505] font-['Inter',sans-serif] select-none overflow-hidden">
       {/* ── TOP HEADER ── */}
-      <header className="h-16 pt-7 px-6 flex items-center justify-between border-b border-[#00e676]/10 bg-[#070707]/90 backdrop-blur-xl z-20 flex-shrink-0">
+      <header className="h-16 pt-7 px-6 flex items-center justify-between border-b border-[#34eb3d]/10 bg-[#070707]/90 backdrop-blur-xl z-20 flex-shrink-0">
         <div className="flex items-center gap-3">
           <button
             onClick={onBack}
@@ -231,12 +231,12 @@ export function AiChatVideoScreen({ onBack, onOpenEditor }: Props) {
           </button>
           <div className="h-4 w-px bg-white/10" />
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#00e676] to-[#00a854] flex items-center justify-center shadow-[0_0_15px_rgba(0,230,118,0.4)]">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#34eb3d] to-[#25a92c] flex items-center justify-center shadow-[0_0_15px_rgba(52, 235, 61,0.4)]">
               <Bot className="w-4 h-4 text-black" />
             </div>
             <div>
               <h2 className="text-white text-sm font-bold flex items-center gap-2">
-                ClipVault AI Video Generator <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                ClipVault AI Video Generator <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
               </h2>
               <p className="text-[10px] text-gray-400">Higgsfield AI · SeeDance AI · Claude Fable</p>
             </div>
@@ -247,11 +247,11 @@ export function AiChatVideoScreen({ onBack, onOpenEditor }: Props) {
         <div className="flex items-center gap-3">
           <button
             onClick={() => setShowKeySettings(!showKeySettings)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-[#00e676]/30 text-xs text-white transition-all cursor-pointer shadow-md"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-[#34eb3d]/30 text-xs text-white transition-all cursor-pointer shadow-md"
           >
-            <Cpu className="w-3.5 h-3.5 text-[#00e676]" />
+            <Cpu className="w-3.5 h-3.5 text-[#34eb3d]" />
             <span className="font-bold">Engine:</span>
-            <span className="text-[#00e676] font-semibold">
+            <span className="text-[#34eb3d] font-semibold">
               {(AI_ENGINES.find(e => e.id === selectedEngine) ?? DEFAULT_ENGINE).name} ({byokMode === "developer" ? "Demo Key" : "BYOK Key"})
             </span>
           </button>
@@ -263,7 +263,7 @@ export function AiChatVideoScreen({ onBack, onOpenEditor }: Props) {
         <div className="absolute top-16 right-6 z-50 w-[420px] p-5 rounded-2xl bg-[#0d0d0d] border border-white/15 shadow-2xl space-y-4 animate-fadeIn">
           <div className="flex items-center justify-between">
             <h4 className="text-white font-bold text-xs flex items-center gap-2">
-              <Cpu className="w-4 h-4 text-[#00e676]" /> AI Video Engine & BYOK Settings
+              <Cpu className="w-4 h-4 text-[#34eb3d]" /> AI Video Engine & BYOK Settings
             </h4>
             <button onClick={() => setShowKeySettings(false)} className="text-xs text-gray-400 hover:text-white">✕</button>
           </div>
@@ -278,7 +278,7 @@ export function AiChatVideoScreen({ onBack, onOpenEditor }: Props) {
                   onClick={() => setSelectedEngine(e.id)}
                   className={`p-2.5 rounded-xl text-left border transition-all ${
                     selectedEngine === e.id
-                      ? "bg-[#00e676]/10 border-[#00e676] text-[#00e676]"
+                      ? "bg-[#34eb3d]/10 border-[#34eb3d] text-[#34eb3d]"
                       : "bg-white/5 border-white/5 text-gray-300 hover:bg-white/10"
                   }`}
                 >
@@ -294,7 +294,7 @@ export function AiChatVideoScreen({ onBack, onOpenEditor }: Props) {
             <button
               onClick={() => setByokMode("developer")}
               className={`flex-1 py-1.5 rounded-lg transition-all ${
-                byokMode === "developer" ? "bg-[#00e676] text-black shadow-md" : "text-gray-400 hover:text-white"
+                byokMode === "developer" ? "bg-[#34eb3d] text-black shadow-md" : "text-gray-400 hover:text-white"
               }`}
             >
               Developer Key (Demo)
@@ -302,7 +302,7 @@ export function AiChatVideoScreen({ onBack, onOpenEditor }: Props) {
             <button
               onClick={() => setByokMode("custom")}
               className={`flex-1 py-1.5 rounded-lg transition-all ${
-                byokMode === "custom" ? "bg-[#00e676] text-black shadow-md" : "text-gray-400 hover:text-white"
+                byokMode === "custom" ? "bg-[#34eb3d] text-black shadow-md" : "text-gray-400 hover:text-white"
               }`}
             >
               Custom Key (BYOK)
@@ -310,7 +310,7 @@ export function AiChatVideoScreen({ onBack, onOpenEditor }: Props) {
           </div>
 
           {byokMode === "developer" ? (
-            <div className="p-3 rounded-xl bg-[#00e676]/10 border border-[#00e676]/20 text-xs text-[#00e676] flex items-center gap-2">
+            <div className="p-3 rounded-xl bg-[#34eb3d]/10 border border-[#34eb3d]/20 text-xs text-[#34eb3d] flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
               <span>Developer Master API Key Active (`sk-clipvault-demo-key`). Ready out of the box!</span>
             </div>
@@ -319,56 +319,56 @@ export function AiChatVideoScreen({ onBack, onOpenEditor }: Props) {
               <div className="space-y-1">
                 <div className="flex justify-between items-center text-[10px]">
                   <span className="text-gray-300 font-bold">🧠 Anthropic API Key (Claude Fable)</span>
-                  <a href="https://console.anthropic.com" target="_blank" rel="noreferrer" className="text-[#00e676] hover:underline">Get Key ↗</a>
+                  <a href="https://console.anthropic.com" target="_blank" rel="noreferrer" className="text-[#34eb3d] hover:underline">Get Key ↗</a>
                 </div>
                 <input
                   type="password"
                   value={anthropicKey}
                   onChange={(e) => setAnthropicKey(e.target.value)}
                   placeholder="sk-ant-api03-..."
-                  className="w-full rounded-xl px-3 py-1.5 text-xs text-white bg-white/5 border border-white/10 outline-none focus:border-[#00e676]"
+                  className="w-full rounded-xl px-3 py-1.5 text-xs text-white bg-white/5 border border-white/10 outline-none focus:border-[#34eb3d]"
                 />
               </div>
 
               <div className="space-y-1">
                 <div className="flex justify-between items-center text-[10px]">
                   <span className="text-gray-300 font-bold">🎥 Higgsfield AI Key</span>
-                  <a href="https://higgsfield.ai" target="_blank" rel="noreferrer" className="text-[#00e676] hover:underline">Get Key ↗</a>
+                  <a href="https://higgsfield.ai" target="_blank" rel="noreferrer" className="text-[#34eb3d] hover:underline">Get Key ↗</a>
                 </div>
                 <input
                   type="password"
                   value={higgsfieldKey}
                   onChange={(e) => setHiggsfieldKey(e.target.value)}
                   placeholder="hg-live-..."
-                  className="w-full rounded-xl px-3 py-1.5 text-xs text-white bg-white/5 border border-white/10 outline-none focus:border-[#00e676]"
+                  className="w-full rounded-xl px-3 py-1.5 text-xs text-white bg-white/5 border border-white/10 outline-none focus:border-[#34eb3d]"
                 />
               </div>
 
               <div className="space-y-1">
                 <div className="flex justify-between items-center text-[10px]">
                   <span className="text-gray-300 font-bold">⚡ SeeDance AI Key (ByteDance)</span>
-                  <a href="https://seedance.ai" target="_blank" rel="noreferrer" className="text-[#00e676] hover:underline">Get Key ↗</a>
+                  <a href="https://seedance.ai" target="_blank" rel="noreferrer" className="text-[#34eb3d] hover:underline">Get Key ↗</a>
                 </div>
                 <input
                   type="password"
                   value={seeDanceKey}
                   onChange={(e) => setSeeDanceKey(e.target.value)}
                   placeholder="sd-prod-..."
-                  className="w-full rounded-xl px-3 py-1.5 text-xs text-white bg-white/5 border border-white/10 outline-none focus:border-[#00e676]"
+                  className="w-full rounded-xl px-3 py-1.5 text-xs text-white bg-white/5 border border-white/10 outline-none focus:border-[#34eb3d]"
                 />
               </div>
 
               <div className="space-y-1">
                 <div className="flex justify-between items-center text-[10px]">
                   <span className="text-gray-300 font-bold">🤖 OpenAI Sora / GPT-4o Key</span>
-                  <a href="https://platform.openai.com" target="_blank" rel="noreferrer" className="text-[#00e676] hover:underline">Get Key ↗</a>
+                  <a href="https://platform.openai.com" target="_blank" rel="noreferrer" className="text-[#34eb3d] hover:underline">Get Key ↗</a>
                 </div>
                 <input
                   type="password"
                   value={openAiKey}
                   onChange={(e) => setOpenAiKey(e.target.value)}
                   placeholder="sk-proj-..."
-                  className="w-full rounded-xl px-3 py-1.5 text-xs text-white bg-white/5 border border-white/10 outline-none focus:border-[#00e676]"
+                  className="w-full rounded-xl px-3 py-1.5 text-xs text-white bg-white/5 border border-white/10 outline-none focus:border-[#34eb3d]"
                 />
               </div>
             </div>
@@ -387,11 +387,11 @@ export function AiChatVideoScreen({ onBack, onOpenEditor }: Props) {
             <div
               className={`w-9 h-9 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-md ${
                 m.sender === "user"
-                  ? "bg-gradient-to-br from-[#00e676] to-[#00a854] text-black font-bold text-xs"
+                  ? "bg-gradient-to-br from-[#34eb3d] to-[#25a92c] text-black font-bold text-xs"
                   : "bg-white/10 border border-white/15 text-white"
               }`}
             >
-              {m.sender === "user" ? "JD" : <Bot className="w-4 h-4 text-[#00e676]" />}
+              {m.sender === "user" ? "JD" : <Bot className="w-4 h-4 text-[#34eb3d]" />}
             </div>
 
             {/* Bubble Container */}
@@ -399,13 +399,13 @@ export function AiChatVideoScreen({ onBack, onOpenEditor }: Props) {
               <div
                 className={`p-4 rounded-2xl text-xs leading-relaxed shadow-xl border ${
                   m.sender === "user"
-                    ? "bg-[#00e676]/15 text-white border-[#00e676]/30 rounded-tr-none"
+                    ? "bg-[#34eb3d]/15 text-white border-[#34eb3d]/30 rounded-tr-none"
                     : "bg-[#0d0d0d] text-gray-200 border-white/10 rounded-tl-none"
                 }`}
               >
                 <p className="whitespace-pre-wrap">{m.text}</p>
                 {m.engineUsed && (
-                  <span className="inline-block mt-2 px-2 py-0.5 rounded text-[9px] font-bold bg-[#00e676]/10 text-[#00e676] border border-[#00e676]/20">
+                  <span className="inline-block mt-2 px-2 py-0.5 rounded text-[9px] font-bold bg-[#34eb3d]/10 text-[#34eb3d] border border-[#34eb3d]/20">
                     Model: {m.engineUsed}
                   </span>
                 )}
@@ -414,9 +414,9 @@ export function AiChatVideoScreen({ onBack, onOpenEditor }: Props) {
 
               {/* GENERATED VIDEO RESULT CARD */}
               {m.videoResult && (
-                <div className="p-4 rounded-2xl bg-[#0d0d0d] border border-[#00e676]/30 space-y-3 shadow-2xl animate-fadeIn w-full">
+                <div className="p-4 rounded-2xl bg-[#0d0d0d] border border-[#34eb3d]/30 space-y-3 shadow-2xl animate-fadeIn w-full">
                   <div className="flex items-center justify-between pb-2 border-b border-white/10">
-                    <span className="text-xs font-bold text-[#00e676] flex items-center gap-1.5">
+                    <span className="text-xs font-bold text-[#34eb3d] flex items-center gap-1.5">
                       <Film className="w-4 h-4" /> {m.videoResult.title}
                     </span>
                     <span className="text-[10px] px-2 py-0.5 rounded bg-white/5 text-gray-400 font-mono">
@@ -437,7 +437,7 @@ export function AiChatVideoScreen({ onBack, onOpenEditor }: Props) {
                   {/* Script Breakdown */}
                   <div className="p-3 rounded-xl bg-white/[0.03] space-y-2 text-[11px]">
                     <div>
-                      <span className="text-[9px] font-bold uppercase text-amber-400 block">Hook</span>
+                      <span className="text-[9px] font-bold uppercase text-emerald-400 block">Hook</span>
                       <p className="text-gray-300">{m.videoResult.hook}</p>
                     </div>
                     <div>
@@ -463,10 +463,10 @@ export function AiChatVideoScreen({ onBack, onOpenEditor }: Props) {
         {isAiThinking && (
           <div className="flex items-center gap-3 animate-fadeIn">
             <div className="w-9 h-9 rounded-2xl bg-white/10 border border-white/15 flex items-center justify-center">
-              <Bot className="w-4 h-4 text-[#00e676] animate-pulse" />
+              <Bot className="w-4 h-4 text-[#34eb3d] animate-pulse" />
             </div>
             <div className="p-3.5 rounded-2xl rounded-tl-none bg-[#0d0d0d] border border-white/10 text-xs text-gray-300 flex items-center gap-2 shadow-xl">
-              <Wand2 className="w-4 h-4 text-[#00e676] animate-spin" />
+              <Wand2 className="w-4 h-4 text-[#34eb3d] animate-spin" />
               <span>{generationStep || "Initializing AI generation pipeline..."}</span>
             </div>
           </div>
@@ -476,7 +476,7 @@ export function AiChatVideoScreen({ onBack, onOpenEditor }: Props) {
       </div>
 
       {/* ── BOTTOM CHAT PROMPT INPUT BAR ── */}
-      <footer className="p-4 border-t border-[#00e676]/10 bg-[#070707]/90 backdrop-blur-xl z-20 flex-shrink-0">
+      <footer className="p-4 border-t border-[#34eb3d]/10 bg-[#070707]/90 backdrop-blur-xl z-20 flex-shrink-0">
         <div className="max-w-4xl mx-auto space-y-3">
           {/* Quick Preset Chips */}
           <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide text-xs">
@@ -490,7 +490,7 @@ export function AiChatVideoScreen({ onBack, onOpenEditor }: Props) {
               <button
                 key={chip}
                 onClick={() => handleSendMessage(chip)}
-                className="px-3 py-1 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#00e676]/30 text-gray-300 hover:text-white transition-all whitespace-nowrap cursor-pointer text-[11px]"
+                className="px-3 py-1 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#34eb3d]/30 text-gray-300 hover:text-white transition-all whitespace-nowrap cursor-pointer text-[11px]"
               >
                 {chip}
               </button>
@@ -498,10 +498,10 @@ export function AiChatVideoScreen({ onBack, onOpenEditor }: Props) {
           </div>
 
           {/* Prompt Bar Controls */}
-          <div className="flex items-center gap-3 bg-[#0d0d0d] border border-white/15 focus-within:border-[#00e676]/50 rounded-2xl p-2 shadow-2xl transition-all">
+          <div className="flex items-center gap-3 bg-[#0d0d0d] border border-white/15 focus-within:border-[#34eb3d]/50 rounded-2xl p-2 shadow-2xl transition-all">
             {/* Ratio Dropdown Pill */}
             <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs text-gray-300 flex-shrink-0">
-              <Smartphone className="w-3.5 h-3.5 text-[#00e676]" />
+              <Smartphone className="w-3.5 h-3.5 text-[#34eb3d]" />
               <select
                 value={selectedRatio}
                 onChange={(e: any) => setSelectedRatio(e.target.value)}

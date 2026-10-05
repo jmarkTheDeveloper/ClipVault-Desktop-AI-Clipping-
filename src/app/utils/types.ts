@@ -53,7 +53,7 @@ export interface EditorState {
 }
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
-export const G = "#00e676";
+export const G = "#34eb3d";
 
 const DEFAULT_MEDIA: any[] = [];
 const DEFAULT_AUDIO: any[] = [];

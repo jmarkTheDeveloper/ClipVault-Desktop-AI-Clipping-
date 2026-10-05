@@ -52,9 +52,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('quit-app');
     } catch {}
   },
+  getUpdateStatus: () => ipcRenderer.invoke('get-update-status'),
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
   restartAndInstallUpdate: () => ipcRenderer.invoke('restart-and-install-update'),
+  onCheckingForUpdate: (callback) => ipcRenderer.on('checking-for-update', () => callback()),
   onUpdateAvailable: (callback) => ipcRenderer.on('update-available', (_e, info) => callback(info)),
+  onUpdateNotAvailable: (callback) => ipcRenderer.on('update-not-available', (_e, info) => callback(info)),
   onUpdateProgress: (callback) => ipcRenderer.on('update-download-progress', (_e, progress) => callback(progress)),
   onUpdateDownloaded: (callback) => ipcRenderer.on('update-downloaded', (_e, info) => callback(info)),
+  onUpdateError: (callback) => ipcRenderer.on('update-error', (_e, err) => callback(err)),
+  getAppEdition: () => ipcRenderer.invoke('get-app-edition'),
+  setAppEdition: (edition) => ipcRenderer.invoke('set-app-edition', edition),
+  onAppEditionChanged: (callback) => ipcRenderer.on('app-edition-changed', (_e, edition) => callback(edition)),
 });

@@ -29,7 +29,7 @@ CAPTION_STYLES = {
         'max_words': 2,
         'karaoke': True,
         'stroke_factor': 0.16,
-        'name': 'Hormozi Punch (Bold Anton, Yellow Highlight, Heavy Outline)'
+        'name': 'Impact Punch (Bold Anton, Yellow Highlight, Heavy Outline)'
     },
     'opus_green': {
         'text_color': (255, 255, 255, 255),
@@ -56,7 +56,7 @@ CAPTION_STYLES = {
         'ambient_shadow': True,
         'highlight_style': 'neon_glow',
         'emoji_position': 'top',
-        'name': 'Pop Emoji (Floating Emoji 🤩)'
+        'name': 'Pop Emoji (Floating Reaction)'
     },
     'capcut_bold_green': {
         'text_color': (0, 255, 102, 255),
@@ -120,14 +120,14 @@ CAPTION_STYLES = {
     },
     'capcut_banner': {
         'text_color': (255, 255, 255, 255),
-        'highlight_color': (255, 230, 0, 255),
-        'font_type': 'anton',
+        'highlight_color': (0, 230, 118, 255),
+        'font_type': 'montserrat_black',
         'uppercase': True,
         'phrase_mode': True,
         'max_words': 3,
         'no_stroke': True,
         'bg_box_color': (0, 0, 0, 190),
-        'name': 'Dark Banner (Black Box Behind Text)'
+        'name': 'Studio Backdrop (Translucent Dark Box)'
     },
     'cinematic_sub': {
         'text_color': (255, 255, 255, 255),
@@ -180,7 +180,7 @@ CAPTION_STYLES = {
         'name': 'Ocean Wave (Aquatic Blue Glow)'
     },
     'beast_yellow': {
-        'text_color': (255, 222, 0, 255),  # Explosive Beast Yellow (#FFDE00)
+        'text_color': (255, 222, 0, 255),  # Explosive Electric Yellow (#FFDE00)
         'highlight_color': (255, 255, 255, 255),
         'font_type': 'montserrat_black',
         'uppercase': True,
@@ -189,7 +189,7 @@ CAPTION_STYLES = {
         'karaoke': True,
         'stroke_factor': 0.18,
         'highlight_style': 'outline',
-        'name': 'Thunder Beast (Bold Yellow Chunk)'
+        'name': 'Thunder Bolt (Bold Yellow Chunk)'
     },
     'purple_box': {
         'text_color': (255, 255, 255, 255),
