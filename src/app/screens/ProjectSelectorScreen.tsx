@@ -1348,66 +1348,63 @@ export function ProjectSelectorScreen({
           <div style={{
             display: "flex", alignItems: "center", justifyContent: "space-between",
             width: "100%", paddingTop: 16, borderTop: "1px solid rgba(255,255,255,0.06)",
-            fontSize: 11.5, color: "rgba(255,255,255,0.5)", gap: 16,
+            fontSize: 11.5, color: "rgba(255,255,255,0.5)", gap: 16, flexWrap: "wrap",
           }}>
-            {/* Stats (Left aligned) */}
-            <div style={{ display: "flex", alignItems: "center", gap: 16, flexShrink: 0 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            {/* Left: Engine & Hardware Capabilities Pill Cluster */}
+            <div style={{
+              display: "flex", alignItems: "center", gap: 12,
+              padding: "4px 12px", borderRadius: 8,
+              background: "rgba(255,255,255,0.02)",
+              border: "1px solid rgba(255,255,255,0.06)",
+              flexShrink: 0,
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                 <span style={{ fontWeight: 800, color: G, fontFamily: "'Geist Mono', monospace" }}>9:16</span>
-                <span>Native Shorts</span>
+                <span style={{ color: "rgba(255,255,255,0.7)" }}>Native Shorts</span>
               </div>
-              <span style={{ color: "rgba(255,255,255,0.15)" }}>•</span>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <div style={{ width: 1, height: 10, background: "rgba(255,255,255,0.12)" }} />
+              <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                 <span style={{ fontWeight: 800, color: "#fff", fontFamily: "'Geist Mono', monospace" }}>5+</span>
-                <span>AI Engines</span>
+                <span style={{ color: "rgba(255,255,255,0.7)" }}>AI Engines</span>
               </div>
-              <span style={{ color: "rgba(255,255,255,0.15)" }}>•</span>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <div style={{ width: 1, height: 10, background: "rgba(255,255,255,0.12)" }} />
+              <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                 <span style={{ fontWeight: 800, color: G, fontFamily: "'Geist Mono', monospace" }}>&lt;2m</span>
-                <span>GPU Acceleration</span>
+                <span style={{ color: "rgba(255,255,255,0.7)" }}>GPU Direct</span>
               </div>
             </div>
 
-            {/* Quick Actions & Navigation Links (Right aligned) */}
-            <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
+            {/* Right: Studio Controls & Grouped Compliance Links */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+              {/* Primary Assistance: Guided Tour */}
               {onStartTour && (
-                <>
-                  <button
-                    type="button"
-                    onClick={onStartTour}
-                    style={{
-                      display: "flex", alignItems: "center", gap: 5,
-                      fontSize: 11.5, fontWeight: 600, color: "rgba(255,255,255,0.65)",
-                      background: "none", border: "none", cursor: "pointer", transition: "color 0.2s"
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.color = G; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.65)"; }}
-                  >
-                    <Sparkles style={{ width: 12, height: 12, color: G }} />
-                    <span>Guided Tour</span>
-                  </button>
-                  <span style={{ color: "rgba(255,255,255,0.15)" }}>•</span>
-                </>
+                <button
+                  type="button"
+                  onClick={onStartTour}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 6,
+                    padding: "5px 10px", borderRadius: 7,
+                    fontSize: 11.5, fontWeight: 600, color: "#fff",
+                    background: "rgba(52, 235, 61, 0.08)",
+                    border: "1px solid rgba(52, 235, 61, 0.25)",
+                    cursor: "pointer", transition: "all 0.15s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "rgba(52, 235, 61, 0.16)";
+                    e.currentTarget.style.borderColor = G;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "rgba(52, 235, 61, 0.08)";
+                    e.currentTarget.style.borderColor = "rgba(52, 235, 61, 0.25)";
+                  }}
+                  title="Interactive Studio Walkthrough"
+                >
+                  <Sparkles style={{ width: 12, height: 12, color: G }} />
+                  <span>Guided Tour</span>
+                </button>
               )}
-              <button
-                type="button"
-                onClick={() => {
-                  setSettingsTab("updates");
-                  setShowSettingsModal(true);
-                }}
-                style={{
-                  display: "flex", alignItems: "center", gap: 5,
-                  fontSize: 11.5, color: "rgba(255,255,255,0.6)",
-                  background: "none", border: "none", cursor: "pointer", transition: "color 0.2s"
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = G; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.6)"; }}
-                title="Software Updates & Version"
-              >
-                <RefreshCw style={{ width: 11, height: 11, color: G }} />
-                <span>Updates</span>
-              </button>
-              <span style={{ color: "rgba(255,255,255,0.15)" }}>•</span>
+
+              {/* Studio Settings */}
               <button
                 type="button"
                 onClick={() => {
@@ -1416,52 +1413,31 @@ export function ProjectSelectorScreen({
                 }}
                 style={{
                   display: "flex", alignItems: "center", gap: 5,
-                  fontSize: 11.5, color: "rgba(255,255,255,0.6)",
-                  background: "none", border: "none", cursor: "pointer", transition: "color 0.2s"
+                  padding: "5px 10px", borderRadius: 7,
+                  fontSize: 11.5, fontWeight: 500, color: "rgba(255,255,255,0.75)",
+                  background: "rgba(255,255,255,0.03)",
+                  border: "1px solid rgba(255,255,255,0.07)",
+                  cursor: "pointer", transition: "all 0.15s ease",
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = G; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.6)"; }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "#fff";
+                  e.currentTarget.style.borderColor = "rgba(255,255,255,0.18)";
+                  e.currentTarget.style.background = "rgba(255,255,255,0.06)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "rgba(255,255,255,0.75)";
+                  e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)";
+                  e.currentTarget.style.background = "rgba(255,255,255,0.03)";
+                }}
+                title="Open Studio Configuration"
               >
                 <Settings style={{ width: 12, height: 12 }} />
                 <span>Settings</span>
               </button>
-              <span style={{ color: "rgba(255,255,255,0.15)" }}>•</span>
-              <button
-                type="button"
-                onClick={() => {
-                  setSettingsTab("refunds");
-                  setShowSettingsModal(true);
-                }}
-                style={{
-                  fontSize: 11.5, color: "rgba(255,255,255,0.6)",
-                  background: "none", border: "none", cursor: "pointer", transition: "color 0.2s",
-                  display: "flex", alignItems: "center", gap: 4,
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = G; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.6)"; }}
-                title="14-Day 100% Refund Policy"
-              >
-                <ShieldCheck style={{ width: 12, height: 12, color: G }} />
-                <span>Refund Policy</span>
-              </button>
-              <span style={{ color: "rgba(255,255,255,0.15)" }}>•</span>
-              <button
-                type="button"
-                onClick={() => {
-                  setSettingsTab("eula");
-                  setShowSettingsModal(true);
-                }}
-                style={{
-                  fontSize: 11.5, color: "rgba(255,255,255,0.5)",
-                  background: "none", border: "none", cursor: "pointer", transition: "color 0.2s"
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = G; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.5)"; }}
-                title="Terms, EULA & Privacy Policy"
-              >
-                <span>Legal &amp; Compliance</span>
-              </button>
-              <span style={{ color: "rgba(255,255,255,0.15)" }}>•</span>
+
+              <div style={{ width: 1, height: 14, background: "rgba(255,255,255,0.1)", margin: "0 2px" }} />
+
+              {/* Grouped Compliance & Help Links */}
               <button
                 type="button"
                 onClick={() => {
@@ -1469,34 +1445,79 @@ export function ProjectSelectorScreen({
                   setShowSettingsModal(true);
                 }}
                 style={{
-                  fontSize: 11.5, color: "rgba(255,255,255,0.6)",
-                  background: "none", border: "none", cursor: "pointer", transition: "color 0.2s",
-                  display: "flex", alignItems: "center", gap: 4,
+                  display: "flex", alignItems: "center", gap: 5,
+                  padding: "5px 8px", borderRadius: 6,
+                  fontSize: 11.5, fontWeight: 500, color: "rgba(255,255,255,0.65)",
+                  background: "transparent", border: "1px solid transparent",
+                  cursor: "pointer", transition: "all 0.15s ease",
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = G; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.6)"; }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = G;
+                  e.currentTarget.style.background = "rgba(255,255,255,0.04)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "rgba(255,255,255,0.65)";
+                  e.currentTarget.style.background = "transparent";
+                }}
                 title="Frequently Asked Questions & Support Desk"
               >
                 <HelpCircle style={{ width: 12, height: 12, color: G }} />
                 <span>FAQ &amp; Support</span>
               </button>
-              <span style={{ color: "rgba(255,255,255,0.15)" }}>•</span>
+
               <button
                 type="button"
                 onClick={() => {
-                  setSettingsTab("about");
+                  setSettingsTab("refunds");
                   setShowSettingsModal(true);
                 }}
                 style={{
                   display: "flex", alignItems: "center", gap: 5,
-                  fontSize: 11.5, color: "rgba(255,255,255,0.5)",
-                  background: "none", border: "none", cursor: "pointer", transition: "color 0.2s"
+                  padding: "5px 8px", borderRadius: 6,
+                  fontSize: 11.5, fontWeight: 500, color: "rgba(255,255,255,0.65)",
+                  background: "transparent", border: "1px solid transparent",
+                  cursor: "pointer", transition: "all 0.15s ease",
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = G; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.5)"; }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = G;
+                  e.currentTarget.style.background = "rgba(255,255,255,0.04)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "rgba(255,255,255,0.65)";
+                  e.currentTarget.style.background = "transparent";
+                }}
+                title="14-Day Refund Guarantee & Master EULA"
               >
-                <Heart style={{ width: 12, height: 12, color: G, fill: "rgba(52, 235, 61,0.25)" }} />
-                <span>About</span>
+                <ShieldCheck style={{ width: 12, height: 12, color: G }} />
+                <span>Legal &amp; Refunds</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setSettingsTab("updates");
+                  setShowSettingsModal(true);
+                }}
+                style={{
+                  display: "flex", alignItems: "center", gap: 5,
+                  padding: "5px 8px", borderRadius: 6,
+                  fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.45)",
+                  fontFamily: "'Geist Mono', monospace",
+                  background: "transparent", border: "1px solid transparent",
+                  cursor: "pointer", transition: "all 0.15s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "#fff";
+                  e.currentTarget.style.background = "rgba(255,255,255,0.04)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "rgba(255,255,255,0.45)";
+                  e.currentTarget.style.background = "transparent";
+                }}
+                title="Check for Updates & Version Notes"
+              >
+                <RefreshCw style={{ width: 10, height: 10, color: "rgba(255,255,255,0.35)" }} />
+                <span>v1.0.0</span>
               </button>
             </div>
           </div>
