@@ -627,7 +627,7 @@ export const AiClipperScreen: React.FC<Props> = ({
   // Phone Preview & Crop Editor Shared Playback State
   const [isPlaying, setIsPlaying] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
-  const [isMuted, setIsMuted] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
   const [isDraggingCaption, setIsDraggingCaption] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 

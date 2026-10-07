@@ -114,6 +114,8 @@ const CroppedVideo: React.FC<{
           onTimeUpdate={onTimeUpdate}
           onLoadedMetadata={onLoadedMetadata}
           onCanPlay={(e) => {
+            e.currentTarget.muted = isMuted;
+            e.currentTarget.volume = 1.0;
             e.currentTarget.play().catch(() => {});
           }}
           onError={(e) => {
@@ -752,7 +754,12 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
   useEffect(() => {
     const vids = containerRef.current?.querySelectorAll("video") || [];
     vids.forEach((v) => {
-      v.muted = isMuted;
+      if (v.getAttribute("data-background") === "true") {
+        v.muted = true;
+      } else {
+        v.muted = isMuted;
+        v.volume = 1.0;
+      }
     });
   }, [isMuted]);
 
@@ -791,7 +798,12 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
     const syncAll = () => {
       const vids = containerRef.current?.querySelectorAll("video") || [];
       vids.forEach((v) => {
-        v.muted = isMuted;
+        if (v.getAttribute("data-background") === "true") {
+          v.muted = true;
+        } else {
+          v.muted = isMuted;
+          v.volume = 1.0;
+        }
         if (isPlaying) {
           v.play().catch(() => {});
         } else {
@@ -1112,6 +1124,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                   {/* Bottom Speaker: Guest (right-biased framing) */}
                   <div className="w-full h-1/2 relative overflow-hidden bg-black">
                     <video
+                      data-background="true"
                       src={activeVideoUrl}
                       autoPlay
                       loop
@@ -1199,6 +1212,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                   <div className="w-full h-1/2 relative overflow-hidden bg-black">
                     {gameplayBgVideo ? (
                       <video
+                        data-background="true"
                         src={gameplayBgVideo}
                         className="w-full h-full object-cover pointer-events-none"
                         autoPlay
@@ -1220,6 +1234,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                 /* Square Focus + Blurred Canvas (Shorts / Portrait Feed Style) */
                 <div className="w-full h-full relative overflow-hidden bg-black flex flex-col items-center justify-center pointer-events-none">
                   <video
+                    data-background="true"
                     src={activeVideoUrl}
                     className="absolute inset-0 w-full h-full object-cover filter blur-2xl scale-125 opacity-65 pointer-events-none"
                     autoPlay
@@ -1264,6 +1279,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                 /* Landscape + Blurred Canvas (9:16) */
                 <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center pointer-events-none">
                   <video
+                    data-background="true"
                     src={activeVideoUrl}
                     className="absolute inset-0 w-full h-full object-cover filter blur-2xl scale-125 opacity-60 pointer-events-none"
                     autoPlay

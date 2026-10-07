@@ -663,7 +663,6 @@ export function MovieRecapperScreen({ onBack }: Props) {
                 src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
                 autoPlay
                 loop
-                muted
                 controls
                 className="w-full h-full object-cover"
               />

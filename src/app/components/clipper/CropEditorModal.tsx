@@ -73,7 +73,7 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
   setCurrentTime,
   isPlaying = true,
   setIsPlaying,
-  isMuted = true,
+  isMuted = false,
 }) => {
   const youtubeId = extractYouTubeId(ytUrl);
   const videoRef = useRef<HTMLVideoElement | null>(null);
