@@ -15,6 +15,7 @@ import {
   Loader2,
   Trash2,
   Move,
+  Clock,
 } from "lucide-react";
 import type { ClipMetadata } from "./types";
 
@@ -71,15 +72,18 @@ const GalleryClipCard: React.FC<{
 
   const getStreamUrl = (pathOrUrl?: string) => {
     if (!pathOrUrl) return "";
-    if (pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://") || pathOrUrl.startsWith("blob:")) {
-      return pathOrUrl;
+    if (pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://")) {
+      return encodeURI(pathOrUrl);
     }
+    if (pathOrUrl.startsWith("blob:")) return pathOrUrl;
     const clean = pathOrUrl.replace(/^local:\/\/\/?/i, "");
     return `http://127.0.0.1:8000/stream?path=${encodeURIComponent(clean)}`;
   };
 
   const primarySrc = clipPath ? getStreamUrl(clipPath) : (clipUrl ? getStreamUrl(clipUrl) : "");
-  const fallbackSrc = clipPath ? `local:///${clipPath.replace(/\\/g, "/")}` : "";
+  const fallbackSrc = (clipPath && !clipPath.startsWith("http://") && !clipPath.startsWith("https://"))
+    ? `local:///${clipPath.replace(/^local:\/\/\/?/i, "").replace(/\\/g, "/")}`
+    : "";
   const [currentSrc, setCurrentSrc] = useState<string>(primarySrc);
 
   useEffect(() => {
@@ -167,7 +171,7 @@ const GalleryClipCard: React.FC<{
 
         {clip.start !== undefined && clip.end !== undefined && (
           <div className="absolute top-2 left-11 bg-black/85 backdrop-blur-md px-2 py-0.5 rounded-md text-[10px] font-bold text-emerald-300 border border-emerald-400/30 flex items-center gap-1 shadow-md pointer-events-none z-10">
-            <span>⏱️</span>
+            <Clock className="w-3 h-3 text-emerald-400 shrink-0" />
             <span>{Math.floor(clip.start / 60)}:{(Math.floor(clip.start % 60) < 10 ? "0" : "") + Math.floor(clip.start % 60)} - {Math.floor(clip.end / 60)}:{(Math.floor(clip.end % 60) < 10 ? "0" : "") + Math.floor(clip.end % 60)}</span>
           </div>
         )}
@@ -348,7 +352,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
             onClick={onBackToEditor}
             className="px-3.5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white font-bold text-xs border border-white/10 transition-all flex items-center gap-2 cursor-pointer"
           >
-            <ArrowLeft className="w-3.5 h-3.5" /> Back to Studio
+            <ArrowLeft className="w-3.5 h-3.5" /> Back to Clipper
           </button>
         </div>
       </div>

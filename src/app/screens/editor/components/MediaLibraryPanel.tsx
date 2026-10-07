@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Play, Loader2, Link2, Plus, Upload, Music, Sparkles, Layers, Type, Film, Palette, Zap, Trash2 } from 'lucide-react';
+import { Play, Loader2, Link2, Plus, Upload, Music, Sparkles, Layers, Type, Film, Video, Palette, Zap, Trash2 } from 'lucide-react';
 import { GreenBtn } from '../../../components/SharedUI';
 import { MEDIA_LIBRARY, AUDIO_LIBRARY, FILTER_PRESETS, ANIM_IN_OPTIONS, ANIM_OUT_OPTIONS, saveLibraries, G } from '../../../utils/types';
 import type { VideoClip } from '../../../utils/types';
@@ -140,7 +140,10 @@ export function MediaLibraryPanel() {
           <p className="text-[10px] font-bold uppercase tracking-widest text-[#5a5a5a]">AI Magic Suite</p>
           
           <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 space-y-2">
-            <h4 className="text-xs font-bold text-purple-400">🎬 AI Viral Video Clipper</h4>
+            <h4 className="text-xs font-bold text-purple-400 flex items-center gap-1.5">
+              <Film className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+              <span>AI Viral Video Clipper</span>
+            </h4>
             <p className="text-[10px] text-gray-400">Algorithmically slices timeline into high-energy jump cuts with simulated tracking zooms.</p>
             <button 
               onClick={() => {
@@ -176,7 +179,10 @@ export function MediaLibraryPanel() {
           </div>
 
           <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 space-y-2">
-            <h4 className="text-xs font-bold text-[#34eb3d]">🎥 AI Movie Recapper</h4>
+            <h4 className="text-xs font-bold text-[#34eb3d] flex items-center gap-1.5">
+              <Video className="w-3.5 h-3.5 text-[#34eb3d] shrink-0" />
+              <span>AI Movie Recapper</span>
+            </h4>
             <p className="text-[10px] text-gray-400">Slows playback, adds cinematic color grading, and drops an AI voiceover.</p>
             <button 
               onClick={() => {
@@ -217,7 +223,10 @@ export function MediaLibraryPanel() {
           </div>
 
           <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 space-y-2">
-            <h4 className="text-xs font-bold text-amber-400">📝 AI Auto-Captions</h4>
+            <h4 className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+              <Type className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span>AI Auto-Captions</span>
+            </h4>
             <p className="text-[10px] text-gray-400">Transcribe speech and generate synchronized kinetic typography.</p>
             <button onClick={() => {
               const baseTime = currentState.clips[0] ? currentState.clips[0].startTime : 0;

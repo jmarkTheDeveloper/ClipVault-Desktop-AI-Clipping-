@@ -8,10 +8,12 @@ import { MovieRecapperScreen } from "./screens/MovieRecapperScreen";
 import { LyricCreatorScreen } from "./screens/LyricCreatorScreen";
 import { AiChatVideoScreen } from "./screens/AiChatVideoScreen";
 import { OpusClipperScreen } from "./screens/OpusClipperScreen";
+import { SavedVaultScreen } from "./screens/SavedVaultScreen";
 import { InteractiveTour, FirstTimeWelcomeModal } from "./components/InteractiveTour";
 import { SystemEnvironmentModal } from "./components/SystemEnvironmentModal";
 import { LicenseActivationModal } from "./components/LicenseActivationModal";
-import { AlertTriangle, Check, X } from "lucide-react";
+import { UpdateNotificationModal } from "./components/UpdateNotificationModal";
+import { AlertTriangle, Check, X, Download } from "lucide-react";
 
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; error: any }> {
   constructor(props: any) {
@@ -31,7 +33,7 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
           <div className="w-12 h-12 rounded-2xl bg-amber-400/10 border border-amber-400/30 flex items-center justify-center text-amber-400">
             <AlertTriangle className="w-6 h-6" />
           </div>
-          <h2 className="text-lg font-bold text-white">ClipVault Studio Recovered</h2>
+          <h2 className="text-lg font-bold text-white">ClipVault App Recovered</h2>
           <p className="text-xs text-gray-400 max-w-md text-center">
             {this.state.error?.toString() || "An unexpected rendering glitch occurred. Click below to reload cleanly."}
           </p>
@@ -60,6 +62,7 @@ export type Screen =
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>("project-select");
+  const [vaultPreviousScreen, setVaultPreviousScreen] = useState<Screen>("project-select");
   const [clipperViewMode, setClipperViewMode] = useState<"setup" | "vault">("setup");
 
   // Tour States
@@ -167,17 +170,30 @@ export default function App() {
 
   // Auto-Update State & Listeners
   const [updateNotification, setUpdateNotification] = useState<{
-    status: "idle" | "available" | "downloading" | "ready";
+    status: "idle" | "checking" | "downloading" | "ready";
     version?: string;
     progress?: number;
+    releaseNotes?: any;
   }>({ status: "idle" });
+  const [showUpdateModal, setShowUpdateModal] = useState<boolean>(false);
+  const [isManualCheckingUpdates, setIsManualCheckingUpdates] = useState<boolean>(false);
 
   useEffect(() => {
     const electronAPI = (window as any).electronAPI;
     if (electronAPI) {
+      if (electronAPI.onCheckingForUpdate) {
+        electronAPI.onCheckingForUpdate(() => {
+          setUpdateNotification((prev) => ({ ...prev, status: "checking" }));
+        });
+      }
       if (electronAPI.onUpdateAvailable) {
         electronAPI.onUpdateAvailable((info: any) => {
-          setUpdateNotification({ status: "downloading", version: info?.version, progress: 0 });
+          setUpdateNotification({
+            status: "downloading",
+            version: info?.version,
+            progress: 0,
+            releaseNotes: info?.releaseNotes,
+          });
         });
       }
       if (electronAPI.onUpdateProgress) {
@@ -191,10 +207,43 @@ export default function App() {
       }
       if (electronAPI.onUpdateDownloaded) {
         electronAPI.onUpdateDownloaded((info: any) => {
-          setUpdateNotification({ status: "ready", version: info?.version });
+          setUpdateNotification({
+            status: "ready",
+            version: info?.version,
+            releaseNotes: info?.releaseNotes,
+          });
+          // Automatically prompt user so they know fixes are ready
+          setShowUpdateModal(true);
+        });
+      }
+      if (electronAPI.onUpdateNotAvailable) {
+        electronAPI.onUpdateNotAvailable(() => {
+          setUpdateNotification((prev) => ({ ...prev, status: "idle" }));
         });
       }
     }
+  }, []);
+
+  // Global event listener to open What's New & Bug Fixes from anywhere
+  useEffect(() => {
+    const handleOpenWhatsNew = () => setShowUpdateModal(true);
+    window.addEventListener("clipvault-open-whats-new", handleOpenWhatsNew);
+    (window as any).openWhatsNew = () => setShowUpdateModal(true);
+    return () => window.removeEventListener("clipvault-open-whats-new", handleOpenWhatsNew);
+  }, []);
+
+  // Proactive notification on first run of new release
+  useEffect(() => {
+    try {
+      const lastSeenVersion = localStorage.getItem("clipvault_last_seen_changelog");
+      if (lastSeenVersion !== "1.0.0") {
+        const timer = setTimeout(() => {
+          setShowUpdateModal(true);
+          localStorage.setItem("clipvault_last_seen_changelog", "1.0.0");
+        }, 1200);
+        return () => clearTimeout(timer);
+      }
+    } catch {}
   }, []);
 
   useEffect(() => {
@@ -295,8 +344,8 @@ export default function App() {
     setShowVaultWelcomePrompt(false);
     setTourType("vault");
     setTourStep(1);
-    setScreen("ai-clipper");
-    setClipperViewMode("vault");
+    setVaultPreviousScreen(screen === "saved-vault" ? "project-select" : screen);
+    setScreen("saved-vault");
     setTourActive(true);
   };
 
@@ -333,8 +382,8 @@ export default function App() {
         setTourStep(1);
       } else if (tourStep === 9) {
         // Step 9 is Hardware Export. Next step is Saved Clips Vault!
-        setClipperViewMode("vault");
-        setScreen("ai-clipper");
+        setVaultPreviousScreen("ai-clipper");
+        setScreen("saved-vault");
         setTourStep(10);
       } else if (tourStep < 13) {
         setTourStep((prev) => prev + 1);
@@ -442,7 +491,7 @@ export default function App() {
               } else if (mode === "movie-recapper") {
                 setScreen("movie-recapper");
               } else if (mode === "saved-vault") {
-                setClipperViewMode("vault");
+                setVaultPreviousScreen("project-select");
                 setScreen("saved-vault");
               }
             }}
@@ -456,14 +505,22 @@ export default function App() {
             isLicensed={isLicensed}
             onOpenActivation={() => setShowActivationModal(true)}
             onGoToVault={() => {
-              setClipperViewMode("vault");
+              setVaultPreviousScreen("opus-clipper");
               setScreen("saved-vault");
             }}
           />
         )}
 
+        {/* Dedicated Independent Saved Clips Vault (Decoupled from Pro Studio) */}
+        {screen === "saved-vault" && (
+          <SavedVaultScreen
+            onBack={() => setScreen(vaultPreviousScreen || "project-select")}
+            onStartVaultTour={handleStartVaultTour}
+          />
+        )}
+
         {/* Persistently mounted AiClipperScreen so background processing and compiler NEVER reset when going back */}
-        <div style={{ display: screen === "ai-clipper" || screen === "saved-vault" ? "block" : "none", height: "100%", width: "100%" }}>
+        <div style={{ display: screen === "ai-clipper" ? "block" : "none", height: "100%", width: "100%" }}>
           <AiClipperScreen 
             onBack={() => setScreen("project-select")} 
             initialViewMode={clipperViewMode}
@@ -471,6 +528,11 @@ export default function App() {
             onStartVaultTour={handleStartVaultTour}
             onTriggerVaultWelcome={() => setShowVaultWelcomePrompt(true)}
             activeScreen={screen}
+            onGoToVault={() => {
+              setVaultPreviousScreen("ai-clipper");
+              setScreen("saved-vault");
+            }}
+            isLicensed={isLicensed}
           />
         </div>
 
@@ -561,37 +623,86 @@ export default function App() {
           </div>
         )}
 
-        {/* Auto-Update Notification Banner */}
+        {/* Auto-Update Notification Banner: Update Ready */}
         {updateNotification.status === "ready" && (
           <div className="fixed top-6 right-6 z-[9999] animate-in fade-in slide-in-from-top-4 duration-300">
-            <div className="flex items-center gap-3.5 bg-[#07150a]/95 border border-[#34eb3d]/60 shadow-[0_12px_36px_rgba(0,0,0,0.9),0_0_25px_rgba(52, 235, 61,0.3)] px-4 py-3 rounded-2xl backdrop-blur-xl">
+            <div className="flex items-center gap-3.5 bg-[#07150a]/95 border border-[#34eb3d]/60 shadow-[0_12px_36px_rgba(0,0,0,0.9),0_0_25px_rgba(52, 235, 61,0.35)] px-4 py-3 rounded-2xl backdrop-blur-xl">
               <div className="w-2.5 h-2.5 rounded-full bg-[#34eb3d] animate-pulse flex-shrink-0" />
-              <div className="text-xs text-white">
-                <span className="font-bold text-[#34eb3d]">ClipVault v{updateNotification.version || "New"}</span> is ready to install!
+              <div>
+                <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5 text-[#34eb3d]" />
+                  Bug Fixes Ready (v{updateNotification.version || "New"})
+                </div>
+                <div className="text-[10.5px] text-gray-300">
+                  Restart now to apply the latest improvements
+                </div>
               </div>
               <button
-                onClick={() => (window as any).electronAPI?.restartAndInstallUpdate?.()}
-                className="px-3.5 py-1.5 bg-[#34eb3d] hover:brightness-110 text-black text-xs font-bold rounded-xl transition-all cursor-pointer shadow-sm"
+                onClick={() => setShowUpdateModal(true)}
+                className="px-2.5 py-1.5 bg-white/10 hover:bg-white/15 text-gray-200 text-xs font-bold rounded-xl transition-all cursor-pointer"
               >
-                Restart & Update
+                View Fixes
+              </button>
+              <button
+                onClick={() => (window as any).electronAPI?.restartAndInstallUpdate?.()}
+                className="px-3.5 py-1.5 bg-[#34eb3d] hover:bg-[#2dca34] text-black text-xs font-extrabold rounded-xl transition-all cursor-pointer shadow-md"
+              >
+                Restart &amp; Update
               </button>
             </div>
           </div>
         )}
+
+        {/* Auto-Update Notification Banner: Update Ongoing in Background */}
         {updateNotification.status === "downloading" && (
-          <div className="fixed top-6 right-6 z-[9999] animate-in fade-in slide-in-from-top-4 duration-300">
-            <div className="flex items-center gap-2.5 bg-black/85 border border-white/15 px-3.5 py-2 rounded-2xl shadow-lg backdrop-blur-xl text-xs text-gray-300">
-              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse flex-shrink-0" />
-              <span>Downloading update {updateNotification.progress ? `(${updateNotification.progress}%)` : "..."}</span>
+          <div
+            onClick={() => setShowUpdateModal(true)}
+            className="fixed top-6 right-6 z-[9999] animate-in fade-in slide-in-from-top-4 duration-300 cursor-pointer hover:scale-[1.02] transition-all"
+            title="Click to view ongoing update and bug fixes"
+          >
+            <div className="flex items-center gap-3 bg-[#0c1017]/95 border border-amber-400/50 shadow-[0_12px_36px_rgba(0,0,0,0.9),0_0_25px_rgba(245, 158, 11, 0.25)] px-4 py-2.5 rounded-2xl backdrop-blur-xl text-xs text-white">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping flex-shrink-0" />
+              <div>
+                <div className="font-bold text-amber-300 flex items-center gap-1.5">
+                  <Download className="w-3.5 h-3.5" />
+                  Update Ongoing: v{updateNotification.version || "New"}
+                </div>
+                <div className="text-[10.5px] text-gray-300">
+                  Downloading bug fixes ({updateNotification.progress || 0}%) • Click to view
+                </div>
+              </div>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                View Details
+              </span>
             </div>
           </div>
         )}
+
+        {/* Proactive What's New & Bug Fixes Modal */}
+        <UpdateNotificationModal
+          isOpen={showUpdateModal}
+          onClose={() => setShowUpdateModal(false)}
+          updateState={updateNotification}
+          onRestartAndInstall={() => (window as any).electronAPI?.restartAndInstallUpdate?.()}
+          onCheckForUpdates={async () => {
+            setIsManualCheckingUpdates(true);
+            try {
+              const electronAPI = (window as any).electronAPI;
+              if (electronAPI?.checkForUpdates) {
+                await electronAPI.checkForUpdates();
+              }
+            } finally {
+              setTimeout(() => setIsManualCheckingUpdates(false), 1200);
+            }
+          }}
+          isCheckingUpdates={isManualCheckingUpdates}
+        />
 
         {/* Global Floating Completion Banner */}
         {showDoneToast && screen !== "ai-clipper" && screen !== "saved-vault" && (
           <div
             onClick={() => {
-              setClipperViewMode("vault");
+              setVaultPreviousScreen(screen);
               setScreen("saved-vault");
               setShowDoneToast(false);
             }}

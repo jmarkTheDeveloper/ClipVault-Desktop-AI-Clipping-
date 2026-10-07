@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Download, ExternalLink, Copy, Check, Trash2, Folder, AlertTriangle, X, Film, Sparkles, Share2, Upload, Youtube, Globe } from "lucide-react";
+import { Download, ExternalLink, Copy, Check, Trash2, Folder, AlertTriangle, X, Film, Sparkles, Share2, Upload, Youtube, Globe, Clock } from "lucide-react";
 import type { ClipMetadata } from "./types";
 import { ClipCustomizerModal } from "./ClipCustomizerModal";
 
@@ -151,8 +151,9 @@ export const ClipDetailsModal: React.FC<ClipDetailsModalProps> = ({
                 Score: {clip.virality_score || 99} pts
               </span>
               {clip.start !== undefined && clip.end !== undefined && (
-                <span className="text-xs bg-emerald-400/10 text-emerald-300 border border-emerald-400/30 px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1">
-                  ⏱️ Timeline: {Math.floor(clip.start / 60)}:{(Math.floor(clip.start % 60) < 10 ? "0" : "") + Math.floor(clip.start % 60)} - {Math.floor(clip.end / 60)}:{(Math.floor(clip.end % 60) < 10 ? "0" : "") + Math.floor(clip.end % 60)}
+                <span className="text-xs bg-emerald-400/10 text-emerald-300 border border-emerald-400/30 px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  Timeline: {Math.floor(clip.start / 60)}:{(Math.floor(clip.start % 60) < 10 ? "0" : "") + Math.floor(clip.start % 60)} - {Math.floor(clip.end / 60)}:{(Math.floor(clip.end % 60) < 10 ? "0" : "") + Math.floor(clip.end % 60)}
                   {clip.duration ? ` (${Math.round(clip.duration)}s)` : ""}
                 </span>
               )}
@@ -261,7 +262,7 @@ export const ClipDetailsModal: React.FC<ClipDetailsModalProps> = ({
                   </div>
                   <div>
                     <span className="text-xs font-bold text-gray-200 block">
-                      Quick Publish &amp; Web Studio
+                      Quick Publish &amp; Web Platforms
                     </span>
                     <span className="text-[10px] text-gray-400">
                       Copies title, description &amp; hashtags to clipboard, then opens web uploader
@@ -302,7 +303,7 @@ export const ClipDetailsModal: React.FC<ClipDetailsModalProps> = ({
                   </div>
                   <div>
                     <span className="text-xs font-bold text-white block group-hover:text-red-300 transition-colors">YouTube</span>
-                    <span className="text-[9.5px] text-gray-400 font-mono">Studio Shorts</span>
+                    <span className="text-[9.5px] text-gray-400 font-mono">Shorts Upload</span>
                   </div>
                 </button>
 
@@ -317,7 +318,7 @@ export const ClipDetailsModal: React.FC<ClipDetailsModalProps> = ({
                   </div>
                   <div>
                     <span className="text-xs font-bold text-white block group-hover:text-pink-300 transition-colors">Instagram</span>
-                    <span className="text-[9.5px] text-gray-400 font-mono">Reels Studio</span>
+                    <span className="text-[9.5px] text-gray-400 font-mono">Reels Upload</span>
                   </div>
                 </button>
 
@@ -332,7 +333,7 @@ export const ClipDetailsModal: React.FC<ClipDetailsModalProps> = ({
                   </div>
                   <div>
                     <span className="text-xs font-bold text-white block group-hover:text-blue-300 transition-colors">Meta Suite</span>
-                    <span className="text-[9.5px] text-gray-400 font-mono">Business Studio</span>
+                    <span className="text-[9.5px] text-gray-400 font-mono">Business Upload</span>
                   </div>
                 </button>
               </div>

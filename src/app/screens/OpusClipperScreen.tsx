@@ -58,6 +58,7 @@ interface ClipResult {
   filename: string;
   path: string;
   url: string;
+  thumbnail_url?: string;
   title: string;
   duration: number;
   virality_score: number;
@@ -69,6 +70,8 @@ interface ClipResult {
   };
   reason?: string;
   content_description?: string;
+  start?: number;
+  end?: number;
 }
 
 export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActivation }: Props) {
@@ -281,6 +284,11 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
   const [activeClipIndex, setActiveClipIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [videoSrc, setVideoSrc] = useState<string>("");
+  const [videoFallback, setVideoFallback] = useState<string>("");
+  const [currentTime, setCurrentTime] = useState<number>(0);
+  const [videoDuration, setVideoDuration] = useState<number>(0);
+  const [isBuffering, setIsBuffering] = useState<boolean>(false);
   const [copiedTitle, setCopiedTitle] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -410,17 +418,44 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
           clearInterval(pollInterval);
           setIsGenerating(false);
           if (Array.isArray(data.clips) && data.clips.length > 0) {
-            const formatted: ClipResult[] = data.clips.map((c: any, idx: number) => ({
-              filename: typeof c === "string" ? c : c.filename || `Clip_${idx + 1}.mp4`,
-              path: typeof c === "string" ? c : c.path || "",
-              url: typeof c === "string" ? `http://127.0.0.1:8000/stream?path=${encodeURIComponent(c)}` : c.url || `http://127.0.0.1:8000/stream?path=${encodeURIComponent(c.path || "")}`,
-              title: c.title || `${data.title || "Viral Clip"} #${idx + 1}`,
-              duration: c.duration || 45,
-              virality_score: c.virality_score || 95,
-              sub_scores: c.sub_scores || { hook: 96, flow: 94, value: 97, trend: 95 },
-              reason: c.reason || "High emotional engagement hook with natural conversational pacing.",
-              content_description: c.content_description || "",
-            }));
+            const rawFilePaths = Array.isArray(data.file_paths) ? data.file_paths : [];
+            const formatted: ClipResult[] = data.clips.map((c: any, idx: number) => {
+              const rawDisk = typeof c === "string"
+                ? (c.startsWith("http://") || c.startsWith("https://") ? (rawFilePaths[idx] || "") : c)
+                : (c.path || rawFilePaths[idx] || "");
+              
+              const rawFilename = typeof c === "string" ? c : (c.filename || c.path || `Clip_${idx + 1}.mp4`);
+              const cleanFilename = (rawFilename.split(/[\\/]/).pop() || `Clip_${idx + 1}.mp4`).split("?")[0];
+
+              let streamUrl = "";
+              if (rawDisk) {
+                const clean = rawDisk.replace(/^local:\/\/\/?/i, "");
+                streamUrl = `http://127.0.0.1:8000/stream?path=${encodeURIComponent(clean)}`;
+              } else if (typeof c === "string") {
+                streamUrl = c.startsWith("http://") || c.startsWith("https://") ? encodeURI(c) : `http://127.0.0.1:8000/stream?path=${encodeURIComponent(c)}`;
+              } else if (c.url) {
+                streamUrl = c.url.startsWith("http://") || c.url.startsWith("https://") ? encodeURI(c.url) : `http://127.0.0.1:8000/stream?path=${encodeURIComponent(c.url)}`;
+              }
+
+              const thumbUrl = (typeof c === "object" && c.thumbnail_url)
+                ? c.thumbnail_url
+                : (rawDisk ? `http://127.0.0.1:8000/api/thumbnail?path=${encodeURIComponent(rawDisk)}` : "");
+
+              return {
+                filename: cleanFilename,
+                path: rawDisk,
+                url: streamUrl,
+                thumbnail_url: thumbUrl,
+                title: (typeof c === "object" && c.title) ? c.title : `${data.title || "Viral Clip"} #${idx + 1}`,
+                duration: (typeof c === "object" && typeof c.duration === "number") ? c.duration : 45,
+                virality_score: (typeof c === "object" && typeof c.virality_score === "number") ? c.virality_score : 95,
+                sub_scores: (typeof c === "object" && c.sub_scores) ? c.sub_scores : { hook: 96, flow: 94, value: 97, trend: 95 },
+                reason: (typeof c === "object" && c.reason) ? c.reason : "High emotional engagement hook with natural conversational pacing.",
+                content_description: (typeof c === "object" && c.content_description) ? c.content_description : "",
+                start: typeof c === "object" ? c.start : undefined,
+                end: typeof c === "object" ? c.end : undefined,
+              };
+            });
             setGeneratedClips(formatted);
             setActiveClipIndex(0);
           } else {
@@ -592,23 +627,64 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
     setProgressStatus("Cancelled by user.");
   };
 
-  // Open output folder
+  // Open output folder or reveal active clip in Explorer
   const handleOpenFolder = async () => {
     try {
-      await fetch("http://127.0.0.1:8000/api/open_folder", { method: "POST" });
+      if (activeClip?.path && (window as any).electronAPI?.showItemInFolder) {
+        (window as any).electronAPI.showItemInFolder(activeClip.path);
+        return;
+      }
+      await fetch("http://127.0.0.1:8000/api/open_folder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(activeClip?.path ? { folder_path: activeClip.path } : {}),
+      });
     } catch {}
   };
 
   const activeClip = generatedClips[activeClipIndex] || null;
 
+  // Keep video source synced and reset video element cleanly on clip switch
+  useEffect(() => {
+    if (!activeClip) {
+      setVideoSrc("");
+      setVideoFallback("");
+      setCurrentTime(0);
+      setVideoDuration(0);
+      setIsPlaying(false);
+      return;
+    }
+
+    const clipPath = activeClip.path || "";
+    const cleanPath = clipPath.replace(/^local:\/\/\/?/i, "");
+    const primary = cleanPath
+      ? `http://127.0.0.1:8000/stream?path=${encodeURIComponent(cleanPath)}`
+      : (activeClip.url ? encodeURI(activeClip.url) : "");
+    const fallback = cleanPath ? `local:///${cleanPath.replace(/\\/g, "/")}` : "";
+
+    setVideoSrc(primary);
+    setVideoFallback(fallback);
+    setIsPlaying(false);
+    setCurrentTime(0);
+    setVideoDuration(activeClip.duration || 0);
+
+    if (videoRef.current) {
+      videoRef.current.pause();
+      try {
+        videoRef.current.currentTime = 0;
+        videoRef.current.load();
+      } catch {}
+    }
+  }, [activeClipIndex, activeClip?.path, activeClip?.url]);
+
   return (
     <div className="h-screen w-screen flex flex-col bg-[#070709] text-white select-none overflow-hidden">
       {/* Top Header Navigation Bar */}
       <header
-        className="h-14 pl-6 pr-40 border-b border-white/[0.08] flex items-center justify-between bg-[#0b0b0e]/90 backdrop-blur-md z-20 flex-shrink-0"
-        style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
+        className="h-14 pl-6 border-b border-white/[0.08] flex items-center justify-between bg-[#0b0b0e]/90 backdrop-blur-md z-20 flex-shrink-0"
+        style={{ WebkitAppRegion: "drag", paddingRight: "150px" } as React.CSSProperties}
       >
-        <div className="flex items-center gap-4" style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}>
+        <div className="flex items-center gap-3" style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}>
           <button
             type="button"
             onClick={onBack}
@@ -622,6 +698,18 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
           <div className="flex items-center gap-2">
             <span className="text-sm font-bold tracking-tight text-white">1-Click Auto Clipper</span>
           </div>
+
+          {onGoToVault && (
+            <button
+              type="button"
+              onClick={onGoToVault}
+              className="px-3 py-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-xs font-semibold text-gray-300 hover:text-white transition-all flex items-center gap-1.5 cursor-pointer border border-white/[0.08] ml-2"
+              title="Open Dedicated Saved Clips Vault"
+            >
+              <FolderOpen className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Saved Vault</span>
+            </button>
+          )}
         </div>
 
         <div className="flex items-center gap-2.5" style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}>
@@ -682,17 +770,6 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
               }`}
             />
           </button>
-
-          {onGoToVault && (
-            <button
-              type="button"
-              onClick={onGoToVault}
-              className="px-3 py-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-xs font-semibold text-gray-300 hover:text-white transition-all flex items-center gap-1.5 cursor-pointer border border-white/[0.08]"
-            >
-              <FolderOpen className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Saved Vault</span>
-            </button>
-          )}
         </div>
       </header>
 
@@ -733,55 +810,135 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
                   {/* Left Column: Phone Player Preview */}
                   <div className="md:col-span-5 flex flex-col items-center justify-center">
                     <div
-                      className="relative bg-black rounded-2xl overflow-hidden shadow-2xl border border-white/10 flex items-center justify-center"
+                      className="relative bg-black rounded-2xl overflow-hidden shadow-2xl border border-white/10 flex items-center justify-center group"
                       style={{
                         width: aspectRatio === "9:16" ? 270 : aspectRatio === "1:1" ? 320 : 360,
                         height: aspectRatio === "9:16" ? 480 : aspectRatio === "1:1" ? 320 : 202,
                       }}
                     >
-                      <video
-                        ref={videoRef}
-                        src={activeClip.url}
-                        className="w-full h-full object-cover cursor-pointer"
-                        playsInline
-                        muted={isMuted}
-                        onClick={() => {
-                          if (videoRef.current) {
-                            if (isPlaying) videoRef.current.pause();
-                            else videoRef.current.play();
-                            setIsPlaying(!isPlaying);
-                          }
-                        }}
-                        onPlay={() => setIsPlaying(true)}
-                        onPause={() => setIsPlaying(false)}
-                      />
+                      {videoSrc ? (
+                        <video
+                          ref={videoRef}
+                          src={videoSrc}
+                          className="w-full h-full object-contain cursor-pointer bg-black"
+                          playsInline
+                          muted={isMuted}
+                          onWaiting={() => setIsBuffering(true)}
+                          onPlaying={() => setIsBuffering(false)}
+                          onTimeUpdate={() => {
+                            if (videoRef.current) {
+                              setCurrentTime(videoRef.current.currentTime);
+                              if (videoRef.current.duration && !isNaN(videoRef.current.duration)) {
+                                setVideoDuration(videoRef.current.duration);
+                              }
+                            }
+                          }}
+                          onLoadedMetadata={() => {
+                            if (videoRef.current?.duration && !isNaN(videoRef.current.duration)) {
+                              setVideoDuration(videoRef.current.duration);
+                            }
+                          }}
+                          onError={() => {
+                            if (videoSrc !== videoFallback && videoFallback) {
+                              setVideoSrc(videoFallback);
+                            }
+                          }}
+                          onClick={() => {
+                            if (videoRef.current) {
+                              if (isPlaying) videoRef.current.pause();
+                              else videoRef.current.play().catch(() => {});
+                              setIsPlaying(!isPlaying);
+                            }
+                          }}
+                          onPlay={() => setIsPlaying(true)}
+                          onPause={() => setIsPlaying(false)}
+                        />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center text-gray-500 gap-2">
+                          <Play className="w-8 h-8 text-gray-600" />
+                          <span className="text-xs">No media loaded</span>
+                        </div>
+                      )}
+
+                      {/* Buffering Indicator */}
+                      {isBuffering && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/40 pointer-events-none z-10">
+                          <Loader2 className="w-8 h-8 text-[#34eb3d] animate-spin" />
+                        </div>
+                      )}
 
                       {/* Centered Play Button Overlay */}
-                      {!isPlaying && (
+                      {!isPlaying && !isBuffering && (
                         <div
                           onClick={() => {
-                            videoRef.current?.play();
+                            videoRef.current?.play().catch(() => {});
                             setIsPlaying(true);
                           }}
-                          className="absolute inset-0 flex items-center justify-center bg-black/30 cursor-pointer transition-all"
+                          className="absolute inset-0 flex items-center justify-center bg-black/30 cursor-pointer transition-all z-10"
                         >
-                          <div className="w-12 h-12 rounded-full bg-[#34eb3d] text-black flex items-center justify-center shadow-lg hover:scale-105 transition-all">
+                          <div className="w-12 h-12 rounded-full bg-[#34eb3d] text-black flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all">
                             <Play className="w-6 h-6 ml-0.5 fill-black" />
                           </div>
                         </div>
                       )}
 
-                      {/* Audio mute toggle */}
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setIsMuted(!isMuted);
-                        }}
-                        className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center text-white/80 hover:text-white cursor-pointer"
-                      >
-                        {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-                      </button>
+                      {/* Bottom Media Controls Bar */}
+                      <div className="absolute bottom-0 inset-x-0 p-3 bg-gradient-to-t from-black/90 via-black/60 to-transparent flex flex-col gap-1.5 opacity-90 group-hover:opacity-100 transition-opacity z-20">
+                        {/* Timeline Scrubber */}
+                        <div className="w-full flex items-center gap-2">
+                          <input
+                            type="range"
+                            min={0}
+                            max={videoDuration || 1}
+                            step={0.1}
+                            value={currentTime}
+                            onChange={(e) => {
+                              const newTime = parseFloat(e.target.value);
+                              setCurrentTime(newTime);
+                              if (videoRef.current) {
+                                videoRef.current.currentTime = newTime;
+                              }
+                            }}
+                            className="w-full h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-[#34eb3d] hover:h-1.5 transition-all"
+                          />
+                        </div>
+
+                        {/* Control Buttons & Timestamp */}
+                        <div className="flex items-center justify-between text-[11px] text-gray-300 font-mono">
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (videoRef.current) {
+                                  if (isPlaying) videoRef.current.pause();
+                                  else videoRef.current.play().catch(() => {});
+                                  setIsPlaying(!isPlaying);
+                                }
+                              }}
+                              className="text-white hover:text-[#34eb3d] transition-colors cursor-pointer"
+                            >
+                              {isPlaying ? <Pause className="w-3.5 h-3.5 fill-white" /> : <Play className="w-3.5 h-3.5 fill-white" />}
+                            </button>
+                            <span>
+                              {Math.floor(currentTime / 60)}:{(Math.floor(currentTime % 60) < 10 ? "0" : "") + Math.floor(currentTime % 60)} / {Math.floor(videoDuration / 60)}:{(Math.floor(videoDuration % 60) < 10 ? "0" : "") + Math.floor(videoDuration % 60)}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setIsMuted(!isMuted);
+                              }}
+                              className="text-white/80 hover:text-white transition-colors cursor-pointer"
+                            >
+                              {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
@@ -883,7 +1040,7 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
               )}
 
               {/* Clip Thumbnails Carousel / Selector */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
                 {generatedClips.map((clip, idx) => (
                   <div
                     key={idx}
@@ -891,18 +1048,43 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
                       setActiveClipIndex(idx);
                       setIsPlaying(false);
                     }}
-                    className={`p-3 rounded-xl border transition-all cursor-pointer flex flex-col gap-1.5 ${
+                    className={`rounded-xl border transition-all cursor-pointer flex flex-col overflow-hidden group/thumb ${
                       activeClipIndex === idx
-                        ? "bg-[#34eb3d]/10 border-[#34eb3d] shadow-lg shadow-[#34eb3d]/10"
-                        : "bg-white/[0.03] border-white/[0.08] hover:bg-white/[0.06]"
+                        ? "bg-[#34eb3d]/10 border-[#34eb3d] ring-1 ring-[#34eb3d]/40 shadow-xl shadow-[#34eb3d]/10"
+                        : "bg-white/[0.03] border-white/[0.08] hover:bg-white/[0.06] hover:border-white/20"
                     }`}
                   >
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-bold text-white">Clip #{idx + 1}</span>
-                      <span className="font-bold text-emerald-400 text-[11px]">{clip.virality_score} pts</span>
+                    {/* Visual Thumbnail Frame */}
+                    <div className="relative w-full aspect-[9/16] bg-black/80 overflow-hidden flex items-center justify-center">
+                      <img
+                        src={clip.thumbnail_url || (clip.path ? `http://127.0.0.1:8000/api/thumbnail?path=${encodeURIComponent(clip.path)}` : "")}
+                        alt={clip.title}
+                        className="w-full h-full object-cover group-hover/thumb:scale-105 transition-transform duration-300"
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = "none";
+                        }}
+                      />
+                      {/* Play badge */}
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover/thumb:bg-black/0 transition-colors pointer-events-none">
+                        <div className="w-8 h-8 rounded-full bg-black/60 border border-white/20 flex items-center justify-center shadow-md">
+                          <Play className="w-3.5 h-3.5 text-white fill-white ml-0.5" />
+                        </div>
+                      </div>
+                      <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-black/80 backdrop-blur-md text-[10px] font-bold text-white border border-white/10">
+                        #{idx + 1}
+                      </div>
+                      <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-black/80 backdrop-blur-md text-[10px] font-bold text-[#34eb3d] border border-[#34eb3d]/30">
+                        {clip.virality_score} pts
+                      </div>
+                      <div className="absolute bottom-2 left-2 px-1.5 py-0.5 rounded bg-black/80 text-[10px] font-mono text-gray-300">
+                        {clip.duration.toFixed(0)}s
+                      </div>
                     </div>
-                    <p className="text-[11px] text-gray-400 truncate">{clip.title}</p>
-                    <span className="text-[10px] text-gray-500">{clip.duration.toFixed(0)}s</span>
+
+                    <div className="p-2.5 flex flex-col gap-0.5">
+                      <p className="text-xs font-bold text-white truncate">{clip.title}</p>
+                      <span className="text-[10px] text-gray-400 font-mono truncate">{clip.filename}</span>
+                    </div>
                   </div>
                 ))}
               </div>

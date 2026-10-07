@@ -23,7 +23,7 @@ export function LyricCreatorScreen({ onBack }: Props) {
       <div className="pointer-events-none fixed inset-0 z-0" style={{ background: "radial-gradient(ellipse 50% 50% at 50% 0%, rgba(236,72,153,0.07) 0%, transparent 70%)" }} />
 
       {/* Header */}
-      <header className="relative z-10 flex items-center gap-4 px-8 h-16 flex-shrink-0" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)", background: "rgba(5,5,5,0.9)", backdropFilter: "blur(20px)" }}>
+      <header className="relative z-10 flex items-center gap-4 pl-8 h-16 flex-shrink-0" style={{ paddingRight: "150px", borderBottom: "1px solid rgba(255,255,255,0.05)", background: "rgba(5,5,5,0.9)", backdropFilter: "blur(20px)" }}>
         <button onClick={onBack} className="flex items-center gap-2 text-sm transition-colors hover:text-white" style={{ color: "#5a5a5a" }}>
           <ArrowLeft className="w-4 h-4" />Back
         </button>
@@ -33,7 +33,7 @@ export function LyricCreatorScreen({ onBack }: Props) {
             <Music className="w-3.5 h-3.5 text-white" strokeWidth={2.5} />
           </div>
           <span className="text-white font-bold">Lyric Creator</span>
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: "rgba(236,72,153,0.1)", color: ACCENT, border: "1px solid rgba(236,72,153,0.2)" }}>🎵 Coming Soon</span>
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: "rgba(236,72,153,0.1)", color: ACCENT, border: "1px solid rgba(236,72,153,0.2)" }}>Coming Soon</span>
         </div>
       </header>
 

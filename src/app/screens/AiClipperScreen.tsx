@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { ArrowLeft, Zap, FolderCheck, Cpu, Download, Folder, Plus, FolderOpen, AlertCircle, HardDrive, ShieldCheck, Sparkles, Lock } from "lucide-react";
+import { ArrowLeft, Zap, FolderCheck, Cpu, Download, Folder, Plus, FolderOpen, AlertCircle, HardDrive, ShieldCheck, Sparkles, Lock, X } from "lucide-react";
 import { CreatorMaxUpgradeModal } from "../components/CreatorMaxUpgradeModal";
 import { EngineSettingsModal } from "../components/clipper/EngineSettingsModal";
 import type { ByokMode } from "../components/clipper/EngineSettingsModal";
@@ -21,6 +21,8 @@ interface Props {
   onStartVaultTour?: () => void;
   onTriggerVaultWelcome?: () => void;
   activeScreen?: string;
+  onGoToVault?: () => void;
+  isLicensed?: boolean;
 }
 
 export const AI_ENGINES: EngineOption[] = [
@@ -203,9 +205,18 @@ export const AiClipperScreen: React.FC<Props> = ({
   onStartVaultTour,
   onTriggerVaultWelcome,
   activeScreen,
+  onGoToVault,
+  isLicensed = true,
 }) => {
   // Navigation & View States
   const [viewMode, setViewMode] = useState<ViewMode>(initialViewMode);
+
+  // Security License Guard: prevent unlicensed access to Pro Manual Studio
+  useEffect(() => {
+    if (isLicensed === false && activeScreen === "ai-clipper") {
+      onBack();
+    }
+  }, [isLicensed, activeScreen, onBack]);
 
   // Pro Manual Studio Credit Tracking ($15 Pro: 3 clips/wk, Max: unlimited)
   const [studioCredits, setStudioCredits] = useState<{
@@ -1281,7 +1292,11 @@ export const AiClipperScreen: React.FC<Props> = ({
             setGeneratedClips(data.clips || []);
             if (data.output_dir) setLastOutputFolder(data.output_dir);
             loadVaultClips(false);
-            setViewMode("vault");
+            if (onGoToVault) {
+              onGoToVault();
+            } else {
+              setViewMode("vault");
+            }
             const clipCount = (data.clips || []).length || 1;
             triggerDesktopNotification(
               "Video Processing Complete",
@@ -1573,7 +1588,7 @@ export const AiClipperScreen: React.FC<Props> = ({
       if (res.ok) {
         setMoveModalClips(null);
         setSelectedClipPaths([]);
-        setExportNotice(`✓ Moved ${clipPaths.length} clip(s) to "${cleanTarget}"`);
+        setExportNotice(`Moved ${clipPaths.length} clip(s) to "${cleanTarget}"`);
         setTimeout(() => setExportNotice(""), 3500);
         loadVaultClips(true); // Silent sync
       }
@@ -1772,7 +1787,10 @@ export const AiClipperScreen: React.FC<Props> = ({
       />
 
       {/* Header Bar */}
-      <header className="relative z-10 flex items-center justify-between pl-8 pr-44 pt-2 h-14 flex-shrink-0 border-b border-white/10 bg-[#080c14] backdrop-blur-xl">
+      <header
+        className="relative z-10 flex items-center justify-between pl-8 pt-2 h-14 flex-shrink-0 border-b border-white/10 bg-[#080c14] backdrop-blur-xl"
+        style={{ paddingRight: "150px" }}
+      >
         <div className="flex items-center gap-4">
           <button
             onClick={onBack}
@@ -1782,45 +1800,34 @@ export const AiClipperScreen: React.FC<Props> = ({
           </button>
           <div className="w-px h-5 bg-white/10" />
           <div className="flex items-center gap-2.5">
-            <span className="text-white font-bold text-base">ClipVault Studio</span>
+            <span className="text-white font-bold text-base">ClipVault Pro</span>
             <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-[#34eb3d]/10 text-[#34eb3d] border border-[#34eb3d]/25 tracking-wide">
-              V1
+              PRO
             </span>
           </div>
 
-          {/* View Mode Tabs */}
-          <div className="flex items-center bg-black/40 border border-white/10 rounded-xl p-1 ml-2 gap-1">
-            <button
-              type="button"
-              onClick={() => setViewMode("setup")}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                viewMode === "setup"
-                  ? "bg-gradient-to-r from-[#34eb3d] to-[#5def64] text-black shadow-[0_0_15px_rgba(52, 235, 61,0.4)]"
-                  : "text-gray-400 hover:text-white hover:bg-white/5"
-              }`}
-            >
-              <Zap className="w-3.5 h-3.5" /> Clipper Studio
-            </button>
-            <button
-              type="button"
-              onClick={() => {
+          {/* Standalone Saved Vault Shortcut (Decoupled from Studio tabs) */}
+          <button
+            type="button"
+            onClick={() => {
+              if (onGoToVault) {
+                onGoToVault();
+              } else {
                 setViewMode("vault");
                 loadVaultClips(true);
-              }}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                viewMode === "vault"
-                  ? "bg-gradient-to-r from-[#34eb3d] to-[#2dca34] text-black shadow-[0_0_12px_rgba(52, 235, 61,0.2)]"
-                  : "text-gray-400 hover:text-white hover:bg-white/5"
-              }`}
-            >
-              <FolderCheck className={`w-3.5 h-3.5 ${viewMode === "vault" ? "text-black" : "text-emerald-400"}`} /> Saved Clips Vault
-              {vaultClips.length > 0 && (
-                <span className="text-[10px] bg-white/20 px-1.5 py-0.2 rounded-full font-extrabold ml-0.5">
-                  {vaultClips.length}
-                </span>
-              )}
-            </button>
-          </div>
+              }
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-[#34eb3d]/15 text-gray-300 hover:text-[#34eb3d] border border-white/10 hover:border-[#34eb3d]/30 text-xs font-bold transition-all cursor-pointer ml-2 shadow-sm"
+            title="Open Dedicated Saved Clips Vault"
+          >
+            <FolderCheck className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Saved Vault</span>
+            {vaultClips.length > 0 && (
+              <span className="text-[10px] bg-white/10 px-1.5 py-0.2 rounded-full font-bold text-gray-300">
+                {vaultClips.length}
+              </span>
+            )}
+          </button>
         </div>
 
         {/* Pro Manual Studio Credit Status & Engine */}
@@ -1838,7 +1845,7 @@ export const AiClipperScreen: React.FC<Props> = ({
             >
               <Sparkles className="w-3.5 h-3.5 text-[#34eb3d]" />
               <span>
-                {`Pro Studio: ${effectiveStudioCredits.remaining}/3 Weekly Clips`}
+                {`Pro Editor: ${effectiveStudioCredits.remaining}/3 Weekly Clips`}
               </span>
               <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-white/10 text-zinc-300">
                 {effectiveStudioCredits.remaining > 0 ? "Upgrade" : `Resets in ${effectiveStudioCredits.resets_in_days}d`}
@@ -2291,8 +2298,8 @@ export const AiClipperScreen: React.FC<Props> = ({
               <h3 className="text-white font-bold text-sm flex items-center gap-2">
                 <Folder className="w-5 h-5 text-emerald-400" /> Move {moveModalClips.length} Clip(s) To:
               </h3>
-              <button onClick={() => setMoveModalClips(null)} className="text-gray-400 hover:text-white cursor-pointer">
-                ✕
+              <button onClick={() => setMoveModalClips(null)} className="text-gray-400 hover:text-white cursor-pointer p-1 rounded-lg hover:bg-white/10 transition-colors">
+                <X className="w-4 h-4" />
               </button>
             </div>
             <div className="flex flex-col gap-2 max-h-60 overflow-y-auto pr-1">
@@ -2347,8 +2354,8 @@ export const AiClipperScreen: React.FC<Props> = ({
                   ? `New Subfolder in "${newFolderParent}"`
                   : "Create New Folder"}
               </h3>
-              <button onClick={() => setShowNewFolderModal(false)} className="text-gray-400 hover:text-white cursor-pointer">
-                ✕
+              <button onClick={() => setShowNewFolderModal(false)} className="text-gray-400 hover:text-white cursor-pointer p-1 rounded-lg hover:bg-white/10 transition-colors">
+                <X className="w-4 h-4" />
               </button>
             </div>
 

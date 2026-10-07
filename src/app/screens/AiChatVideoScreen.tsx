@@ -3,7 +3,7 @@ import {
   ArrowLeft, Sparkles, Send, Bot, User, Key, CheckCircle2,
   Play, Pause, Download, ExternalLink, RefreshCw, Wand2,
   Smartphone, Monitor, Video, Volume2, ShieldCheck, Film, Layers,
-  FileText, Copy, Check, Plus, Sliders, ChevronRight, Cpu, Radio
+  FileText, Copy, Check, Plus, Sliders, ChevronRight, Cpu, Radio, X
 } from "lucide-react";
 import { GreenBtn } from "../components/SharedUI";
 import { MEDIA_LIBRARY, saveLibraries } from "../utils/types";
@@ -76,7 +76,7 @@ export function AiChatVideoScreen({ onBack, onOpenEditor }: Props) {
     {
       id: "welcome-1",
       sender: "ai",
-      text: "👋 Welcome to ClipVault AI Video Studio! Powered by Higgsfield AI, SeeDance AI, and Claude Fable. Describe the video or script you'd like to generate, and our multi-model AI pipeline will construct the script, b-roll video, and subtitles automatically!",
+      text: "Welcome to ClipVault AI Video Studio! Powered by Higgsfield AI, SeeDance AI, and Claude Fable. Describe the video or script you'd like to generate, and our multi-model AI pipeline will construct the script, b-roll video, and subtitles automatically!",
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     }
   ]);
@@ -107,14 +107,14 @@ export function AiChatVideoScreen({ onBack, onOpenEditor }: Props) {
     const activeEngineObj = AI_ENGINES.find(e => e.id === selectedEngine) ?? DEFAULT_ENGINE;
 
     // Multi-Step AI Pipeline Simulation (Claude Fable -> Higgsfield AI -> SeeDance AI)
-    setGenerationStep(`🧠 Claude Fable: Writing viral hook & 3-part script breakdown for "${textToSend.substring(0, 20)}..."`);
+    setGenerationStep(`Claude Fable: Writing viral hook & 3-part script breakdown for "${textToSend.substring(0, 20)}..."`);
     
     setTimeout(() => {
-      setGenerationStep(`🎥 ${activeEngineObj.name}: Synthesizing ${selectedRatio} video frames & camera motion vectors...`);
+      setGenerationStep(`${activeEngineObj.name}: Synthesizing ${selectedRatio} video frames & camera motion vectors...`);
     }, 1000);
 
     setTimeout(() => {
-      setGenerationStep(`⚡ SeeDance AI: Aligning beat drop markers and auto-generating dynamic captions...`);
+      setGenerationStep(`SeeDance AI: Aligning beat drop markers and auto-generating dynamic captions...`);
     }, 2000);
 
     setTimeout(() => {
@@ -124,7 +124,7 @@ export function AiChatVideoScreen({ onBack, onOpenEditor }: Props) {
       const aiMsg: ChatMessage = {
         id: `ai-${Date.now()}`,
         sender: "ai",
-        text: `✨ Generated a viral video for "${topicName}" (${selectedRatio}) using ${activeEngineObj.name} & Claude Fable. Click "Open in Video Editor" below to load the video and subtitles directly onto your editing timeline!`,
+        text: `Generated a viral video for "${topicName}" (${selectedRatio}) using ${activeEngineObj.name} & Claude Fable. Click "Open in Video Editor" below to load the video and subtitles directly onto your editing timeline!`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         engineUsed: activeEngineObj.name,
         videoResult: {
@@ -132,9 +132,9 @@ export function AiChatVideoScreen({ onBack, onOpenEditor }: Props) {
           duration: "0:30",
           url: String(sampleVid),
           ratio: selectedRatio,
-          hook: `🚀 Stop scrolling! Here is what nobody tells you about ${topicName}.`,
+          hook: `Stop scrolling! Here is what nobody tells you about ${topicName}.`,
           body: `Step 1: Focus on high visual contrast and fast hook edits. Step 2: Keep pacing under 0.8s per cut. Step 3: Add dynamic animated text captions.`,
-          cta: `🔥 Follow @ClipVault for daily studio editing workflows!`,
+          cta: `Follow @ClipVault for daily studio editing workflows!`,
           engine: activeEngineObj.name
         }
       };
@@ -221,7 +221,7 @@ export function AiChatVideoScreen({ onBack, onOpenEditor }: Props) {
   return (
     <div className="h-screen w-screen flex flex-col bg-[#050505] font-['Inter',sans-serif] select-none overflow-hidden">
       {/* ── TOP HEADER ── */}
-      <header className="h-16 pt-7 px-6 flex items-center justify-between border-b border-[#34eb3d]/10 bg-[#070707]/90 backdrop-blur-xl z-20 flex-shrink-0">
+      <header className="h-16 pt-7 pl-6 flex items-center justify-between border-b border-[#34eb3d]/10 bg-[#070707]/90 backdrop-blur-xl z-20 flex-shrink-0" style={{ paddingRight: "150px" }}>
         <div className="flex items-center gap-3">
           <button
             onClick={onBack}
@@ -265,7 +265,9 @@ export function AiChatVideoScreen({ onBack, onOpenEditor }: Props) {
             <h4 className="text-white font-bold text-xs flex items-center gap-2">
               <Cpu className="w-4 h-4 text-[#34eb3d]" /> AI Video Engine & BYOK Settings
             </h4>
-            <button onClick={() => setShowKeySettings(false)} className="text-xs text-gray-400 hover:text-white">✕</button>
+            <button onClick={() => setShowKeySettings(false)} className="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-all cursor-pointer">
+              <X className="w-3.5 h-3.5" />
+            </button>
           </div>
 
           {/* AI Engine Selection */}
@@ -318,7 +320,7 @@ export function AiChatVideoScreen({ onBack, onOpenEditor }: Props) {
             <div className="space-y-3 max-h-[240px] overflow-y-auto pr-1 scrollbar-hide">
               <div className="space-y-1">
                 <div className="flex justify-between items-center text-[10px]">
-                  <span className="text-gray-300 font-bold">🧠 Anthropic API Key (Claude Fable)</span>
+                  <span className="text-gray-300 font-bold">Anthropic API Key (Claude Fable)</span>
                   <a href="https://console.anthropic.com" target="_blank" rel="noreferrer" className="text-[#34eb3d] hover:underline">Get Key ↗</a>
                 </div>
                 <input
@@ -332,7 +334,7 @@ export function AiChatVideoScreen({ onBack, onOpenEditor }: Props) {
 
               <div className="space-y-1">
                 <div className="flex justify-between items-center text-[10px]">
-                  <span className="text-gray-300 font-bold">🎥 Higgsfield AI Key</span>
+                  <span className="text-gray-300 font-bold">Higgsfield AI Key</span>
                   <a href="https://higgsfield.ai" target="_blank" rel="noreferrer" className="text-[#34eb3d] hover:underline">Get Key ↗</a>
                 </div>
                 <input
@@ -346,7 +348,7 @@ export function AiChatVideoScreen({ onBack, onOpenEditor }: Props) {
 
               <div className="space-y-1">
                 <div className="flex justify-between items-center text-[10px]">
-                  <span className="text-gray-300 font-bold">⚡ SeeDance AI Key (ByteDance)</span>
+                  <span className="text-gray-300 font-bold">SeeDance AI Key (ByteDance)</span>
                   <a href="https://seedance.ai" target="_blank" rel="noreferrer" className="text-[#34eb3d] hover:underline">Get Key ↗</a>
                 </div>
                 <input
@@ -360,7 +362,7 @@ export function AiChatVideoScreen({ onBack, onOpenEditor }: Props) {
 
               <div className="space-y-1">
                 <div className="flex justify-between items-center text-[10px]">
-                  <span className="text-gray-300 font-bold">🤖 OpenAI Sora / GPT-4o Key</span>
+                  <span className="text-gray-300 font-bold">OpenAI Sora / GPT-4o Key</span>
                   <a href="https://platform.openai.com" target="_blank" rel="noreferrer" className="text-[#34eb3d] hover:underline">Get Key ↗</a>
                 </div>
                 <input
@@ -482,10 +484,10 @@ export function AiChatVideoScreen({ onBack, onOpenEditor }: Props) {
           <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide text-xs">
             <span className="text-[10px] text-gray-500 font-bold uppercase flex-shrink-0">Quick Prompts:</span>
             {[
-              "⚡ 5 TikTok Viral Editing Hacks",
-              "🎥 Higgsfield Camera Motion Reel",
-              "🎵 SeeDance Beat Drop Sync Short",
-              "🎙️ Claude Fable Storytelling Script"
+              "5 TikTok Viral Editing Hacks",
+              "Higgsfield Camera Motion Reel",
+              "SeeDance Beat Drop Sync Short",
+              "Claude Fable Storytelling Script"
             ].map((chip) => (
               <button
                 key={chip}

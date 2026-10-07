@@ -60,7 +60,7 @@ export function CreatorProUpgradeModal({
   const getHeadline = () => {
     switch (reason) {
       case "studio_locked":
-        return "Pro Manual Studio Requires Creator Pro";
+        return "Pro Timeline Editor Requires Creator Pro";
       case "free_limit_reached":
         return "Free Tier Weekly Limit Reached";
       case "4k_locked":
@@ -73,7 +73,7 @@ export function CreatorProUpgradeModal({
   const getDescription = () => {
     switch (reason) {
       case "studio_locked":
-        return "Pro Manual Studio includes frame-accurate timeline editing, multi-range trimming, and custom aspect-ratio crop framing. It requires a Creator Pro ($15/mo) or Creator Max ($25/mo) subscription.";
+        return "Pro Timeline Editor includes frame-accurate timeline editing, multi-range trimming, and custom aspect-ratio crop framing. It requires a Creator Pro ($15/mo) or Creator Max ($25/mo) subscription.";
       case "free_limit_reached":
         return `Community Free Tier includes 2 video clips per rolling 7-day week via the 1-Click Auto Clipper. Your 2 free credits will refresh in ${resetsInDays} ${resetsInDays === 1 ? "day" : "days"}${resetsAt ? ` (${resetsAt})` : ""}. Upgrade for unlimited autonomous clipping.`;
       case "4k_locked":
@@ -201,7 +201,7 @@ export function CreatorProUpgradeModal({
                 </div>
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-3.5 h-3.5 text-[#34eb3d] shrink-0" />
-                  <span className="font-bold text-[#34eb3d]">Unlimited Pro Manual Studio</span>
+                  <span className="font-bold text-[#34eb3d]">Unlimited Pro Timeline Editor</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-3.5 h-3.5 text-[#34eb3d] shrink-0" />

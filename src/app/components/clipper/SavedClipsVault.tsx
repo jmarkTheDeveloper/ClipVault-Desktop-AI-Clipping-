@@ -30,6 +30,7 @@ import {
   AlertTriangle,
   X,
   Film,
+  Clock,
 } from "lucide-react";
 import type { ClipMetadata } from "./types";
 
@@ -66,6 +67,7 @@ interface SavedClipsVaultProps {
   onBackToEditor: () => void;
   onStartVaultTour?: () => void;
   onRefresh?: () => void;
+  hideHeaderToolbar?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -365,9 +367,10 @@ const VaultClipCard: React.FC<{
 
   const getStreamUrl = (pathOrUrl?: string) => {
     if (!pathOrUrl) return "";
-    if (pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://") || pathOrUrl.startsWith("blob:")) {
-      return pathOrUrl;
+    if (pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://")) {
+      return encodeURI(pathOrUrl);
     }
+    if (pathOrUrl.startsWith("blob:")) return pathOrUrl;
     const clean = pathOrUrl.replace(/^local:\/\/\/?/i, "");
     return `http://127.0.0.1:8000/stream?path=${encodeURIComponent(clean)}`;
   };
@@ -503,7 +506,7 @@ const VaultClipCard: React.FC<{
         {/* Exact Video Timeline Range Badge */}
         {clip.start !== undefined && clip.end !== undefined && (
           <div className="absolute top-2 left-11 bg-black/85 backdrop-blur-md px-2 py-0.5 rounded-md text-[10px] font-bold text-emerald-300 border border-emerald-400/30 flex items-center gap-1 shadow-md pointer-events-none z-10">
-            <span>⏱️</span>
+            <Clock className="w-3 h-3 text-emerald-400 shrink-0" />
             <span>{Math.floor(clip.start / 60)}:{(Math.floor(clip.start % 60) < 10 ? "0" : "") + Math.floor(clip.start % 60)} - {Math.floor(clip.end / 60)}:{(Math.floor(clip.end % 60) < 10 ? "0" : "") + Math.floor(clip.end % 60)}</span>
           </div>
         )}
@@ -545,8 +548,9 @@ const VaultClipCard: React.FC<{
           </span>
           <div className="flex items-center gap-1.5 shrink-0">
             {clip.start !== undefined && clip.end !== undefined && (
-              <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-400/10 text-emerald-300 font-bold border border-emerald-400/20" title={`Timeline: ${Math.floor(clip.start / 60)}:${(Math.floor(clip.start % 60) < 10 ? "0" : "") + Math.floor(clip.start % 60)} - ${Math.floor(clip.end / 60)}:${(Math.floor(clip.end % 60) < 10 ? "0" : "") + Math.floor(clip.end % 60)}`}>
-                ⏱️ {Math.floor(clip.start / 60)}:{(Math.floor(clip.start % 60) < 10 ? "0" : "") + Math.floor(clip.start % 60)} - {Math.floor(clip.end / 60)}:{(Math.floor(clip.end % 60) < 10 ? "0" : "") + Math.floor(clip.end % 60)}
+              <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-400/10 text-emerald-300 font-bold border border-emerald-400/20 flex items-center gap-1" title={`Timeline: ${Math.floor(clip.start / 60)}:${(Math.floor(clip.start % 60) < 10 ? "0" : "") + Math.floor(clip.start % 60)} - ${Math.floor(clip.end / 60)}:${(Math.floor(clip.end % 60) < 10 ? "0" : "") + Math.floor(clip.end % 60)}`}>
+                <Clock className="w-2.5 h-2.5 text-emerald-400 shrink-0" />
+                <span>{Math.floor(clip.start / 60)}:{(Math.floor(clip.start % 60) < 10 ? "0" : "") + Math.floor(clip.start % 60)} - {Math.floor(clip.end / 60)}:{(Math.floor(clip.end % 60) < 10 ? "0" : "") + Math.floor(clip.end % 60)}</span>
               </span>
             )}
             {clip.transcription_confidence !== undefined && clip.transcription_confidence !== null && (
@@ -598,6 +602,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
   onBackToEditor,
   onStartVaultTour,
   onRefresh,
+  hideHeaderToolbar = false,
 }) => {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; clip: ClipMetadata } | null>(null);
   const [folderContextMenu, setFolderContextMenu] = useState<{ x: number; y: number; folder: string } | null>(null);
@@ -669,7 +674,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
       const res = await fetch("http://127.0.0.1:8000/api/clear_cache", { method: "POST" });
       const data = await res.json().catch(() => ({}));
       if (data.success) {
-        setExportNotice(`✓ Cleared cache! Freed ${data.freed_mb} MB of temporary disk space.`);
+        setExportNotice(`Cleared cache! Freed ${data.freed_mb} MB of temporary disk space.`);
         setTimeout(() => setExportNotice(""), 4000);
         fetchCacheInfo();
       }
@@ -1217,77 +1222,79 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
       )}
 
       {/* Header Toolbar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3 pb-3 border-b border-white/10">
-        <div>
-          <div className="flex items-center gap-3">
-            <h2 className="text-xl font-black text-white flex items-center gap-2">
-              <FolderCheck className="text-emerald-400 w-6 h-6" />
-              <span>Saved Clips Vault</span>
-            </h2>
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-400/15 text-emerald-400 border border-emerald-400/30 font-extrabold tracking-wide">
-              {vaultClips.length} {vaultClips.length === 1 ? "Video" : "Videos"}
-            </span>
+      {!hideHeaderToolbar && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3 pb-3 border-b border-white/10">
+          <div>
+            <div className="flex items-center gap-3">
+              <h2 className="text-xl font-black text-white flex items-center gap-2">
+                <FolderCheck className="text-emerald-400 w-6 h-6" />
+                <span>Saved Clips Vault</span>
+              </h2>
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-400/15 text-emerald-400 border border-emerald-400/30 font-extrabold tracking-wide">
+                {vaultClips.length} {vaultClips.length === 1 ? "Video" : "Videos"}
+              </span>
+            </div>
+          </div>
+
+          <div id="vault-tour-step-1-storage" className="flex items-center gap-2 flex-wrap shrink-0">
+            {/* Primary Action: Open in Windows Explorer */}
+            <button
+              onClick={() => openOutputFolder(vaultSelectedFolder !== "all" && vaultSelectedFolder !== "Main Library" ? vaultSelectedFolder : undefined)}
+              className="px-3 py-1.5 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-black font-extrabold text-xs transition-all shadow-[0_0_20px_rgba(52, 235, 61,0.25)] flex items-center gap-1.5 cursor-pointer shrink-0 hover:scale-[1.02] active:scale-95"
+              title="Open the active folder in native Windows Explorer"
+            >
+              <FolderOpen className="w-3.5 h-3.5 text-black" />
+              <span>Open in Explorer</span>
+            </button>
+
+            {/* Free Up Space / Clean Temp Cache */}
+            <button
+              onClick={handleCleanCache}
+              disabled={isCleaningCache}
+              className="px-3 py-1.5 rounded-xl bg-[#141416] hover:bg-white/10 text-gray-200 hover:text-white font-bold text-xs border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0 hover:border-emerald-400/40"
+              title="Clean temporary downloads, audio chunks, and frame cache to free up hard drive space"
+            >
+              <Trash2 className="w-3.5 h-3.5 text-emerald-400" />
+              <span>{isCleaningCache ? "Cleaning..." : cacheSizeMb !== null && cacheSizeMb > 0 ? `Free Space (${cacheSizeMb} MB)` : "Free Space"}</span>
+            </button>
+
+            {/* Sync / Refresh Button */}
+            {onRefresh && (
+              <button
+                onClick={onRefresh}
+                disabled={vaultLoading}
+                className="px-3 py-1.5 rounded-xl bg-[#141416] hover:bg-white/10 text-gray-200 hover:text-white font-bold text-xs border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0 hover:border-emerald-400/40"
+                title="Refresh and sync clips and folders directly from local disk"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 text-emerald-400 ${vaultLoading ? "animate-spin" : ""}`} />
+                <span>{vaultLoading ? "Syncing..." : "Sync"}</span>
+              </button>
+            )}
+
+            {/* Guided Walkthrough Button */}
+            {onStartVaultTour && (
+              <button
+                onClick={onStartVaultTour}
+                className="px-3 py-1.5 rounded-xl bg-emerald-400/10 hover:bg-emerald-400/20 text-emerald-300 border border-emerald-400/30 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 shadow-sm hover:scale-[1.02] active:scale-95"
+                title="Launch Saved Clips Vault Walkthrough"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Walkthrough</span>
+              </button>
+            )}
+
+            {/* Back to Studio Navigation */}
+            <button
+              onClick={onBackToEditor}
+              className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/15 transition-all flex items-center gap-1.5 cursor-pointer shrink-0 hover:scale-[1.02] active:scale-95 shadow-sm"
+              title="Return to AI Clipper Studio"
+            >
+              <ArrowLeft className="w-3.5 h-3.5 text-white" />
+              <span>Back to Clipper</span>
+            </button>
           </div>
         </div>
-
-        <div id="vault-tour-step-1-storage" className="flex items-center gap-2 flex-wrap shrink-0">
-          {/* Primary Action: Open in Windows Explorer */}
-          <button
-            onClick={() => openOutputFolder(vaultSelectedFolder !== "all" && vaultSelectedFolder !== "Main Library" ? vaultSelectedFolder : undefined)}
-            className="px-3 py-1.5 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-black font-extrabold text-xs transition-all shadow-[0_0_20px_rgba(52, 235, 61,0.25)] flex items-center gap-1.5 cursor-pointer shrink-0 hover:scale-[1.02] active:scale-95"
-            title="Open the active folder in native Windows Explorer"
-          >
-            <FolderOpen className="w-3.5 h-3.5 text-black" />
-            <span>Open in Explorer</span>
-          </button>
-
-          {/* Free Up Space / Clean Temp Cache */}
-          <button
-            onClick={handleCleanCache}
-            disabled={isCleaningCache}
-            className="px-3 py-1.5 rounded-xl bg-[#141416] hover:bg-white/10 text-gray-200 hover:text-white font-bold text-xs border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0 hover:border-emerald-400/40"
-            title="Clean temporary downloads, audio chunks, and frame cache to free up hard drive space"
-          >
-            <Trash2 className="w-3.5 h-3.5 text-emerald-400" />
-            <span>{isCleaningCache ? "Cleaning..." : cacheSizeMb !== null && cacheSizeMb > 0 ? `Free Space (${cacheSizeMb} MB)` : "Free Space"}</span>
-          </button>
-
-          {/* Sync / Refresh Button */}
-          {onRefresh && (
-            <button
-              onClick={onRefresh}
-              disabled={vaultLoading}
-              className="px-3 py-1.5 rounded-xl bg-[#141416] hover:bg-white/10 text-gray-200 hover:text-white font-bold text-xs border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0 hover:border-emerald-400/40"
-              title="Refresh and sync clips and folders directly from local disk"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 text-emerald-400 ${vaultLoading ? "animate-spin" : ""}`} />
-              <span>{vaultLoading ? "Syncing..." : "Sync"}</span>
-            </button>
-          )}
-
-          {/* Guided Walkthrough Button */}
-          {onStartVaultTour && (
-            <button
-              onClick={onStartVaultTour}
-              className="px-3 py-1.5 rounded-xl bg-emerald-400/10 hover:bg-emerald-400/20 text-emerald-300 border border-emerald-400/30 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 shadow-sm hover:scale-[1.02] active:scale-95"
-              title="Launch Saved Clips Vault Walkthrough"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Walkthrough</span>
-            </button>
-          )}
-
-          {/* Back to Studio Navigation */}
-          <button
-            onClick={onBackToEditor}
-            className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/15 transition-all flex items-center gap-1.5 cursor-pointer shrink-0 hover:scale-[1.02] active:scale-95 shadow-sm"
-            title="Return to AI Clipper Studio"
-          >
-            <ArrowLeft className="w-3.5 h-3.5 text-white" />
-            <span>Back to Studio</span>
-          </button>
-        </div>
-      </div>
+      )}
 
       {/* Explorer Breadcrumb Navigation Path Bar (with Drop Target Support) */}
       <div id="vault-tour-step-2-breadcrumbs" className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3 bg-[#121212] border border-white/10 rounded-xl p-2 sm:px-3">
@@ -1754,8 +1761,9 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
         {/* Source Video Project Filter Chips */}
         {sourceVideos.length > 0 && !isSearchActive && (
           <div className="flex items-center gap-2 overflow-x-auto pb-2.5 mb-3 scrollbar-thin">
-            <span className="text-[10px] text-gray-500 font-extrabold uppercase shrink-0 mr-1 flex items-center gap-1">
-              <span>🎬</span> Source Video:
+            <span className="text-[10px] text-gray-500 font-extrabold uppercase shrink-0 mr-1 flex items-center gap-1.5">
+              <Film className="w-3 h-3 text-gray-400 shrink-0" />
+              <span>Source Video:</span>
             </span>
             <button
               type="button"

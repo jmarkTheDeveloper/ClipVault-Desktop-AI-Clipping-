@@ -21,6 +21,7 @@ import {
   Lock,
   ShieldAlert,
   Trash2,
+  X,
 } from "lucide-react";
 import type { EngineOption } from "./types";
 
@@ -534,7 +535,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
       const res = await fetch("http://127.0.0.1:8000/api/clear_cache", { method: "POST" });
       const data = await res.json().catch(() => ({}));
       if (data.success) {
-        setCacheCleanNotice(`✓ Freed ${data.freed_mb} MB of space!`);
+        setCacheCleanNotice(`Freed ${data.freed_mb} MB of space!`);
         fetchCacheInfo();
         setTimeout(() => setCacheCleanNotice(null), 4000);
       }
@@ -588,7 +589,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                 onClick={() => setApiWarning(null)}
                 className="text-emerald-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors text-xs font-bold shrink-0 cursor-pointer"
               >
-                ✕
+                <X className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>
@@ -758,7 +759,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
             onClick={onClose}
             className="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white flex items-center justify-center transition-all cursor-pointer text-sm"
           >
-            ✕
+            <X className="w-4 h-4" />
           </button>
         </div>
 

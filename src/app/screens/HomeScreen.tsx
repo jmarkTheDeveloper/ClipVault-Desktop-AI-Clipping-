@@ -424,7 +424,7 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
 
       {/* MAIN CONTAINER */}
       <main className="flex-1 flex flex-col overflow-hidden z-10 relative">
-        <header className="h-24 pt-12 flex items-center justify-between px-6 flex-shrink-0 border-b border-[#34eb3d]/10 bg-[#050505]/80 backdrop-blur-2xl">
+        <header className="h-24 pt-12 flex items-center justify-between pl-6 flex-shrink-0 border-b border-[#34eb3d]/10 bg-[#050505]/80 backdrop-blur-2xl" style={{ paddingRight: "150px" }}>
           <div className="flex items-center gap-3 flex-1 max-w-md" style={{ WebkitAppRegion: "no-drag" } as any}>
             <div className="relative flex-1">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
@@ -1304,7 +1304,7 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
         </div>
       )}
 
-      {/* ⚠️ DANGER ZONE: PERMANENT PROJECT DELETION MODAL (HIGH-AESTHETIC ENTERPRISE STYLE) */}
+      {/* DANGER ZONE: PERMANENT PROJECT DELETION MODAL (HIGH-AESTHETIC ENTERPRISE STYLE) */}
       {showDangerDeleteModal && deletingProject && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-fadeIn select-none">
           <div className="w-[520px] rounded-3xl p-7 bg-[#0d0d0f] border border-red-500/30 shadow-2xl space-y-5">

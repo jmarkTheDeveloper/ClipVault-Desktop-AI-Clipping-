@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from "react";
-import { ArrowLeft, Film, Link2, Mic, Music2, Loader2, Check, ChevronDown, ChevronUp, Cpu, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Film, Link2, Mic, Music2, Loader2, Check, ChevronDown, ChevronUp, Cpu, CheckCircle2, X } from "lucide-react";
 
 interface Props { onBack: () => void; }
 
@@ -304,7 +304,7 @@ export function MovieRecapperScreen({ onBack }: Props) {
       <div className="pointer-events-none fixed inset-0 z-0" style={{ background: "radial-gradient(ellipse 50% 40% at 50% 0%, rgba(168,85,247,0.07) 0%, transparent 70%)" }} />
 
       {/* Header */}
-      <header className="relative z-10 flex items-center justify-between px-8 h-16 flex-shrink-0" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)", background: "rgba(5,5,5,0.9)", backdropFilter: "blur(20px)" }}>
+      <header className="relative z-10 flex items-center justify-between pl-8 h-16 flex-shrink-0" style={{ paddingRight: "150px", borderBottom: "1px solid rgba(255,255,255,0.05)", background: "rgba(5,5,5,0.9)", backdropFilter: "blur(20px)" }}>
         <div className="flex items-center gap-4">
           <button onClick={onBack} className="flex items-center gap-2 text-sm transition-colors hover:text-white cursor-pointer" style={{ color: "#5a5a5a" }}>
             <ArrowLeft className="w-4 h-4" />Back
@@ -315,7 +315,7 @@ export function MovieRecapperScreen({ onBack }: Props) {
               <Film className="w-3.5 h-3.5 text-white" strokeWidth={2.5} />
             </div>
             <span className="text-white font-bold">AI Movie Recapper</span>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: "rgba(168,85,247,0.1)", color: ACCENT, border: "1px solid rgba(168,85,247,0.2)" }}>🍿 AI Narrated</span>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: "rgba(168,85,247,0.1)", color: ACCENT, border: "1px solid rgba(168,85,247,0.2)" }}>AI Narrated</span>
           </div>
         </div>
 
@@ -341,7 +341,9 @@ export function MovieRecapperScreen({ onBack }: Props) {
             <h4 className="text-white font-bold text-xs flex items-center gap-2">
               <Cpu className="w-4 h-4 text-[#a855f7]" /> AI Video Engine & BYOK Settings
             </h4>
-            <button onClick={() => setShowKeySettings(false)} className="text-xs text-gray-400 hover:text-white">✕</button>
+            <button onClick={() => setShowKeySettings(false)} className="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-all cursor-pointer">
+              <X className="w-3.5 h-3.5" />
+            </button>
           </div>
 
           {/* AI Engine Selection */}
@@ -394,7 +396,7 @@ export function MovieRecapperScreen({ onBack }: Props) {
             <div className="space-y-3 max-h-[240px] overflow-y-auto pr-1 scrollbar-hide">
               <div className="space-y-1">
                 <div className="flex justify-between items-center text-[10px]">
-                  <span className="text-gray-300 font-bold">🧠 Anthropic API Key (Claude Fable)</span>
+                  <span className="text-gray-300 font-bold">Anthropic API Key (Claude Fable)</span>
                   <a href="https://console.anthropic.com" target="_blank" rel="noreferrer" className="text-[#a855f7] hover:underline">Get Key ↗</a>
                 </div>
                 <input
@@ -408,7 +410,7 @@ export function MovieRecapperScreen({ onBack }: Props) {
 
               <div className="space-y-1">
                 <div className="flex justify-between items-center text-[10px]">
-                  <span className="text-gray-300 font-bold">🎥 Higgsfield AI Key</span>
+                  <span className="text-gray-300 font-bold">Higgsfield AI Key</span>
                   <a href="https://higgsfield.ai" target="_blank" rel="noreferrer" className="text-[#a855f7] hover:underline">Get Key ↗</a>
                 </div>
                 <input
@@ -422,7 +424,7 @@ export function MovieRecapperScreen({ onBack }: Props) {
 
               <div className="space-y-1">
                 <div className="flex justify-between items-center text-[10px]">
-                  <span className="text-gray-300 font-bold">⚡ SeeDance AI Key (ByteDance)</span>
+                  <span className="text-gray-300 font-bold">SeeDance AI Key (ByteDance)</span>
                   <a href="https://seedance.ai" target="_blank" rel="noreferrer" className="text-[#a855f7] hover:underline">Get Key ↗</a>
                 </div>
                 <input
@@ -436,7 +438,7 @@ export function MovieRecapperScreen({ onBack }: Props) {
 
               <div className="space-y-1">
                 <div className="flex justify-between items-center text-[10px]">
-                  <span className="text-gray-300 font-bold">🤖 OpenAI Sora / GPT-4o Key</span>
+                  <span className="text-gray-300 font-bold">OpenAI Sora / GPT-4o Key</span>
                   <a href="https://platform.openai.com" target="_blank" rel="noreferrer" className="text-[#a855f7] hover:underline">Get Key ↗</a>
                 </div>
                 <input
@@ -458,7 +460,7 @@ export function MovieRecapperScreen({ onBack }: Props) {
 
           {/* Source hint */}
           <div className="rounded-xl p-4" style={{ background: "rgba(168,85,247,0.05)", border: "1px solid rgba(168,85,247,0.15)" }}>
-            <p className="text-xs font-bold mb-2" style={{ color: ACCENT }}>💡 Need Movie Clips?</p>
+            <p className="text-xs font-bold mb-2" style={{ color: ACCENT }}>Need Movie Clips?</p>
             <div className="flex flex-wrap gap-2">
               {SOURCE_CHANNELS.map(c => (
                 <a key={c.label} href={c.url} target="_blank" rel="noreferrer" className="text-[10px] px-2.5 py-1 rounded-lg transition-colors hover:text-white" style={{ background: "rgba(255,255,255,0.05)", color: "#777", border: "1px solid rgba(255,255,255,0.07)" }}>
@@ -669,7 +671,7 @@ export function MovieRecapperScreen({ onBack }: Props) {
               {/* Dynamic Caption Overlay */}
               <div className="absolute bottom-16 left-4 right-4 text-center pointer-events-none z-20">
                 <span className="px-3 py-1.5 rounded-xl font-bold text-xs bg-black/80 text-purple-400 border border-purple-500/40 shadow-lg inline-block">
-                  🍿 AI Movie Recap Scene #1
+                  AI Movie Recap Scene 1
                 </span>
               </div>
             </div>
@@ -678,13 +680,13 @@ export function MovieRecapperScreen({ onBack }: Props) {
           {/* Quick Generated Scene Chips */}
           <div className="flex items-center gap-2 mt-4">
             <button className="px-3 py-1.5 rounded-xl text-xs font-bold bg-[#a855f7] text-white shadow-md cursor-pointer">
-              🎬 Scene #1
+              Scene 1
             </button>
             <button className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10 cursor-pointer">
-              🎬 Scene #2
+              Scene 2
             </button>
             <button className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10 cursor-pointer">
-              🎬 Scene #3
+              Scene 3
             </button>
           </div>
         </div>

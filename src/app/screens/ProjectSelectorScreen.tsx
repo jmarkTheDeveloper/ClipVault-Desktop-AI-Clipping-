@@ -53,7 +53,9 @@ import {
   HelpCircle,
   Plus,
   Minus,
+  Bug,
 } from "lucide-react";
+import { APP_CHANGELOG } from "../data/changelog";
 import { Logo } from "../components/Logo";
 import { CreatorMaxUpgradeModal } from "../components/CreatorMaxUpgradeModal";
 import { CreatorProUpgradeModal } from "../components/CreatorProUpgradeModal";
@@ -528,8 +530,8 @@ export function ProjectSelectorScreen({
   const proFeatures = isEffectivelyLicensed
     ? [
         isEffectivelyMax
-          ? "Unlimited Pro Manual Studio Exports"
-          : (effectiveStudioCredits ? `${effectiveStudioCredits.remaining}/3 Weekly Clips Remaining` : "3 Studio Clips / Week (Refreshes Weekly)"),
+          ? "Unlimited Pro Timeline Exports"
+          : (effectiveStudioCredits ? `${effectiveStudioCredits.remaining}/3 Weekly Clips Remaining` : "3 Pro Clips / Week (Refreshes Weekly)"),
         "Multi-Range Timeline Slicing & Waveforms",
         "Dual-Layer Gameplay & B-Roll Split-Screen",
         "Custom Crop Bounding Boxes (9:16, 1:1, 16:9)",
@@ -648,11 +650,11 @@ export function ProjectSelectorScreen({
         }
       `}</style>
 
-      {/* ── Header with 140px right padding to avoid Windows window controls overlap ── */}
+      {/* ── Header with 150px right padding for clean clearance with Windows window controls ── */}
       <header style={{
         height: 48, flexShrink: 0, zIndex: 30,
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "0 140px 0 24px", background: "#080c14",
+        padding: "0 150px 0 24px", background: "#080c14",
         borderBottom: "1px solid rgba(255,255,255,0.08)",
         WebkitAppRegion: "drag",
       } as any}>
@@ -880,6 +882,41 @@ export function ProjectSelectorScreen({
               )}
             </div>
           )}
+
+          {/* Proactive What's New & Bug Fixes Notification Button */}
+          <button
+            type="button"
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent("clipvault-open-whats-new"));
+            }}
+            title="View recent bug fixes and ongoing updates"
+            style={{
+              padding: "5px 10px", borderRadius: 8,
+              background: updateStatus?.pendingUpdate ? "rgba(245, 158, 11, 0.15)" : "rgba(255, 255, 255, 0.04)",
+              border: updateStatus?.pendingUpdate ? "1px solid rgba(245, 158, 11, 0.45)" : "1px solid rgba(255, 255, 255, 0.1)",
+              color: updateStatus?.pendingUpdate ? "#f59e0b" : "#cbd5e1",
+              fontSize: 11, fontWeight: 600, cursor: "pointer",
+              display: "flex", alignItems: "center", gap: 5,
+              transition: "all 0.15s ease",
+              fontFamily: "'Geist', -apple-system, sans-serif",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "rgba(52, 235, 61, 0.1)";
+              e.currentTarget.style.borderColor = "rgba(52, 235, 61, 0.35)";
+              e.currentTarget.style.color = "#fff";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = updateStatus?.pendingUpdate ? "rgba(245, 158, 11, 0.15)" : "rgba(255, 255, 255, 0.04)";
+              e.currentTarget.style.borderColor = updateStatus?.pendingUpdate ? "rgba(245, 158, 11, 0.45)" : "rgba(255, 255, 255, 0.1)";
+              e.currentTarget.style.color = updateStatus?.pendingUpdate ? "#f59e0b" : "#cbd5e1";
+            }}
+          >
+            <Sparkles style={{ width: 11, height: 11, color: updateStatus?.pendingUpdate ? "#f59e0b" : G }} />
+            <span>What's New</span>
+            {updateStatus?.pendingUpdate && (
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#f59e0b" }} />
+            )}
+          </button>
         </div>
       </header>
 
@@ -1149,7 +1186,7 @@ export function ProjectSelectorScreen({
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <Sparkles style={{ width: 15, height: 15 }} />
-                    <span>Launch 1-Click Studio</span>
+                    <span>Launch 1-Click Clipper</span>
                   </div>
                   <div style={{
                     width: 24, height: 24, borderRadius: "50%",
@@ -1223,7 +1260,7 @@ export function ProjectSelectorScreen({
                           <Sliders style={{ width: 12, height: 12, color: isProHovered ? G : "rgba(255,255,255,0.85)", transition: "color 0.25s ease" }} />
                           <span style={{ fontSize: 11, fontWeight: 700, color: isProHovered ? G : "rgba(255,255,255,0.85)", transition: "color 0.25s ease" }}>
                             {isEffectivelyMax 
-                              ? "Unlimited Studio" 
+                              ? "Unlimited Access" 
                               : (effectiveStudioCredits ? `${effectiveStudioCredits.remaining}/3 Weekly Credits` : "3 Weekly Credits")}
                           </span>
                         </>
@@ -1251,7 +1288,7 @@ export function ProjectSelectorScreen({
                         fontFamily: "'Space Grotesk', 'Geist', sans-serif", fontWeight: 800, fontSize: 21,
                         color: "#fff", letterSpacing: "-0.02em", margin: "0 0 3px",
                       }}>
-                        Pro Manual Studio
+                        Pro Timeline Editor
                       </h2>
                       <p style={{ fontSize: 12.5, color: "rgba(255,255,255,0.5)", margin: 0, fontWeight: 500 }}>
                         Frame-accurate timeline, multi-ranges &amp; split-screen
@@ -1376,6 +1413,32 @@ export function ProjectSelectorScreen({
 
             {/* Right: Studio Controls & Grouped Compliance Links */}
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+              {/* Saved Clips Vault Independent Shortcut */}
+              <button
+                type="button"
+                onClick={() => onSelect("saved-vault")}
+                style={{
+                  display: "flex", alignItems: "center", gap: 6,
+                  padding: "5px 10px", borderRadius: 7,
+                  fontSize: 11.5, fontWeight: 600, color: "#fff",
+                  background: "rgba(255, 255, 255, 0.04)",
+                  border: "1px solid rgba(255, 255, 255, 0.1)",
+                  cursor: "pointer", transition: "all 0.15s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "rgba(52, 235, 61, 0.14)";
+                  e.currentTarget.style.borderColor = G;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "rgba(255, 255, 255, 0.04)";
+                  e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)";
+                }}
+                title="Open Dedicated Saved Clips Vault"
+              >
+                <FolderOpen style={{ width: 12, height: 12, color: G }} />
+                <span>Saved Vault</span>
+              </button>
+
               {/* Primary Assistance: Guided Tour */}
               {onStartTour && (
                 <button
@@ -1619,7 +1682,7 @@ export function ProjectSelectorScreen({
                         fontFamily: "'Space Grotesk', 'Geist', sans-serif", fontWeight: 800, fontSize: 26,
                         color: "#fff", letterSpacing: "-0.025em", margin: "0 0 4px",
                       }}>
-                        {expandedStudio === "opus" ? "1-Click Auto Clipper" : "Pro Manual Studio"}
+                        {expandedStudio === "opus" ? "1-Click Auto Clipper" : "Pro Timeline Editor"}
                       </h2>
                       <p style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", margin: 0, fontWeight: 450 }}>
                         {expandedStudio === "opus"
@@ -2582,9 +2645,9 @@ export function ProjectSelectorScreen({
 
                             {/* Feature 2 */}
                             <div style={{ padding: 14, borderRadius: 10, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
-                              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", fontFamily: "'Geist Mono', monospace", textTransform: "uppercase" }}>Pro Manual Studio</div>
+                              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", fontFamily: "'Geist Mono', monospace", textTransform: "uppercase" }}>Pro Timeline Editor</div>
                               <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", marginTop: 4 }}>
-                                {isEffectivelyMax || isEffectivelyPro ? "Full Studio Unlocked" : "Preview Mode Only"}
+                                {isEffectivelyMax || isEffectivelyPro ? "Full Editor Unlocked" : "Preview Mode Only"}
                               </div>
                               <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", marginTop: 2 }}>
                                 {isEffectivelyMax || isEffectivelyPro ? "Frame-accurate timeline & unlimited exports" : "Exporting requires Pro or Max license"}
@@ -3084,6 +3147,78 @@ export function ProjectSelectorScreen({
                               Solo Dev &amp; Student
                             </div>
                             <div style={{ fontSize: 10.5, color: "rgba(255,255,255,0.5)", marginTop: 2 }}>Continuous development</div>
+                          </div>
+                        </div>
+
+                        {/* Categorized Recent Bug Fixes Section */}
+                        <div style={{
+                          padding: "18px 20px", borderRadius: 14,
+                          background: "rgba(255, 255, 255, 0.02)",
+                          border: "1px solid rgba(255, 255, 255, 0.08)",
+                          display: "flex", flexDirection: "column", gap: 14,
+                        }}>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                              <Bug style={{ width: 16, height: 16, color: G }} />
+                              <h4 style={{ fontSize: 13.5, fontWeight: 700, color: "#fff", margin: 0 }}>
+                                What We&apos;ve Improved &amp; Fixed
+                              </h4>
+                              <span style={{
+                                fontSize: 9.5, fontWeight: 700, padding: "2px 7px", borderRadius: 4,
+                                background: "rgba(52, 235, 61, 0.15)", color: G,
+                                border: "1px solid rgba(52, 235, 61, 0.3)",
+                              }}>
+                                v{APP_CHANGELOG[0]?.version || "1.0.0"} RELEASE
+                              </span>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                window.dispatchEvent(new CustomEvent("clipvault-open-whats-new"));
+                              }}
+                              style={{
+                                fontSize: 11, fontWeight: 700, color: G,
+                                background: "transparent", border: "none", cursor: "pointer",
+                                display: "flex", alignItems: "center", gap: 4,
+                              }}
+                            >
+                              <span>View Full Changelog</span>
+                              <ChevronRight style={{ width: 12, height: 12 }} />
+                            </button>
+                          </div>
+
+                          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                            {(APP_CHANGELOG[0]?.items || []).slice(0, 4).map((item, idx) => (
+                              <div
+                                key={idx}
+                                style={{
+                                  padding: "10px 14px", borderRadius: 10,
+                                  background: "rgba(255, 255, 255, 0.02)",
+                                  border: "1px solid rgba(255, 255, 255, 0.05)",
+                                  display: "flex", alignItems: "flex-start", gap: 10,
+                                }}
+                              >
+                                <div style={{
+                                  padding: "2px 6px", borderRadius: 4, fontSize: 9.5, fontWeight: 800,
+                                  fontFamily: "'Geist Mono', monospace",
+                                  background: item.type === "fix" ? "rgba(52, 235, 61, 0.15)" : "rgba(59, 130, 246, 0.15)",
+                                  color: item.type === "fix" ? G : "#60a5fa",
+                                  border: `1px solid ${item.type === "fix" ? "rgba(52, 235, 61, 0.3)" : "rgba(59, 130, 246, 0.3)"}`,
+                                  flexShrink: 0, marginTop: 1,
+                                }}>
+                                  {item.badge || item.type.toUpperCase()}
+                                </div>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ fontSize: 12, fontWeight: 700, color: "#fff", marginBottom: 2 }}>
+                                    {item.title}
+                                  </div>
+                                  <div style={{ fontSize: 11, color: "rgba(255, 255, 255, 0.55)", lineHeight: 1.5 }}>
+                                    {item.description}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         </div>
 

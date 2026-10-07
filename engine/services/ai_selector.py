@@ -415,10 +415,17 @@ class AISelector:
         end_idx = max(0, min(len(clean_segs) - 1, end_idx))
 
         fwd_steps = 0
-        max_fwd_steps = 16
+        max_fwd_steps = 24
         while end_idx < len(clean_segs) - 1 and fwd_steps < max_fwd_steps:
             end_txt = clean_segs[end_idx]['text'].strip()
+            cur_dur = clean_segs[end_idx]['end'] - new_start
             if end_txt.endswith(('.', '!', '?')):
+                # If target_duration is set and the clip hasn't reached target_duration - 2 seconds yet, continue forward to match user duration
+                if target_duration and target_duration > 0 and cur_dur < (float(target_duration) - 2.0):
+                    end_idx += 1
+                    fwd_steps += 1
+                    continue
+
                 # Check if next segment immediately continues the payoff punchline or moral
                 next_txt = clean_segs[end_idx + 1]['text'].strip().lower()
                 PAYOFF_CONTINUATIONS = ("and that's why", "which means", "so the moral is", "and i never", "so basically that's", "in conclusion")
@@ -435,14 +442,15 @@ class AISelector:
 
         # 4. Strict Short-Form Duration Ceiling Enforcement
         if target_duration and target_duration > 0:
-            max_dur = max(45.0, float(target_duration) * 1.30)
+            target_dur_float = float(target_duration)
+            max_dur = max(target_dur_float + 4.0, target_dur_float * 1.15)
             if (new_end - new_start) > max_dur:
-                cutoff_target = new_start + target_duration
+                cutoff_target = new_start + target_dur_float
                 best_end_idx = None
                 min_diff = float('inf')
                 for idx in range(start_idx, end_idx + 1):
                     seg_dur = clean_segs[idx]['end'] - new_start
-                    if seg_dur >= max(20.0, float(target_duration) * 0.60) and seg_dur <= max_dur:
+                    if seg_dur >= max(15.0, target_dur_float - 2.5) and seg_dur <= max_dur:
                         txt = clean_segs[idx]['text'].strip()
                         if txt.endswith(('.', '!', '?')):
                             diff = abs(clean_segs[idx]['end'] - cutoff_target)
@@ -586,9 +594,14 @@ class AISelector:
         CONNECTIVE_STARTERS = {'and', 'so', 'but', 'because', 'then', 'also', 'meaning', 'anyway', 'or', 'well', 'actually'}
 
         # 4. Form Complete Story Candidates
-        # Adaptive duration boundaries: allow the story to breathe naturally (25s to 90s)
-        min_story_dur = 25.0
-        max_story_dur = 90.0
+        # Adaptive duration boundaries closely aligned to target duration
+        if target_duration and target_duration > 0:
+            td = float(target_duration)
+            min_story_dur = max(15.0, td - 3.0)
+            max_story_dur = min(float(video_duration), td + 6.0)
+        else:
+            min_story_dur = 25.0
+            max_story_dur = 90.0
 
         candidates = []
         total_sents = len(sentences)
@@ -683,6 +696,11 @@ class AISelector:
                                 hits = sum(1 for kw in topic_keywords if kw in story_text.lower())
                                 if hits > 0:
                                     score += min(40.0, hits * 15.0)
+
+                        # Target duration proximity bonus (prioritize candidates closest to requested duration)
+                        if target_duration and target_duration > 0:
+                            dur_diff = abs(dur - float(target_duration))
+                            score += max(0.0, 35.0 - dur_diff * 4.0)
 
                         # Speaking rate check
                         words_count = len(story_text.split())
@@ -1055,7 +1073,7 @@ CRITICAL RULES FOR ZERO-KNOWLEDGE STANDALONE CONTEXT (MANDATORY):
    - Part 1: The Setup / Hook (The question, mystery, premise, or situation introduction)
    - Part 2: The Core Meat (The story, argument, struggle, or insight unfolding)
    - Part 3: The Payoff / Resolution (The conclusion, punchline, takeaway, or moral of the story)
-5. STRICT SHORT-FORM DURATION (~{int(target_duration) if target_duration and target_duration > 0 else 60}s): Each clip MUST be around {int(target_duration) if target_duration and target_duration > 0 else 60} seconds (between {int(max(20, target_duration * 0.60 if target_duration and target_duration > 0 else 30))}s and {int(min(120, target_duration * 1.25 if target_duration and target_duration > 0 else 75))}s). NEVER return a clip longer than {int(min(120, target_duration * 1.25 if target_duration and target_duration > 0 else 75))} seconds!
+5. STRICT TARGET DURATION ({int(target_duration) if target_duration and target_duration > 0 else 60}s): The user explicitly requested clips of ~{int(target_duration) if target_duration and target_duration > 0 else 60} seconds. Each clip MUST closely target {int(target_duration) if target_duration and target_duration > 0 else 60} seconds (between {int(max(15, target_duration - 2) if target_duration and target_duration > 0 else 45)}s and {int(target_duration + 5 if target_duration and target_duration > 0 else 75)}s). Do NOT generate clips shorter than {int(max(15, target_duration - 2) if target_duration and target_duration > 0 else 45)} seconds!
 6. ZERO FILLER: Do NOT select sponsor reads, channel plugs, audio checks, or disconnected punchlines.
 7. EXACT SENTENCE BOUNDARIES: Start precisely at word 1 of the opening sentence (or question) and end cleanly on the final punctuation mark of the conclusion.
 8. EXPLAINABLE METRICS: Provide an overall virality_score (0-99) and 4 sub_scores:

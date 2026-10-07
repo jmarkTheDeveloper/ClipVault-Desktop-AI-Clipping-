@@ -88,7 +88,7 @@ export function CreatorMaxUpgradeModal({
         <div className="flex items-center gap-2 mb-4">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#34eb3d]/10 border border-[#34eb3d]/30 text-[#34eb3d] text-[11px] font-bold uppercase tracking-wider">
             <Lock className="w-3 h-3" />
-            <span>Weekly Studio Limit Reached</span>
+            <span>Weekly Editor Limit Reached</span>
           </div>
         </div>
 
@@ -97,8 +97,8 @@ export function CreatorMaxUpgradeModal({
           Upgrade to Creator Max
         </h2>
         <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed mb-6">
-          Your Creator Pro ($15/mo) subscription includes 3 weekly clips in the Pro Manual Studio.
-          You have utilized all 3 clips for this 7-day period. Your studio credits will refresh in{" "}
+          Your Creator Pro ($15/mo) subscription includes 3 weekly clips in the Pro Timeline Editor.
+          You have utilized all 3 clips for this 7-day period. Your editor credits will refresh in{" "}
           <span className="text-[#34eb3d] font-bold">
             {resetsInDays} {resetsInDays === 1 ? "day" : "days"}
           </span>
@@ -120,7 +120,7 @@ export function CreatorMaxUpgradeModal({
               </div>
               <div className="flex items-center gap-1.5 text-amber-300">
                 <Lock className="w-3 h-3 shrink-0" />
-                <span>3 Studio Clips / Week (Used)</span>
+                <span>3 Pro Editor Clips / Week (Used)</span>
               </div>
             </div>
           </div>
@@ -138,7 +138,7 @@ export function CreatorMaxUpgradeModal({
               </div>
               <div className="flex items-center gap-1.5 font-medium text-white">
                 <Sparkles className="w-3 h-3 text-[#34eb3d] shrink-0" />
-                <span className="font-semibold text-[#34eb3d]">Unlimited Pro Manual Studio</span>
+                <span className="font-semibold text-[#34eb3d]">Unlimited Pro Timeline Editor</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <CheckCircle2 className="w-3 h-3 text-[#34eb3d] shrink-0" />

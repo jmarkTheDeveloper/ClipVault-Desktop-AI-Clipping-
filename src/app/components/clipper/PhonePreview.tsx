@@ -16,6 +16,7 @@ import {
   XCircle,
   AlertCircle,
   Repeat,
+  Sparkles,
 } from "lucide-react";
 import type { CropBox, CustomSegment } from "./types";
 import { extractYouTubeId, parseTimestampToSec, isLikedVideosUrl, cleanYouTubeUrl } from "./types";
@@ -243,7 +244,7 @@ const DraggableCaptionOverlay: React.FC<{
       case "capcut_neon_red":
         return (
           <div className="flex flex-col items-center pointer-events-none tracking-wide uppercase font-black text-sm" style={fontSans}>
-            <span className={`text-base leading-none mb-0.5 transition-transform duration-200 ${animStep === 0 ? "scale-125 animate-bounce" : "scale-100"}`}>🤩</span>
+            <Sparkles className={`w-4 h-4 text-[#FF3C30] mb-0.5 transition-transform duration-200 ${animStep === 0 ? "scale-125" : "scale-100"}`} />
             <span
               className={`text-[#FF3C30] px-1.5 transition-transform duration-200 ${animStep === 1 ? "scale-110" : ""}`}
               style={{
@@ -624,7 +625,8 @@ const DraggableCaptionOverlay: React.FC<{
       >
         {isPreviewingEffect && (
           <div className="absolute -top-7 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500 text-black text-[10px] font-black tracking-wider uppercase shadow-xl border border-emerald-300 pointer-events-none animate-bounce whitespace-nowrap z-40">
-            <span>✨ LIVE PREVIEW</span>
+            <Sparkles className="w-3 h-3 text-black shrink-0" />
+            <span>LIVE PREVIEW</span>
             {hoveredEffectName && <span className="opacity-90">• {hoveredEffectName}</span>}
           </div>
         )}
