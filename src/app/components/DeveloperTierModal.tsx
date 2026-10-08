@@ -85,14 +85,14 @@ export function DeveloperTierModal({
       id: "pro",
       name: "Creator Pro",
       tagline: "High-volume creators needing unlimited 1-click & studio trial",
-      price: "$15",
+      price: "$11",
       cadence: "per month",
       badge: "Most Popular",
       badgeColor: "border-[#34eb3d]/40 bg-[#34eb3d]/10 text-[#34eb3d]",
       accentBorder: "border-[#34eb3d]/30",
       features: [
         { label: "1-Click Auto Clipper", value: "Unlimited Autonomous Exports", state: "check", highlight: true },
-        { label: "Pro Manual Studio", value: "3 Clips / Week", state: "limited", highlight: true },
+        { label: "Pro Timeline Editor", value: "3 Clips / Week", state: "limited", highlight: true },
         { label: "Max Resolution", value: "Up to 4K & 8K Super-Res", state: "check", highlight: true },
         { label: "4K & 8K Super-Resolution", value: "Fully Unlocked", state: "check", highlight: true },
         { label: "AI Virality Hook Scoring", value: "Enabled (0-100 pts)", state: "check", highlight: false },
@@ -110,14 +110,14 @@ export function DeveloperTierModal({
       id: "max",
       name: "Creator Max",
       tagline: "Power creators, agencies, & editors needing zero caps",
-      price: "$25",
+      price: "$15",
       cadence: "per month",
       badge: "Uncapped Master",
       badgeColor: "border-[#00e676]/50 bg-[#00e676]/15 text-[#00e676]",
       accentBorder: "border-[#00e676]/50 shadow-[0_0_30px_rgba(0,230,118,0.12)]",
       features: [
         { label: "1-Click Auto Clipper", value: "Unlimited Autonomous Exports", state: "check", highlight: true },
-        { label: "Pro Manual Studio", value: "Unlimited (Zero Caps)", state: "check", highlight: true },
+        { label: "Pro Timeline Editor", value: "Unlimited (Zero Caps)", state: "check", highlight: true },
         { label: "Max Resolution", value: "Up to 4K & 8K Super-Res", state: "check", highlight: true },
         { label: "4K & 8K Super-Resolution", value: "Fully Unlocked", state: "check", highlight: true },
         { label: "AI Virality Hook Scoring", value: "Enabled (0-100 pts)", state: "check", highlight: false },
@@ -406,8 +406,8 @@ export function DeveloperTierModal({
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {[
                     { id: "free", label: "Community Free", sub: "2 Clips/Wk · 1080p Max" },
-                    { id: "pro", label: "Creator Pro ($15)", sub: "Unlimited 1-Click · 3 Studio" },
-                    { id: "max", label: "Creator Max ($25)", sub: "100% Uncapped All Features" },
+                    { id: "pro", label: "Creator Pro ($11)", sub: "Unlimited 1-Click · 3 Editor Clips" },
+                    { id: "max", label: "Creator Max ($15)", sub: "100% Uncapped All Features" },
                   ].map((btn) => (
                     <button
                       key={btn.id}

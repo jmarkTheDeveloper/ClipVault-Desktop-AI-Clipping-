@@ -218,7 +218,7 @@ export const AiClipperScreen: React.FC<Props> = ({
     }
   }, [isLicensed, activeScreen, onBack]);
 
-  // Pro Manual Studio Credit Tracking ($15 Pro: 3 clips/wk, Max: unlimited)
+  // Pro Manual Studio Credit Tracking ($11 Pro: 3 clips/wk, $15 Max: unlimited)
   const [studioCredits, setStudioCredits] = useState<{
     plan: string;
     is_max: boolean;
@@ -1137,7 +1137,7 @@ export const AiClipperScreen: React.FC<Props> = ({
         }
       }
 
-      // 0. Manual Studio Weekly Credit Verification ($15 Creator Pro: 3 clips/wk, Max: unlimited)
+      // 0. Manual Studio Weekly Credit Verification ($11 Creator Pro: 3 clips/wk, $15 Max: unlimited)
       if (!isEffectivelyMax) {
         try {
           const creditRes = await fetch("http://127.0.0.1:8000/api/license/manual_studio_credits");

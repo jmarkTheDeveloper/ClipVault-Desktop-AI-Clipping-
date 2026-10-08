@@ -532,7 +532,7 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
       if (freeCredits && freeCredits.remaining <= 0) {
         setUpgradeReason("free_limit_reached");
         setShowUpgradeModal(true);
-        setErrorMsg("Free Tier limit reached: You have used your 2 free clips for this week. Please upgrade to Creator Pro ($15/mo) for unlimited 1-click clipping.");
+        setErrorMsg("Free Tier limit reached: You have used your 2 free clips for this week. Please upgrade to Creator Pro ($11/mo) for unlimited 1-click clipping.");
         return;
       }
       if ((quality === "4k" || quality === "8k") && !isEffectivelyLicensed) {

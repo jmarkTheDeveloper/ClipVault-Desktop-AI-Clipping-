@@ -89,7 +89,7 @@ export function ProjectSelectorScreen({
     }
   });
 
-  // Pro Manual Studio Credit Status ($15 Pro tier: 3 clips/wk, Max: unlimited)
+  // Pro Manual Studio Credit Status ($11 Pro tier: 3 clips/wk, $15 Max: unlimited)
   const [studioCredits, setStudioCredits] = useState<{
     plan: string;
     is_max: boolean;
@@ -537,7 +537,7 @@ export function ProjectSelectorScreen({
         "Custom Crop Bounding Boxes (9:16, 1:1, 16:9)",
       ]
     : [
-        "Creator Pro ($15/mo) Required",
+        "Creator Pro ($11/mo) Required",
         "Frame-Accurate Timeline Slicing & Waveforms",
         "Dual-Layer Gameplay & B-Roll Split-Screen",
         "Custom Crop Bounding Boxes (9:16, 1:1, 16:9)",
@@ -847,7 +847,7 @@ export function ProjectSelectorScreen({
                 }}
               >
                 <ShieldCheck style={{ width: 13, height: 13, color: G }} />
-                <span>{isEffectivelyMax ? "Creator Max" : "Creator Pro ($15/mo)"}</span>
+                <span>{isEffectivelyMax ? "Creator Max" : "Creator Pro ($11/mo)"}</span>
                 <span style={{
                   fontSize: 9,
                   fontWeight: 700,
@@ -2411,9 +2411,9 @@ export function ProjectSelectorScreen({
                               </div>
                               <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", marginTop: 4 }}>
                                 {isEffectivelyMax
-                                  ? "$25.00 / month • Uncapped Master Access"
+                                  ? "$15.00 / month • Uncapped Master Access"
                                   : isEffectivelyPro
-                                  ? "$15.00 / month • Pro Studio & Unlimited Auto Clipper"
+                                  ? "$11.00 / month • Pro Timeline Editor & Unlimited Auto Clipper"
                                   : "$0.00 / month • 2 Clips / Week Community Quota"}
                               </div>
                             </div>
@@ -2440,7 +2440,7 @@ export function ProjectSelectorScreen({
                                   }}
                                 >
                                   <Sparkles style={{ width: 12, height: 12 }} />
-                                  <span>{isEffectivelyPro ? "Upgrade to Max ($25/mo)" : "Get Creator Max"}</span>
+                                  <span>{isEffectivelyPro ? "Upgrade to Max ($15/mo)" : "Get Creator Max"}</span>
                                 </button>
                               )}
                               {!isEffectivelyLicensed && (
@@ -2465,7 +2465,7 @@ export function ProjectSelectorScreen({
                                       cursor: "pointer",
                                     }}
                                   >
-                                    <span>Get Creator Pro ($15/mo)</span>
+                                    <span>Get Creator Pro ($11/mo)</span>
                                   </button>
                                   <button
                                     type="button"
@@ -3480,7 +3480,7 @@ export function ProjectSelectorScreen({
                           <div>
                             <strong style={{ color: "#fff" }}>1. Eligibility for Full Refund:</strong>
                             <p style={{ margin: "4px 0 0", color: "rgba(255,255,255,0.65)" }}>
-                              The 14-day money-back guarantee covers all initial purchases of ClipVault Creator Pro ($15/mo) and ClipVault Creator Max ($25/mo). Refund requests submitted within 14 calendar days of transaction settlement are automatically approved and credited back to the original payment method (Credit/Debit Card, PayPal, or Apple Pay).
+                              The 14-day money-back guarantee covers all initial purchases of ClipVault Creator Pro ($11/mo) and ClipVault Creator Max ($15/mo). Refund requests submitted within 14 calendar days of transaction settlement are automatically approved and credited back to the original payment method (Credit/Debit Card, PayPal, or Apple Pay).
                             </p>
                           </div>
 
@@ -3818,7 +3818,7 @@ export function ProjectSelectorScreen({
                               },
                               {
                                 q: "What is the difference between Creator Pro and Creator Max?",
-                                a: "Creator Pro ($15/mo) unlocks unlimited 1-Click Auto Clipping and up to 3 manual timeline studio projects per week. Creator Max ($25/mo or Lifetime) gives you completely unlimited manual studio timeline projects, multi-layer split screen, and ultra-high bitrate 4K/8K AI master exports."
+                                a: "Creator Pro ($11/mo) unlocks unlimited 1-Click Auto Clipping and up to 3 manual timeline editor projects per week. Creator Max ($15/mo or Lifetime) gives you completely unlimited timeline editor projects, multi-layer split screen, and ultra-high bitrate 4K/8K AI master exports."
                               },
                               {
                                 q: "Can I transfer my license if I upgrade my computer?",

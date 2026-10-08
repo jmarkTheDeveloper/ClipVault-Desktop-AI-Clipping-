@@ -73,7 +73,7 @@ export function CreatorProUpgradeModal({
   const getDescription = () => {
     switch (reason) {
       case "studio_locked":
-        return "Pro Timeline Editor includes frame-accurate timeline editing, multi-range trimming, and custom aspect-ratio crop framing. It requires a Creator Pro ($15/mo) or Creator Max ($25/mo) subscription.";
+        return "Pro Timeline Editor includes frame-accurate timeline editing, multi-range trimming, and custom aspect-ratio crop framing. It requires a Creator Pro ($11/mo) or Creator Max ($15/mo) subscription.";
       case "free_limit_reached":
         return `Community Free Tier includes 2 video clips per rolling 7-day week via the 1-Click Auto Clipper. Your 2 free credits will refresh in ${resetsInDays} ${resetsInDays === 1 ? "day" : "days"}${resetsAt ? ` (${resetsAt})` : ""}. Upgrade for unlimited autonomous clipping.`;
       case "4k_locked":
@@ -132,7 +132,7 @@ export function CreatorProUpgradeModal({
 
         {/* Subscription Plan Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-          {/* Plan 1: Creator Pro ($15/mo) */}
+          {/* Plan 1: Creator Pro ($11/mo) */}
           <div className="rounded-2xl p-4 bg-[#12141c] border border-white/10 hover:border-[#34eb3d]/50 transition-all flex flex-col justify-between space-y-4">
             <div className="space-y-3">
               <div className="flex items-center justify-between">
@@ -143,7 +143,7 @@ export function CreatorProUpgradeModal({
                   <h3 className="text-base font-extrabold text-white">Creator Pro</h3>
                 </div>
                 <div className="text-right">
-                  <span className="text-lg font-black text-white">$15</span>
+                  <span className="text-lg font-black text-white">$11</span>
                   <span className="text-xs text-zinc-400"> / mo</span>
                 </div>
               </div>
@@ -159,7 +159,7 @@ export function CreatorProUpgradeModal({
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-3.5 h-3.5 text-[#34eb3d] shrink-0" />
-                  <span>3 Studio Clips / Week</span>
+                  <span>3 Pro Editor Clips / Week</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-3.5 h-3.5 text-[#34eb3d] shrink-0" />
@@ -173,23 +173,23 @@ export function CreatorProUpgradeModal({
               onClick={() => handleOpenUrl(LEMON_PRO_CHECKOUT_URL)}
               className="w-full py-2.5 px-3 rounded-xl bg-[#34eb3d] hover:bg-[#2dca34] text-black font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-[0_0_20px_rgba(52,235,61,0.25)] transition-all cursor-pointer"
             >
-              <span>Get Creator Pro ($15/mo)</span>
+              <span>Get Creator Pro ($11/mo)</span>
               <ExternalLink className="w-3 h-3" />
             </button>
           </div>
 
-          {/* Plan 2: Creator Max ($25/mo) */}
+          {/* Plan 2: Creator Max ($15/mo) */}
           <div className="rounded-2xl p-4 bg-[#141a15] border border-[#34eb3d]/40 shadow-[0_0_30px_rgba(52,235,61,0.12)] flex flex-col justify-between space-y-4 relative">
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div>
                   <span className="text-[10px] font-bold uppercase tracking-wider text-[#34eb3d] block font-mono">
-                    Unlimited Studio
+                    Unlimited Editor
                   </span>
                   <h3 className="text-base font-extrabold text-white">Creator Max</h3>
                 </div>
                 <div className="text-right">
-                  <span className="text-lg font-black text-white">$25</span>
+                  <span className="text-lg font-black text-white">$15</span>
                   <span className="text-xs text-zinc-400"> / mo</span>
                 </div>
               </div>
@@ -219,7 +219,7 @@ export function CreatorProUpgradeModal({
               onClick={() => handleOpenUrl(LEMON_MAX_CHECKOUT_URL)}
               className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#34eb3d] to-[#00e676] hover:brightness-110 text-black font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-[0_0_25px_rgba(52,235,61,0.35)] transition-all cursor-pointer"
             >
-              <span>Get Creator Max ($25/mo)</span>
+              <span>Get Creator Max ($15/mo)</span>
               <ExternalLink className="w-3 h-3" />
             </button>
           </div>

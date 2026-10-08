@@ -97,7 +97,7 @@ export function CreatorMaxUpgradeModal({
           Upgrade to Creator Max
         </h2>
         <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed mb-6">
-          Your Creator Pro ($15/mo) subscription includes 3 weekly clips in the Pro Timeline Editor.
+          Your Creator Pro ($11/mo) subscription includes 3 weekly clips in the Pro Timeline Editor.
           You have utilized all 3 clips for this 7-day period. Your editor credits will refresh in{" "}
           <span className="text-[#34eb3d] font-bold">
             {resetsInDays} {resetsInDays === 1 ? "day" : "days"}
@@ -111,7 +111,7 @@ export function CreatorMaxUpgradeModal({
           <div className="rounded-xl p-3.5 bg-white/[0.02] border border-white/10 text-xs space-y-2">
             <div className="font-bold text-zinc-300 flex items-center justify-between">
               <span>Creator Pro</span>
-              <span className="text-zinc-500 font-normal">$15 / mo</span>
+              <span className="text-zinc-500 font-normal">$11 / mo</span>
             </div>
             <div className="space-y-1.5 text-[11px] text-zinc-400">
               <div className="flex items-center gap-1.5 text-zinc-200">
@@ -129,7 +129,7 @@ export function CreatorMaxUpgradeModal({
           <div className="rounded-xl p-3.5 bg-[#34eb3d]/[0.06] border border-[#34eb3d]/40 text-xs space-y-2 relative shadow-[0_0_20px_rgba(52,235,61,0.12)]">
             <div className="font-bold text-white flex items-center justify-between">
               <span className="text-[#34eb3d]">Creator Max</span>
-              <span className="text-zinc-200 font-bold">$25 / mo</span>
+              <span className="text-zinc-200 font-bold">$15 / mo</span>
             </div>
             <div className="space-y-1.5 text-[11px] text-zinc-300">
               <div className="flex items-center gap-1.5 font-medium">
@@ -155,7 +155,7 @@ export function CreatorMaxUpgradeModal({
             onClick={handleOpenCheckout}
             className="w-full py-3 px-4 rounded-xl bg-[#34eb3d] text-black font-extrabold text-xs flex items-center justify-center gap-2 hover:bg-[#2dca34] transition-all shadow-[0_0_25px_rgba(52,235,61,0.35)] hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
           >
-            <span>Upgrade to Creator Max ($25/mo)</span>
+            <span>Upgrade to Creator Max ($15/mo)</span>
             <ExternalLink className="w-3.5 h-3.5" />
           </button>
 
