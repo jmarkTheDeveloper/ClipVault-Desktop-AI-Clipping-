@@ -129,7 +129,10 @@ export function CreatorMaxUpgradeModal({
           <div className="rounded-xl p-3.5 bg-[#34eb3d]/[0.06] border border-[#34eb3d]/40 text-xs space-y-2 relative shadow-[0_0_20px_rgba(52,235,61,0.12)]">
             <div className="font-bold text-white flex items-center justify-between">
               <span className="text-[#34eb3d]">Creator Max</span>
-              <span className="text-zinc-200 font-bold">$15 / mo</span>
+              <div className="text-right">
+                <span className="text-zinc-200 font-bold">$15 / mo</span>
+                <span className="text-[10px] text-[#34eb3d] block font-mono">or $119/yr (Save 34%)</span>
+              </div>
             </div>
             <div className="space-y-1.5 text-[11px] text-zinc-300">
               <div className="flex items-center gap-1.5 font-medium">
@@ -155,7 +158,7 @@ export function CreatorMaxUpgradeModal({
             onClick={handleOpenCheckout}
             className="w-full py-3 px-4 rounded-xl bg-[#34eb3d] text-black font-extrabold text-xs flex items-center justify-center gap-2 hover:bg-[#2dca34] transition-all shadow-[0_0_25px_rgba(52,235,61,0.35)] hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
           >
-            <span>Upgrade to Creator Max ($15/mo)</span>
+            <span>Upgrade to Creator Max ($15/mo or $119/yr)</span>
             <ExternalLink className="w-3.5 h-3.5" />
           </button>
 

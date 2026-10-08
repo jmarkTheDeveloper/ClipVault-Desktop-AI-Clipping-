@@ -145,6 +145,7 @@ export function CreatorProUpgradeModal({
                 <div className="text-right">
                   <span className="text-lg font-black text-white">$11</span>
                   <span className="text-xs text-zinc-400"> / mo</span>
+                  <span className="text-[10px] text-[#34eb3d] block font-mono">or $89/yr (Save 33%)</span>
                 </div>
               </div>
 
@@ -173,7 +174,7 @@ export function CreatorProUpgradeModal({
               onClick={() => handleOpenUrl(LEMON_PRO_CHECKOUT_URL)}
               className="w-full py-2.5 px-3 rounded-xl bg-[#34eb3d] hover:bg-[#2dca34] text-black font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-[0_0_20px_rgba(52,235,61,0.25)] transition-all cursor-pointer"
             >
-              <span>Get Creator Pro ($11/mo)</span>
+              <span>Get Creator Pro ($11/mo or $89/yr)</span>
               <ExternalLink className="w-3 h-3" />
             </button>
           </div>
@@ -191,6 +192,7 @@ export function CreatorProUpgradeModal({
                 <div className="text-right">
                   <span className="text-lg font-black text-white">$15</span>
                   <span className="text-xs text-zinc-400"> / mo</span>
+                  <span className="text-[10px] text-[#34eb3d] block font-mono">or $119/yr (Save 34%)</span>
                 </div>
               </div>
 
@@ -219,7 +221,7 @@ export function CreatorProUpgradeModal({
               onClick={() => handleOpenUrl(LEMON_MAX_CHECKOUT_URL)}
               className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#34eb3d] to-[#00e676] hover:brightness-110 text-black font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-[0_0_25px_rgba(52,235,61,0.35)] transition-all cursor-pointer"
             >
-              <span>Get Creator Max ($15/mo)</span>
+              <span>Get Creator Max ($15/mo or $119/yr)</span>
               <ExternalLink className="w-3 h-3" />
             </button>
           </div>

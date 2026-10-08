@@ -2411,9 +2411,9 @@ export function ProjectSelectorScreen({
                               </div>
                               <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", marginTop: 4 }}>
                                 {isEffectivelyMax
-                                  ? "$15.00 / month • Uncapped Master Access"
+                                  ? "$15.00 / month ($119/yr) • Uncapped Master Access"
                                   : isEffectivelyPro
-                                  ? "$11.00 / month • Pro Timeline Editor & Unlimited Auto Clipper"
+                                  ? "$11.00 / month ($89/yr) • Pro Timeline Editor & Unlimited Auto Clipper"
                                   : "$0.00 / month • 2 Clips / Week Community Quota"}
                               </div>
                             </div>
@@ -3480,7 +3480,7 @@ export function ProjectSelectorScreen({
                           <div>
                             <strong style={{ color: "#fff" }}>1. Eligibility for Full Refund:</strong>
                             <p style={{ margin: "4px 0 0", color: "rgba(255,255,255,0.65)" }}>
-                              The 14-day money-back guarantee covers all initial purchases of ClipVault Creator Pro ($11/mo) and ClipVault Creator Max ($15/mo). Refund requests submitted within 14 calendar days of transaction settlement are automatically approved and credited back to the original payment method (Credit/Debit Card, PayPal, or Apple Pay).
+                              The 14-day money-back guarantee covers all initial purchases of ClipVault Creator Pro ($11/mo or $89/yr) and ClipVault Creator Max ($15/mo or $119/yr). Refund requests submitted within 14 calendar days of transaction settlement are automatically approved and credited back to the original payment method (Credit/Debit Card, PayPal, or Apple Pay).
                             </p>
                           </div>
 
@@ -3818,7 +3818,7 @@ export function ProjectSelectorScreen({
                               },
                               {
                                 q: "What is the difference between Creator Pro and Creator Max?",
-                                a: "Creator Pro ($11/mo) unlocks unlimited 1-Click Auto Clipping and up to 3 manual timeline editor projects per week. Creator Max ($15/mo or Lifetime) gives you completely unlimited timeline editor projects, multi-layer split screen, and ultra-high bitrate 4K/8K AI master exports."
+                                a: "Creator Pro ($11/mo or $89/yr) unlocks unlimited 1-Click Auto Clipping and up to 3 manual timeline editor projects per week. Creator Max ($15/mo or $119/yr) gives you completely unlimited timeline editor projects, multi-layer split screen, and ultra-high bitrate 4K/8K AI master exports."
                               },
                               {
                                 q: "Can I transfer my license if I upgrade my computer?",
