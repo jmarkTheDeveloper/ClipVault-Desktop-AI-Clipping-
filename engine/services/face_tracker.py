@@ -837,14 +837,29 @@ class FaceTracker:
         raw_shots = []
         curr_shot = []
         curr_shot_start = 0.0
+        curr_is_scene_cut = True
         for i, item in enumerate(pre_frames):
             if i in cut_times_exact and curr_shot:
-                raw_shots.append({"start_t": curr_shot_start, "end_t": cut_times_exact[i], "items": curr_shot})
+                raw_shots.append({
+                    "start_t": curr_shot_start,
+                    "end_t": cut_times_exact[i],
+                    "items": curr_shot,
+                    "is_scene_cut": curr_is_scene_cut,
+                })
                 curr_shot = []
                 curr_shot_start = cut_times_exact[i]
+                # Check if this cut was a true visual/chromatic scene cut
+                hdiff = pre_frames[i]["hdiff"]
+                sdiff = pre_frames[i]["sdiff"]
+                curr_is_scene_cut = bool(hdiff >= 0.28 or (hdiff >= 0.20 and sdiff >= 0.080) or sdiff >= 0.25)
             curr_shot.append(item)
         if curr_shot:
-            raw_shots.append({"start_t": curr_shot_start, "end_t": float(clip.duration), "items": curr_shot})
+            raw_shots.append({
+                "start_t": curr_shot_start,
+                "end_t": float(clip.duration),
+                "items": curr_shot,
+                "is_scene_cut": curr_is_scene_cut,
+            })
 
         # ── Debounce Micro-Shots (< 0.85s / 4-5 samples) ──
         # In professional broadcast framing, micro-shots (0.1s - 0.5s) produce jarring rapid flashes/whips.
@@ -868,18 +883,32 @@ class FaceTracker:
 
         raw_shots = merged_shots
 
-        # ── Helper: Speaker Clustering inside a Shot ──
-        # Groups face detections into discrete human clusters by X coordinate so we NEVER
-        # average two separate people into the empty wall between them.
-        def _solve_shot_crop_x1(shot_items_list: List[Dict[str, Any]], prev_shot_x1: Optional[int]) -> int:
+        # ── Compute Adaptive Quality-Aware Zoom Ceiling ──
+        # Protects output against pixelation: if source resolution is already low (< 720p),
+        # prevent excessive digital zooming even if the user slider is set high.
+        effective_max_zoom = float(max_digital_zoom) if (max_digital_zoom and max_digital_zoom > 1.0) else 1.0
+        if adaptive_crop and effective_max_zoom > 1.0:
+            if height >= 1080:
+                safe_zoom_cap = effective_max_zoom
+            elif height >= 720:
+                safe_zoom_cap = min(effective_max_zoom, 1.50)
+            else:
+                safe_zoom_cap = min(effective_max_zoom, 1.20)
+        else:
+            safe_zoom_cap = effective_max_zoom
+
+        # ── Helper: Speaker Clustering & Intelligent Composition inside a Shot ──
+        # Groups face detections into discrete human clusters, scores active speakers,
+        # applies rule-of-thirds vertical headroom, and computes optimal digital zoom.
+        def _solve_shot_crop(shot_items_list: List[Dict[str, Any]], prev_shot_crop: Optional[Tuple[int, int, int, int, float, float]]) -> Tuple[int, int, int, int, float, float]:
             all_detections = []
             for f_idx, it in enumerate(shot_items_list):
                 for face in it["faces"]:
                     all_detections.append((f_idx, face))
 
             if not all_detections:
-                # No faces in this shot (e.g. B-roll close-up of product/hands):
-                # Try skin-tone presence on the middle frame of the shot, otherwise center crop
+                # No faces detected (e.g. B-roll close-up): skin centroid fallback or center crop
+                skin_cx = None
                 try:
                     mid_item = shot_items_list[len(shot_items_list) // 2]
                     frm = clip.get_frame(mid_item["t"])
@@ -888,14 +917,15 @@ class FaceTracker:
                     scale = 320.0 / max(height, width)
                     small_frm = cv2.resize(frm, (int(width * scale), int(height * scale)), interpolation=cv2.INTER_AREA)
                     skin_cx = self._compute_human_presence_centroid_x(small_frm, width)
-                    if skin_cx is not None:
-                        x1_b = int(round(skin_cx - base_crop_w / 2.0))
-                        x1_b = max(0, min(width - base_crop_w, x1_b))
-                        return x1_b - (x1_b % 2)
                 except Exception:
                     pass
-                center_x1 = max(0, min(width - base_crop_w, (width - base_crop_w) // 2))
-                return center_x1 - (center_x1 % 2)
+
+                ref_cx = skin_cx if skin_cx is not None else (width / 2.0)
+                ref_cy = height / 2.0
+                x1_b = int(round(ref_cx - base_crop_w / 2.0))
+                x1_b = max(0, min(width - base_crop_w, x1_b))
+                if x1_b % 2 != 0: x1_b = max(0, x1_b - 1)
+                return (x1_b, 0, base_crop_w, height, float(ref_cx), float(ref_cy))
 
             # Cluster detections by horizontal center_x (radius = 14% of frame width)
             cluster_radius = width * 0.14
@@ -915,22 +945,23 @@ class FaceTracker:
                 else:
                     clusters.append([(f_idx, face)])
 
-            # Score each person cluster by persistence, capped face area, mouth activity, and cubic confidence
             scored_clusters = []
             num_shot_frames = max(1, len(shot_items_list))
             max_reasonable_area = float(width * height) * 0.08
-            prev_center = (prev_shot_x1 + base_crop_w / 2.0) if prev_shot_x1 is not None else None
+            prev_center = (prev_shot_crop[0] + prev_shot_crop[2] / 2.0) if prev_shot_crop is not None else None
 
             for c in clusters:
                 unique_frames = len(set(x[0] for x in c))
                 persistence = unique_frames / float(num_shot_frames)
                 c_xs = [float(x[1]["center_x"]) for x in c]
+                c_ys = [float(x[1].get("center_y", height * 0.35)) for x in c]
                 c_ws = [float(x[1]["width"]) for x in c]
                 c_hs = [float(x[1]["height"]) for x in c]
                 c_confs = [float(x[1].get("confidence", 0.7)) for x in c]
                 c_mouths = [float(x[1].get("mouth_score", 0.0)) for x in c]
 
                 med_cx = float(np.median(c_xs))
+                med_cy = float(np.median(c_ys))
                 med_fw = float(np.median(c_ws))
                 med_fh = float(np.median(c_hs))
                 avg_area = min(max_reasonable_area, med_fw * med_fh)
@@ -938,7 +969,7 @@ class FaceTracker:
                 avg_mouth = float(np.mean(c_mouths))
                 center_bias = 1.0 - 0.15 * (abs(med_cx - (width / 2.0)) / max(1.0, width / 2.0))
 
-                # Anchor speaker continuity: give clusters that were already visible in the previous shot a stability boost
+                # Anchor speaker continuity: stability boost if cluster was in viewport of previous shot
                 anchor_continuity = 1.0
                 if prev_center is not None and abs(med_cx - prev_center) < (base_crop_w * 0.45):
                     anchor_continuity = 1.25
@@ -956,6 +987,7 @@ class FaceTracker:
                     "persistence": persistence,
                     "unique_frames": unique_frames,
                     "med_cx": med_cx,
+                    "med_cy": med_cy,
                     "med_fw": med_fw,
                     "med_fh": med_fh,
                 })
@@ -963,10 +995,12 @@ class FaceTracker:
             scored_clusters.sort(key=lambda item: -item["score"])
             primary = scored_clusters[0]
             target_cx = primary["med_cx"]
+            target_cy = primary["med_cy"]
             subject_fw = primary["med_fw"]
+            subject_fh = primary["med_fh"]
+            is_two_shot = False
 
-            # Check if top 2 clusters form a tight, natural Two-Shot where BOTH people fit completely
-            # inside 82% of base_crop_w without either person being near the border or cut in half.
+            # Check for tight two-shot where BOTH people fit naturally inside the 9:16 frame
             if len(scored_clusters) >= 2:
                 secondary = scored_clusters[1]
                 if (
@@ -980,13 +1014,41 @@ class FaceTracker:
                     two_shot_span = outer_right - outer_left
                     if two_shot_span <= (base_crop_w * 0.82):
                         target_cx = 0.5 * (outer_left + outer_right)
+                        target_cy = 0.5 * (left_c["med_cy"] + right_c["med_cy"])
                         subject_fw = two_shot_span * 0.5
+                        is_two_shot = True
 
-            # Apply Safe-Zone Edge Guard so the subject is never sliced or pushed against the frame edge
-            half_cw = base_crop_w / 2.0
+            # ── Digital Zoom & Rule-of-Thirds Headroom Calculation ──
+            if not is_two_shot and safe_zoom_cap > 1.0:
+                face_rel_h = subject_fh / float(height)
+                # If face is small/medium in widescreen frame, zoom in up to safe_zoom_cap
+                if face_rel_h < 0.25:
+                    zoom_factor = min(safe_zoom_cap, 1.0 + (safe_zoom_cap - 1.0) * ((0.25 - face_rel_h) / 0.15))
+                else:
+                    zoom_factor = 1.0
+                zoom_factor = max(1.0, min(safe_zoom_cap, zoom_factor))
+
+                ch_val = int(round(height / zoom_factor))
+                cw_val = int(round(ch_val * crop_ratio))
+                if cw_val % 2 != 0: cw_val -= 1
+                if ch_val % 2 != 0: ch_val -= 1
+                cw_val = max(64, min(width, cw_val))
+                ch_val = max(64, min(height, ch_val))
+
+                # Rule-of-thirds headroom: place eyes/face at ~33% from the top of the crop box
+                desired_y1 = int(round(target_cy - (ch_val * 0.33)))
+                y1_val = max(0, min(height - ch_val, desired_y1))
+                if y1_val % 2 != 0: y1_val = max(0, y1_val - 1)
+            else:
+                cw_val = base_crop_w
+                ch_val = height
+                y1_val = 0
+
+            # Safe-Zone Edge Guard (horizontal clamping)
+            half_cw = cw_val / 2.0
             person_left = target_cx - (subject_fw * 0.80)
             person_right = target_cx + (subject_fw * 0.80)
-            min_edge_margin = base_crop_w * 0.12
+            min_edge_margin = cw_val * 0.12
 
             if (target_cx - half_cw) > (person_left - min_edge_margin):
                 target_cx = max(half_cw, person_left - min_edge_margin + half_cw)
@@ -994,35 +1056,67 @@ class FaceTracker:
                 target_cx = min(float(width) - half_cw, person_right + min_edge_margin - half_cw)
 
             x1_val = int(round(target_cx - half_cw))
-            x1_val = max(0, min(width - base_crop_w, x1_val))
+            x1_val = max(0, min(width - cw_val, x1_val))
             if x1_val % 2 != 0:
                 x1_val = max(0, x1_val - 1)
 
-            # Hysteresis against micro-shifts across adjacent merged cuts (< 4% frame width)
-            if prev_shot_x1 is not None and abs(x1_val - prev_shot_x1) < (width * 0.04):
-                return prev_shot_x1
-            return x1_val
+            # Hysteresis against micro-shifts from previous shot
+            if prev_shot_crop is not None:
+                p_x1, p_y1, p_cw, p_ch = prev_shot_crop[:4]
+                if abs(x1_val - p_x1) < (width * 0.04) and abs(cw_val - p_cw) < (width * 0.04):
+                    x1_val, y1_val, cw_val, ch_val = p_x1, p_y1, p_cw, p_ch
 
-        # ── PASS 2: Broadcast Tripod-Locked Shot Framing ──
-        # Every shot is locked to a single rock-solid horizontal x1 coordinate with full vertical
-        # height (y1 = 0, ch = height, cw = base_crop_w). Zero zoom-in on eyeballs, zero wobble,
-        # zero sliding across empty chairs, and instant 0-lag cuts on exact shot boundaries.
+            return (x1_val, y1_val, cw_val, ch_val, float(target_cx), float(target_cy))
+
+        # ── PASS 2: Broadcast Virtual Camera Director ──
+        # Solve framing and trajectory for every shot
         shot_keyframes = []
-        prev_x1: Optional[int] = None
+        prev_crop: Optional[Tuple[int, int, int, int, float, float]] = None
 
         for shot_idx, shot_dict in enumerate(raw_shots):
             shot_start_t = shot_dict["start_t"]
             shot_items_list = shot_dict["items"]
-            locked_x1 = _solve_shot_crop_x1(shot_items_list, prev_x1)
-            prev_x1 = locked_x1
+            solved = _solve_shot_crop(shot_items_list, prev_crop)
+            x1, y1, cw, ch, target_cx, target_cy = solved
+            prev_crop = solved
+
+            # Continuous sample trajectory for "smooth" gimbal Steadicam tracking
+            trajectory = []
+            for item in shot_items_list:
+                it_t = item["t"]
+                it_faces = item["faces"]
+                best_f = None
+                best_d = width * 0.25
+                for f in it_faces:
+                    d = abs(float(f["center_x"]) - target_cx)
+                    if d < best_d:
+                        best_d = d
+                        best_f = f
+                if best_f is not None:
+                    trajectory.append({
+                        "t": float(it_t),
+                        "cx": float(best_f["center_x"]),
+                        "cy": float(best_f.get("center_y", target_cy)),
+                    })
+                else:
+                    trajectory.append({
+                        "t": float(it_t),
+                        "cx": float(target_cx),
+                        "cy": float(target_cy),
+                    })
 
             shot_keyframes.append({
                 "shot_idx": shot_idx,
                 "t_start": float(shot_start_t),
-                "x1": int(locked_x1),
-                "y1": 0,
-                "cw": int(base_crop_w),
-                "ch": int(height),
+                "t_end": float(shot_dict["end_t"]),
+                "x1": int(x1),
+                "y1": int(y1),
+                "cw": int(cw),
+                "ch": int(ch),
+                "cx": float(target_cx),
+                "cy": float(target_cy),
+                "is_scene_cut": bool(shot_dict.get("is_scene_cut", False)),
+                "trajectory": trajectory,
             })
 
         if target_resolution and len(target_resolution) == 2:
@@ -1033,30 +1127,97 @@ class FaceTracker:
         if final_out_w % 2 != 0: final_out_w -= 1
         if final_out_h % 2 != 0: final_out_h -= 1
 
+        active_camera_style = str(camera_style).lower().strip()
         print(
-            f"    [FaceTracker] Broadcast Tripod-Lock Camera Active ({len(shot_keyframes)} shots, {len(pre_frames)} samples) | "
-            f"Crop: {base_crop_w}x{height} -> {final_out_w}x{final_out_h}"
+            f"    [FaceTracker] Director Active [Mode: '{active_camera_style.upper()}'] "
+            f"({len(shot_keyframes)} shots, zoom_cap={safe_zoom_cap:.2f}x) | "
+            f"Output: {final_out_w}x{final_out_h}"
         )
 
         shot_starts = np.array([sk["t_start"] for sk in shot_keyframes], dtype=np.float64)
 
         def virtual_camera_filter(get_frame, t):
             frame = get_frame(t)
-            # Lookup active broadcast shot for timestamp t (frame-accurate binary-searched cut time)
             s_idx = int(np.searchsorted(shot_starts, t, side="right")) - 1
             s_idx = max(0, min(len(shot_keyframes) - 1, s_idx))
-            sk = shot_keyframes[s_idx]
+            curr_sk = shot_keyframes[s_idx]
 
-            x1 = sk["x1"]
-            cw = sk["cw"]
-            ch = sk["ch"]
+            if active_camera_style == "instant":
+                # ── INSTANT: Rock-solid locked broadcast cut (zero wobble, instant switch) ──
+                x1 = curr_sk["x1"]
+                y1 = curr_sk["y1"]
+                cw = curr_sk["cw"]
+                ch = curr_sk["ch"]
 
-            # Clamp horizontal boundary; vertical is always full height (0 to ch)
+            elif active_camera_style == "snappy":
+                # ── SNAPPY: Reactive cubic ease-in-out pan glide across speaker changes ──
+                glide_dur = 0.45
+                t_rel = t - curr_sk["t_start"]
+                if s_idx > 0 and not curr_sk["is_scene_cut"] and t_rel < glide_dur:
+                    prev_sk = shot_keyframes[s_idx - 1]
+                    u = max(0.0, min(1.0, t_rel / glide_dur))
+                    # Smoothstep ease: 3u^2 - 2u^3
+                    alpha = u * u * (3.0 - 2.0 * u)
+                    x1 = int(round((1.0 - alpha) * prev_sk["x1"] + alpha * curr_sk["x1"]))
+                    y1 = int(round((1.0 - alpha) * prev_sk["y1"] + alpha * curr_sk["y1"]))
+                    cw = int(round((1.0 - alpha) * prev_sk["cw"] + alpha * curr_sk["cw"]))
+                    ch = int(round((1.0 - alpha) * prev_sk["ch"] + alpha * curr_sk["ch"]))
+                else:
+                    x1 = curr_sk["x1"]
+                    y1 = curr_sk["y1"]
+                    cw = curr_sk["cw"]
+                    ch = curr_sk["ch"]
+
+            else:  # "smooth" or default
+                # ── SMOOTH: Gentle fluid Steadicam gimbal with deadzone filtering ──
+                traj = curr_sk["trajectory"]
+                cw = curr_sk["cw"]
+                ch = curr_sk["ch"]
+                if traj and len(traj) >= 2:
+                    traj_t = [pt["t"] for pt in traj]
+                    traj_x = [pt["cx"] for pt in traj]
+                    traj_y = [pt["cy"] for pt in traj]
+                    # Deadzone filter
+                    filtered_x = [traj_x[0]]
+                    filtered_y = [traj_y[0]]
+                    dead_w = cw * 0.10
+                    dead_h = ch * 0.10
+                    for k in range(1, len(traj_x)):
+                        dx = traj_x[k] - filtered_x[-1]
+                        dy = traj_y[k] - filtered_y[-1]
+                        step_x = 0.0 if abs(dx) < dead_w else (dx - np.sign(dx) * dead_w) * 0.35
+                        step_y = 0.0 if abs(dy) < dead_h else (dy - np.sign(dy) * dead_h) * 0.30
+                        filtered_x.append(filtered_x[-1] + step_x)
+                        filtered_y.append(filtered_y[-1] + step_y)
+
+                    cur_cx = float(np.interp(t, traj_t, filtered_x))
+                    cur_cy = float(np.interp(t, traj_t, filtered_y))
+
+                    # Eased glide on shot transitions if not scene cut
+                    glide_dur = 0.50
+                    t_rel = t - curr_sk["t_start"]
+                    if s_idx > 0 and not curr_sk["is_scene_cut"] and t_rel < glide_dur:
+                        prev_sk = shot_keyframes[s_idx - 1]
+                        u = max(0.0, min(1.0, t_rel / glide_dur))
+                        alpha = u * u * (3.0 - 2.0 * u)
+                        start_cx = prev_sk["cx"]
+                        start_cy = prev_sk["cy"]
+                        cur_cx = (1.0 - alpha) * start_cx + alpha * cur_cx
+                        cur_cy = (1.0 - alpha) * start_cy + alpha * cur_cy
+
+                    x1 = int(round(cur_cx - cw / 2.0))
+                    y1 = int(round(cur_cy - (ch * 0.33)))
+                else:
+                    x1 = curr_sk["x1"]
+                    y1 = curr_sk["y1"]
+
+            # Clamp boundaries safely
             x1 = max(0, min(width - cw, x1))
-            cropped_patch = frame[0:ch, x1:x1 + cw]
+            y1 = max(0, min(height - ch, y1))
+            cropped_patch = frame[y1:y1 + ch, x1:x1 + cw]
 
             if cropped_patch.shape[0] != final_out_h or cropped_patch.shape[1] != final_out_w:
-                interp = cv2.INTER_AREA if (final_out_w < cropped_patch.shape[1] or final_out_h < cropped_patch.shape[0]) else cv2.INTER_LINEAR
+                interp = cv2.INTER_AREA if (final_out_w < cropped_patch.shape[1] or final_out_h < cropped_patch.shape[0]) else cv2.INTER_LANCZOS4
                 return cv2.resize(cropped_patch, (final_out_w, final_out_h), interpolation=interp)
             return cropped_patch
 

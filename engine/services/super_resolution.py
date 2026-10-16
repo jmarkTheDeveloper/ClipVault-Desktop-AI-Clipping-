@@ -65,23 +65,31 @@ class SuperResolutionEngine:
 
     def upscale_frame_opencv(self, frame: np.ndarray, target_w: int, target_h: int) -> np.ndarray:
         """
-        High-fidelity in-process frame enhancement using Lanczos interpolation + unsharp masking.
-        Provides crisp edge definition without introducing unnatural plastic artifacts.
+        High-fidelity in-process frame enhancement using Lanczos-4 interpolation + LAB bilateral detail restoration.
+        Provides crisp edge definition on facial features, eyes, and contours without halo artifacts.
         """
         h, w = frame.shape[:2]
         if w == target_w and h == target_h:
             return frame
 
-        # Ultra-fast SIMD interpolation with edge restoration
-        interp = cv2.INTER_AREA if (target_w < w or target_h < h) else cv2.INTER_LINEAR
+        # High-order Lanczos-4 sinc interpolation for maximum edge fidelity
+        interp = cv2.INTER_AREA if (target_w < w or target_h < h) else cv2.INTER_LANCZOS4
         resized = cv2.resize(frame, (target_w, target_h), interpolation=interp)
 
-        # Subtle unsharp mask to restore edge micro-contrast without haloing
+        # Perceptual Luminance Detail & Edge Enhancement in LAB color space
         scale = max(target_w / float(w), target_h / float(h))
-        if scale >= 1.5:
-            gaussian = cv2.GaussianBlur(resized, (0, 0), 2.0)
-            enhanced = cv2.addWeighted(resized, 1.15, gaussian, -0.15, 0)
-            return np.clip(enhanced, 0, 255).astype(np.uint8)
+        if scale >= 1.20:
+            try:
+                lab = cv2.cvtColor(resized, cv2.COLOR_RGB2LAB)
+                l_chan, a_chan, b_chan = cv2.split(lab)
+                # Bilateral filter preserves sharp facial/clothing edges while suppressing noise
+                smoothed_l = cv2.bilateralFilter(l_chan, d=5, sigmaColor=25, sigmaSpace=25)
+                detail_l = cv2.subtract(l_chan, smoothed_l)
+                enhanced_l = cv2.addWeighted(l_chan, 1.0, detail_l, 1.35, 0)
+                enhanced_lab = cv2.merge([enhanced_l, a_chan, b_chan])
+                return cv2.cvtColor(enhanced_lab, cv2.COLOR_LAB2RGB)
+            except Exception:
+                pass
 
         return resized
 
