@@ -123,6 +123,9 @@ export function MovieRecapperScreen({ onBack }: Props) {
   const [progress, setProgress]         = useState(0);
   const [done, setDone]                 = useState(false);
   const [resultMsg, setResultMsg]       = useState("");
+  const [generatedClips, setGeneratedClips] = useState<any[]>([]);
+  const [activeSceneIdx, setActiveSceneIdx] = useState(0);
+  const previewVideoRef                 = useRef<HTMLVideoElement | null>(null);
   const intervalRef                     = useRef<any>(null);
   // Cancellable per-poll abort + unmount guard (so a pending poll can never touch state after teardown)
   const pollAbortRef                    = useRef<AbortController | null>(null);
@@ -142,8 +145,8 @@ export function MovieRecapperScreen({ onBack }: Props) {
   };
 
   // Refresh the on-disk clip list so finished recaps appear immediately.
-  // There is no vault API dependency here: the app listens for this event.
-  const refreshClipList = (clipCount: number) => {
+  // Broadcasts both clipvault-task-update and clipvault-clips-updated for real-time Vault sync.
+  const refreshClipList = (clipCount: number, rawClips?: any[], movieTitle?: string) => {
     try {
       window.dispatchEvent(
         new CustomEvent("clipvault-task-update", {
@@ -156,6 +159,33 @@ export function MovieRecapperScreen({ onBack }: Props) {
           },
         })
       );
+      if (Array.isArray(rawClips) && rawClips.length > 0) {
+        const first = rawClips[0];
+        const rawPath = first.path || first.file || first.url || "";
+        const cleanFile = String(rawPath).replace(/\\/g, "/").split("/").pop() || "recap_1.mp4";
+        const streamUrl = `http://127.0.0.1:8000/stream?path=${encodeURIComponent(rawPath || cleanFile)}&t=${Date.now()}`;
+        window.dispatchEvent(
+          new CustomEvent("clipvault-clips-updated", {
+            detail: {
+              clips: rawClips,
+              latestClip: {
+                id: first.id || `recap_${Date.now()}`,
+                title: first.title || movieTitle || "AI Movie Recap",
+                hookTitle: first.hook_title || "Movie Recap",
+                src: streamUrl,
+                url: streamUrl,
+                file: rawPath || cleanFile,
+                path: rawPath || cleanFile,
+                score: first.virality_score || first.score || 94,
+                duration: first.duration ? `${Math.round(Number(first.duration))}s` : "0:40",
+                status: "Ready",
+              },
+            },
+          })
+        );
+      } else {
+        window.dispatchEvent(new CustomEvent("clipvault-clips-updated", { detail: { clips: [] } }));
+      }
     } catch {}
   };
 
@@ -198,7 +228,7 @@ export function MovieRecapperScreen({ onBack }: Props) {
         end_ts: durationMode === "custom" ? endTs : undefined,
       };
 
-      const res = await fetch("http://localhost:8000/api/process", {
+      const res = await fetch("http://127.0.0.1:8000/api/process", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -228,7 +258,7 @@ export function MovieRecapperScreen({ onBack }: Props) {
         const timeoutId = setTimeout(() => controller.abort(), 10000);
 
         try {
-          const statusRes = await fetch(`http://localhost:8000/api/status/${taskId}`, {
+          const statusRes = await fetch(`http://127.0.0.1:8000/api/status/${taskId}`, {
             headers: { "Authorization": "Bearer dev-token" },
             signal: controller.signal
           });
@@ -263,13 +293,18 @@ export function MovieRecapperScreen({ onBack }: Props) {
               setDone(true);
               setRunning(false);
               setResultMsg(statusData.message || "Done! Movie Recap Generated.");
+              const rawClips = Array.isArray(statusData.clips) ? statusData.clips : [];
+              if (rawClips.length > 0) {
+                setGeneratedClips(rawClips);
+                setActiveSceneIdx(0);
+              }
               // Refresh the clip list now that files exist on disk
               const clipCount =
-                (Array.isArray(statusData.clips) && statusData.clips.length) ||
+                rawClips.length ||
                 statusData.clip_count ||
                 statusData.num_clips ||
                 0;
-              refreshClipList(clipCount);
+              refreshClipList(clipCount, rawClips, statusData.title);
             }
             return;
           }
@@ -650,44 +685,75 @@ export function MovieRecapperScreen({ onBack }: Props) {
 
         {/* ── 9:16 Phone Device Preview ── */}
         <div className="flex-1 flex flex-col items-center justify-center relative p-8 bg-[#050505] min-w-[380px]">
-          {/* Phone Device Frame */}
-          <div className="relative w-[320px] h-[600px] rounded-[48px] bg-[#121212] p-3 border-[4px] border-[#252525] shadow-[0_25px_60px_rgba(0,0,0,0.9)] flex flex-col">
-            {/* Speaker Notch */}
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 w-20 h-4 bg-[#080808] rounded-full z-30 flex items-center justify-center">
-              <div className="w-10 h-1 bg-[#1a1a1a] rounded-full" />
-            </div>
+          {(() => {
+            const activeClip = generatedClips[activeSceneIdx] || generatedClips[0] || null;
+            const rawPath = activeClip ? (activeClip.path || activeClip.file || activeClip.url || "") : "";
+            const cleanFile = String(rawPath).replace(/\\/g, "/").split("/").pop() || "";
+            const activeVideoSrc = activeClip && (rawPath || cleanFile)
+              ? `http://127.0.0.1:8000/stream?path=${encodeURIComponent(rawPath || cleanFile)}`
+              : "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4";
+            const activeLabel = activeClip?.title || `AI Movie Recap Scene ${activeSceneIdx + 1}`;
 
-            {/* Screen Content */}
-            <div className="relative w-full h-full rounded-[38px] overflow-hidden bg-black flex flex-col">
-              <video
-                src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
-                autoPlay
-                loop
-                controls
-                className="w-full h-full object-cover"
-              />
+            return (
+              <>
+                {/* Phone Device Frame */}
+                <div className="relative w-[320px] h-[600px] rounded-[48px] bg-[#121212] p-3 border-[4px] border-[#252525] shadow-[0_25px_60px_rgba(0,0,0,0.9)] flex flex-col">
+                  {/* Speaker Notch */}
+                  <div className="absolute top-4 left-1/2 -translate-x-1/2 w-20 h-4 bg-[#080808] rounded-full z-30 flex items-center justify-center">
+                    <div className="w-10 h-1 bg-[#1a1a1a] rounded-full" />
+                  </div>
 
-              {/* Dynamic Caption Overlay */}
-              <div className="absolute bottom-16 left-4 right-4 text-center pointer-events-none z-20">
-                <span className="px-3 py-1.5 rounded-xl font-bold text-xs bg-black/80 text-purple-400 border border-purple-500/40 shadow-lg inline-block">
-                  AI Movie Recap Scene 1
-                </span>
-              </div>
-            </div>
-          </div>
+                  {/* Screen Content */}
+                  <div className="relative w-full h-full rounded-[38px] overflow-hidden bg-black flex flex-col">
+                    <video
+                      ref={previewVideoRef}
+                      key={activeVideoSrc}
+                      src={activeVideoSrc}
+                      autoPlay
+                      loop
+                      controls
+                      playsInline
+                      onLoadedMetadata={(e) => {
+                        const v = e.currentTarget;
+                        v.play().catch(() => {
+                          v.muted = true;
+                          v.play().catch(() => {});
+                        });
+                      }}
+                      className="w-full h-full object-cover"
+                    />
 
-          {/* Quick Generated Scene Chips */}
-          <div className="flex items-center gap-2 mt-4">
-            <button className="px-3 py-1.5 rounded-xl text-xs font-bold bg-[#a855f7] text-white shadow-md cursor-pointer">
-              Scene 1
-            </button>
-            <button className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10 cursor-pointer">
-              Scene 2
-            </button>
-            <button className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10 cursor-pointer">
-              Scene 3
-            </button>
-          </div>
+                    {/* Dynamic Caption Overlay */}
+                    <div className="absolute bottom-16 left-4 right-4 text-center pointer-events-none z-20">
+                      <span className="px-3 py-1.5 rounded-xl font-bold text-xs bg-black/80 text-purple-400 border border-purple-500/40 shadow-lg inline-block max-w-full truncate">
+                        {activeLabel}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick Generated Scene Chips */}
+                <div className="flex items-center gap-2 mt-4 flex-wrap justify-center">
+                  {(generatedClips.length > 0 ? generatedClips : [null, null, null]).map((clipItem, idx) => {
+                    const isSelected = idx === activeSceneIdx;
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => setActiveSceneIdx(idx)}
+                        className={`px-3 py-1.5 rounded-xl text-xs cursor-pointer transition-all ${
+                          isSelected
+                            ? "font-bold bg-[#a855f7] text-white shadow-md"
+                            : "font-semibold bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10"
+                        }`}
+                      >
+                        {clipItem?.hook_title || `Scene ${idx + 1}`}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            );
+          })()}
         </div>
       </div>
     </div>

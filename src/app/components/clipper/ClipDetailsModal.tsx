@@ -129,11 +129,15 @@ export const ClipDetailsModal: React.FC<ClipDetailsModalProps> = ({
         {/* 9:16 Video Player */}
         <div className="w-full md:w-80 aspect-[9/16] bg-black rounded-2xl overflow-hidden border border-white/10 shadow-inner shrink-0 relative">
           <video
+            key={currentSrc}
             src={currentSrc}
             autoPlay
             loop
             controls
             playsInline
+            onCanPlay={(e) => {
+              (e.target as HTMLVideoElement).play().catch(() => {});
+            }}
             onError={() => {
               if (currentSrc !== fallbackSrc && fallbackSrc) {
                 setCurrentSrc(fallbackSrc);

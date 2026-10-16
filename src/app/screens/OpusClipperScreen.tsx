@@ -458,6 +458,30 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
             });
             setGeneratedClips(formatted);
             setActiveClipIndex(0);
+            setIsPlaying(true);
+
+            // Real-time broadcast: Immediately sync clips into Saved Clips Vault and update global task state
+            window.dispatchEvent(
+              new CustomEvent("clipvault-clips-updated", {
+                detail: {
+                  clips: formatted,
+                  latestClip: formatted[0],
+                  source: "opus-clipper",
+                  autoPlay: true,
+                },
+              })
+            );
+            window.dispatchEvent(
+              new CustomEvent("clipvault-task-update", {
+                detail: {
+                  running: false,
+                  done: true,
+                  progress: 100,
+                  statusText: "Clips successfully generated!",
+                  clipCount: formatted.length,
+                },
+              })
+            );
           } else {
             setErrorMsg("No clips were generated. Please try a different video or link.");
           }
@@ -664,15 +688,24 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
 
     setVideoSrc(primary);
     setVideoFallback(fallback);
-    setIsPlaying(false);
     setCurrentTime(0);
     setVideoDuration(activeClip.duration || 0);
+    setIsPlaying(true);
 
     if (videoRef.current) {
-      videoRef.current.pause();
       try {
         videoRef.current.currentTime = 0;
-        videoRef.current.load();
+        const playPromise = videoRef.current.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(() => {
+            // Autoplay policy fallback: mute and play
+            if (videoRef.current) {
+              videoRef.current.muted = true;
+              setIsMuted(true);
+              videoRef.current.play().catch(() => {});
+            }
+          });
+        }
       } catch {}
     }
   }, [activeClipIndex, activeClip?.path, activeClip?.url]);
@@ -819,12 +852,21 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
                       {videoSrc ? (
                         <video
                           ref={videoRef}
+                          key={videoSrc}
                           src={videoSrc}
                           className="w-full h-full object-contain cursor-pointer bg-black"
                           playsInline
+                          autoPlay
                           muted={isMuted}
                           onWaiting={() => setIsBuffering(true)}
-                          onPlaying={() => setIsBuffering(false)}
+                          onCanPlay={() => {
+                            setIsBuffering(false);
+                            videoRef.current?.play().then(() => setIsPlaying(true)).catch(() => {});
+                          }}
+                          onPlaying={() => {
+                            setIsBuffering(false);
+                            setIsPlaying(true);
+                          }}
                           onTimeUpdate={() => {
                             if (videoRef.current) {
                               setCurrentTime(videoRef.current.currentTime);
@@ -837,6 +879,7 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
                             if (videoRef.current?.duration && !isNaN(videoRef.current.duration)) {
                               setVideoDuration(videoRef.current.duration);
                             }
+                            videoRef.current?.play().then(() => setIsPlaying(true)).catch(() => {});
                           }}
                           onError={() => {
                             if (videoSrc !== videoFallback && videoFallback) {

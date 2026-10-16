@@ -491,11 +491,14 @@ function isClipVaultEngineHealthy(port = 8000) {
     socket.once('connect', () => {
       socket.destroy();
       try {
-        net.fetch(`http://127.0.0.1:${port}/api/health`, { method: 'GET' })
+        net.fetch(`http://127.0.0.1:${port}/api/health`, {
+          method: 'GET',
+          headers: { 'X-App-Auth-Token': BACKEND_AUTH_TOKEN },
+        })
           .then((res) => (res.ok ? res.json() : null))
           .then((data) => {
             if (data && (data.status === 'ok' || data.app?.includes('Clip'))) {
-              resolve(true);
+              resolve(data.token_valid === true ? 'valid_token' : 'stale_token');
             } else {
               resolve(false);
             }
@@ -513,23 +516,37 @@ function isClipVaultEngineHealthy(port = 8000) {
 async function freePort(port) {
   if (process.platform === 'win32') {
     try {
-      await execAsync(`powershell -NoProfile -NonInteractive -Command "Get-NetTCPConnection -LocalPort ${port} -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }"`);
+      await execAsync(
+        `powershell -NoProfile -NonInteractive -Command "$pids = @(Get-NetTCPConnection -LocalPort ${port} -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique | Where-Object { $_ -and $_ -gt 4 }); foreach ($id in $pids) { taskkill /F /T /PID $id 2>$null; Get-CimInstance Win32_Process -Filter \\"ParentProcessId = $id\\" -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue } }"`
+      );
     } catch (err) {
       console.warn(`[Electron]: Could not force-free port ${port}:`, err);
     }
   }
 }
 
-// Fix 3: smart port conflict resolution — auto-adopt healthy engine or allow 1-click free port
+// Fix 3: smart port conflict resolution — auto-adopt healthy engine or auto-recycle stale instance without popup
 async function ensurePortAvailable(port) {
   for (;;) {
     if (await waitForPortFree(port)) return true;
 
-    // If port 8000 is occupied by a running, healthy ClipVault engine, re-use it immediately!
-    const healthy = await isClipVaultEngineHealthy(port);
-    if (healthy) {
+    // Check if port 8000 is occupied by a ClipVault engine instance
+    const engineState = await isClipVaultEngineHealthy(port);
+    if (engineState === 'valid_token') {
       console.log(`[Electron]: Port ${port} is occupied by an active, healthy ClipVault engine. Reusing instance.`);
       return 'reused';
+    }
+    if (engineState) {
+      // It is an older ClipVault engine that hasn't synced our token yet — terminate its process tree cleanly.
+      console.log(`[Electron]: Recycling previous ClipVault engine on port ${port} to sync session token...`);
+      await freePort(port);
+      if (await waitForPortFree(port, 10, 350)) {
+        return true;
+      }
+      // If it still responds as ClipVault after recycle attempt, reuse rather than blocking the user with a modal
+      if (await isClipVaultEngineHealthy(port)) {
+        return 'reused';
+      }
     }
 
     const choice = dialog.showMessageBoxSync({
@@ -593,12 +610,12 @@ function startPythonBackend() {
         console.log('[Electron]: Launching bundled engine_server.exe...');
       } else {
         // ── DEV / SOURCE: launch via system python + uvicorn ─────────────────
-        // Fix 2: --reload is a development-only flag; this branch only ever runs unpackaged.
+        // Run without --reload so Windows never spawns orphan multiprocessing socket children.
         engineDataDir = resolveEngineDataDir();
         pythonCmd = 'python';
-        args = ['-m', 'uvicorn', 'server:app', '--host', '127.0.0.1', '--port', '8000', '--reload', '--timeout-graceful-shutdown', '2', '--log-level', 'info'];
+        args = ['-m', 'uvicorn', 'server:app', '--host', '127.0.0.1', '--port', '8000', '--timeout-graceful-shutdown', '2', '--log-level', 'info'];
         cwd = devBackendPath;
-        console.log('[Electron]: Launching Python dev backend...');
+        console.log('[Electron]: Launching Python backend...');
       }
 
       pythonProcess = spawn(pythonCmd, args, {

@@ -51,6 +51,14 @@ class WhisperSingleton:
             if self._model is None:
                 self._load_model_unlocked()
 
+    @classmethod
+    def unload_model(cls):
+        """Releases the CTranslate2 Whisper model from RAM after compilation completes."""
+        with cls._load_lock:
+            if cls._instance is not None and cls._instance._model is not None:
+                cls._instance._model = None
+            cls._model = None
+
     def _load_model_unlocked(self):
         """Loads the faster-whisper model with optimized settings for CPU / GPU."""
         if self._model is None:

@@ -64,6 +64,18 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>("project-select");
   const [vaultPreviousScreen, setVaultPreviousScreen] = useState<Screen>("project-select");
   const [clipperViewMode, setClipperViewMode] = useState<"setup" | "vault">("setup");
+  const [vaultInitialClip, setVaultInitialClip] = useState<any>(null);
+
+  // Synchronize latest clip into vault when clips are updated
+  useEffect(() => {
+    const handleClipsUpdated = (e: any) => {
+      if (e?.detail?.latestClip) {
+        setVaultInitialClip(e.detail.latestClip);
+      }
+    };
+    window.addEventListener("clipvault-clips-updated", handleClipsUpdated);
+    return () => window.removeEventListener("clipvault-clips-updated", handleClipsUpdated);
+  }, []);
 
   // Tour States
   const [tourActive, setTourActive] = useState(false);
@@ -504,7 +516,8 @@ export default function App() {
             onBack={() => setScreen("project-select")}
             isLicensed={isLicensed}
             onOpenActivation={() => setShowActivationModal(true)}
-            onGoToVault={() => {
+            onGoToVault={(clip?: any) => {
+              if (clip) setVaultInitialClip(clip);
               setVaultPreviousScreen("opus-clipper");
               setScreen("saved-vault");
             }}
@@ -514,7 +527,11 @@ export default function App() {
         {/* Dedicated Independent Saved Clips Vault (Decoupled from Pro Studio) */}
         {screen === "saved-vault" && (
           <SavedVaultScreen
-            onBack={() => setScreen(vaultPreviousScreen || "project-select")}
+            onBack={() => {
+              setVaultInitialClip(null);
+              setScreen(vaultPreviousScreen || "project-select");
+            }}
+            initialClip={vaultInitialClip}
             onStartVaultTour={handleStartVaultTour}
           />
         )}
@@ -528,7 +545,8 @@ export default function App() {
             onStartVaultTour={handleStartVaultTour}
             onTriggerVaultWelcome={() => setShowVaultWelcomePrompt(true)}
             activeScreen={screen}
-            onGoToVault={() => {
+            onGoToVault={(clip?: any) => {
+              if (clip) setVaultInitialClip(clip);
               setVaultPreviousScreen("ai-clipper");
               setScreen("saved-vault");
             }}

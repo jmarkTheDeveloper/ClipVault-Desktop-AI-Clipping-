@@ -21,7 +21,7 @@ interface Props {
   onStartVaultTour?: () => void;
   onTriggerVaultWelcome?: () => void;
   activeScreen?: string;
-  onGoToVault?: () => void;
+  onGoToVault?: (clip?: ClipMetadata) => void;
   isLicensed?: boolean;
 }
 
@@ -1289,15 +1289,69 @@ export const AiClipperScreen: React.FC<Props> = ({
             currentTaskIdRef.current = null;
             setRunning(false);
             setDone(true);
-            setGeneratedClips(data.clips || []);
+            const compiledClips = data.clips || [];
+            setGeneratedClips(compiledClips);
             if (data.output_dir) setLastOutputFolder(data.output_dir);
             loadVaultClips(false);
+
+            const firstClip = compiledClips[0];
+            let formattedFirstClip: ClipMetadata | null = null;
+            if (firstClip) {
+              const rawDisk = typeof firstClip === "string" ? firstClip : (firstClip.path || "");
+              const rawFilename = typeof firstClip === "string" ? firstClip : (firstClip.filename || firstClip.path || "Clip.mp4");
+              const cleanFilename = (rawFilename.split(/[\\/]/).pop() || "Clip.mp4").split("?")[0];
+              const cleanPath = rawDisk.replace(/^local:\/\/\/?/i, "");
+              const streamUrl = cleanPath
+                ? `http://127.0.0.1:8000/stream?path=${encodeURIComponent(cleanPath)}`
+                : (firstClip.url || "");
+              
+              formattedFirstClip = {
+                filename: cleanFilename,
+                path: rawDisk,
+                url: streamUrl,
+                title: (typeof firstClip === "object" && firstClip.title) ? firstClip.title : `${data.title || "Viral Clip"} #1`,
+                description: (typeof firstClip === "object" && firstClip.description) ? firstClip.description : "",
+                duration: (typeof firstClip === "object" && typeof firstClip.duration === "number") ? firstClip.duration : 30,
+                virality_score: (typeof firstClip === "object" && typeof firstClip.virality_score === "number") ? firstClip.virality_score : 95,
+                sub_scores: (typeof firstClip === "object" && firstClip.sub_scores) ? firstClip.sub_scores : { hook: 96, flow: 94, value: 97, trend: 95 },
+                folder: customFolderName || "Shorts Viral",
+                created_at: Date.now() / 1000,
+                thumbnail_url: (typeof firstClip === "object" && firstClip.thumbnail_url) ? firstClip.thumbnail_url : "",
+              };
+            }
+
+            // Real-time broadcast: Immediately sync clips into Saved Clips Vault and update global task state
+            window.dispatchEvent(
+              new CustomEvent("clipvault-clips-updated", {
+                detail: {
+                  clips: compiledClips,
+                  latestClip: formattedFirstClip,
+                  source: "ai-clipper",
+                  autoPlay: true,
+                },
+              })
+            );
+            window.dispatchEvent(
+              new CustomEvent("clipvault-task-update", {
+                detail: {
+                  running: false,
+                  done: true,
+                  progress: 100,
+                  statusText: "Clips successfully generated!",
+                  clipCount: compiledClips.length || 1,
+                },
+              })
+            );
+
             if (onGoToVault) {
-              onGoToVault();
+              onGoToVault(formattedFirstClip || undefined);
             } else {
+              if (formattedFirstClip) {
+                setPreviewVaultClip(formattedFirstClip);
+              }
               setViewMode("vault");
             }
-            const clipCount = (data.clips || []).length || 1;
+            const clipCount = compiledClips.length || 1;
             triggerDesktopNotification(
               "Video Processing Complete",
               `Generated ${clipCount} clip(s) ready in ClipVault!`

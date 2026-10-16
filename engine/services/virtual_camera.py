@@ -20,7 +20,7 @@ class VirtualCamera:
         frame_w: int,
         frame_h: int,
         aspect_ratio: float = 9 / 16,
-        camera_style: str = "instant",
+        camera_style: str = "smooth",
         deadzone_ratio: float = 0.12,
         pan_speed: float = 350.0,
         zoom_speed: float = 0.20,
@@ -234,24 +234,33 @@ class VirtualCamera:
             # True broadcast instant cut behavior:
             # Instant snap is strictly reserved for confirmed speaker switches or scene cuts.
             # In an ongoing continuous shot, do NOT teleport or hard-snap on micro-shifts.
+            deadzone_w = self.w * self.deadzone_ratio
+            deadzone_h = self.h * self.deadzone_ratio
+            deadzone_scale = self.w * (self.deadzone_ratio * 0.85)
+
             diff_x = target_cx - self.cx
             diff_y = target_cy - self.cy
             diff_w = target_w - self.w
 
-            # Responsive continuous follow for natural movement within deadzone bounds
-            if abs(diff_x) > (self.w * self.deadzone_ratio):
-                self.cx += (diff_x * 0.20)
-                self.cy += (diff_y * 0.20)
-                self.w += (diff_w * 0.20)
+            # Subtract deadband so motion eases smoothly from 0 at the deadzone edge (no step-jump)
+            effective_dx = (diff_x - math.copysign(deadzone_w, diff_x)) if abs(diff_x) > deadzone_w else 0.0
+            effective_dy = (diff_y - math.copysign(deadzone_h, diff_y)) if abs(diff_y) > deadzone_h else 0.0
+            effective_dw = (diff_w - math.copysign(deadzone_scale, diff_w)) if abs(diff_w) > deadzone_scale else 0.0
+
+            if effective_dx != 0.0 or effective_dy != 0.0 or effective_dw != 0.0:
+                self.cx += (effective_dx * 0.22)
+                self.cy += (effective_dy * 0.22)
+                self.w += (effective_dw * 0.18)
                 self.h = self.w / self.aspect_ratio
                 self._clamp_bounds()
 
             return self.get_crop_rect()
 
         # Smooth / Snappy camera styles:
-        # 1. Deadzone Filtering (Deadband)
+        # 1. Deadzone Filtering (Deadband) for both pan and zoom
         deadzone_w = self.w * self.deadzone_ratio
         deadzone_h = self.h * self.deadzone_ratio
+        deadzone_scale = self.w * (self.deadzone_ratio * 0.85)
 
         diff_x = target_cx - self.cx
         diff_y = target_cy - self.cy
@@ -267,15 +276,21 @@ class VirtualCamera:
         if abs(diff_y) > deadzone_h:
             effective_dy = diff_y - math.copysign(deadzone_h, diff_y)
 
-        # 2. Critically Damped Spring Smoothing
+        effective_dw = 0.0
+        effective_dh = 0.0
+        if abs(diff_w) > deadzone_scale:
+            effective_dw = diff_w - math.copysign(deadzone_scale, diff_w)
+            effective_dh = effective_dw / self.aspect_ratio
+
+        # 2. Exact Critically Damped Spring Smoothing: c = 2 * sqrt(k) guarantees zero overshoot
         k_spring = 8.0 if self.camera_style == "snappy" else 4.5
-        c_damping = 5.5 if self.camera_style == "snappy" else 4.0
+        c_damping = 2.0 * math.sqrt(k_spring)
 
         # Acceleration = spring force - damping
         ax = k_spring * effective_dx - c_damping * self.vx
         ay = k_spring * effective_dy - c_damping * self.vy
-        aw = k_spring * diff_w - c_damping * self.vw
-        ah = k_spring * diff_h - c_damping * self.vh
+        aw = k_spring * effective_dw - c_damping * self.vw
+        ah = k_spring * effective_dh - c_damping * self.vh
 
         # Update velocities
         self.vx += ax * self.dt

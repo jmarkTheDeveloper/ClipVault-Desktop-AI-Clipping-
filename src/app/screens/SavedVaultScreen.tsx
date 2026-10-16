@@ -18,11 +18,13 @@ import type { ClipMetadata } from "../components/clipper/types";
 
 interface SavedVaultScreenProps {
   onBack: () => void;
+  initialClip?: ClipMetadata | null;
   onStartVaultTour?: () => void;
 }
 
 export const SavedVaultScreen: React.FC<SavedVaultScreenProps> = ({
   onBack,
+  initialClip,
   onStartVaultTour,
 }) => {
   const [vaultClips, setVaultClips] = useState<ClipMetadata[]>([]);
@@ -39,7 +41,7 @@ export const SavedVaultScreen: React.FC<SavedVaultScreenProps> = ({
   const [newFolderNameInput, setNewFolderNameInput] = useState("");
   const [newFolderParent, setNewFolderParent] = useState("root");
   const [moveModalClips, setMoveModalClips] = useState<string[] | null>(null);
-  const [previewVaultClip, setPreviewVaultClip] = useState<ClipMetadata | null>(null);
+  const [previewVaultClip, setPreviewVaultClip] = useState<ClipMetadata | null>(initialClip || null);
 
   // Storage / Path
   const [exportNotice, setExportNotice] = useState("");
@@ -121,6 +123,24 @@ export const SavedVaultScreen: React.FC<SavedVaultScreenProps> = ({
 
   useEffect(() => {
     loadVaultClips();
+  }, []);
+
+  useEffect(() => {
+    if (initialClip) {
+      setPreviewVaultClip(initialClip);
+    }
+  }, [initialClip]);
+
+  // Real-time synchronization: refresh vault immediately whenever clips are generated anywhere
+  useEffect(() => {
+    const handleClipsUpdated = (e: any) => {
+      loadVaultClips(true);
+      if (e?.detail?.latestClip && e?.detail?.autoPlay) {
+        setPreviewVaultClip(e.detail.latestClip);
+      }
+    };
+    window.addEventListener("clipvault-clips-updated", handleClipsUpdated);
+    return () => window.removeEventListener("clipvault-clips-updated", handleClipsUpdated);
   }, []);
 
   const openOutputFolder = (folderName?: string) => {

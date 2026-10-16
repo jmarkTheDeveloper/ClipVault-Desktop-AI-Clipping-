@@ -149,10 +149,11 @@ class TemporalTracker:
     and calculates prominence scores to select primary subjects.
     """
 
-    def __init__(self, max_age: int = 30, min_hits: int = 1, iou_threshold: float = 0.25):
+    def __init__(self, max_age: int = 30, min_hits: int = 1, iou_threshold: float = 0.25, fps: float = 4.0):
         self.max_age = max_age
         self.min_hits = min_hits
         self.iou_threshold = iou_threshold
+        self.fps = max(1.0, float(fps))
         self.trackers: List[KalmanBoxTracker] = []
         self.frame_count = 0
         self.primary_track_id: Optional[int] = None
@@ -304,23 +305,12 @@ class TemporalTracker:
         incumbent_track = next((t for t in active_outputs if t["track_id"] == self.primary_track_id), None)
         num_faces = len(active_outputs)
 
-        # Broadcast Minimum Shot Dwell Rules:
-        # Prevents hyperactive camera movement and fast flipping when multiple people are in the frame.
-        # - 3+ people (panel / group / crowd): 22 frames (~3.7s hold), requires 5 consecutive challenger frames
-        # - 2 people: 16 frames (~2.7s hold), requires 4 consecutive challenger frames
-        # - 1 person: 6 frames (~1.0s hold)
-        if num_faces >= 3:
-            min_dwell_frames = 22
-            req_challenger_streak = 5
-            challenger_margin = 1.60
-        elif num_faces == 2:
-            min_dwell_frames = 16
-            req_challenger_streak = 4
-            challenger_margin = 1.40
-        else:
-            min_dwell_frames = 6
-            req_challenger_streak = 2
-            challenger_margin = 1.15
+        # Broadcast Minimum Shot Dwell Rules calibrated to real seconds:
+        # Prevents hyperactive switching while enabling responsive speaker changes
+        dwell_sec = 1.2 if num_faces >= 2 else 0.8
+        min_dwell_frames = max(2, int(self.fps * dwell_sec))
+        req_challenger_streak = max(2, int(self.fps * 0.4))
+        challenger_margin = 1.30 if num_faces >= 2 else 1.15
 
         live_tracks = [t for t in active_outputs if not t.get("is_coasting", False)]
         if incumbent_track is None or incumbent_track["time_since_update"] > 3 or (incumbent_track.get("is_coasting", False) and live_tracks):

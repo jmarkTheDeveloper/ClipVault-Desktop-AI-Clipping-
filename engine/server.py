@@ -171,10 +171,24 @@ async def verify_app_auth(request: Request, call_next):
     sec_fetch_mode = request.headers.get("sec-fetch-mode")
     sec_fetch_dest = request.headers.get("sec-fetch-dest")
 
+    global AUTH_TOKEN
     client_token = request.headers.get("X-App-Auth-Token") or request.query_params.get("token") or ""
-    has_valid_app_token = bool(AUTH_TOKEN) and hmac.compare_digest(client_token, AUTH_TOKEN)
-
     origin_is_trusted = is_trusted_first_party_origin(origin)
+
+    # If a reused engine instance receives a valid 256-bit hex X-App-Auth-Token from our local
+    # desktop shell (no foreign Origin, local loopback client), sync AUTH_TOKEN to the active session.
+    client_host = (request.client.host if request.client else "") or ""
+    is_loopback = client_host in ("127.0.0.1", "::1", "localhost")
+    if (
+        is_loopback
+        and (not origin or origin_is_trusted)
+        and client_token
+        and bool(re.fullmatch(r"[0-9a-fA-F]{64}", client_token))
+        and (not AUTH_TOKEN or not hmac.compare_digest(client_token, AUTH_TOKEN))
+    ):
+        AUTH_TOKEN = client_token
+
+    has_valid_app_token = bool(AUTH_TOKEN) and hmac.compare_digest(client_token, AUTH_TOKEN)
 
     # ── SECURITY SHIELD: REJECT CROSS-SITE BROWSER ATTACKS ─────────────────
     # 1) Hard block. A remote page cannot forge its own Origin, and our desktop shell never sends
@@ -248,6 +262,7 @@ for _f in DEFAULT_PROJECT_FOLDERS:
 # paths verbatim and unlinked them. Both shapes are closed here.
 # ─────────────────────────────────────────────────────────────────────────────
 MEDIA_ROOTS = (OUTPUT_DIR, BACKGROUNDS_DIR, MUSIC_DIR)
+CUSTOM_MEDIA_ROOTS: List[Path] = []
 MEDIA_EXTS = {".mp4", ".mkv", ".mov", ".webm", ".avi", ".m4a", ".mp3", ".wav", ".aac",
               ".jpg", ".jpeg", ".png", ".webp"}
 VIDEO_EXTS = {".mp4", ".mkv", ".mov", ".webm", ".avi", ".m4v", ".wmv", ".flv",
@@ -273,6 +288,18 @@ def _clean_requested_path(raw) -> str:
     return value
 
 
+def _is_unsafe_raw_path(value: str) -> bool:
+    """Reject UNC network shares (\\\\server\\share) and Windows drive-relative paths (C:foo)."""
+    if not value:
+        return False
+    norm = value.replace("/", "\\")
+    if norm.startswith("\\\\"):
+        return True
+    if re.match(r"^[a-zA-Z]:(?![\\/])", value):
+        return True
+    return False
+
+
 def safe_path(requested, roots=None, *, must_exist=True, allowed_ext=None,
               label="path", basename_fallback=True) -> Path:
     """
@@ -283,10 +310,13 @@ def safe_path(requested, roots=None, *, must_exist=True, allowed_ext=None,
     Absolute paths are accepted only when they already live inside a root — the desktop
     UI legitimately sends absolute clip paths returned by /api/saved_clips.
     """
-    allowed_roots = tuple(Path(r).resolve() for r in (roots if roots is not None else MEDIA_ROOTS))
+    default_roots = tuple(MEDIA_ROOTS) + tuple(CUSTOM_MEDIA_ROOTS) + (OUTPUT_DIR,)
+    allowed_roots = tuple(Path(r).resolve() for r in (roots if roots is not None else default_roots))
     value = _clean_requested_path(requested)
     if not value:
         raise HTTPException(status_code=400, detail=f"Missing required '{label}'.")
+    if _is_unsafe_raw_path(value):
+        raise HTTPException(status_code=403, detail=f"Access denied: unsafe path format for '{label}'.")
 
     candidates = []
     raw_path = Path(value)
@@ -470,10 +500,9 @@ def stream_media(request: Request, path: Optional[str] = None, url: Optional[str
         # Local media is deliberately NOT jailed to the vault: the Local Upload feature streams files
         # the user picked from anywhere on disk. Instead every candidate is passed through a sensitive
         # path blocklist plus a media-extension allowlist below, and BOTH are re-applied to the final
-        # path — a value can therefore not slip through by URL-encoding or by a "local://" prefix
-        # (the prefix only produces a bogus path that fails these guards and never resolves to the
-        # sensitive file itself).
-        file_path = Path(target_path).resolve()
+        # path — a value can therefore not slip through by URL-encoding or by a "local://" prefix.
+        cleaned_target = _clean_requested_path(target_path)
+        file_path = Path(cleaned_target).resolve()
 
         forbidden_keywords = [".ssh", ".clipvault", ".env", "system32", "etc/passwd", "credentials", "id_rsa", "config.py", "secrets", "wallet"]
         ALLOWED_MEDIA_EXTS = {".mp4", ".mkv", ".mov", ".webm", ".avi", ".m4a", ".mp3", ".wav", ".aac", ".jpg", ".jpeg", ".png", ".webp"}
@@ -486,14 +515,8 @@ def stream_media(request: Request, path: Optional[str] = None, url: Optional[str
             if candidate.suffix.lower() not in ALLOWED_MEDIA_EXTS:
                 raise HTTPException(status_code=403, detail="Forbidden: Only approved media file types can be streamed.")
 
-        # Security Guard 1: Block access to sensitive system paths, credentials, and configuration files
-        # Security Guard 2: Enforce allowed media file extensions (prevent arbitrary file disclosure)
-        assert_streamable(file_path)
-
         if not (file_path.is_absolute() and file_path.exists()):
-            clean_name = target_path.replace("\\", "/").split("clips/")[-1].lstrip("/")
-            # Relative lookups, restricted to the engine's own media locations. /stream itself stays
-            # unrestricted by design (see the comment above).
+            clean_name = Path(cleaned_target.replace("\\", "/").split("clips/")[-1]).name
             candidate_bases = [
                 Path.cwd(),
                 Path(OUTPUT_DIR),
@@ -501,8 +524,20 @@ def stream_media(request: Request, path: Optional[str] = None, url: Optional[str
                 Path(os.path.dirname(os.path.abspath(__file__))).parent,
             ]
             candidates = [file_path.resolve()]
-            candidates.extend((base / target_path).resolve() for base in candidate_bases)
+            candidates.extend((base / cleaned_target).resolve() for base in candidate_bases)
             candidates.append((Path(OUTPUT_DIR) / clean_name).resolve())
+            
+            # Recursive lookup inside subfolders of OUTPUT_DIR (e.g. Shorts Viral, Movies, etc.)
+            if clean_name:
+                try:
+                    name_lower = clean_name.lower()
+                    for sub in OUTPUT_DIR.rglob("*"):
+                        if sub.is_file() and sub.name.lower() == name_lower:
+                            candidates.append(sub.resolve())
+                            break
+                except Exception:
+                    pass
+
             found = False
             for cand in candidates:
                 if cand.exists() and cand.is_file():
@@ -511,9 +546,9 @@ def stream_media(request: Request, path: Optional[str] = None, url: Optional[str
                     break
             if not found:
                 raise HTTPException(status_code=404, detail=f"Video file not found: {target_path}")
-            # Re-apply both guards to the path that was actually selected, so a fallback candidate can
-            # never serve a file the first pass rejected.
-            assert_streamable(file_path)
+
+        # Enforce security guards on resolved streamable file
+        assert_streamable(file_path)
 
         file_size = file_path.stat().st_size
         mime_type, _ = mimetypes.guess_type(str(file_path))
@@ -604,7 +639,7 @@ class ProcessRequest(BaseModel):
     caption_y_pct: Optional[float] = 0.70
     ai_engine: str = "openai_sora"
     api_key: Optional[str] = None
-    camera_style: str = "instant"
+    camera_style: str = "smooth"
     enable_face_tracker: bool = True
     gameplay_bg_video: Optional[str] = None
     bg_music_file: Optional[str] = None
@@ -807,6 +842,11 @@ def execute_rendering_task(task_id: str, request: ProcessRequest, cancel_event: 
                 filename = out_path.name
                 raw_files.append(str(out_path))
 
+                # Un-tombstone immediately so freshly rendered clips are always preserved
+                DELETED_CLIPS_TOMBSTONES.discard(filename.lower())
+                DELETED_CLIPS_TOMBSTONES.discard(out_path.stem.lower())
+                DELETED_CLIPS_TOMBSTONES.discard(str(out_path).lower())
+
                 # Look for matching thumbnail
                 thumb_candidates = [
                     out_path.parent / f"{out_path.stem}_thumbnail.jpg",
@@ -846,6 +886,9 @@ def execute_rendering_task(task_id: str, request: ProcessRequest, cancel_event: 
             elif isinstance(out, dict) and "path" in out:
                 out_path = Path(out["path"]).resolve()
                 raw_files.append(str(out_path))
+                DELETED_CLIPS_TOMBSTONES.discard(out_path.name.lower())
+                DELETED_CLIPS_TOMBSTONES.discard(out_path.stem.lower())
+                DELETED_CLIPS_TOMBSTONES.discard(str(out_path).lower())
                 out["filename"] = out_path.name
                 out["path"] = str(out_path)
                 out["url"] = f"http://127.0.0.1:8000/stream?path={urllib.parse.quote(str(out_path))}"
@@ -913,8 +956,6 @@ def purge_ghost_files():
                     if p.is_file():
                         p_norm = str(p.resolve()).lower()
                         # Only files the app itself names `.trash_<ts>_<original>` are leftovers.
-                        # The old test also matched ".trash" ANYWHERE in the name, so a legitimate
-                        # user clip called `my.trash.notes.mp4` was destroyed on the next scan.
                         if p.name.startswith(".trash"):
                             try: p.unlink()
                             except Exception: pass
@@ -926,7 +967,6 @@ def purge_ghost_files():
                                 p.stat().st_size == 0
                                 or p.name.lower() in DELETED_CLIPS_TOMBSTONES
                                 or p_norm in DELETED_CLIPS_TOMBSTONES
-                                or p.stem.lower() in DELETED_CLIPS_TOMBSTONES
                             ):
                                 try: p.unlink()
                                 except Exception: pass
@@ -934,10 +974,6 @@ def purge_ghost_files():
                     pass
 
             # 2. Remove genuine duplicates across folders at any depth.
-            # Two files count as duplicates only when they are byte-identical. The previous version
-            # grouped by lowercase FILENAME and deleted every copy except the newest, which silently
-            # destroyed legitimately different clips that happened to share a name (re-clipping the
-            # same source title, or clips living in different folders).
             clips_by_name = {}
             for p in OUTPUT_DIR.rglob("*.mp4"):
                 if not p.name.startswith(".") and p.stat().st_size > 0:
@@ -1004,7 +1040,6 @@ async def get_saved_clips():
                 p_norm = str(path.resolve()).lower()
                 if (
                     path.name.lower() in DELETED_CLIPS_TOMBSTONES
-                    or path.stem.lower() in DELETED_CLIPS_TOMBSTONES
                     or p_norm in DELETED_CLIPS_TOMBSTONES
                 ):
                     try:
@@ -2093,9 +2128,11 @@ def duplicate_clip(data: dict = Body(...)):
 
 
 @app.get("/api/health")
-def health_check():
+def health_check(request: Request):
     """Simple API health check endpoint."""
-    return {"status": "ok", "app": "AI Video Clipper Engine"}
+    client_token = request.headers.get("X-App-Auth-Token") or request.query_params.get("token") or ""
+    token_valid = (not AUTH_TOKEN) or hmac.compare_digest(client_token, AUTH_TOKEN)
+    return {"status": "ok", "app": "AI Video Clipper Engine", "token_valid": token_valid}
 
 @app.get("/api/background_videos")
 def list_background_videos():
@@ -2517,6 +2554,45 @@ def get_security_audit():
     """Returns cryptographic security status and any detected tampering events."""
     from services.license_service import LicenseService
     return LicenseService.get_security_audit_summary()
+
+@app.get("/api/output_dir")
+def get_output_dir():
+    """Returns the current active output directory for saved clips."""
+    return {"success": True, "output_dir": str(Path(OUTPUT_DIR).resolve())}
+
+@app.post("/api/set_output_dir")
+def set_output_dir(payload: dict = Body(...)):
+    """Updates the active clips output directory after validating against unsafe or sensitive system paths."""
+    global OUTPUT_DIR
+    raw_dir = _clean_requested_path(payload.get("output_dir", "") if isinstance(payload, dict) else "")
+    if not raw_dir:
+        raise HTTPException(status_code=400, detail="Missing 'output_dir'.")
+    if _is_unsafe_raw_path(raw_dir):
+        raise HTTPException(status_code=403, detail="Unsafe output directory path format.")
+
+    target = Path(raw_dir).resolve()
+    lower_target = str(target).lower().replace("\\", "/")
+    forbidden_sys = ("windows/system32", "program files", ".ssh", ".clipvault", "/etc", "/bin", "/usr")
+    if any(b in lower_target for b in forbidden_sys):
+        raise HTTPException(status_code=403, detail="Cannot use a protected system directory as the output vault.")
+
+    try:
+        target.mkdir(parents=True, exist_ok=True)
+        for _f in DEFAULT_PROJECT_FOLDERS:
+            (target / _f).mkdir(parents=True, exist_ok=True)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Unable to create or access directory: {e}")
+
+    OUTPUT_DIR = target
+    if target not in CUSTOM_MEDIA_ROOTS:
+        CUSTOM_MEDIA_ROOTS.append(target)
+    try:
+        import config
+        config.OUTPUT_DIR = target
+    except Exception:
+        pass
+
+    return {"success": True, "output_dir": str(target)}
 
 if __name__ == "__main__":
     import uvicorn

@@ -36,6 +36,8 @@ build/
 release/
 dist_python/
 build_python/
+engine/rust_core/target/
+apple_scene_90s_*.jpg
 *.asar
 clips/
 engine/clips/

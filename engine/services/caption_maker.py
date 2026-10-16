@@ -267,6 +267,18 @@ class CaptionMaker:
             return background
 
         # Extract slices
+        crop_w = x2 - x1
+        crop_h = y2 - y1
+        if crop_w <= 0 or crop_h <= 0:
+            return background
+
+        try:
+            from services.rust_accelerator import rust_blend_rgba_inplace
+            if rust_blend_rgba_inplace(background, foreground, y1, x1, fg_y1, fg_x1, crop_h, crop_w):
+                return background
+        except Exception:
+            pass
+
         bg_slice = background[y1:y2, x1:x2]
         fg_slice = foreground[fg_y1:fg_y2, fg_x1:fg_x2]
 
@@ -282,8 +294,8 @@ class CaptionMaker:
 
     def overlay_pre_rendered_word(self, background, fg_rgb, fg_alpha, w, h, x_offset, y_offset):
         """
-        Highly optimized alpha-blending for pre-rendered float arrays.
-        Elminates division and type casting on foreground inside the rendering loop.
+        Highly optimized alpha-blending powered by the native Rust SIMD compositor (`clipvault_rust.dll`),
+        supporting contiguous RGBA uint8 buffers as well as split uint8/float32 fallback arrays.
         """
         bg_h, bg_w, _ = background.shape
         
@@ -296,20 +308,37 @@ class CaptionMaker:
         # Clipped foreground coordinates
         fg_x1 = x1 - x_offset
         fg_y1 = y1 - y_offset
-        fg_x2 = fg_x1 + (x2 - x1)
-        fg_y2 = fg_y1 + (y2 - y1)
+        crop_w = x2 - x1
+        crop_h = y2 - y1
+        fg_x2 = fg_x1 + crop_w
+        fg_y2 = fg_y1 + crop_h
 
-        if (x2 - x1) <= 0 or (y2 - y1) <= 0:
+        if crop_w <= 0 or crop_h <= 0:
             return background
 
-        # Extract slices
-        bg_slice = background[y1:y2, x1:x2].astype(np.float32)
-        fg_rgb_slice = fg_rgb[fg_y1:fg_y2, fg_x1:fg_x2]
-        alpha_slice = fg_alpha[fg_y1:fg_y2, fg_x1:fg_x2]
+        # Fast-path 1: Native Rust zero-allocation in-place RGBA compositor
+        if fg_alpha is None and fg_rgb is not None and fg_rgb.ndim == 3 and fg_rgb.shape[2] == 4:
+            try:
+                from services.rust_accelerator import rust_blend_rgba_inplace
+                if rust_blend_rgba_inplace(background, fg_rgb, y1, x1, fg_y1, fg_x1, crop_h, crop_w):
+                    return background
+            except Exception:
+                pass
+            fg_rgb_slice = fg_rgb[fg_y1:fg_y2, fg_x1:fg_x2, :3]
+            alpha_slice = fg_rgb[fg_y1:fg_y2, fg_x1:fg_x2, 3:4]
+        else:
+            fg_rgb_slice = fg_rgb[fg_y1:fg_y2, fg_x1:fg_x2]
+            alpha_slice = fg_alpha[fg_y1:fg_y2, fg_x1:fg_x2]
 
-        # Perform alpha blending (extremely fast, zero division, minimal memory conversions!)
-        blended = fg_rgb_slice * alpha_slice + bg_slice * (1.0 - alpha_slice)
-        background[y1:y2, x1:x2] = blended.astype(np.uint8)
+        if fg_rgb_slice.dtype == np.uint8 and alpha_slice.dtype == np.uint8:
+            bg_slice = background[y1:y2, x1:x2].astype(np.uint16)
+            a16 = alpha_slice.astype(np.uint16)
+            blended = (fg_rgb_slice.astype(np.uint16) * a16 + bg_slice * (255 - a16) + 127) // 255
+            background[y1:y2, x1:x2] = blended.astype(np.uint8)
+        else:
+            bg_slice = background[y1:y2, x1:x2].astype(np.float32)
+            blended = fg_rgb_slice * alpha_slice + bg_slice * (1.0 - alpha_slice)
+            background[y1:y2, x1:x2] = blended.astype(np.uint8)
         
         return background
 
@@ -743,16 +772,15 @@ class CaptionMaker:
                 a = a.point(lambda p: int(p * 0.60))
                 logo_watermark = Image.merge("RGBA", (r, g, b, a))
                 
-                logo_fg_rgb = np.array(logo_watermark)[:, :, :3].astype(np.float32)
-                logo_fg_alpha = np.array(logo_watermark)[:, :, 3:4].astype(np.float32) / 255.0
+                logo_arr = np.ascontiguousarray(logo_watermark, dtype=np.uint8)
                 
                 margin = 35
                 logo_x = video_width - target_logo_w - margin
                 logo_y = video_height - target_logo_h - margin - 15
                 
                 logo_data = {
-                    'fg_rgb': logo_fg_rgb,
-                    'fg_alpha': logo_fg_alpha,
+                    'fg_rgb': logo_arr,
+                    'fg_alpha': None,
                     'w': target_logo_w,
                     'h': target_logo_h,
                     'x': logo_x,
@@ -772,8 +800,8 @@ class CaptionMaker:
                     h_y = int(video_height * 0.055)
                     
                     hook_data = {
-                        'fg_rgb': hook_img[:, :, :3].astype(np.float32),
-                        'fg_alpha': hook_img[:, :, 3:4].astype(np.float32) / 255.0,
+                        'fg_rgb': np.ascontiguousarray(hook_img, dtype=np.uint8),
+                        'fg_alpha': None,
                         'w': h_w,
                         'h': h_h,
                         'x': h_x,
@@ -836,8 +864,8 @@ class CaptionMaker:
                     pre_rendered_segments.append({
                         'start': w_start,
                         'end': w_end,
-                        'fg_rgb': img_np[:, :, :3].astype(np.float32),
-                        'fg_alpha': img_np[:, :, 3:4].astype(np.float32) / 255.0,
+                        'fg_rgb': np.ascontiguousarray(img_np, dtype=np.uint8),
+                        'fg_alpha': None,
                         'w': fg_w,
                         'h': fg_h,
                         'x': x_pos,
@@ -856,8 +884,8 @@ class CaptionMaker:
                     pre_rendered_segments.append({
                         'start': last_w_end,
                         'end': phrase_linger_end,
-                        'fg_rgb': neutral_img[:, :, :3].astype(np.float32),
-                        'fg_alpha': neutral_img[:, :, 3:4].astype(np.float32) / 255.0,
+                        'fg_rgb': np.ascontiguousarray(neutral_img, dtype=np.uint8),
+                        'fg_alpha': None,
                         'w': fg_w,
                         'h': fg_h,
                         'x': x_pos,
@@ -873,8 +901,8 @@ class CaptionMaker:
                 pre_rendered_segments.append({
                     'start': phrase['start'],
                     'end': phrase_linger_end,
-                    'fg_rgb': img_np[:, :, :3].astype(np.float32),
-                    'fg_alpha': img_np[:, :, 3:4].astype(np.float32) / 255.0,
+                    'fg_rgb': np.ascontiguousarray(img_np, dtype=np.uint8),
+                    'fg_alpha': None,
                     'w': fg_w,
                     'h': fg_h,
                     'x': x_pos,
@@ -910,11 +938,12 @@ class CaptionMaker:
                         new_w = max(1, int(w_w * scale))
                         new_h = max(1, int(w_h * scale))
                         fg_rgb = cv2.resize(fg_rgb, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
-                        fg_alpha_resized = cv2.resize(fg_alpha, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
-                        if len(fg_alpha_resized.shape) == 2:
-                            fg_alpha = fg_alpha_resized[:, :, np.newaxis]
-                        else:
-                            fg_alpha = fg_alpha_resized
+                        if fg_alpha is not None:
+                            fg_alpha_resized = cv2.resize(fg_alpha, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
+                            if len(fg_alpha_resized.shape) == 2:
+                                fg_alpha = fg_alpha_resized[:, :, np.newaxis]
+                            else:
+                                fg_alpha = fg_alpha_resized
                         
                         x_pos = x_pos - (new_w - w_w) // 2
                         y_pos = y_pos - (new_h - w_h) // 2

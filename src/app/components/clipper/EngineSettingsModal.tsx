@@ -737,40 +737,35 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
         )}
 
         {/* Modal Header */}
-        <div className="p-6 border-b border-white/10 flex items-center justify-between bg-gradient-to-r from-emerald-500/10 via-transparent to-purple-500/10">
-          <div className="flex items-center gap-3.5">
-            <div className="p-3 rounded-2xl bg-emerald-400/10 border border-emerald-400/25 text-emerald-400 shadow-[0_0_20px_rgba(251,191,36,0.25)]">
-              <Cpu className="w-6 h-6" />
-            </div>
-            <div>
-              <h3 className="text-white font-extrabold text-base flex items-center gap-2.5">
-                AI Engine &amp; Execution Hub
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-white/10 text-gray-300 border border-white/15 uppercase">
-                  Production
-                </span>
-              </h3>
-              <p className="text-xs text-gray-400 mt-0.5">
-                Configure on-device GPU hardware acceleration or choose your preferred cloud AI intelligence provider.
-              </p>
-            </div>
+        <div className="px-6 py-5 border-b border-white/[0.08] flex items-center justify-between bg-[#111114]">
+          <div>
+            <h3 className="text-zinc-100 font-bold text-base flex items-center gap-2.5 tracking-tight">
+              AI Engine &amp; Execution Hub
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-white/[0.06] text-zinc-400 border border-white/10 uppercase tracking-wider">
+                Production
+              </span>
+            </h3>
+            <p className="text-xs text-zinc-400 mt-1">
+              Configure on-device GPU hardware acceleration or choose your preferred cloud AI intelligence provider.
+            </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white flex items-center justify-center transition-all cursor-pointer text-sm"
+            className="w-8 h-8 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-zinc-400 hover:text-zinc-200 border border-white/[0.06] flex items-center justify-center transition-all cursor-pointer text-sm"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 overflow-y-auto space-y-6 scrollbar-thin scrollbar-thumb-white/10">
+        <div className="p-6 overflow-y-auto space-y-5 scrollbar-thin scrollbar-thumb-white/10">
           {/* Architecture Switcher */}
           <div className="space-y-2">
-            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block">
+            <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block">
               Execution Architecture
             </label>
-            <div className="grid grid-cols-2 gap-3 p-1.5 rounded-2xl bg-black/70 border border-white/10 text-sm font-bold">
+            <div className="grid grid-cols-2 gap-2.5 p-1.5 rounded-2xl bg-[#0a0a0d] border border-white/[0.08] text-sm font-semibold">
               <button
                 type="button"
                 onClick={() => {
@@ -779,16 +774,16 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                     onSelectEngine("gemini_flash");
                   }
                 }}
-                className={`py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2.5 cursor-pointer text-center ${
+                className={`py-2.5 px-4 rounded-xl transition-all flex items-center justify-center gap-2.5 cursor-pointer text-center border ${
                   byokMode === "custom"
-                    ? "bg-emerald-400 text-black shadow-lg font-extrabold ring-2 ring-emerald-400/50"
-                    : "text-gray-400 hover:text-white hover:bg-white/5"
+                    ? "bg-zinc-800/90 text-zinc-100 border-white/15 shadow-sm font-semibold"
+                    : "border-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.03]"
                 }`}
               >
-                <Globe className="w-4 h-4" />
+                <Globe className="w-4 h-4 text-zinc-300" />
                 <span>Cloud AI Models</span>
-                <span className={`text-[10px] px-2 py-0.5 rounded-md font-extrabold uppercase ${
-                  byokMode === "custom" ? "bg-black/20 text-black" : "bg-emerald-400/20 text-emerald-300 border border-emerald-400/30"
+                <span className={`text-[10px] px-2 py-0.5 rounded-md font-semibold uppercase ${
+                  byokMode === "custom" ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/25" : "bg-white/[0.06] text-zinc-400"
                 }`}>
                   Recommended
                 </span>
@@ -804,15 +799,15 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                     onSelectEngine("intel_ai");
                   }
                 }}
-                className={`py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2.5 cursor-pointer text-center ${
+                className={`py-2.5 px-4 rounded-xl transition-all flex items-center justify-center gap-2.5 cursor-pointer text-center border ${
                   byokMode === "local"
-                    ? "bg-emerald-400 text-black shadow-lg font-extrabold ring-2 ring-emerald-400/50"
-                    : "text-gray-400 hover:text-white hover:bg-white/5"
+                    ? "bg-zinc-800/90 text-zinc-100 border-white/15 shadow-sm font-semibold"
+                    : "border-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.03]"
                 }`}
               >
-                <HardDrive className="w-4 h-4" />
+                <HardDrive className="w-4 h-4 text-zinc-300" />
                 <span>Local GPU / QSV</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-md font-bold bg-white/10 text-gray-300">
+                <span className="text-[10px] px-2 py-0.5 rounded-md font-semibold bg-white/[0.06] text-zinc-400">
                   Free Offline
                 </span>
               </button>
@@ -820,19 +815,19 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
           </div>
 
           {/* Quick Setup Tutorial & Warning Advisory Banner */}
-          <div className="p-4 rounded-2xl bg-emerald-500/[0.08] border border-emerald-400/30 space-y-2 text-xs">
+          <div className="p-4 rounded-2xl bg-white/[0.025] border border-white/[0.08] space-y-2 text-xs">
             <div className="flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span className="font-bold text-emerald-300 text-xs uppercase tracking-wide">
+              <AlertCircle className="w-4 h-4 text-zinc-400 shrink-0" />
+              <span className="font-semibold text-zinc-200 text-xs uppercase tracking-wide">
                 API Requirement &amp; Quality Notice
               </span>
             </div>
-            <p className="text-xs text-zinc-300 leading-relaxed">
-              Cloud AI models require your private API key to analyze transcripts and generate viral hooks. For <b>Local GPU mode</b>, an on-device graphics processor (NVIDIA RTX / AMD Radeon / Intel Arc) is recommended for fast video rendering.
+            <p className="text-xs text-zinc-400 leading-relaxed">
+              Cloud AI models require your private API key to analyze transcripts and generate viral hooks. For <b className="text-zinc-300">Local GPU mode</b>, an on-device graphics processor (NVIDIA RTX / AMD Radeon / Intel Arc) is recommended for fast video rendering.
             </p>
-            <div className="flex items-center gap-4 pt-1.5 border-t border-emerald-500/20 text-xs text-emerald-200/90 flex-wrap font-medium">
-              <span>• <b>Free API Keys:</b> Available instantly via Google AI Studio &amp; Groq Console</span>
-              <span>• <b>Always Reconfigurable:</b> Switch models anytime via the top Engine badge</span>
+            <div className="flex items-center gap-4 pt-1.5 border-t border-white/[0.06] text-xs text-zinc-400 flex-wrap">
+              <span>• <b className="text-zinc-300">Free API Keys:</b> Available instantly via Google AI Studio &amp; Groq Console</span>
+              <span>• <b className="text-zinc-300">Always Reconfigurable:</b> Switch models anytime via the top Engine badge</span>
             </div>
           </div>
 
@@ -843,8 +838,8 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
             <div className="space-y-4 animate-fadeIn">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="text-white font-bold text-sm">On-Device Hardware Scan</h4>
-                  <p className="text-xs text-gray-400">
+                  <h4 className="text-zinc-100 font-semibold text-sm">On-Device Hardware Scan</h4>
+                  <p className="text-xs text-zinc-400">
                     Runs 100% locally with zero cloud API keys, $0 cost, and full offline support.
                   </p>
                 </div>
@@ -852,50 +847,50 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                   type="button"
                   onClick={runHardwareScan}
                   disabled={isScanning}
-                  className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-xs text-white font-bold transition-all cursor-pointer border border-white/10 disabled:opacity-50"
+                  className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-xs text-zinc-200 font-semibold transition-all cursor-pointer border border-white/10 disabled:opacity-50"
                 >
-                  <RefreshCw className={`w-4 h-4 ${isScanning ? "animate-spin text-emerald-400" : "text-gray-300"}`} />
+                  <RefreshCw className={`w-4 h-4 ${isScanning ? "animate-spin text-emerald-400" : "text-zinc-400"}`} />
                   <span>{isScanning ? "Scanning..." : "Rescan Hardware"}</span>
                 </button>
               </div>
 
               {/* Scanned Hardware Results */}
               {hardwareInfo ? (
-                <div className="p-5 rounded-2xl bg-emerald-400/10 border border-emerald-400/30 space-y-3.5">
+                <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/10 space-y-3.5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-3 h-3 rounded-full bg-emerald-400 animate-pulse" />
-                      <span className="font-bold text-base text-emerald-300">
+                      <div className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+                      <span className="font-semibold text-base text-zinc-100">
                         {hardwareInfo.engine_name}
                       </span>
                     </div>
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-400 text-black uppercase">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 uppercase">
                       Active Engine
                     </span>
                   </div>
 
-                  <p className="text-xs text-emerald-200/90 leading-relaxed">
+                  <p className="text-xs text-zinc-400 leading-relaxed">
                     {hardwareInfo.engine_desc}
                   </p>
 
                   {/* Hardware Specs Grid */}
-                  <div className="grid grid-cols-2 gap-2.5 pt-2 border-t border-emerald-400/20 text-xs">
+                  <div className="grid grid-cols-2 gap-2.5 pt-2 border-t border-white/[0.08] text-xs">
                     {hardwareInfo.specs.map((s, idx) => (
-                      <div key={idx} className="p-2.5 rounded-xl bg-black/40 border border-white/5 flex flex-col">
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                      <div key={idx} className="p-2.5 rounded-xl bg-black/40 border border-white/[0.06] flex flex-col">
+                        <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">
                           {s.label}
                         </span>
-                        <span className="text-xs font-semibold text-white truncate mt-0.5" title={s.value}>
+                        <span className="text-xs font-medium text-zinc-200 truncate mt-0.5" title={s.value}>
                           {s.value}
                         </span>
                       </div>
                     ))}
                   </div>
 
-                  <div className="pt-1 flex items-center justify-between text-xs text-emerald-300/90 font-medium">
+                  <div className="pt-1 flex items-center justify-between text-xs text-zinc-400 font-medium">
                     <span className="flex items-center gap-1.5">
                       <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                      Hardware Acceleration: <b>{hardwareInfo.encoder}</b>
+                      Hardware Acceleration: <b className="text-zinc-200">{hardwareInfo.encoder}</b>
                     </span>
                     <span>$0.00 API Cost (Free Forever)</span>
                   </div>
@@ -903,17 +898,17 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
               ) : (
                 /* Unscanned Prompt */
                 <div className="p-8 rounded-2xl bg-white/[0.02] border border-white/10 text-center space-y-3">
-                  <Activity className="w-10 h-10 text-emerald-400 mx-auto" />
+                  <Activity className="w-9 h-9 text-zinc-400 mx-auto" />
                   <div>
-                    <p className="text-white font-bold text-sm">No Hardware Profile Loaded</p>
-                    <p className="text-xs text-gray-400 mt-1 max-w-sm mx-auto">
+                    <p className="text-zinc-200 font-semibold text-sm">No Hardware Profile Loaded</p>
+                    <p className="text-xs text-zinc-400 mt-1 max-w-sm mx-auto">
                       Click the button below to probe your local CPU, Intel/NVIDIA/AMD GPU, and AI Neural Processing Unit.
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={runHardwareScan}
-                    className="px-6 py-2.5 rounded-xl bg-emerald-400 text-black font-bold text-xs hover:bg-emerald-300 transition-all cursor-pointer shadow-md inline-flex items-center gap-2"
+                    className="px-5 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border border-white/15 font-semibold text-xs transition-all cursor-pointer inline-flex items-center gap-2"
                   >
                     <RefreshCw className="w-4 h-4" />
                     <span>Run Hardware Scan Now</span>
@@ -933,12 +928,12 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
               {/* Cloud Category Filters */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <h4 className="text-white font-bold text-sm">Select AI Model Provider</h4>
-                  <p className="text-xs text-gray-400">
+                  <h4 className="text-zinc-100 font-semibold text-sm">Select AI Model Provider</h4>
+                  <p className="text-xs text-zinc-400">
                     Choose your AI model below and configure your API key.
                   </p>
                 </div>
-                <div className="flex items-center gap-1.5 bg-black/60 p-1 rounded-xl border border-white/10 text-xs font-bold self-start sm:self-auto">
+                <div className="flex items-center gap-1 bg-[#0a0a0d] p-1 rounded-xl border border-white/[0.08] text-xs font-semibold self-start sm:self-auto">
                   {[
                     { id: "all", label: "All Cloud" },
                     { id: "frontier", label: "Frontier LLM" },
@@ -949,10 +944,10 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                       key={tab.id}
                       type="button"
                       onClick={() => setActiveCloudTab(tab.id as any)}
-                      className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                      className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer border ${
                         activeCloudTab === tab.id
-                          ? "bg-emerald-400 text-black font-extrabold shadow"
-                          : "text-gray-400 hover:text-white hover:bg-white/5"
+                          ? "bg-zinc-800 text-zinc-100 border-white/15 font-semibold shadow-sm"
+                          : "border-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]"
                       }`}
                     >
                       {tab.label}
@@ -990,40 +985,40 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                       }}
                       className={`p-4 rounded-2xl text-left border transition-all cursor-pointer relative flex flex-col justify-between gap-3 ${
                         isSelected
-                          ? "bg-emerald-400/10 border-emerald-400 text-emerald-300 shadow-lg ring-2 ring-emerald-400/40"
-                          : "bg-white/[0.03] border-white/10 text-gray-300 hover:bg-white/[0.06] hover:border-white/20"
+                          ? "bg-white/[0.05] border-emerald-500/45 text-zinc-100"
+                          : "bg-white/[0.02] border-white/[0.08] text-zinc-300 hover:bg-white/[0.04] hover:border-white/15"
                       }`}
                     >
                       <div>
                         <div className="flex items-center justify-between gap-2 mb-1.5">
-                          <span className="font-bold text-sm text-white truncate">{e.name}</span>
-                          <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase bg-white/10 text-gray-300 shrink-0">
+                          <span className="font-semibold text-sm text-zinc-100 truncate">{e.name}</span>
+                          <span className="px-2 py-0.5 rounded-md text-[9px] font-semibold uppercase bg-white/[0.07] text-zinc-400 shrink-0">
                             {e.badge}
                           </span>
                         </div>
-                        <p className="text-xs text-gray-400 leading-relaxed line-clamp-2">
+                        <p className="text-xs text-zinc-400 leading-relaxed line-clamp-2">
                           {e.desc}
                         </p>
                       </div>
-                      <div className="flex items-center justify-between text-xs font-bold pt-2 border-t border-white/5">
+                      <div className="flex items-center justify-between text-xs font-medium pt-2 border-t border-white/[0.06]">
                         {isSelected ? (
-                          <span className="text-emerald-400 flex items-center gap-1.5 text-xs font-bold">
+                          <span className="text-emerald-400 flex items-center gap-1.5 text-xs font-semibold">
                             <CheckCircle2 className="w-3.5 h-3.5" /> Selected Model
                           </span>
                         ) : (
-                          <span className="text-gray-500 text-xs">Click to Select</span>
+                          <span className="text-zinc-500 text-xs">Click to Select</span>
                         )}
                         {hasKey ? (
                           <div className="text-right">
-                            <span className="font-mono text-blue-400 text-xs font-bold block leading-tight">
+                            <span className="font-mono text-zinc-300 text-xs font-semibold block leading-tight">
                               ...{keySnippet}
                             </span>
-                            <span className="text-[9px] text-gray-400 font-normal block leading-tight">
+                            <span className="text-[9px] text-zinc-500 font-normal block leading-tight">
                               {providerLabel} Key Configured
                             </span>
                           </div>
                         ) : (
-                          <span className="text-gray-500 text-xs font-medium">No Key Set</span>
+                          <span className="text-zinc-500 text-xs font-medium">No Key Set</span>
                         )}
                       </div>
                     </button>
@@ -1507,28 +1502,28 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                 })()}
 
                 {/* Security & Confidentiality Warning Banner */}
-                <div className="p-4 rounded-2xl bg-emerald-500/[0.06] border border-emerald-500/15 space-y-1.5 text-xs text-zinc-300">
+                <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.07] space-y-1.5 text-xs text-zinc-300">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 font-bold text-emerald-300 text-xs">
-                      <ShieldAlert className="w-4 h-4 text-emerald-400" />
+                    <div className="flex items-center gap-2 font-semibold text-zinc-200 text-xs">
+                      <ShieldAlert className="w-4 h-4 text-zinc-400" />
                       <span>Security &amp; Confidentiality Policy</span>
                     </div>
                     <button
                       type="button"
                       onClick={() => setShowLiabilityWarningModal(true)}
-                      className="text-xs text-emerald-400 hover:text-emerald-300 font-bold underline cursor-pointer"
+                      className="text-xs text-zinc-300 hover:text-white font-semibold underline cursor-pointer"
                     >
                       Zero-Liability Policy ↗
                     </button>
                   </div>
                   <p className="text-xs text-zinc-400 leading-relaxed">
-                    <strong className="text-zinc-200">Local-only on-device storage:</strong> Never share your private key or stream your screen while revealing it. Your key is stored exclusively in your local device vault. ClipVault does not bear responsibility for compromised keys or third-party account costs.
+                    <strong className="text-zinc-300">Local-only on-device storage:</strong> Never share your private key or stream your screen while revealing it. Your key is stored exclusively in your local device vault. ClipVault does not bear responsibility for compromised keys or third-party account costs.
                   </p>
                 </div>
 
                 {/* Custom Base URL (Proxy / Ollama) */}
                 <div className="pt-2 border-t border-white/5 space-y-1.5">
-                  <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block">
+                  <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">
                     Custom OpenAI-Compatible API Proxy / Ollama URL (Optional)
                   </label>
                   <input
@@ -1536,7 +1531,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                     value={customBaseUrl}
                     onChange={(e) => setCustomBaseUrl(e.target.value)}
                     placeholder="e.g. http://localhost:11434/v1 or https://api.chatanywhere.tech/v1"
-                    className="w-full rounded-xl px-4 py-2.5 text-xs text-white bg-white/5 border border-white/10 outline-none focus:border-emerald-400 font-mono"
+                    className="w-full rounded-xl px-4 py-2.5 text-xs text-white bg-white/[0.04] border border-white/10 outline-none focus:border-white/25 font-mono"
                   />
                 </div>
               </div>
@@ -1544,19 +1539,19 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
           )}
 
           {/* Commercial License Status Card */}
-          <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 flex items-center justify-between gap-3 flex-wrap">
+          <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.08] flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-emerald-400/10 border border-emerald-400/20 flex items-center justify-center shrink-0">
-                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              <div className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/10 flex items-center justify-center shrink-0">
+                <ShieldCheck className="w-4 h-4 text-zinc-300" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h4 className="text-sm font-bold text-white">Commercial License</h4>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${licenseStatus?.licensed ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30" : "bg-emerald-400/15 text-emerald-300 border border-emerald-400/30"}`}>
+                  <h4 className="text-sm font-semibold text-zinc-100">Commercial License</h4>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${licenseStatus?.licensed ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/25" : "bg-white/[0.06] text-zinc-400 border border-white/10"}`}>
                     {licenseStatus?.licensed ? "ACTIVE & VERIFIED" : "ACTIVATION PENDING"}
                   </span>
                 </div>
-                <p className="text-xs text-gray-400 mt-0.5">
+                <p className="text-xs text-zinc-400 mt-0.5">
                   {licenseStatus?.licensed
                     ? `Licensed to: ${licenseStatus.user_email || 'Creator'} (${licenseStatus.key_preview || 'Active'})`
                     : "No commercial license detected on this PC."}
@@ -1572,7 +1567,7 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                     window.location.reload();
                   }
                 }}
-                className="px-3.5 py-1.5 rounded-xl bg-white/5 hover:bg-red-500/20 text-gray-400 hover:text-red-300 border border-white/10 hover:border-red-500/30 text-xs font-bold transition-all cursor-pointer shadow-sm"
+                className="px-3.5 py-1.5 rounded-xl bg-white/5 hover:bg-red-500/20 text-zinc-400 hover:text-red-300 border border-white/10 hover:border-red-500/30 text-xs font-semibold transition-all cursor-pointer"
               >
                 Deactivate License
               </button>
@@ -1580,16 +1575,16 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
           </div>
 
           {/* Storage & Disk Space Cache Cleaner */}
-          <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 flex items-center justify-between gap-3 flex-wrap">
+          <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.08] flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-emerald-400/10 border border-emerald-400/20 flex items-center justify-center shrink-0">
-                <Trash2 className="w-4 h-4 text-emerald-400" />
+              <div className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/10 flex items-center justify-center shrink-0">
+                <Trash2 className="w-4 h-4 text-zinc-300" />
               </div>
               <div>
-                <h4 className="text-sm font-bold text-white">Temporary Cache &amp; Download Storage</h4>
-                <p className="text-xs text-gray-400">
+                <h4 className="text-sm font-semibold text-zinc-100">Temporary Cache &amp; Download Storage</h4>
+                <p className="text-xs text-zinc-400">
                   {cacheCleanNotice ? (
-                    <span className="text-emerald-400 font-bold">{cacheCleanNotice}</span>
+                    <span className="text-emerald-400 font-semibold">{cacheCleanNotice}</span>
                   ) : cacheSizeMb !== null ? (
                     `Used by audio/video temp chunks: ${cacheSizeMb} MB`
                   ) : (
@@ -1602,17 +1597,17 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
               type="button"
               onClick={handleClearCache}
               disabled={isCleaningCache}
-              className="px-4 py-2 rounded-xl bg-emerald-400 text-black font-black text-xs hover:bg-emerald-300 transition-all flex items-center gap-2 cursor-pointer shadow-md disabled:opacity-50"
+              className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-white/10 font-semibold text-xs transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
             >
-              <Trash2 className="w-3.5 h-3.5 text-black" />
+              <Trash2 className="w-3.5 h-3.5 text-zinc-300" />
               <span>{isCleaningCache ? "Cleaning..." : "Clear Cache"}</span>
             </button>
           </div>
 
           {/* Compliance and Trademark Attribution Notice */}
-          <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-1.5 text-xs text-gray-400">
-            <div className="flex items-center gap-2 font-bold text-gray-300 text-xs">
-              <ShieldCheck className="w-4 h-4 text-emerald-400/80" />
+          <div className="p-4 rounded-2xl bg-white/[0.015] border border-white/[0.06] space-y-1.5 text-xs text-zinc-400">
+            <div className="flex items-center gap-2 font-semibold text-zinc-300 text-xs">
+              <ShieldCheck className="w-4 h-4 text-zinc-400" />
               <span>Compliance &amp; Trademark Attribution Notice</span>
             </div>
             <p className="leading-relaxed opacity-75 text-[10.5px]">
@@ -1622,18 +1617,18 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
         </div>
 
         {/* Modal Footer */}
-        <div className="p-5 border-t border-white/10 bg-black/70 flex items-center justify-between">
-          <div className="flex items-center gap-2.5 text-xs text-gray-300 font-medium">
-            <span className={`w-2.5 h-2.5 rounded-full ${isKeyMissing ? "bg-emerald-400" : "bg-emerald-400 animate-pulse"}`} />
+        <div className="px-6 py-4 border-t border-white/[0.08] bg-[#111114] flex items-center justify-between">
+          <div className="flex items-center gap-2.5 text-xs text-zinc-400 font-medium">
+            <span className={`w-2 h-2 rounded-full ${isKeyMissing ? "bg-amber-400" : "bg-emerald-400"}`} />
             <span>
               Active Engine:{" "}
-              <b className="text-white font-bold">
+              <b className="text-zinc-100 font-semibold">
                 {byokMode === "local"
                   ? hardwareInfo?.engine_name || "Intel AI Engine"
                   : (CLOUD_ENGINES.find((e) => e.id === selectedEngine) || CLOUD_ENGINES[0])?.name || "AI Engine"}
               </b>
               {isKeyMissing && (
-                <span className="ml-2 text-emerald-400 font-bold tracking-wide animate-pulse">
+                <span className="ml-2 text-amber-400 font-semibold tracking-wide">
                   (Key Required)
                 </span>
               )}
@@ -1648,10 +1643,10 @@ export const EngineSettingsModal: React.FC<EngineSettingsModalProps> = ({
                 ? "Please enter an API key for the selected cloud model to continue"
                 : "Save settings and continue"
             }
-            className={`px-6 py-2.5 rounded-xl font-black text-xs transition-all shadow-md ${
+            className={`px-5 py-2.5 rounded-xl font-semibold text-xs transition-all ${
               isKeyMissing
-                ? "bg-white/10 text-gray-500 border border-white/10 cursor-not-allowed opacity-40 shadow-none"
-                : "bg-emerald-400 text-black hover:bg-emerald-300 cursor-pointer shadow-emerald-400/20 active:scale-95"
+                ? "bg-white/[0.06] text-zinc-500 border border-white/10 cursor-not-allowed opacity-50"
+                : "bg-zinc-100 hover:bg-white text-zinc-950 cursor-pointer active:scale-[0.98]"
             }`}
           >
             Done and Save Settings

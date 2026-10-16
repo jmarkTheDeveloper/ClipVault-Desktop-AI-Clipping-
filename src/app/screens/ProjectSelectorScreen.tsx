@@ -3150,26 +3150,39 @@ export function ProjectSelectorScreen({
                           </div>
                         </div>
 
-                        {/* Categorized Recent Bug Fixes Section */}
+                        {/* Modern Standard Release Highlights Section */}
                         <div style={{
-                          padding: "18px 20px", borderRadius: 14,
-                          background: "rgba(255, 255, 255, 0.02)",
-                          border: "1px solid rgba(255, 255, 255, 0.08)",
-                          display: "flex", flexDirection: "column", gap: 14,
+                          padding: "20px 22px", borderRadius: 16,
+                          background: "linear-gradient(180deg, rgba(255, 255, 255, 0.025) 0%, rgba(255, 255, 255, 0.01) 100%)",
+                          border: "1px solid rgba(255, 255, 255, 0.07)",
+                          display: "flex", flexDirection: "column", gap: 16,
                         }}>
                           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                              <Bug style={{ width: 16, height: 16, color: G }} />
-                              <h4 style={{ fontSize: 13.5, fontWeight: 700, color: "#fff", margin: 0 }}>
-                                What We&apos;ve Improved &amp; Fixed
-                              </h4>
-                              <span style={{
-                                fontSize: 9.5, fontWeight: 700, padding: "2px 7px", borderRadius: 4,
-                                background: "rgba(52, 235, 61, 0.15)", color: G,
-                                border: "1px solid rgba(52, 235, 61, 0.3)",
+                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                              <div style={{
+                                width: 28, height: 28, borderRadius: 8,
+                                background: "rgba(52, 235, 61, 0.1)",
+                                border: "1px solid rgba(52, 235, 61, 0.25)",
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                                color: G,
                               }}>
-                                v{APP_CHANGELOG[0]?.version || "1.0.0"} RELEASE
-                              </span>
+                                <Sparkles style={{ width: 14, height: 14 }} />
+                              </div>
+                              <div>
+                                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                  <h4 style={{ fontSize: 13.5, fontWeight: 700, color: "#fff", margin: 0, letterSpacing: "-0.01em" }}>
+                                    Release Highlights &amp; Improvements
+                                  </h4>
+                                  <span style={{
+                                    fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 9999,
+                                    background: "rgba(52, 235, 61, 0.12)", color: G,
+                                    border: "1px solid rgba(52, 235, 61, 0.25)",
+                                    letterSpacing: "0.02em",
+                                  }}>
+                                    v{APP_CHANGELOG[0]?.version || "1.0.0"} Stable
+                                  </span>
+                                </div>
+                              </div>
                             </div>
 
                             <button
@@ -3178,44 +3191,56 @@ export function ProjectSelectorScreen({
                                 window.dispatchEvent(new CustomEvent("clipvault-open-whats-new"));
                               }}
                               style={{
-                                fontSize: 11, fontWeight: 700, color: G,
-                                background: "transparent", border: "none", cursor: "pointer",
-                                display: "flex", alignItems: "center", gap: 4,
+                                fontSize: 11.5, fontWeight: 600, color: "rgba(255, 255, 255, 0.7)",
+                                background: "rgba(255, 255, 255, 0.04)", border: "1px solid rgba(255, 255, 255, 0.08)",
+                                padding: "5px 10px", borderRadius: 8,
+                                cursor: "pointer", display: "flex", alignItems: "center", gap: 5,
+                                transition: "all 0.15s ease",
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.color = "#fff";
+                                e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.18)";
+                                e.currentTarget.style.background = "rgba(255, 255, 255, 0.07)";
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.color = "rgba(255, 255, 255, 0.7)";
+                                e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.08)";
+                                e.currentTarget.style.background = "rgba(255, 255, 255, 0.04)";
                               }}
                             >
-                              <span>View Full Changelog</span>
-                              <ChevronRight style={{ width: 12, height: 12 }} />
+                              <span>View All Updates</span>
+                              <ChevronRight style={{ width: 12, height: 12, opacity: 0.7 }} />
                             </button>
                           </div>
 
-                          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>
                             {(APP_CHANGELOG[0]?.items || []).slice(0, 4).map((item, idx) => (
                               <div
                                 key={idx}
                                 style={{
-                                  padding: "10px 14px", borderRadius: 10,
+                                  padding: "12px 14px", borderRadius: 12,
                                   background: "rgba(255, 255, 255, 0.02)",
                                   border: "1px solid rgba(255, 255, 255, 0.05)",
-                                  display: "flex", alignItems: "flex-start", gap: 10,
+                                  display: "flex", flexDirection: "column", gap: 6,
+                                  transition: "border-color 0.15s ease, background 0.15s ease",
                                 }}
                               >
-                                <div style={{
-                                  padding: "2px 6px", borderRadius: 4, fontSize: 9.5, fontWeight: 800,
-                                  fontFamily: "'Geist Mono', monospace",
-                                  background: item.type === "fix" ? "rgba(52, 235, 61, 0.15)" : "rgba(59, 130, 246, 0.15)",
-                                  color: item.type === "fix" ? G : "#60a5fa",
-                                  border: `1px solid ${item.type === "fix" ? "rgba(52, 235, 61, 0.3)" : "rgba(59, 130, 246, 0.3)"}`,
-                                  flexShrink: 0, marginTop: 1,
-                                }}>
-                                  {item.badge || item.type.toUpperCase()}
-                                </div>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                  <div style={{ fontSize: 12, fontWeight: 700, color: "#fff", marginBottom: 2 }}>
+                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                                  <div style={{ fontSize: 12.5, fontWeight: 650, color: "#f4f4f5", letterSpacing: "-0.01em" }}>
                                     {item.title}
                                   </div>
-                                  <div style={{ fontSize: 11, color: "rgba(255, 255, 255, 0.55)", lineHeight: 1.5 }}>
-                                    {item.description}
-                                  </div>
+                                  <span style={{
+                                    padding: "2px 7px", borderRadius: 9999, fontSize: 9.5, fontWeight: 600,
+                                    background: item.type === "fix" ? "rgba(52, 235, 61, 0.08)" : "rgba(255, 255, 255, 0.06)",
+                                    color: item.type === "fix" ? G : "rgba(255, 255, 255, 0.7)",
+                                    border: `1px solid ${item.type === "fix" ? "rgba(52, 235, 61, 0.2)" : "rgba(255, 255, 255, 0.08)"}`,
+                                    whiteSpace: "nowrap", flexShrink: 0,
+                                  }}>
+                                    {item.badge ? item.badge.replace(/ Fix$/, "") : "Improvement"}
+                                  </span>
+                                </div>
+                                <div style={{ fontSize: 11, color: "rgba(255, 255, 255, 0.55)", lineHeight: 1.5 }}>
+                                  {item.description}
                                 </div>
                               </div>
                             ))}

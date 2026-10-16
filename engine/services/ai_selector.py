@@ -737,11 +737,22 @@ class AISelector:
                         hook_title = " ".join(hook_words[:4]).title() if hook_words else "Viral Story"
 
                         comp_score = int(min(99, max(65, score)))
+                        hook_sub = int(min(99, max(62, 68 + anchor_bonus * 0.75)))
+                        flow_sub = int(min(99, max(60, 92 - abs(wpm - 155.0) * 0.28)))
+                        value_sub = int(min(99, max(64, 66 + resolution_score * 0.80)))
+                        trend_sub = int(min(99, max(62, comp_score + (4 if first_sent['is_question'] else 0))))
+                        raw_sub_scores = {
+                            'hook': hook_sub,
+                            'flow': flow_sub,
+                            'value': value_sub,
+                            'trend': trend_sub,
+                        }
                         candidates.append({
                             'start': first_sent['start'],
                             'end': cur_s['end'],
                             'duration': dur,
                             'virality_score': comp_score,
+                            'raw_sub_scores': raw_sub_scores,
                             'title': candidate_title,
                             'hook_title': hook_title,
                             'wpm': wpm,
@@ -776,7 +787,7 @@ class AISelector:
                 cand['start'] = exp_st
                 cand['end'] = exp_et
                 cand['duration'] = exp_et - exp_st
-                sub = normalize_sub_scores(None, cand['virality_score'])
+                sub = normalize_sub_scores(cand.get('raw_sub_scores'), cand['virality_score'])
                 cand['sub_scores'] = sub.to_dict()
                 selected.append(cand)
 

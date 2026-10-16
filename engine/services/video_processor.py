@@ -147,7 +147,7 @@ class VideoProcessor:
             import torch
             if torch.cuda.is_available():
                 print("    [Hardware Acceleration]: NVIDIA NVENC (h264_nvenc)...")
-                return 'h264_nvenc', 'p6', ['-pix_fmt', 'yuv420p', '-movflags', '+faststart', '-cq', '16', '-rc', 'vbr', '-b:v', '25M', '-maxrate', '35M'], thread_count
+                return 'h264_nvenc', 'p4', ['-pix_fmt', 'yuv420p', '-movflags', '+faststart', '-cq', '21', '-rc', 'vbr', '-b:v', '6M', '-maxrate', '9M'], thread_count
         except Exception:
             pass
 
@@ -164,7 +164,7 @@ class VideoProcessor:
                 ], capture_output=True, text=True, check=False, timeout=20)
                 if test_res.returncode == 0:
                     print("    [Hardware Acceleration]: Intel Arc QuickSync (h264_qsv)...")
-                    return 'h264_qsv', 'medium', ['-pix_fmt', 'nv12', '-global_quality', '15', '-b:v', '25M', '-maxrate', '35M', '-movflags', '+faststart'], thread_count
+                    return 'h264_qsv', 'veryfast', ['-pix_fmt', 'nv12', '-global_quality', '21', '-b:v', '6M', '-maxrate', '9M', '-movflags', '+faststart'], thread_count
         except Exception:
             pass
 
@@ -175,12 +175,12 @@ class VideoProcessor:
             )
             if 'AMD' in output or 'Radeon' in output:
                 print("    [Hardware Acceleration]: AMD AMF (h264_amf)...")
-                return 'h264_amf', 'quality', ['-pix_fmt', 'yuv420p', '-movflags', '+faststart', '-rc', 'cqp', '-qp_i', '15', '-qp_p', '15', '-b:v', '25M'], thread_count
+                return 'h264_amf', 'quality', ['-pix_fmt', 'yuv420p', '-movflags', '+faststart', '-rc', 'vbr_peak', '-b:v', '6M', '-maxrate', '9M'], thread_count
         except Exception:
             pass
 
         print(f"    [Hardware Acceleration]: Multi-threaded CPU encoder (libx264, {thread_count} threads)...")
-        return 'libx264', 'veryfast', ['-pix_fmt', 'yuv420p', '-threads', str(thread_count), '-crf', '19', '-b:v', '25M', '-maxrate', '35M', '-movflags', '+faststart'], thread_count
+        return 'libx264', 'veryfast', ['-pix_fmt', 'yuv420p', '-threads', str(thread_count), '-crf', '21', '-b:v', '6M', '-maxrate', '9M', '-bufsize', '12M', '-movflags', '+faststart'], thread_count
 
     def process_video(
         self,
@@ -216,7 +216,7 @@ class VideoProcessor:
         custom_crop_boxes: Optional[Any] = None,
         caption_style: str = "capcut_yellow",
         caption_y_pct: Optional[float] = 0.70,
-        camera_style: str = "instant",
+        camera_style: str = "smooth",
         enable_face_tracker: bool = True,
         gameplay_bg_video: Optional[str] = None,
         bg_music_file: Optional[str] = None,
@@ -528,52 +528,42 @@ class VideoProcessor:
 
         print(f"    [VideoProcessor] Master Compositing Canvas: {target_w}x{target_h} (Aspect: {active_ar:.3f}, Export Profile: {res_str})")
 
-        # Determine target export resolution for FFmpeg hardware scaler if 4K is requested
+        # For 4K/8K Ultra HD profiles, apply C-level optical luma sharpening at native 1080x1920
+        # instead of inflating pixel dimensions to 4320x7680 (which caused 667MB files and 3GB RAM spikes).
         export_scale_params = []
-        if is_8k_export:
-            exp_w = 4320 if active_ar < 1.0 else 7680
-            exp_h = 7680 if active_ar < 1.0 else 4320
-            export_scale_params = ['-vf', f'scale={exp_w}:{exp_h}:flags=bicubic']
-        elif is_4k_export:
-            exp_w = 2160 if active_ar < 1.0 else 3840
-            exp_h = 3840 if active_ar < 1.0 else 2160
-            export_scale_params = ['-vf', f'scale={exp_w}:{exp_h}:flags=bicubic']
+        if is_8k_export or is_4k_export:
+            export_scale_params = ['-vf', 'unsharp=5:5:0.75:3:3:0.0']
 
         output_files = []
         best_codec, best_preset, ffmpeg_params, thread_count = self.detect_hardware_encoder()
-        if quality.lower() == '8k':
-            # Hardware H.264 encoders (QSV, NVENC, AMF) physically cannot encode dimensions exceeding 4096px
-            best_codec = 'libx264'
-            best_preset = 'veryfast'
-            ffmpeg_params = ['-pix_fmt', 'yuv420p', '-threads', str(thread_count), '-crf', '14', '-preset', 'veryfast', '-movflags', '+faststart', *export_scale_params]
-        elif is_4k_export or quality.lower() == '4k':
+        if is_8k_export or is_4k_export or quality.lower() in ('8k', '4k'):
             if best_codec == 'h264_qsv':
-                ffmpeg_params = ['-pix_fmt', 'nv12', '-b:v', '50M', '-maxrate', '70M', '-global_quality', '14', '-preset', 'veryfast', '-movflags', '+faststart', '-sws_flags', 'bicubic', *export_scale_params]
+                ffmpeg_params = ['-pix_fmt', 'nv12', '-b:v', '7M', '-maxrate', '10M', '-global_quality', '19', '-preset', 'veryfast', '-movflags', '+faststart', *export_scale_params]
             elif best_codec == 'h264_nvenc':
-                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '50M', '-maxrate', '70M', '-cq', '14', '-rc', 'vbr', '-preset', 'p4', '-tune', 'hq', '-movflags', '+faststart', '-sws_flags', 'bicubic', *export_scale_params]
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '7M', '-maxrate', '10M', '-cq', '20', '-rc', 'vbr', '-preset', 'p4', '-movflags', '+faststart', *export_scale_params]
             elif best_codec == 'h264_amf':
-                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '50M', '-maxrate', '70M', '-rc', 'cqp', '-qp_i', '14', '-qp_p', '14', '-quality', 'speed', '-movflags', '+faststart', '-sws_flags', 'bicubic', *export_scale_params]
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '7M', '-maxrate', '10M', '-rc', 'cqp', '-qp_i', '19', '-qp_p', '19', '-quality', 'speed', '-movflags', '+faststart', *export_scale_params]
             else:
-                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-threads', str(thread_count), '-crf', '14', '-preset', 'ultrafast', '-movflags', '+faststart', '-sws_flags', 'bicubic', *export_scale_params]
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-threads', str(thread_count), '-crf', '20', '-maxrate', '10M', '-bufsize', '14M', '-preset', 'veryfast', '-movflags', '+faststart', *export_scale_params]
         elif quality.lower() == '1080p':
             if best_codec == 'h264_qsv':
-                ffmpeg_params = ['-pix_fmt', 'nv12', '-b:v', '25M', '-maxrate', '35M', '-global_quality', '16', '-preset', 'veryfast', '-movflags', '+faststart', '-sws_flags', 'bicubic']
+                ffmpeg_params = ['-pix_fmt', 'nv12', '-b:v', '5.5M', '-maxrate', '8M', '-global_quality', '20', '-preset', 'veryfast', '-movflags', '+faststart']
             elif best_codec == 'h264_nvenc':
-                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '25M', '-maxrate', '35M', '-cq', '16', '-rc', 'vbr', '-preset', 'p4', '-movflags', '+faststart', '-sws_flags', 'bicubic']
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '5.5M', '-maxrate', '8M', '-cq', '21', '-rc', 'vbr', '-preset', 'p4', '-movflags', '+faststart']
             elif best_codec == 'h264_amf':
-                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '25M', '-maxrate', '35M', '-rc', 'cqp', '-qp_i', '16', '-qp_p', '16', '-quality', 'speed', '-movflags', '+faststart', '-sws_flags', 'bicubic']
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '5.5M', '-maxrate', '8M', '-rc', 'cqp', '-qp_i', '20', '-qp_p', '20', '-quality', 'speed', '-movflags', '+faststart']
             else:
-                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-threads', str(thread_count), '-crf', '15', '-preset', 'ultrafast', '-movflags', '+faststart', '-sws_flags', 'bicubic']
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-threads', str(thread_count), '-crf', '21', '-maxrate', '8M', '-bufsize', '12M', '-preset', 'veryfast', '-movflags', '+faststart']
         else:
             # 720p standard vertical
             if best_codec == 'h264_qsv':
-                ffmpeg_params = ['-pix_fmt', 'nv12', '-b:v', '15M', '-maxrate', '20M', '-global_quality', '18', '-preset', 'veryfast', '-movflags', '+faststart', '-sws_flags', 'bicubic']
+                ffmpeg_params = ['-pix_fmt', 'nv12', '-b:v', '3.5M', '-maxrate', '5.5M', '-global_quality', '22', '-preset', 'veryfast', '-movflags', '+faststart']
             elif best_codec == 'h264_nvenc':
-                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '15M', '-maxrate', '20M', '-cq', '18', '-rc', 'vbr', '-preset', 'p4', '-movflags', '+faststart', '-sws_flags', 'bicubic']
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '3.5M', '-maxrate', '5.5M', '-cq', '22', '-rc', 'vbr', '-preset', 'p4', '-movflags', '+faststart']
             elif best_codec == 'h264_amf':
-                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '15M', '-maxrate', '20M', '-rc', 'cqp', '-qp_i', '18', '-qp_p', '18', '-quality', 'speed', '-movflags', '+faststart', '-sws_flags', 'bicubic']
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '3.5M', '-maxrate', '5.5M', '-rc', 'cqp', '-qp_i', '22', '-qp_p', '22', '-quality', 'speed', '-movflags', '+faststart']
             else:
-                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-threads', str(thread_count), '-crf', '18', '-preset', 'ultrafast', '-movflags', '+faststart', '-sws_flags', 'bicubic']
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-threads', str(thread_count), '-crf', '22', '-maxrate', '5.5M', '-bufsize', '8M', '-preset', 'veryfast', '-movflags', '+faststart']
 
         print(f"\n Processing {len(clip_specs)} viral clips (Saving to: {target_dir})...")
 
@@ -627,6 +617,30 @@ class VideoProcessor:
                         pass
                 clips_to_close.append(clip)
 
+                # High-speed visual scene cut detection to synchronize virtual camera cuts
+                detected_scene_cuts = []
+                try:
+                    target_media_file = None
+                    scan_st = 0.0
+                    scan_et = clip.duration
+                    if use_smart_slicing and slice_to_cleanup and Path(slice_to_cleanup).exists():
+                        target_media_file = str(slice_to_cleanup)
+                    elif 'video_path' in locals() and video_path and Path(video_path).exists():
+                        target_media_file = str(video_path)
+                        scan_st = start
+                        scan_et = end
+
+                    if target_media_file:
+                        raw_cuts = self.scene_detector.detect_cuts(target_media_file, start_time=scan_st, end_time=scan_et)
+                        if scan_st > 0.0:
+                            detected_scene_cuts = [round(c - scan_st, 2) for c in raw_cuts if 0.0 <= (c - scan_st) <= clip.duration]
+                        else:
+                            detected_scene_cuts = [round(c, 2) for c in raw_cuts if 0.0 <= c <= clip.duration]
+                        if detected_scene_cuts:
+                            print(f"    [VideoProcessor] Visual scene detector identified {len(detected_scene_cuts)} camera cuts: {detected_scene_cuts}")
+                except Exception as sc_err:
+                    print(f"    [VideoProcessor] Scene detector probe notice: {sc_err}")
+
                 # 1. Apply Layout Composition (intelligent auto-reframe, adaptive crop, multi-person framing)
                 clip = self.layout_compositor.compose_layout(
                     clip, layout, target_w, target_h,
@@ -639,7 +653,8 @@ class VideoProcessor:
                     max_digital_zoom=max_digital_zoom,
                     min_crop_margin=min_crop_margin,
                     diagnostic_mode=diagnostic_mode,
-                    aspect_ratio=active_ar
+                    aspect_ratio=active_ar,
+                    scene_cut_times=detected_scene_cuts
                 )
 
                 # Optional AI Super-Resolution Enhancement
@@ -990,11 +1005,16 @@ class VideoProcessor:
             finally:
                 for c in clips_to_close:
                     try:
+                        c.make_frame = None
+                        c.audio = None
                         c.close()
                     except Exception:
                         pass
+                clips_to_close.clear()
                 try:
                     if 'clip' in locals() and clip:
+                        clip.make_frame = None
+                        clip.audio = None
                         clip.close()
                 except Exception:
                     pass
@@ -1006,8 +1026,23 @@ class VideoProcessor:
                 gc.collect()
 
         self.face_tracker.close()
+        self.caption_maker.font_cache.clear()
+        # Clean up any downloaded temp audio/video files inside TEMP_DIR
+        for tmp_candidate in (audio_path, video_path):
+            if tmp_candidate:
+                try:
+                    p_cand = Path(tmp_candidate).resolve()
+                    if p_cand.exists() and str(TEMP_DIR.resolve()).lower() in str(p_cand).lower():
+                        p_cand.unlink(missing_ok=True)
+                except Exception:
+                    pass
         # Only this task's temp dir is removed - never another running task's files.
         cleanup_task_temp_dir(self.temp_dir)
+        try:
+            from services.system_guard import SystemGuard
+            SystemGuard.reclaim_memory()
+        except Exception:
+            pass
 
         # Restore normal process priority
         try:

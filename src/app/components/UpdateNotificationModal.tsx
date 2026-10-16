@@ -181,11 +181,11 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
           {/* Release Highlights Section */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold text-gray-300 uppercase tracking-wider flex items-center gap-2">
-                <Bug className="w-3.5 h-3.5 text-[#34eb3d]" />
-                What&apos;s New &amp; What We Fixed (v{currentRelease.version})
+              <h3 className="text-xs font-semibold text-gray-300 tracking-wider flex items-center gap-2">
+                <Sparkles className="w-3.5 h-3.5 text-[#34eb3d]" />
+                Release Highlights &amp; Improvements (v{currentRelease.version})
               </h3>
-              <span className="text-[11px] text-gray-500">{currentRelease.date}</span>
+              <span className="text-[11px] text-gray-400 font-medium">{currentRelease.date}</span>
             </div>
 
             <p className="text-xs text-gray-400 leading-relaxed">
@@ -211,7 +211,7 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
                     }`}
                   >
                     {item.type === "fix" ? (
-                      <Bug className="w-3.5 h-3.5" />
+                      <CheckCircle2 className="w-3.5 h-3.5" />
                     ) : item.type === "security" ? (
                       <ShieldCheck className="w-3.5 h-3.5" />
                     ) : item.type === "perf" ? (
@@ -222,13 +222,13 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <span className="text-xs font-bold text-white">
+                    <div className="flex items-center justify-between gap-2 mb-1 flex-wrap">
+                      <span className="text-xs font-semibold text-white">
                         {item.title}
                       </span>
                       {item.badge && (
-                        <span className="text-[9.5px] font-mono font-bold px-1.5 py-0.2 rounded bg-white/10 text-gray-300">
-                          {item.badge}
+                        <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-white/[0.06] text-gray-300 border border-white/10">
+                          {item.badge.replace(/ Fix$/, "")}
                         </span>
                       )}
                     </div>

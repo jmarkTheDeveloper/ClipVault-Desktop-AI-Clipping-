@@ -1,0 +1,16 @@
+[package]
+name = "clipvault_rust"
+version = "1.0.0"
+edition = "2021"
+description = "High-performance Rust native acceleration companion for ClipVault AI Engine (zero-allocation frame compositing, spring-damper physics, and disk hygiene)"
+
+[lib]
+name = "clipvault_rust"
+crate-type = ["cdylib"]
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true
