@@ -228,13 +228,24 @@ ipcMain.handle('get-auth-token', (event) => {
     }
   });
 
-// Fix 5: this used to delete ANY *.lnk in the user's Start Menu whose name merely
-// contained "clipvault", so user-created shortcuts disappeared on every launch. It no
-// longer deletes anything; ClipVault only writes/updates its own ClipVault.lnk below.
+// Remove legacy typo Start Menu shortcuts ("ClipVault AI Studi.lnk" / "ClipVault AI Studio.lnk")
+// that cause Windows Toast Notifications to display "ClipVault AI Studi" instead of "ClipVault".
 function cleanupLegacyWindowsShortcuts() {
   if (process.platform !== 'win32') return;
   try {
-    // Intentionally no unlink of pre-existing shortcuts.
+    const shortcutDir = path.join(app.getPath('appData'), 'Microsoft', 'Windows', 'Start Menu', 'Programs');
+    const legacyNames = [
+      'ClipVault AI Studi.lnk',
+      'ClipVault AI Studio.lnk',
+      'ClipVault Studio.lnk',
+      'ClipVault Studio AI.lnk',
+    ];
+    for (const name of legacyNames) {
+      const legacyPath = path.join(shortcutDir, name);
+      if (fs.existsSync(legacyPath)) {
+        fs.unlinkSync(legacyPath);
+      }
+    }
   } catch (err) {
     console.error('[Electron]: Legacy shortcut cleanup error:', err);
   }
