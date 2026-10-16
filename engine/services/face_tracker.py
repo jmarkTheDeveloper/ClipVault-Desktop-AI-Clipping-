@@ -779,18 +779,29 @@ class FaceTracker:
             curr_f = pre_frames[i]["faces"]
 
             is_cut = False
-            # 1. Strong 3-zone chromatic or spatial pixel layout change (catches studio angle cuts without triggering on hand gestures)
-            if hdiff >= 0.28 or sdiff >= 0.11 or (hdiff >= 0.20 and sdiff >= 0.080):
+            # 1. Strong 3-zone chromatic or joint chromatic+spatial pixel layout change
+            # (catches studio angle cuts without triggering on smooth camera pans or hand gestures)
+            if hdiff >= 0.28 or (hdiff >= 0.20 and sdiff >= 0.080) or sdiff >= 0.25:
                 is_cut = True
             # 2. External scene detector cut
             elif scene_cut_times and any(abs(t_curr - ct) < (1.0 / fps_sample) for ct in scene_cut_times):
                 is_cut = True
-            # 3. Visual shift combined with a large horizontal teleport in primary face position
-            elif (hdiff >= 0.13 or sdiff >= 0.060) and prev_f and curr_f:
-                p_cx = prev_f[0]["center_x"]
-                c_cx = curr_f[0]["center_x"]
-                if abs(c_cx - p_cx) > (width * 0.20):
-                    is_cut = True
+            # 3. Visual shift combined with a large horizontal teleport in face position
+            # (only if NO prominent faces match between frames, preventing person index swaps in multi-person shots)
+            elif (hdiff >= 0.18 or sdiff >= 0.090) and prev_f and curr_f:
+                matched = False
+                for pf in prev_f:
+                    for cf in curr_f:
+                        if abs(pf["center_x"] - cf["center_x"]) < (width * 0.10):
+                            matched = True
+                            break
+                    if matched:
+                        break
+                if not matched:
+                    p_cx = prev_f[0]["center_x"]
+                    c_cx = curr_f[0]["center_x"]
+                    if abs(c_cx - p_cx) > (width * 0.25):
+                        is_cut = True
 
             if is_cut:
                 # 3-Step Binary Search to find the EXACT frame where the camera cut occurred
@@ -828,12 +839,34 @@ class FaceTracker:
         curr_shot_start = 0.0
         for i, item in enumerate(pre_frames):
             if i in cut_times_exact and curr_shot:
-                raw_shots.append({"start_t": curr_shot_start, "items": curr_shot})
+                raw_shots.append({"start_t": curr_shot_start, "end_t": cut_times_exact[i], "items": curr_shot})
                 curr_shot = []
                 curr_shot_start = cut_times_exact[i]
             curr_shot.append(item)
         if curr_shot:
-            raw_shots.append({"start_t": curr_shot_start, "items": curr_shot})
+            raw_shots.append({"start_t": curr_shot_start, "end_t": float(clip.duration), "items": curr_shot})
+
+        # ── Debounce Micro-Shots (< 0.85s / 4-5 samples) ──
+        # In professional broadcast framing, micro-shots (0.1s - 0.5s) produce jarring rapid flashes/whips.
+        # Merge sub-0.85s micro-shots into neighboring shots to guarantee stable, pleasing camera pacing.
+        MIN_SHOT_DURATION = 0.85
+        merged_shots = []
+        for s in raw_shots:
+            dur = s["end_t"] - s["start_t"]
+            if not merged_shots:
+                merged_shots.append(s)
+            elif dur < MIN_SHOT_DURATION:
+                merged_shots[-1]["end_t"] = s["end_t"]
+                merged_shots[-1]["items"].extend(s["items"])
+            else:
+                merged_shots.append(s)
+
+        if len(merged_shots) > 1 and (merged_shots[0]["end_t"] - merged_shots[0]["start_t"]) < MIN_SHOT_DURATION:
+            merged_shots[1]["start_t"] = merged_shots[0]["start_t"]
+            merged_shots[1]["items"] = merged_shots[0]["items"] + merged_shots[1]["items"]
+            merged_shots.pop(0)
+
+        raw_shots = merged_shots
 
         # ── Helper: Speaker Clustering inside a Shot ──
         # Groups face detections into discrete human clusters by X coordinate so we NEVER
@@ -886,6 +919,8 @@ class FaceTracker:
             scored_clusters = []
             num_shot_frames = max(1, len(shot_items_list))
             max_reasonable_area = float(width * height) * 0.08
+            prev_center = (prev_shot_x1 + base_crop_w / 2.0) if prev_shot_x1 is not None else None
+
             for c in clusters:
                 unique_frames = len(set(x[0] for x in c))
                 persistence = unique_frames / float(num_shot_frames)
@@ -903,12 +938,18 @@ class FaceTracker:
                 avg_mouth = float(np.mean(c_mouths))
                 center_bias = 1.0 - 0.15 * (abs(med_cx - (width / 2.0)) / max(1.0, width / 2.0))
 
+                # Anchor speaker continuity: give clusters that were already visible in the previous shot a stability boost
+                anchor_continuity = 1.0
+                if prev_center is not None and abs(med_cx - prev_center) < (base_crop_w * 0.45):
+                    anchor_continuity = 1.25
+
                 score = (
                     (unique_frames ** 1.40)
                     * (avg_area ** 0.35)
                     * (avg_conf ** 3.0)
                     * (1.0 + 0.40 * min(1.5, avg_mouth))
                     * center_bias
+                    * anchor_continuity
                 )
                 scored_clusters.append({
                     "score": score,
