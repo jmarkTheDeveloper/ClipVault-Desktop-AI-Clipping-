@@ -293,7 +293,7 @@ function createWindow() {
     height: 720,
     title: 'ClipVault',
     show: false,
-    icon: (appIcon && !appIcon.isEmpty()) ? appIcon : iconTarget,
+    icon: (process.platform === 'win32' && fs.existsSync(iconIco)) ? iconIco : ((appIcon && !appIcon.isEmpty()) ? appIcon : iconTarget),
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       nodeIntegration: false,
@@ -310,7 +310,15 @@ function createWindow() {
     }
   });
 
-  if (appIcon && !appIcon.isEmpty()) {
+  if (process.platform === 'win32' && fs.existsSync(iconIco)) {
+    try {
+      mainWindow.setIcon(iconIco);
+    } catch (e) {
+      if (appIcon && !appIcon.isEmpty()) {
+        try { mainWindow.setIcon(appIcon); } catch (err) {}
+      }
+    }
+  } else if (appIcon && !appIcon.isEmpty()) {
     try {
       mainWindow.setIcon(appIcon);
     } catch (e) {}
@@ -767,7 +775,7 @@ app.whenReady().then(() => {
       const rootDir = path.resolve(__dirname, '..');
       const shortcutOptions = {
         target: process.execPath,
-        args: app.isPackaged ? '' : rootDir,
+        args: app.isPackaged ? '' : `"${rootDir}"`,
         cwd: rootDir,
         appUserModelId: 'ClipVault',
         description: 'ClipVault',
