@@ -1556,65 +1556,71 @@ def get_video_info(url: str):
     js_runtimes = {'node': {'path': node_path}} if node_path else {}
 
     try:
-        ydl_opts = {
-            'quiet': True,
-            'no_warnings': True,
-            'skip_download': True,
-            'extractor_args': {
-                'youtube': {
-                    'player_client': ['mweb', 'web_creator', 'tv', 'web', 'android', 'ios'],
-                    'player_skip': ['configs'],
-                }
-            },
-            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-            'js_runtimes': js_runtimes,
-        }
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(clean_url, download=False)
-            
-            stream_url = None
-            formats = info.get("formats", []) if info else []
-            
-            # Prefer 360p or 720p progressive MP4 for ultra-smooth preview streaming in HTML5 video tag
+        from services.youtube_downloader_yt_dlp import YouTubeDownloader
+        vid_id = m.group(1) if m else YouTubeDownloader.get_video_id(clean_url)
+        info = YouTubeDownloader.get_cached_video_info(vid_id) if vid_id else None
+
+        if not info:
+            ydl_opts = {
+                'quiet': True,
+                'no_warnings': True,
+                'skip_download': True,
+                'extractor_args': {
+                    'youtube': {
+                        'player_client': ['tv', 'mweb', 'web_creator', 'ios', 'android', 'web'],
+                        'player_skip': ['webpage', 'configs'],
+                    }
+                },
+                'js_runtimes': js_runtimes,
+            }
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(clean_url, download=False)
+                if vid_id and info:
+                    YouTubeDownloader.cache_video_info(vid_id, info)
+
+        stream_url = None
+        formats = info.get("formats", []) if info else []
+
+        # Prefer 360p or 720p progressive MP4 for ultra-smooth preview streaming in HTML5 video tag
+        for fmt in formats:
+            if fmt.get("format_id") in ["18", "22"] and fmt.get("url"):
+                stream_url = fmt.get("url")
+                break
+
+        if not stream_url and formats:
             for fmt in formats:
-                if fmt.get("format_id") in ["18", "22"] and fmt.get("url"):
+                if fmt.get("ext") == "mp4" and fmt.get("acodec") != "none" and fmt.get("vcodec") != "none" and fmt.get("url"):
                     stream_url = fmt.get("url")
                     break
-            
-            if not stream_url and formats:
-                for fmt in formats:
-                    if fmt.get("ext") == "mp4" and fmt.get("acodec") != "none" and fmt.get("vcodec") != "none" and fmt.get("url"):
-                        stream_url = fmt.get("url")
-                        break
-            
-            # Fallback to any progressive video+audio format
-            if not stream_url and formats:
-                for fmt in formats:
-                    if fmt.get("vcodec") != "none" and fmt.get("acodec") != "none" and fmt.get("url"):
-                        stream_url = fmt.get("url")
-                        break
 
-            # Fallback to any direct streamable URL
-            if not stream_url and formats:
-                for fmt in formats:
-                    if fmt.get("url") and fmt.get("vcodec") != "none":
-                        stream_url = fmt.get("url")
-                        break
+        # Fallback to any progressive video+audio format
+        if not stream_url and formats:
+            for fmt in formats:
+                if fmt.get("vcodec") != "none" and fmt.get("acodec") != "none" and fmt.get("url"):
+                    stream_url = fmt.get("url")
+                    break
 
-            if not stream_url and info:
-                stream_url = info.get("url")
+        # Fallback to any direct streamable URL
+        if not stream_url and formats:
+            for fmt in formats:
+                if fmt.get("url") and fmt.get("vcodec") != "none":
+                    stream_url = fmt.get("url")
+                    break
 
-            proxied_url = f"http://127.0.0.1:8000/stream?url={urllib.parse.quote(stream_url, safe='')}" if stream_url else None
+        if not stream_url and info:
+            stream_url = info.get("url")
 
-            return {
-                "success": True,
-                "title": info.get("title", "YouTube Video") if info else "YouTube Video",
-                "duration": float(info.get("duration", 0)) if info else 0.0,
-                "author": info.get("uploader", "YouTube Channel") if info else "YouTube",
-                "stream_url": proxied_url or stream_url,
-                "url": proxied_url or stream_url,
-                "direct_stream_url": stream_url
-            }
+        proxied_url = f"http://127.0.0.1:8000/stream?url={urllib.parse.quote(stream_url, safe='')}" if stream_url else None
+
+        return {
+            "success": True,
+            "title": info.get("title", "YouTube Video") if info else "YouTube Video",
+            "duration": float(info.get("duration", 0)) if info else 0.0,
+            "author": info.get("uploader", "YouTube Channel") if info else "YouTube",
+            "stream_url": proxied_url or stream_url,
+            "url": proxied_url or stream_url,
+            "direct_stream_url": stream_url
+        }
     except Exception as e:
         raw_err = str(e)
         if "This video is unavailable" in raw_err:

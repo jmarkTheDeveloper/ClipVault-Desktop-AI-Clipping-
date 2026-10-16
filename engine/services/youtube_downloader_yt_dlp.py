@@ -37,6 +37,10 @@ import imageio_ffmpeg
 from config import TEMP_DIR, YOUTUBE_COOKIES_CONTENT, YOUTUBE_USER_AGENT
 
 
+# Shared cross-request cache so /api/video_info preview extraction is immediately reused by compilation
+GLOBAL_YT_INFO_CACHE: Dict[str, Tuple[float, Dict[str, Any]]] = {}
+
+
 class YouTubeDownloader:
     """
     High-performance YouTube downloader and stream extractor.
@@ -47,6 +51,26 @@ class YouTubeDownloader:
         self.temp_dir = Path(temp_dir).resolve()
         self.temp_dir.mkdir(parents=True, exist_ok=True)
         self._stream_cache = {}
+
+    @classmethod
+    def cache_video_info(cls, video_id: str, info: Dict[str, Any]):
+        if video_id and info and info.get("formats"):
+            import time
+            GLOBAL_YT_INFO_CACHE[video_id] = (time.time(), info)
+
+    @classmethod
+    def get_cached_video_info(cls, video_id: str, max_age_sec: float = 1800.0) -> Optional[Dict[str, Any]]:
+        if not video_id:
+            return None
+        entry = GLOBAL_YT_INFO_CACHE.get(video_id)
+        if not entry:
+            return None
+        import time
+        ts, info = entry
+        if (time.time() - ts) > max_age_sec:
+            GLOBAL_YT_INFO_CACHE.pop(video_id, None)
+            return None
+        return info
 
     @staticmethod
     def auto_update_ytdlp_background():
@@ -92,7 +116,7 @@ class YouTubeDownloader:
         return None
 
     def _get_base_opts(self) -> Dict[str, Any]:
-        """Returns standard resilient yt-dlp options with 16 parallel threads."""
+        """Returns standard resilient yt-dlp options with multi-client anti-bot bypass."""
         node_path = shutil.which('node') or (r'C:\Program Files\nodejs\node.exe' if os.path.exists(r'C:\Program Files\nodejs\node.exe') else None)
 
         js_runtimes = {}
@@ -119,23 +143,28 @@ class YouTubeDownloader:
         except Exception:
             pass
 
-        user_agent = YOUTUBE_USER_AGENT or 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
-
+        # IMPORTANT: Do NOT set a custom desktop 'user_agent' here because yt-dlp disables
+        # tv/ios/android/mweb clients when a custom user_agent overrides their native client UA.
         opts = {
             'geo_bypass': True,
             'nocheckcertificate': True,
-            'ignoreerrors': True,
+            'ignoreerrors': False,
             'quiet': True,
             'no_warnings': True,
-            'retries': 20,
-            'extractor_retries': 20,
-            'user_agent': user_agent,
-            'http_chunk_size': 10485760, # 10MB chunk streaming
-            'concurrent_fragment_downloads': 16, # 16 parallel connections
+            'retries': 10,
+            'extractor_retries': 10,
+            'http_chunk_size': 10485760,
+            'concurrent_fragment_downloads': 8,
             'buffersize': 4194304,
-            'socket_timeout': 30,
+            'socket_timeout': 25,
             'ffmpeg_location': ffmpeg_bin,
-            'js_runtimes': js_runtimes
+            'js_runtimes': js_runtimes,
+            'extractor_args': {
+                'youtube': {
+                    'player_client': ['tv', 'mweb', 'web_creator', 'ios', 'android', 'web'],
+                    'player_skip': ['webpage', 'configs'],
+                }
+            },
         }
 
         if YOUTUBE_COOKIES_CONTENT and "PASTE" not in YOUTUBE_COOKIES_CONTENT:
@@ -149,11 +178,23 @@ class YouTubeDownloader:
         return opts
 
     def get_video_info(self, url: str) -> Dict[str, Any]:
-        """Fetches video metadata (title, duration, thumbnail) in milliseconds without downloading."""
+        """Fetches video metadata (title, duration, thumbnail) using cached info or multi-client fallback."""
+        video_id = self.get_video_id(url)
+        cached = self.get_cached_video_info(video_id) if video_id else None
+        if cached:
+            return cached
+
         opts = self._get_base_opts()
         opts['skip_download'] = True
-        with yt_dlp.YoutubeDL(opts) as ydl:
-            return ydl.extract_info(url, download=False) or {}
+        try:
+            with yt_dlp.YoutubeDL(opts) as ydl:
+                info = ydl.extract_info(url, download=False) or {}
+                if video_id and info:
+                    self.cache_video_info(video_id, info)
+                return info
+        except Exception as e:
+            print(f"    [YouTubeDownloader] get_video_info fallback notice: {e}")
+            return {"title": "YouTube Video", "duration": 0.0}
 
     def get_native_subtitles(self, url: str, language: str = "en") -> Optional[Tuple[List[Dict], str, List[Dict]]]:
         """
@@ -340,11 +381,15 @@ class YouTubeDownloader:
                     print(f"    [YouTubeDownloader] Reusing cached stream CDN URLs for {video_id}")
             
             if not cached_stream:
-                opts = self._get_base_opts()
-                opts.update({'skip_download': True})
+                info = self.get_cached_video_info(video_id)
+                if not info:
+                    opts = self._get_base_opts()
+                    opts.update({'skip_download': True})
 
-                with yt_dlp.YoutubeDL(opts) as ydl:
-                    info = ydl.extract_info(url, download=False)
+                    with yt_dlp.YoutubeDL(opts) as ydl:
+                        info = ydl.extract_info(url, download=False)
+                        if info:
+                            self.cache_video_info(video_id, info)
 
                 formats = info.get("formats", []) if info else []
 
@@ -536,13 +581,13 @@ class YouTubeDownloader:
         # Fallback to standard yt-dlp downloader if direct range stream extraction was blocked
         audio_spec = 'bestaudio[language_preference>=0]/bestaudio[format_note*=original]/bestaudio[language=en]/bestaudio'
         if quality.lower() == "8k":
-            format_str = f'bestvideo[height<=4320]+{audio_spec}/bestvideo+bestaudio/best'
+            format_str = f'bestvideo[height<=4320]+{audio_spec}/bestvideo+bestaudio/best[height<=4320]/best'
         elif quality.lower() == "4k":
-            format_str = f'bestvideo[height<=2160]+{audio_spec}/bestvideo+bestaudio/best'
+            format_str = f'bestvideo[height<=2160]+{audio_spec}/bestvideo+bestaudio/best[height<=2160]/best'
         elif quality.lower() == "1080p":
-            format_str = f'bestvideo[height<=1080]+{audio_spec}/bestvideo+bestaudio/best'
+            format_str = f'bestvideo[height<=1080]+{audio_spec}/bestvideo+bestaudio/best[height<=1080]/best'
         else:
-            format_str = f'bestvideo[height<=720]+{audio_spec}/bestvideo+bestaudio/best'
+            format_str = f'bestvideo[height<=720]+{audio_spec}/bestvideo+bestaudio/best[height<=720]/best'
 
         def ytdl_progress(d):
             if d.get('status') == 'downloading' and progress_callback:
