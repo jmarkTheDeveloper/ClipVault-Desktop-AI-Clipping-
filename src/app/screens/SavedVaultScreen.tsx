@@ -98,7 +98,15 @@ export const SavedVaultScreen: React.FC<SavedVaultScreenProps> = ({
 
       if (res.ok) {
         const data = await res.json();
-        setVaultClips(data.clips || []);
+        const incomingClips: ClipMetadata[] = data.clips || [];
+        setVaultClips((prev) => {
+          if (silent && prev.length === incomingClips.length) {
+            const prevSig = prev.map((c) => `${c.path}:${c.created_at || 0}:${c.size_mb || 0}`).join("|");
+            const nextSig = incomingClips.map((c) => `${c.path}:${c.created_at || 0}:${c.size_mb || 0}`).join("|");
+            if (prevSig === nextSig) return prev;
+          }
+          return incomingClips;
+        });
         const standardFolders = ["Shorts Viral", "Movies", "Stream Highlights"];
         const fetchedFolders = (data.folders || []).filter(
           (f: string) => f && f !== "Main Library" && f !== "all" && f !== "root"
@@ -131,7 +139,7 @@ export const SavedVaultScreen: React.FC<SavedVaultScreenProps> = ({
     }
   }, [initialClip]);
 
-  // Real-time synchronization: refresh vault immediately whenever clips are generated anywhere
+  // Real-time synchronization: refresh vault immediately whenever clips are generated anywhere or on disk
   useEffect(() => {
     const handleClipsUpdated = (e: any) => {
       loadVaultClips(true);
@@ -139,8 +147,16 @@ export const SavedVaultScreen: React.FC<SavedVaultScreenProps> = ({
         setPreviewVaultClip(e.detail.latestClip);
       }
     };
+    const handleFocus = () => loadVaultClips(true);
+    const intervalId = setInterval(() => loadVaultClips(true), 3500);
+
     window.addEventListener("clipvault-clips-updated", handleClipsUpdated);
-    return () => window.removeEventListener("clipvault-clips-updated", handleClipsUpdated);
+    window.addEventListener("focus", handleFocus);
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener("clipvault-clips-updated", handleClipsUpdated);
+      window.removeEventListener("focus", handleFocus);
+    };
   }, []);
 
   const openOutputFolder = (folderName?: string) => {

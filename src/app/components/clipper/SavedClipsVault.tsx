@@ -752,9 +752,13 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
         }
       }
 
-      const isClipInRoot = clip.folder === "Main Library" || clip.folder === "root" || !clip.folder || clip.folder === ".";
-      const matchesFolder = isRoot ? isClipInRoot : clip.folder === vaultSelectedFolder;
-      return matchesFolder;
+      if (isRoot) {
+        return true;
+      }
+      return (
+        clip.folder === vaultSelectedFolder ||
+        Boolean(clip.folder && clip.folder.startsWith(`${vaultSelectedFolder}/`))
+      );
     })
     .sort((a, b) => {
       if (sortBy === "timeline") {
