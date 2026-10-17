@@ -395,19 +395,20 @@ class YouTubeDownloader:
 
                 # Find matching quality video stream with intelligent supersampling
                 # Allows higher source resolution (up to 4K / 2160p) so 9:16 vertical crops
-                # have genuine 1080x1920 native pixel clarity instead of blurry digital zoom
-                if quality.lower() == "8k":
+                # have genuine 1080x1920 / 2160x3840 native pixel clarity instead of blurry digital zoom
+                q_low = str(quality or "1080p").lower().strip()
+                if "8k" in q_low or "4320" in q_low:
                     target_h = 4320
-                elif quality.lower() in ("4k", "1080p", "720p"):
+                elif q_low in ("4k", "2160p", "1440p", "2k", "1080p", "source", "original"):
                     target_h = 2160
                 else:
-                    target_h = 1080
+                    target_h = 1440
                 
-                # 1. Look for separated video and audio formats matching target resolution
+                # 1. Look for video formats matching target resolution
                 def is_within_target(f):
                     h, w = f.get("height") or 0, f.get("width") or 0
                     if not h and not w:
-                        return True
+                        return False
                     shorter_dim = min(h, w) if (h > 0 and w > 0) else (h or w)
                     return shorter_dim <= (target_h + 120)
 
@@ -416,14 +417,17 @@ class YouTubeDownloader:
                     u = str(f.get("url") or "").lower()
                     return "m3u8" not in proto and "m3u8" not in u
 
+                # CRITICAL FIX: Never filter by is_direct_http before resolution sorting!
+                # Filtering by is_direct_http first caused yt-dlp to pick 360p (itag 18) direct streams
+                # while ignoring 4K (2160p) and 1080p HLS/DASH streams.
                 video_candidates = [
                     f for f in formats 
-                    if f.get("vcodec") != "none" and f.get("url") and is_within_target(f) and is_direct_http(f)
+                    if f.get("vcodec") != "none" and f.get("url") and is_within_target(f)
                 ]
                 if not video_candidates:
                     video_candidates = [
                         f for f in formats 
-                        if f.get("vcodec") != "none" and f.get("url") and is_within_target(f)
+                        if f.get("vcodec") != "none" and f.get("url") and ((f.get("height") or 0) > 0)
                     ]
                 if not video_candidates:
                     video_candidates = [f for f in formats if f.get("vcodec") != "none" and f.get("url")]
@@ -433,16 +437,26 @@ class YouTubeDownloader:
                         key=lambda f: (
                             (f.get("height") or 0) * (f.get("width") or 0),
                             f.get("height") or 0,
+                            1 if is_direct_http(f) else 0,
                             f.get("tbr") or 0
                         ),
                         reverse=True
                     )
                     best_vid = video_candidates[0]
-                    video_url = best_vid.get("url")
-                    video_headers = best_vid.get("http_headers") or {}
-                    if best_vid.get("acodec") and best_vid.get("acodec") != "none":
-                        audio_url = video_url
-                        audio_headers = video_headers
+                    best_h = best_vid.get("height") or 0
+                    best_w = best_vid.get("width") or 0
+                    max_avail_h = max(((f.get("height") or 0) for f in formats), default=0)
+                    print(f"    [YouTubeDownloader] Selected source stream: {best_w}x{best_h} (max available: {max_avail_h}p, vcodec={best_vid.get('vcodec')}, proto={best_vid.get('protocol')})")
+                    # If direct candidate is low-res (< 720p) when higher resolution exists, use full yt-dlp range engine
+                    if best_h > 0 and best_h < 720 and max_avail_h >= 720:
+                        print(f"    [YouTubeDownloader] Bypassing low-res ({best_h}p) direct candidate in favor of high-res ({max_avail_h}p) yt-dlp stream...")
+                        video_url = None
+                    else:
+                        video_url = best_vid.get("url")
+                        video_headers = best_vid.get("http_headers") or {}
+                        if best_vid.get("acodec") and best_vid.get("acodec") != "none":
+                            audio_url = video_url
+                            audio_headers = video_headers
 
                 # 2. Look for best dedicated audio format (prioritize original/default language over dubbed tracks)
                 def _audio_score(f):
@@ -473,16 +487,6 @@ class YouTubeDownloader:
                     best_aud = audio_candidates[0]
                     audio_url = best_aud.get("url")
                     audio_headers = best_aud.get("http_headers") or {}
-
-                # Fallback to combined format
-                if not video_url:
-                    for fmt in formats:
-                        if fmt.get("url") and fmt.get("vcodec") != "none":
-                            video_url = fmt.get("url")
-                            audio_url = fmt.get("url")
-                            video_headers = fmt.get("http_headers") or {}
-                            audio_headers = video_headers
-                            break
 
                 if video_url:
                     # Bound this cache. CDN URLs carry `expire=` params and are invalidated by the
@@ -549,11 +553,11 @@ class YouTubeDownloader:
                         "-map", "0:a:0?",
                     ])
 
-                # Visually lossless master slice encoding (CRF 14, ultrafast preset for instant slicing)
+                # Visually lossless master slice encoding (CRF 10, ultrafast preset for instant slicing)
                 cmd.extend([
                     "-c:v", "libx264",
                     "-preset", "ultrafast",
-                    "-crf", "14",
+                    "-crf", "10",
                     "-sws_flags", "lanczos+accurate_rnd",
                     "-c:a", "aac",
                     "-b:a", "320k",
@@ -563,7 +567,7 @@ class YouTubeDownloader:
 
                 print(f"    [YouTubeDownloader] Running direct HTTP range slice with ffmpeg ({duration_sec:.1f}s)...")
                 # Direct HTTP range seeking should finish quickly; if CDN stalls, fallback to yt-dlp partial downloader
-                slice_timeout = min(60, max(25, int(duration_sec * 0.7)))
+                slice_timeout = min(75, max(30, int(duration_sec * 0.9)))
                 proc = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, timeout=slice_timeout)
                 if proc.returncode == 0 and temp_slice.exists() and temp_slice.stat().st_size > 10240:
                     if output_path.exists():
@@ -579,15 +583,14 @@ class YouTubeDownloader:
             print(f"    [YouTubeDownloader] Direct fast slicing note: {fast_err}. Falling back to standard slice downloader...")
 
         # Fallback to standard yt-dlp downloader if direct range stream extraction was blocked
+        q_low = str(quality or "1080p").lower().strip()
         audio_spec = 'bestaudio[language_preference>=0]/bestaudio[format_note*=original]/bestaudio[language=en]/bestaudio'
-        if quality.lower() == "8k":
+        if "8k" in q_low or "4320" in q_low:
             format_str = f'bestvideo[height<=4320]+{audio_spec}/bestvideo+bestaudio/best[height<=4320]/best'
-        elif quality.lower() == "4k":
+        elif q_low in ("4k", "2160p", "1440p", "2k", "1080p", "source", "original"):
             format_str = f'bestvideo[height<=2160]+{audio_spec}/bestvideo+bestaudio/best[height<=2160]/best'
-        elif quality.lower() == "1080p":
-            format_str = f'bestvideo[height<=1080]+{audio_spec}/bestvideo+bestaudio/best[height<=1080]/best'
         else:
-            format_str = f'bestvideo[height<=720]+{audio_spec}/bestvideo+bestaudio/best[height<=720]/best'
+            format_str = f'bestvideo[height<=1440]+{audio_spec}/bestvideo+bestaudio/best[height<=1440]/best'
 
         def ytdl_progress(d):
             if d.get('status') == 'downloading' and progress_callback:
@@ -671,15 +674,14 @@ class YouTubeDownloader:
             info = self.get_video_info(url)
             return slice_path, None, info.get('title', 'YouTube Video'), max(1.0, end_sec - start_sec)
 
+        q_low = str(quality or "1080p").lower().strip()
         audio_spec = 'bestaudio[language_preference>=0]/bestaudio[format_note*=original]/bestaudio[language=en]/bestaudio'
-        if quality.lower() == "8k":
-            format_str = f'bestvideo[height<=4320]+{audio_spec}/best[height<=4320]/best'
-        elif quality.lower() == "4k":
-            format_str = f'bestvideo[height<=2160]+{audio_spec}/best[height<=2160]/best'
-        elif quality.lower() == "1080p":
-            format_str = f'bestvideo[height<=1080]+{audio_spec}/best[height<=1080]/best'
+        if "8k" in q_low or "4320" in q_low:
+            format_str = f'bestvideo[height<=4320]+{audio_spec}/bestvideo+bestaudio/best[height<=4320]/best'
+        elif q_low in ("4k", "2160p", "1440p", "2k", "1080p", "source", "original"):
+            format_str = f'bestvideo[height<=2160]+{audio_spec}/bestvideo+bestaudio/best[height<=2160]/best'
         else:
-            format_str = f'bestvideo[height<=720]+{audio_spec}/best[height<=720]/best'
+            format_str = f'bestvideo[height<=1440]+{audio_spec}/bestvideo+bestaudio/best[height<=1440]/best'
 
         def ytdl_dl_progress(d):
             if d.get('status') == 'downloading' and progress_callback:

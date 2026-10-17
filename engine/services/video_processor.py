@@ -234,6 +234,12 @@ class VideoProcessor:
         """
         Main entry point for processing and generating viral video clips.
         """
+        # Ensure download quality matches export resolution profile
+        if export_resolution:
+            quality = str(export_resolution)
+
+        self.temp_dir.mkdir(parents=True, exist_ok=True)
+
         # ── Commercial license gate (enforce mode blocks render without a valid license)
         if require_render_license is not None:
             is_manual_studio = bool(custom_ranges or custom_range or custom_range_filter)
@@ -493,77 +499,131 @@ class VideoProcessor:
         else:
             active_ar = 9.0 / 16.0
 
-        # Calculate canvas dimensions based on export resolution and aspect ratio
+        # Calculate canvas dimensions and final export dimensions based on export resolution and aspect ratio
         res_str = str(export_resolution or quality or "1080p").lower().strip()
-        is_4k_export = "4k" in res_str or "2160" in res_str or "8k" in res_str
-        is_8k_export = "8k" in res_str
+        is_8k_export = "8k" in res_str or "4320" in res_str
+        is_4k_export = ("4k" in res_str or "2160" in res_str) and not is_8k_export
+        is_1440p_export = ("1440" in res_str or "2k" in res_str) and not (is_4k_export or is_8k_export)
+        is_720p_export = "720" in res_str
 
-        # For social short-form video (TikTok, YouTube Shorts, Reels), 1080x1920 is the native industry standard.
-        # Keeping the Python/MoviePy composition canvas at 1080x1920 eliminates massive 25MB-per-frame pipe bottlenecks,
-        # yielding a 4x memory reduction and 10x-20x faster rendering.
-        # If 4K export is requested, FFmpeg will perform the hardware upscale to 2160x3840 during encoding at 500+ FPS.
-        if res_str in ("original", "source"):
+        def _calc_dims(long_edge: int, ar: float):
+            if abs(ar - 1.0) < 0.01:
+                short_edge = int(round(long_edge * 9.0 / 16.0))
+                w, h = short_edge, short_edge
+            elif ar < 1.0:
+                h = long_edge
+                w = int(round(long_edge * ar))
+            else:
+                w = long_edge
+                h = int(round(long_edge / ar))
+            if w % 2 != 0: w -= 1
+            if h % 2 != 0: h -= 1
+            return w, h
+
+        # 1. Determine TRUE final output file dimensions (final_w x final_h)
+        if is_8k_export:
+            final_w, final_h = _calc_dims(7680, active_ar)
+        elif is_4k_export:
+            final_w, final_h = _calc_dims(3840, active_ar)
+        elif is_1440p_export:
+            final_w, final_h = _calc_dims(2560, active_ar)
+        elif is_720p_export:
+            final_w, final_h = _calc_dims(1280, active_ar)
+        elif res_str in ("original", "source"):
             if abs(active_ar - (src_w / float(src_h))) < 0.01:
-                target_w, target_h = min(1920, src_w), min(1920, src_h)
-            elif active_ar < 1.0: # Vertical format
-                target_h = min(1920, src_h)
-                target_w = int(round(target_h * active_ar))
-            else: # Horizontal format
-                target_w = min(1920, src_w)
-                target_h = int(round(target_w / active_ar))
-        elif "720p" in res_str:
-            if active_ar < 1.0:
-                target_h, target_w = 1280, int(round(1280 * active_ar))
+                final_w, final_h = src_w, src_h
+            elif active_ar < 1.0:
+                final_h = max(1920, src_h)
+                final_w = int(round(final_h * active_ar))
             else:
-                target_w, target_h = 1280, int(round(1280 / active_ar))
+                final_w = max(1920, src_w)
+                final_h = int(round(final_w / active_ar))
+            if final_w % 2 != 0: final_w -= 1
+            if final_h % 2 != 0: final_h -= 1
         else:
-            # 1080p FHD default & master compositing canvas (also used as the high-speed pipeline for 4K/8K export)
-            if active_ar < 1.0:
-                target_h, target_w = 1920, int(round(1920 * active_ar))
+            # 1080p FHD
+            final_w, final_h = _calc_dims(1920, active_ar)
+
+        # 2. Determine Master Compositing Canvas (target_w x target_h)
+        # Note: A 9:16 vertical crop from a 4K (3840x2160) landscape source has native dimensions 1215x2160.
+        # Using a 1440x2560 (2K QHD) or 2160x3840 (4K) compositing canvas for 4K/8K exports preserves
+        # 100% of native 4K camera sensor pixels and renders razor-sharp vector typography, while
+        # FFmpeg's C-level Lanczos-4 sinc scaler outputs the exact final 4K (2160x3840) or 8K (4320x7680) master.
+        if is_8k_export:
+            target_w, target_h = _calc_dims(3840, active_ar)
+        elif is_4k_export:
+            if src_h >= 1440 or src_w >= 2560:
+                target_w, target_h = final_w, final_h
             else:
-                target_w, target_h = 1920, int(round(1920 / active_ar))
+                target_w, target_h = _calc_dims(2560, active_ar)
+        elif is_1440p_export:
+            target_w, target_h = final_w, final_h
+        elif is_720p_export:
+            target_w, target_h = final_w, final_h
+        else:
+            target_w, target_h = _calc_dims(1920, active_ar)
 
-        if target_w % 2 != 0: target_w -= 1
-        if target_h % 2 != 0: target_h -= 1
+        print(f"    [VideoProcessor] Master Compositing Canvas: {target_w}x{target_h} -> Final Output: {final_w}x{final_h} (Aspect: {active_ar:.3f}, Export Profile: {res_str})")
 
-        print(f"    [VideoProcessor] Master Compositing Canvas: {target_w}x{target_h} (Aspect: {active_ar:.3f}, Export Profile: {res_str})")
-
-        # For 4K/8K Ultra HD profiles, apply C-level optical luma sharpening at native 1080x1920
-        # instead of inflating pixel dimensions to 4320x7680 (which caused 667MB files and 3GB RAM spikes).
-        export_scale_params = []
+        # Build FFmpeg Lanczos-4 scaling + optical luma sharpening filter chain
+        vf_filters = []
+        if (target_w, target_h) != (final_w, final_h):
+            vf_filters.append(f"scale={final_w}:{final_h}:flags=lanczos+accurate_rnd+full_chroma_int")
         if is_8k_export or is_4k_export:
-            export_scale_params = ['-vf', 'unsharp=5:5:0.75:3:3:0.0']
+            vf_filters.append("unsharp=5:5:0.80:3:3:0.0")
+        elif is_1440p_export:
+            vf_filters.append("unsharp=5:5:0.65:3:3:0.0")
+        else:
+            vf_filters.append("unsharp=5:5:0.45:3:3:0.0")
+
+        export_scale_params = ['-vf', ",".join(vf_filters)] if vf_filters else []
 
         output_files = []
         best_codec, best_preset, ffmpeg_params, thread_count = self.detect_hardware_encoder()
-        if is_8k_export or is_4k_export or quality.lower() in ('8k', '4k'):
+        if is_8k_export:
+            # Hardware H.264 encoders (QSV/NVENC/AMF) have a 4096px silicon limit and fail on 8K (4320x7680).
+            # Use multi-threaded libx264 high-bitrate cinema master for guaranteed 8K resolution support.
+            best_codec = 'libx264'
+            best_preset = 'veryfast'
+            ffmpeg_params = ['-pix_fmt', 'yuv420p', '-threads', str(thread_count), '-crf', '16', '-maxrate', '65M', '-bufsize', '90M', '-preset', 'veryfast', '-movflags', '+faststart', *export_scale_params]
+        elif is_4k_export:
             if best_codec == 'h264_qsv':
-                ffmpeg_params = ['-pix_fmt', 'nv12', '-b:v', '7M', '-maxrate', '10M', '-global_quality', '19', '-preset', 'veryfast', '-movflags', '+faststart', *export_scale_params]
+                ffmpeg_params = ['-pix_fmt', 'nv12', '-b:v', '30M', '-maxrate', '42M', '-bufsize', '64M', '-global_quality', '17', '-preset', 'veryfast', '-movflags', '+faststart', *export_scale_params]
             elif best_codec == 'h264_nvenc':
-                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '7M', '-maxrate', '10M', '-cq', '20', '-rc', 'vbr', '-preset', 'p4', '-movflags', '+faststart', *export_scale_params]
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '30M', '-maxrate', '42M', '-bufsize', '64M', '-cq', '17', '-rc', 'vbr', '-preset', 'p4', '-movflags', '+faststart', *export_scale_params]
             elif best_codec == 'h264_amf':
-                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '7M', '-maxrate', '10M', '-rc', 'cqp', '-qp_i', '19', '-qp_p', '19', '-quality', 'speed', '-movflags', '+faststart', *export_scale_params]
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '30M', '-maxrate', '42M', '-bufsize', '64M', '-rc', 'cqp', '-qp_i', '17', '-qp_p', '17', '-quality', 'quality', '-movflags', '+faststart', *export_scale_params]
             else:
-                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-threads', str(thread_count), '-crf', '20', '-maxrate', '10M', '-bufsize', '14M', '-preset', 'veryfast', '-movflags', '+faststart', *export_scale_params]
-        elif quality.lower() == '1080p':
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-threads', str(thread_count), '-crf', '16', '-maxrate', '42M', '-bufsize', '64M', '-preset', 'veryfast', '-movflags', '+faststart', *export_scale_params]
+        elif is_1440p_export:
             if best_codec == 'h264_qsv':
-                ffmpeg_params = ['-pix_fmt', 'nv12', '-b:v', '5.5M', '-maxrate', '8M', '-global_quality', '20', '-preset', 'veryfast', '-movflags', '+faststart']
+                ffmpeg_params = ['-pix_fmt', 'nv12', '-b:v', '18M', '-maxrate', '25M', '-bufsize', '36M', '-global_quality', '18', '-preset', 'veryfast', '-movflags', '+faststart', *export_scale_params]
             elif best_codec == 'h264_nvenc':
-                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '5.5M', '-maxrate', '8M', '-cq', '21', '-rc', 'vbr', '-preset', 'p4', '-movflags', '+faststart']
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '18M', '-maxrate', '25M', '-bufsize', '36M', '-cq', '18', '-rc', 'vbr', '-preset', 'p4', '-movflags', '+faststart', *export_scale_params]
             elif best_codec == 'h264_amf':
-                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '5.5M', '-maxrate', '8M', '-rc', 'cqp', '-qp_i', '20', '-qp_p', '20', '-quality', 'speed', '-movflags', '+faststart']
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '18M', '-maxrate', '25M', '-bufsize', '36M', '-rc', 'cqp', '-qp_i', '18', '-qp_p', '18', '-quality', 'quality', '-movflags', '+faststart', *export_scale_params]
             else:
-                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-threads', str(thread_count), '-crf', '21', '-maxrate', '8M', '-bufsize', '12M', '-preset', 'veryfast', '-movflags', '+faststart']
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-threads', str(thread_count), '-crf', '17', '-maxrate', '25M', '-bufsize', '36M', '-preset', 'veryfast', '-movflags', '+faststart', *export_scale_params]
+        elif not is_720p_export:
+            # 1080p FHD high-clarity profile
+            if best_codec == 'h264_qsv':
+                ffmpeg_params = ['-pix_fmt', 'nv12', '-b:v', '12M', '-maxrate', '16M', '-bufsize', '24M', '-global_quality', '18', '-preset', 'veryfast', '-movflags', '+faststart', *export_scale_params]
+            elif best_codec == 'h264_nvenc':
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '12M', '-maxrate', '16M', '-bufsize', '24M', '-cq', '19', '-rc', 'vbr', '-preset', 'p4', '-movflags', '+faststart', *export_scale_params]
+            elif best_codec == 'h264_amf':
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '12M', '-maxrate', '16M', '-bufsize', '24M', '-rc', 'cqp', '-qp_i', '18', '-qp_p', '18', '-quality', 'quality', '-movflags', '+faststart', *export_scale_params]
+            else:
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-threads', str(thread_count), '-crf', '18', '-maxrate', '16M', '-bufsize', '24M', '-preset', 'veryfast', '-movflags', '+faststart', *export_scale_params]
         else:
-            # 720p standard vertical
+            # 720p HD standard profile
             if best_codec == 'h264_qsv':
-                ffmpeg_params = ['-pix_fmt', 'nv12', '-b:v', '3.5M', '-maxrate', '5.5M', '-global_quality', '22', '-preset', 'veryfast', '-movflags', '+faststart']
+                ffmpeg_params = ['-pix_fmt', 'nv12', '-b:v', '6M', '-maxrate', '9M', '-bufsize', '14M', '-global_quality', '20', '-preset', 'veryfast', '-movflags', '+faststart', *export_scale_params]
             elif best_codec == 'h264_nvenc':
-                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '3.5M', '-maxrate', '5.5M', '-cq', '22', '-rc', 'vbr', '-preset', 'p4', '-movflags', '+faststart']
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '6M', '-maxrate', '9M', '-bufsize', '14M', '-cq', '20', '-rc', 'vbr', '-preset', 'p4', '-movflags', '+faststart', *export_scale_params]
             elif best_codec == 'h264_amf':
-                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '3.5M', '-maxrate', '5.5M', '-rc', 'cqp', '-qp_i', '22', '-qp_p', '22', '-quality', 'speed', '-movflags', '+faststart']
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '6M', '-maxrate', '9M', '-bufsize', '14M', '-rc', 'cqp', '-qp_i', '20', '-qp_p', '20', '-quality', 'speed', '-movflags', '+faststart', *export_scale_params]
             else:
-                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-threads', str(thread_count), '-crf', '22', '-maxrate', '5.5M', '-bufsize', '8M', '-preset', 'veryfast', '-movflags', '+faststart']
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-threads', str(thread_count), '-crf', '20', '-maxrate', '9M', '-bufsize', '14M', '-preset', 'veryfast', '-movflags', '+faststart', *export_scale_params]
 
         print(f"\n Processing {len(clip_specs)} viral clips (Saving to: {target_dir})...")
 
@@ -582,14 +642,14 @@ class VideoProcessor:
                     if progress_callback:
                         progress_callback(f"Downloading clip {i}/{len(clip_specs)} slice ({start:.0f}s-{end:.0f}s)...", 40 + int((i - 1) / len(clip_specs) * 20))
                     try:
-                        slice_to_cleanup = self.downloader.download_slice(url, start, end, quality=quality, progress_callback=progress_callback)
+                        slice_to_cleanup = self.downloader.download_slice(url, start, end, quality=res_str, progress_callback=progress_callback)
                         video = VideoFileClip(str(slice_to_cleanup))
                         clips_to_close.append(video)
                         clip = video
                     except Exception as slice_err:
-                        print(f"     Smart slice download note ({slice_err}). Attempting resilient 1080p/720p fallback for clip {i}...")
+                        print(f"     Smart slice download note ({slice_err}). Attempting resilient high-res fallback for clip {i}...")
                         try:
-                            fallback_q = "1080p" if str(quality).lower() == "4k" else "720p"
+                            fallback_q = "4k" if is_8k_export else ("1080p" if is_4k_export else "720p")
                             slice_to_cleanup = self.downloader.download_slice(url, start, end, quality=fallback_q, progress_callback=progress_callback)
                             video = VideoFileClip(str(slice_to_cleanup))
                             clips_to_close.append(video)
@@ -903,7 +963,7 @@ class VideoProcessor:
                             try: output_path.unlink()
                             except Exception: pass
 
-                        cpu_fallback_params = ['-pix_fmt', 'yuv420p', '-threads', str(thread_count), '-crf', '17', '-preset', 'veryfast', '-movflags', '+faststart']
+                        cpu_fallback_params = ['-pix_fmt', 'yuv420p', '-threads', str(thread_count), '-crf', '16', '-preset', 'veryfast', '-movflags', '+faststart', *export_scale_params]
                         clip.write_videofile(
                             str(output_path),
                             codec='libx264',
