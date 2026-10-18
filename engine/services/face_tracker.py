@@ -637,9 +637,9 @@ class FaceTracker:
         self.face_cache = {}
 
         # ── PASS 1: Global Lookahead Video Pre-Scan ("Watch the video first") ──
-        # Sample at 5.0 FPS with spatial + 3-zone chromatic cut detection, then binary-search
-        # every detected cut to 1-frame (~30ms) precision so transitions never lag by even a single frame.
-        fps_sample = 5.0
+        # Sample at 4.0 FPS with spatial + 3-zone chromatic cut detection, then binary-search
+        # every detected cut to 1-frame (~25ms) precision so transitions never lag by even a single frame.
+        fps_sample = 4.0
         num_samples = max(6, int(round(clip.duration * fps_sample)))
         sample_times = np.linspace(0.02, max(0.08, clip.duration - 0.02), num_samples)
 
@@ -1263,7 +1263,7 @@ class FaceTracker:
             cropped_patch = frame[y1:y1 + ch, x1:x1 + cw]
 
             if cropped_patch.shape[0] != final_out_h or cropped_patch.shape[1] != final_out_w:
-                interp = cv2.INTER_AREA if (final_out_w < cropped_patch.shape[1] or final_out_h < cropped_patch.shape[0]) else cv2.INTER_LANCZOS4
+                interp = cv2.INTER_AREA if (final_out_w < cropped_patch.shape[1] or final_out_h < cropped_patch.shape[0]) else cv2.INTER_LINEAR
                 return cv2.resize(cropped_patch, (final_out_w, final_out_h), interpolation=interp)
             return cropped_patch
 

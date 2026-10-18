@@ -31,8 +31,24 @@ import {
   X,
   Film,
   Clock,
+  Calendar,
 } from "lucide-react";
 import type { ClipMetadata } from "./types";
+
+export const formatProducedTimeline = (ts?: number): string => {
+  if (!ts) return "";
+  const d = new Date(ts > 1e11 ? ts : ts * 1000);
+  if (isNaN(d.getTime())) return "";
+
+  const now = new Date();
+  const diffSec = Math.floor((now.getTime() - d.getTime()) / 1000);
+  if (diffSec >= 0 && diffSec < 60) return "Produced: Just now";
+  if (diffSec >= 60 && diffSec < 3600) return `Produced: ${Math.floor(diffSec / 60)}m ago`;
+  if (diffSec >= 3600 && diffSec < 86400 && now.toDateString() === d.toDateString()) {
+    return `Produced: Today, ${d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
+  }
+  return `Produced: ${d.toLocaleDateString([], { month: "short", day: "numeric" })} • ${d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
+};
 
 interface SavedClipsVaultProps {
   vaultClips: ClipMetadata[];
@@ -376,8 +392,11 @@ const VaultClipCard: React.FC<{
   };
 
   const thumbnailUrl = (clip as any).thumbnail_url || "";
-  const primarySrc = clip.url || (clip.path ? getStreamUrl(clip.path) : "");
-  const fallbackSrc = clip.path ? `local:///${clip.path.replace(/\\/g, "/")}` : "";
+  const isElectron = typeof window !== "undefined" && Boolean((window as any).electronAPI || (navigator && navigator.userAgent && navigator.userAgent.includes("Electron")));
+  const nativeLocalSrc = clip.path ? `local:///${clip.path.replace(/\\/g, "/")}` : "";
+  const httpStreamSrc = clip.url || (clip.path ? getStreamUrl(clip.path) : "");
+  const primarySrc = isElectron && nativeLocalSrc ? nativeLocalSrc : httpStreamSrc;
+  const fallbackSrc = isElectron ? httpStreamSrc : nativeLocalSrc;
   const [currentSrc, setCurrentSrc] = useState<string>(primarySrc);
   const [thumbError, setThumbError] = useState<boolean>(false);
 
@@ -395,7 +414,7 @@ const VaultClipCard: React.FC<{
     setCurrentSrc(primarySrc);
     setHasError(false);
     setThumbError(false);
-  }, [clip.path, clip.url, thumbnailUrl]);
+  }, [clip.path, clip.url, thumbnailUrl, primarySrc]);
 
   return (
     <div
@@ -540,6 +559,15 @@ const VaultClipCard: React.FC<{
           <p className="text-[10px] text-gray-400 truncate font-mono">
             {clip.filename}
           </p>
+          {clip.created_at ? (
+            <div
+              className="mt-2 inline-flex items-center gap-1.5 text-[9.5px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md"
+              title={`Produced timestamp: ${new Date((clip.created_at > 1e11 ? clip.created_at : clip.created_at * 1000)).toLocaleString()}`}
+            >
+              <Calendar className="w-2.5 h-2.5 text-emerald-400 shrink-0" />
+              <span>{formatProducedTimeline(clip.created_at)}</span>
+            </div>
+          ) : null}
         </div>
 
         <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between text-[10px] text-gray-500">

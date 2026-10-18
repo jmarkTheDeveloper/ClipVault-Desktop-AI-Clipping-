@@ -690,6 +690,25 @@ export const AiClipperScreen: React.FC<Props> = ({
   const [exportNotice, setExportNotice] = useState("");
   const newFolderInputRef = useRef<HTMLInputElement | null>(null);
 
+  // Dynamic Saved Vault bump & celebratory animation state
+  const [vaultBumping, setVaultBumping] = useState(false);
+  const [newClipsAddedCount, setNewClipsAddedCount] = useState<number | null>(null);
+  const prevVaultCountRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (prevVaultCountRef.current !== null && vaultClips.length > prevVaultCountRef.current) {
+      const diff = vaultClips.length - prevVaultCountRef.current;
+      setNewClipsAddedCount(diff);
+      setVaultBumping(true);
+      const timer = setTimeout(() => {
+        setVaultBumping(false);
+        setNewClipsAddedCount(null);
+      }, 4500);
+      return () => clearTimeout(timer);
+    }
+    prevVaultCountRef.current = vaultClips.length;
+  }, [vaultClips.length]);
+
   useEffect(() => {
     if (showNewFolderModal) {
       const timer = setTimeout(() => {
@@ -1289,7 +1308,12 @@ export const AiClipperScreen: React.FC<Props> = ({
           consecutiveErrors = 0;
           const data = await pollRes.json();
           if (isStaleRun() || currentTaskIdRef.current !== task_id) return;
-          if (data.status) setStatusText(data.status);
+          if (data.status) {
+            setStatusText(data.status);
+            if (typeof data.status === "string" && data.status.startsWith("Finalized Clip")) {
+              loadVaultClips(true);
+            }
+          }
           // Never let a late/older poll value move the bar backwards
           if (typeof data.progress === "number") setProgress((p) => Math.max(p, data.progress));
 
@@ -1870,28 +1894,48 @@ export const AiClipperScreen: React.FC<Props> = ({
             </span>
           </div>
 
-          {/* Standalone Saved Vault Shortcut (Decoupled from Studio tabs) */}
-          <button
-            type="button"
-            onClick={() => {
-              if (onGoToVault) {
-                onGoToVault();
-              } else {
-                setViewMode("vault");
-                loadVaultClips(true);
-              }
-            }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-emerald-500/15 text-gray-300 hover:text-emerald-400 border border-white/10 hover:border-emerald-500/30 text-xs font-bold transition-all cursor-pointer ml-2 shadow-sm"
-            title="Open Dedicated Saved Clips Vault"
-          >
-            <FolderCheck className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Saved Vault</span>
-            {vaultClips.length > 0 && (
-              <span className="text-[10px] bg-white/10 px-1.5 py-0.2 rounded-full font-bold text-gray-300">
-                {vaultClips.length}
-              </span>
+          {/* Standalone Saved Vault Shortcut (Decoupled from Studio tabs) with dynamic bump animation */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => {
+                if (onGoToVault) {
+                  onGoToVault();
+                } else {
+                  setViewMode("vault");
+                  loadVaultClips(true);
+                }
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all duration-300 cursor-pointer ml-2 shadow-sm ${
+                vaultBumping
+                  ? "bg-emerald-500/25 border-emerald-400 text-emerald-300 ring-2 ring-emerald-400/80 shadow-[0_0_25px_rgba(52,211,153,0.6)] scale-105"
+                  : "bg-white/5 hover:bg-emerald-500/15 text-gray-300 hover:text-emerald-400 border-white/10 hover:border-emerald-500/30"
+              }`}
+              title="Open Dedicated Saved Clips Vault"
+            >
+              <FolderCheck className={`w-3.5 h-3.5 ${vaultBumping ? "text-emerald-300 animate-bounce" : "text-emerald-400"}`} />
+              <span>Saved Vault</span>
+              {vaultClips.length > 0 && (
+                <span
+                  className={`text-[10px] px-2 py-0.5 rounded-full font-black transition-all ${
+                    vaultBumping
+                      ? "bg-emerald-400 text-black scale-125 shadow-md animate-pulse"
+                      : "bg-white/10 text-gray-300"
+                  }`}
+                >
+                  {vaultClips.length}
+                </span>
+              )}
+            </button>
+
+            {/* Flying Celebratory Notification Badge */}
+            {vaultBumping && newClipsAddedCount && (
+              <div className="absolute -top-7 right-0 z-20 flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-400 text-black text-[11px] font-black shadow-[0_4px_15px_rgba(52,211,153,0.6)] animate-bounce pointer-events-none whitespace-nowrap">
+                <Sparkles className="w-3 h-3 fill-black text-black" />
+                <span>+{newClipsAddedCount} New!</span>
+              </div>
             )}
-          </button>
+          </div>
         </div>
 
         {/* Pro Manual Studio Credit Status & Engine */}

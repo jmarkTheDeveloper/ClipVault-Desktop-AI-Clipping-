@@ -911,18 +911,26 @@ class CaptionMaker:
 
         # Sort pre-rendered segments by start time for fast lookup
         pre_rendered_segments.sort(key=lambda x: x['start'])
+        seg_starts = [s['start'] for s in pre_rendered_segments]
 
         def make_frame(gf, t):
             frame = gf(t)
             
-            # Find active segment at time t
-            active_segments = [s for s in pre_rendered_segments if s['start'] <= t <= s['end']]
+            # Fast binary search to find active segment at time t
+            import bisect
+            idx = bisect.bisect_right(seg_starts, t)
+            # Check the few segments adjacent to the insertion point
+            active_s = None
+            for i in range(max(0, idx - 4), min(len(pre_rendered_segments), idx + 1)):
+                s = pre_rendered_segments[i]
+                if s['start'] <= t <= s['end']:
+                    active_s = s
             
             copied = False
-            if active_segments:
+            if active_s is not None:
                 frame = frame.copy()
                 copied = True
-                s_data = active_segments[-1]
+                s_data = active_s
                 
                 fg_rgb = s_data['fg_rgb']
                 fg_alpha = s_data['fg_alpha']

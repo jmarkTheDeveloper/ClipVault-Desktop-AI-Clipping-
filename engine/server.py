@@ -638,7 +638,7 @@ def stream_media(request: Request, path: Optional[str] = None, url: Optional[str
                     with open(file_path, "rb") as f:
                         f.seek(start)
                         remaining = chunk_len
-                        buf_size = 256 * 1024
+                        buf_size = 1024 * 1024
                         while remaining > 0:
                             read_len = min(remaining, buf_size)
                             data = f.read(read_len)
@@ -655,8 +655,8 @@ def stream_media(request: Request, path: Optional[str] = None, url: Optional[str
                     "Access-Control-Allow-Origin": "*",
                 }
 
-                # Chunks <= 10MB read immediately and close file so Windows file locks are never held
-                if chunk_len <= 10 * 1024 * 1024:
+                # Chunks <= 32MB read immediately and close file so Windows file locks and generator threads are never held
+                if chunk_len <= 32 * 1024 * 1024:
                     with open(file_path, "rb") as f:
                         f.seek(start)
                         chunk_data = f.read(chunk_len)
@@ -949,6 +949,7 @@ def execute_rendering_task(task_id: str, request: ProcessRequest, cancel_event: 
                     "reason": clip_meta.get("reason", "High emotional engagement hook with natural conversational pacing."),
                     "start": float(clip_meta.get("start", 0)),
                     "end": float(clip_meta.get("end", 45)),
+                    "created_at": float(out_path.stat().st_mtime) if out_path.exists() else time.time(),
                 }
                 output_clips.append(clip_dict)
             elif isinstance(out, dict) and "path" in out:
@@ -960,6 +961,8 @@ def execute_rendering_task(task_id: str, request: ProcessRequest, cancel_event: 
                 out["filename"] = out_path.name
                 out["path"] = str(out_path)
                 out["url"] = f"http://127.0.0.1:8000/stream?path={urllib.parse.quote(str(out_path))}"
+                if "created_at" not in out:
+                    out["created_at"] = float(out_path.stat().st_mtime) if out_path.exists() else time.time()
                 output_clips.append(out)
 
         tasks_db[task_id]["result"] = {

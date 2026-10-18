@@ -141,8 +141,9 @@ class VideoProcessor:
     @staticmethod
     def detect_hardware_encoder():
         """Detects available hardware video encoders (NVIDIA NVENC, Intel QSV, AMD AMF) or falls back to CPU."""
-        # Reserve at least 1 core for OS and frontend UI responsiveness on low-spec hardware
-        thread_count = max(1, multiprocessing.cpu_count() - 1)
+        # Reserve at least 2 full cores for OS, Electron UI, and video decoding to prevent playback stutter
+        total_cpus = multiprocessing.cpu_count() or 4
+        thread_count = max(2, min(8, total_cpus - 2))
         try:
             import torch
             if torch.cuda.is_available():
@@ -247,10 +248,13 @@ class VideoProcessor:
             eff_res = export_resolution or quality or "1080p"
             require_render_license(is_free_1click=is_free_eligible, resolution=eff_res)
 
-        # Lower process priority to prevent UI lag on low-spec hardware during video compilation
+        # Ensure backend process retains normal priority so local video playback (/stream)
+        # and Electron UI responsiveness never stutter or drop frames during background rendering.
         try:
             import psutil
-            psutil.Process().nice(psutil.BELOW_NORMAL_PRIORITY_CLASS)
+            p = psutil.Process()
+            if hasattr(psutil, "NORMAL_PRIORITY_CLASS") and p.nice() != psutil.NORMAL_PRIORITY_CLASS:
+                p.nice(psutil.NORMAL_PRIORITY_CLASS)
         except Exception:
             pass
 

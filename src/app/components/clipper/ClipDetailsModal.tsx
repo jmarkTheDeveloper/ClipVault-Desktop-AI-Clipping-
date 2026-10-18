@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Download, ExternalLink, Copy, Check, Trash2, Folder, AlertTriangle, X, Film, Sparkles, Share2, Upload, Youtube, Globe, Clock } from "lucide-react";
+import { Download, ExternalLink, Copy, Check, Trash2, Folder, AlertTriangle, X, Film, Sparkles, Share2, Upload, Youtube, Globe, Clock, Calendar } from "lucide-react";
 import type { ClipMetadata } from "./types";
 import { ClipCustomizerModal } from "./ClipCustomizerModal";
 
@@ -33,15 +33,18 @@ export const ClipDetailsModal: React.FC<ClipDetailsModalProps> = ({
     return `http://127.0.0.1:8000/stream?path=${encodeURIComponent(clean)}`;
   };
 
-  const primarySrc = clip ? (clip.path ? getStreamUrl(clip.path) : (clip.url ? getStreamUrl(clip.url) : "")) : "";
-  const fallbackSrc = clip && clip.path ? `local:///${clip.path.replace(/\\/g, "/")}` : "";
+  const isElectron = typeof window !== "undefined" && Boolean((window as any).electronAPI || (navigator && navigator.userAgent && navigator.userAgent.includes("Electron")));
+  const nativeLocalSrc = clip && clip.path ? `local:///${clip.path.replace(/\\/g, "/")}` : "";
+  const httpStreamSrc = clip ? (clip.path ? getStreamUrl(clip.path) : (clip.url ? getStreamUrl(clip.url) : "")) : "";
+  const primarySrc = isElectron && nativeLocalSrc ? nativeLocalSrc : httpStreamSrc;
+  const fallbackSrc = isElectron ? httpStreamSrc : nativeLocalSrc;
   const [currentSrc, setCurrentSrc] = React.useState<string>(primarySrc);
 
   React.useEffect(() => {
     if (clip) {
       setCurrentSrc(primarySrc);
     }
-  }, [clip?.path, clip?.url]);
+  }, [clip?.path, clip?.url, primarySrc]);
 
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -171,6 +174,15 @@ export const ClipDetailsModal: React.FC<ClipDetailsModalProps> = ({
                   {clip.hook_type}
                 </span>
               )}
+              {clip.created_at ? (
+                <span
+                  className="text-xs bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1.5"
+                  title="Production date and time"
+                >
+                  <Calendar className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  Produced: {new Date(clip.created_at > 1e11 ? clip.created_at : clip.created_at * 1000).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })} • {new Date(clip.created_at > 1e11 ? clip.created_at : clip.created_at * 1000).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+                </span>
+              ) : null}
               <span className="text-xs bg-white/10 text-gray-300 px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1">
                 <Folder className="w-3 h-3 text-emerald-400" /> {clip.folder}
               </span>
