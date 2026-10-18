@@ -312,11 +312,11 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isFolderDropdownOpen]);
 
-  const STANDARD_PROJECT_FOLDERS = ["Shorts Viral", "Movies", "Stream Highlights"];
+  const STANDARD_PROJECT_FOLDERS = ["Default", "Shorts Viral", "Movies", "Stream Highlights"];
   const availableProjectFolders = Array.from(
     new Set([
       ...STANDARD_PROJECT_FOLDERS,
-      ...vaultFolders.filter((f) => f && f !== "Main Library" && f !== "all" && f !== "root")
+      ...vaultFolders.filter((f) => f && f !== "Default" && f !== "Main Library" && f !== "all" && f !== "root")
     ])
   );
 
@@ -1199,13 +1199,13 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
                     Save into Project Folder
                   </label>
-                  {customFolderName && customFolderName !== "Shorts Viral" && (
+                  {customFolderName && customFolderName !== "Default" && (
                     <button
                       type="button"
-                      onClick={() => setCustomFolderName("Shorts Viral")}
+                      onClick={() => setCustomFolderName("Default")}
                       className="text-[9px] text-emerald-400/80 hover:text-emerald-300 underline cursor-pointer"
                     >
-                      Reset to Shorts Viral
+                      Reset to Default
                     </button>
                   )}
                 </div>
@@ -1224,7 +1224,9 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                     <div className="flex items-center gap-2 min-w-0">
                       <Folder className="w-3.5 h-3.5 text-[#00e676] shrink-0" />
                       <span className="font-semibold text-white truncate">
-                        {customFolderName || "Shorts Viral"}
+                        {!customFolderName || customFolderName === "Default" || customFolderName === "Main Library"
+                          ? "Default (Root Folder)"
+                          : customFolderName}
                       </span>
                     </div>
                     <ChevronDown
@@ -1238,7 +1240,8 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                   {isFolderDropdownOpen && (
                     <div className="absolute top-full left-0 right-0 mt-1.5 py-1 bg-[#0e0e12] border border-white/10 rounded-xl shadow-[0_15px_40px_rgba(0,0,0,0.95)] z-50 backdrop-blur-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
                       {availableProjectFolders.map((folder) => {
-                        const isSelected = (customFolderName || "Shorts Viral") === folder;
+                        const activeFolder = (!customFolderName || customFolderName === "Main Library") ? "Default" : customFolderName;
+                        const isSelected = activeFolder === folder;
                         return (
                           <button
                             key={folder}
@@ -1255,7 +1258,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                           >
                             <div className="flex items-center gap-2">
                               <Folder className={`w-3.5 h-3.5 ${isSelected ? "text-[#00e676]" : "text-gray-400"}`} />
-                              <span>{folder}</span>
+                              <span>{folder === "Default" ? "Default (Root Folder)" : folder}</span>
                             </div>
                             {isSelected && <Check className="w-3.5 h-3.5 text-[#00e676]" />}
                           </button>
@@ -1270,7 +1273,8 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                   <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
                     <span className="text-[9px] text-gray-500 font-bold uppercase">Folders:</span>
                     {availableProjectFolders.map((folder) => {
-                      const isSelected = (customFolderName || "Shorts Viral") === folder;
+                      const activeFolder = (!customFolderName || customFolderName === "Main Library") ? "Default" : customFolderName;
+                      const isSelected = activeFolder === folder;
                       return (
                         <button
                           key={folder}
@@ -1294,7 +1298,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                   type="text"
                   value={customFolderName}
                   onChange={(e) => setCustomFolderName(e.target.value)}
-                  placeholder="Or type a new folder name (e.g. Movies, Shorts Viral, Stream Highlights)..."
+                  placeholder="Or type a custom folder name (use 'Default' for root folder)..."
                   className="w-full rounded-lg px-3 py-1.5 text-xs text-white bg-black/30 border border-white/10 outline-none focus:border-emerald-400 placeholder-gray-600 transition-colors select-text cursor-text pointer-events-auto shadow-inner"
                 />
               </div>

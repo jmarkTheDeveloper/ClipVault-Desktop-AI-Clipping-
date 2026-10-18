@@ -704,14 +704,17 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
   // -------------------------------------------------------------------------
   // Explorer Directory Hierarchy Logic
   // -------------------------------------------------------------------------
-  const isRoot = vaultSelectedFolder === "all" || vaultSelectedFolder === "Main Library" || !vaultSelectedFolder;
-  const currentPathSegments = isRoot ? [] : vaultSelectedFolder.split("/").filter(Boolean);
+  const isDefaultFolderClip = (c: ClipMetadata) =>
+    !c.folder || c.folder === "Default" || c.folder === "Main Library" || c.folder === "root" || c.folder === ".";
+  const isRoot = vaultSelectedFolder === "all" || !vaultSelectedFolder;
+  const isDefaultSelected = vaultSelectedFolder === "Default" || vaultSelectedFolder === "Main Library";
+  const currentPathSegments = isRoot ? [] : (isDefaultSelected ? ["Default (Root Folder)"] : vaultSelectedFolder.split("/").filter(Boolean));
 
   // Discover subfolders belonging directly to the current directory level
   const directFolders = vaultFolders
-    .filter((f) => f && f !== "Main Library" && f !== "all" && f !== "root")
+    .filter((f) => f && f !== "Default" && f !== "Main Library" && f !== "all" && f !== "root")
     .filter((f) => {
-      if (isRoot) {
+      if (isRoot || isDefaultSelected) {
         return !f.includes("/");
       } else {
         const prefix = `${vaultSelectedFolder}/`;
@@ -723,7 +726,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
 
   // Calculate parent folder for "Up One Level"
   const getParentFolder = (): string => {
-    if (isRoot || currentPathSegments.length <= 1) return "all";
+    if (isRoot || isDefaultSelected || currentPathSegments.length <= 1) return "all";
     return currentPathSegments.slice(0, -1).join("/");
   };
 
@@ -754,6 +757,9 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
 
       if (isRoot) {
         return true;
+      }
+      if (isDefaultSelected) {
+        return isDefaultFolderClip(clip);
       }
       return (
         clip.folder === vaultSelectedFolder ||
@@ -798,7 +804,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
     // Only import if files were dropped from OUTSIDE the app (external Windows Explorer drag)
     if (!isInternal && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       if (onImportClips) {
-        onImportClips(e.dataTransfer.files, targetFolder === "all" ? "Main Library" : targetFolder);
+        onImportClips(e.dataTransfer.files, targetFolder === "all" ? "Default" : targetFolder);
       }
       return;
     }
@@ -825,7 +831,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
         if (e.dataTransfer.files && e.dataTransfer.files.length > 0 && onImportClips) {
           onImportClips(
             e.dataTransfer.files,
-            vaultSelectedFolder === "all" ? "Main Library" : vaultSelectedFolder
+            vaultSelectedFolder === "all" ? "Default" : vaultSelectedFolder
           );
         }
       }}
@@ -839,7 +845,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
           <p className="text-sm font-bold text-emerald-300 mt-1">
             Files will be imported into:{" "}
             <span className="font-mono bg-black/50 px-2 py-0.5 rounded">
-              {isRoot ? "Main Library" : vaultSelectedFolder}
+              {isRoot || isDefaultSelected ? "Default (Root Folder)" : vaultSelectedFolder}
             </span>
           </p>
         </div>
@@ -1374,7 +1380,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          {isRoot ? (
+          {(isRoot || isDefaultSelected) ? (
             <button
               onClick={() => {
                 if (openNewSubfolderModal) {
@@ -1443,14 +1449,17 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
         <div className="flex items-center bg-[#111] border border-white/10 rounded-xl px-3 py-1.5">
           <Filter className="w-3.5 h-3.5 text-emerald-400 mr-2 shrink-0" />
           <select
-            value={vaultSelectedFolder}
+            value={vaultSelectedFolder === "Main Library" ? "Default" : vaultSelectedFolder}
             onChange={(e) => setVaultSelectedFolder(e.target.value)}
             className="w-full bg-transparent text-xs text-white outline-none cursor-pointer"
           >
             <option value="all" className="bg-[#111] text-white">
               All Folders ({vaultClips.length} clips)
             </option>
-            {vaultFolders.map((f) => (
+            <option value="Default" className="bg-[#111] text-white">
+              Default (Root Folder) ({vaultClips.filter((c) => isDefaultFolderClip(c)).length} clips)
+            </option>
+            {vaultFolders.filter((f) => f && f !== "Default" && f !== "Main Library").map((f) => (
               <option key={f} value={f} className="bg-[#111] text-white">
                 {f} ({vaultClips.filter((c) => c.folder === f).length} clips)
               </option>
@@ -1487,7 +1496,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
           <span className="text-[10px] text-gray-500 font-bold uppercase shrink-0">Vault Storage:</span>
           <button
             type="button"
-            onClick={() => openOutputFolder(vaultSelectedFolder !== "all" && vaultSelectedFolder !== "Main Library" ? vaultSelectedFolder : undefined)}
+            onClick={() => openOutputFolder(vaultSelectedFolder !== "all" && vaultSelectedFolder !== "Default" && vaultSelectedFolder !== "Main Library" ? vaultSelectedFolder : undefined)}
             title="Click to open this folder in Windows Explorer"
             className="text-xs font-mono text-emerald-400 hover:text-emerald-300 underline truncate text-left cursor-pointer flex items-center gap-1.5"
           >
@@ -1505,9 +1514,9 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
       )}
 
       {/* ----------------------------------------------------------------- */}
-      {/* SECTION 1: PROJECT FOLDERS (Only shown when folders actually exist) */}
+      {/* SECTION 1: PROJECT FOLDERS (Includes Default Root + Subfolders)   */}
       {/* ----------------------------------------------------------------- */}
-      {isRoot && !isSearchActive && directFolders.length > 0 && (
+      {(isRoot || isDefaultSelected) && !isSearchActive && (
         <div className="mb-4">
           <div className="flex items-center justify-between gap-4 mb-2.5">
             <div className="flex items-center gap-2">
@@ -1516,7 +1525,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
                 Project Folders
               </h3>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/10 text-gray-400">
-                {directFolders.length}
+                {directFolders.length + 1}
               </span>
             </div>
 
@@ -1548,6 +1557,29 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
 
           {folderViewMode === "grid" ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
+              {/* Default (Root Folder) Card */}
+              <FolderCard
+                key="Default"
+                folderPath="Default"
+                displayName="Default"
+                directClipCount={vaultClips.filter((c) => isDefaultFolderClip(c)).length}
+                totalClipCount={vaultClips.filter((c) => isDefaultFolderClip(c)).length}
+                subfolderCount={0}
+                isSelected={isDefaultSelected}
+                isDragOver={dragOverFolder === "Default"}
+                onClick={() => setVaultSelectedFolder(isDefaultSelected ? "all" : "Default")}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDragOverFolder("Default");
+                }}
+                onDragLeave={() => setDragOverFolder(null)}
+                onDrop={(e) => handleDropClips(e, "Default")}
+                onOpenInExplorer={() => openOutputFolder("Default")}
+              />
+
               {directFolders.map((folderPath) => {
                 const displayName = folderPath.split("/").pop() || folderPath;
                 const directClips = vaultClips.filter((c) => c.folder === folderPath).length;
@@ -1618,6 +1650,27 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
                   <span className="w-12 text-right">Actions</span>
                 </div>
               </div>
+              <FolderRow
+                key="Default"
+                folderPath="Default"
+                displayName="Default"
+                directClipCount={vaultClips.filter((c) => isDefaultFolderClip(c)).length}
+                totalClipCount={vaultClips.filter((c) => isDefaultFolderClip(c)).length}
+                subfolderCount={0}
+                isSelected={isDefaultSelected}
+                isDragOver={dragOverFolder === "Default"}
+                onClick={() => setVaultSelectedFolder(isDefaultSelected ? "all" : "Default")}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDragOverFolder("Default");
+                }}
+                onDragLeave={() => setDragOverFolder(null)}
+                onDrop={(e) => handleDropClips(e, "Default")}
+                onOpenInExplorer={() => openOutputFolder("Default")}
+              />
               {directFolders.map((folderPath) => {
                 const displayName = folderPath.split("/").pop() || folderPath;
                 const directClips = vaultClips.filter((c) => c.folder === folderPath).length;

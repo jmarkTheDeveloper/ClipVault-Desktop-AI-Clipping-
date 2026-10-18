@@ -575,7 +575,7 @@ export const AiClipperScreen: React.FC<Props> = ({
   const [targetDuration, setTargetDuration] = useState<number | string>(30);
   const [topicPrompt, setTopicPrompt] = useState("");
   const [customOutputDir, setCustomOutputDir] = useState("");
-  const [customFolderName, setCustomFolderName] = useState("Shorts Viral");
+  const [customFolderName, setCustomFolderName] = useState("Default");
   const [exportFileName, setExportFileName] = useState("");
   const [transcriptionLanguage, setTranscriptionLanguage] = useState("auto");
   const [autoBroll, setAutoBroll] = useState(false);
@@ -770,7 +770,7 @@ export const AiClipperScreen: React.FC<Props> = ({
           if (chainId !== vaultLoadGenerationRef.current) return;
           setVaultClips(data.clips || []);
           const standardFolders = ["Shorts Viral", "Movies", "Stream Highlights"];
-          const fetchedFolders = (data.folders || []).filter((f: string) => f && f !== "Main Library" && f !== "all" && f !== "root");
+          const fetchedFolders = (data.folders || []).filter((f: string) => f && f !== "Default" && f !== "Main Library" && f !== "all" && f !== "root");
           const combined = Array.from(new Set([...standardFolders, ...fetchedFolders]));
           setVaultFolders(combined);
           if (data.storage_dir || data.output_dir) setLastOutputFolder(data.storage_dir || data.output_dir);
@@ -1190,7 +1190,7 @@ export const AiClipperScreen: React.FC<Props> = ({
             gameplay_bg_video: gameplayBgVideo || null,
             auto_sfx: autoSfx,
             yt_bypass: avoidCopyright,
-            custom_folder_name: customFolderName || "Shorts Viral",
+            custom_folder_name: customFolderName || "Default",
             custom_file_name: exportFileName || null,
             output_dir: customOutputDir || null,
             transcription_language: transcriptionLanguage,
@@ -1314,7 +1314,7 @@ export const AiClipperScreen: React.FC<Props> = ({
                 duration: (typeof firstClip === "object" && typeof firstClip.duration === "number") ? firstClip.duration : 30,
                 virality_score: (typeof firstClip === "object" && typeof firstClip.virality_score === "number") ? firstClip.virality_score : 95,
                 sub_scores: (typeof firstClip === "object" && firstClip.sub_scores) ? firstClip.sub_scores : { hook: 96, flow: 94, value: 97, trend: 95 },
-                folder: customFolderName || "Shorts Viral",
+                folder: (!customFolderName || customFolderName === "Default" || customFolderName === "Main Library") ? "Default" : customFolderName,
                 created_at: Date.now() / 1000,
                 thumbnail_url: (typeof firstClip === "object" && firstClip.thumbnail_url) ? firstClip.thumbnail_url : "",
               };
@@ -1444,7 +1444,7 @@ export const AiClipperScreen: React.FC<Props> = ({
   const openOutputFolder = async (specificFolder?: string) => {
     try {
       let target = specificFolder || lastOutputFolder || customOutputDir || "";
-      if (target === "all" || target === "Main Library" || target === "root") {
+      if (target === "all" || target === "Default" || target === "Main Library" || target === "root") {
         target = lastOutputFolder || "";
       }
       if (target && !target.includes(":") && !target.startsWith("/") && lastOutputFolder) {
@@ -1617,7 +1617,7 @@ export const AiClipperScreen: React.FC<Props> = ({
 
   const handleMoveClips = async (clipPaths: string[], targetFolder: string) => {
     if (!clipPaths || clipPaths.length === 0) return;
-    const cleanTarget = targetFolder === "all" || targetFolder === "root" ? "Main Library" : targetFolder;
+    const cleanTarget = (targetFolder === "all" || targetFolder === "root" || targetFolder === "Default" || targetFolder === "Main Library") ? "Default" : targetFolder;
     const names = clipPaths.map((p) => p.split(/[/\\]/).pop() || p);
 
     // Optimistically update clip folder so it instantly leaves the source directory view
@@ -1642,7 +1642,7 @@ export const AiClipperScreen: React.FC<Props> = ({
       if (res.ok) {
         setMoveModalClips(null);
         setSelectedClipPaths([]);
-        setExportNotice(`Moved ${clipPaths.length} clip(s) to "${cleanTarget}"`);
+        setExportNotice(`Moved ${clipPaths.length} clip(s) to "${cleanTarget === "Default" ? "Default (Root)" : cleanTarget}"`);
         setTimeout(() => setExportNotice(""), 3500);
         loadVaultClips(true); // Silent sync
       }
@@ -1658,7 +1658,7 @@ export const AiClipperScreen: React.FC<Props> = ({
   };
 
   const handleDeleteFolder = async (folderName: string) => {
-    if (!folderName || folderName === "all" || folderName === "Main Library") return;
+    if (!folderName || folderName === "all" || folderName === "Default" || folderName === "Main Library") return;
     setVaultFolders((prev) => prev.filter((f) => f !== folderName && !f.startsWith(`${folderName}/`)));
     if (vaultSelectedFolder === folderName || vaultSelectedFolder.startsWith(`${folderName}/`)) {
       setVaultSelectedFolder("all");
@@ -1740,7 +1740,7 @@ export const AiClipperScreen: React.FC<Props> = ({
       if (!file || !file.name.match(/\.(mp4|mov|webm|mkv)$/i)) continue;
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("target_folder", targetFolder || "Main Library");
+      formData.append("target_folder", targetFolder || "Default");
       try {
         const res = await fetch("http://127.0.0.1:8000/api/import_clip", {
           method: "POST",
@@ -1752,7 +1752,7 @@ export const AiClipperScreen: React.FC<Props> = ({
       }
     }
     if (count > 0) {
-      setExportNotice(`Imported ${count} video(s) into ${targetFolder || "Main Library"}!`);
+      setExportNotice(`Imported ${count} video(s) into ${targetFolder || "Default"}!`);
       setTimeout(() => setExportNotice(""), 3000);
       loadVaultClips(true);
     }
@@ -2310,7 +2310,7 @@ export const AiClipperScreen: React.FC<Props> = ({
                     virality_score: 98,
                     created_at: Date.now(),
                     size_mb: 12,
-                    folder: customFolderName || "Shorts Viral",
+                    folder: (!customFolderName || customFolderName === "Default" || customFolderName === "Main Library") ? "Default" : customFolderName,
                   }
             }
             onClose={() => setViewMode("vault")}
@@ -2357,6 +2357,15 @@ export const AiClipperScreen: React.FC<Props> = ({
               </button>
             </div>
             <div className="flex flex-col gap-2 max-h-60 overflow-y-auto pr-1">
+              <button
+                onClick={() => handleMoveClips(moveModalClips, "Default")}
+                className="w-full text-left px-4 py-3 rounded-xl bg-white/5 hover:bg-emerald-400/20 border border-white/10 hover:border-emerald-400/50 text-white font-bold text-xs flex items-center justify-between transition-all cursor-pointer group"
+              >
+                <span className="flex items-center gap-2">
+                  <Folder className="w-4 h-4 text-emerald-400" /> Default (Root Folder)
+                </span>
+                <span className="text-[10px] text-gray-500 group-hover:text-emerald-300">Move Here →</span>
+              </button>
               {vaultFolders.map((folder) => (
                 <button
                   key={folder}

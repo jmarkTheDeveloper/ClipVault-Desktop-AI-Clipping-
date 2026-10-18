@@ -1081,8 +1081,8 @@ async def get_saved_clips():
                 
                 # Determine folder name relative to OUTPUT_DIR
                 rel_parent = path.parent.relative_to(OUTPUT_DIR).as_posix()
-                folder_name = rel_parent if rel_parent != "." else "Main Library"
-                if folder_name != "Main Library" and "metadata" not in folder_name.lower():
+                folder_name = rel_parent if rel_parent != "." else "Default"
+                if folder_name not in ("Default", "Main Library") and "metadata" not in folder_name.lower():
                     folders.add(folder_name)
                     
                 title = path.stem.replace("_", " ").title()
@@ -1512,8 +1512,8 @@ def open_system_folder(data: dict = Body(...)):
     Opens the output clips folder in the native OS file explorer (Windows Explorer / Finder).
     """
     import subprocess
-    raw_path = data.get("folder_path")
-    if not raw_path or raw_path in ["clips", "Default (engine/clips)", "all", "Main Library", "root", ""]:
+    raw_path = data.get("folder_path") or data.get("folder_name")
+    if not raw_path or str(raw_path).strip().lower() in ["clips", "default", "default (root)", "default (root folder)", "default (engine/clips)", "all", "main library", "root", ""]:
         target = OUTPUT_DIR
     else:
         # JAIL: this used to mkdir + os.startfile ANY absolute path, so a caller could create folders
@@ -1794,7 +1794,7 @@ def delete_folder(data: dict = Body(...)):
     import subprocess
     import gc
     folder_name = data.get("folder_name", "").strip()
-    if not folder_name or folder_name.strip().lower() in ["all", "main library", "root", "", "none"]:
+    if not folder_name or folder_name.strip().lower() in ["all", "default", "default (root)", "main library", "root", "", "none"]:
         return {"success": False, "error": "Cannot delete root library"}
         
     # JAIL: reduce the client name to its leaf segment and validate it, so "..", "C:\\x" or
@@ -1854,7 +1854,7 @@ def rename_folder(data: dict = Body(...)):
     old_folder = data.get("old_folder", "").strip()
     new_name = data.get("new_name", "").strip()
     
-    if not old_folder or old_folder.strip().lower() in ["all", "main library", "root", "", "none"]:
+    if not old_folder or old_folder.strip().lower() in ["all", "default", "default (root)", "main library", "root", "", "none"]:
         return {"success": False, "error": "Cannot rename root library"}
     if not new_name:
         return {"success": False, "error": "New folder name cannot be empty"}
@@ -1903,12 +1903,12 @@ def rename_folder(data: dict = Body(...)):
 @app.post("/api/import_clip")
 async def import_clip(
     file: UploadFile = File(...),
-    target_folder: str = Form("Main Library")
+    target_folder: str = Form("Default")
 ):
     """
     Imports an external video file dropped from Windows Explorer into the clips vault.
     """
-    if target_folder in ["all", "Main Library", "Root", "", "none"]:
+    if target_folder.strip().lower() in ["all", "default", "default (root)", "main library", "root", "", "none"]:
         dest_dir = OUTPUT_DIR
     else:
         # JAIL: every segment of the chosen vault subfolder is validated, so "../../x" cannot make
@@ -1959,9 +1959,9 @@ def move_clips_to_folder(data: dict = Body(...)):
     if not target_folder:
         return {"success": False, "error": "Target folder name cannot be empty"}
     
-    if target_folder in ["Main Library", "Root", "all", "root", "."]:
+    if target_folder.lower() in ["default", "default (root)", "default (root folder)", "main library", "root", "all", "."]:
         dest_dir = OUTPUT_DIR
-        clean_name = "Main Library"
+        clean_name = "Default"
     else:
         # JAIL: validate every segment of the destination folder name. The old filter kept ".." in a
         # segment, so a target of "../../x" moved clips out of the vault entirely. Nested vault

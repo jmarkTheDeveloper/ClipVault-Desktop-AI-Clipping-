@@ -443,22 +443,26 @@ class VideoProcessor:
                 spec['end'] = max(orig_e, new_e)
                 spec['duration'] = spec['end'] - spec['start']
 
-        # Determine target export directory safely
+        # Determine target export directory safely ("Default" / "Main Library" / "root" -> root directory, not subfolder)
+        ROOT_FOLDER_ALIASES = {"default", "default (root)", "default (root folder)", "main library", "root", "all", "."}
+        clean_folder_req = str(custom_folder_name).strip() if custom_folder_name else ""
+        is_root_folder = (not clean_folder_req) or (clean_folder_req.lower() in ROOT_FOLDER_ALIASES)
+
         target_dir = OUTPUT_DIR.resolve()
         if output_dir:
             try:
                 raw_out = str(output_dir).strip(' \t\r\n"\'')
                 if raw_out:
                     base_dir = Path(raw_out).resolve()
-                    if custom_folder_name and str(custom_folder_name).strip():
-                        clean_f = sanitize_windows_filename(str(custom_folder_name).strip(), fallback="")
+                    if not is_root_folder:
+                        clean_f = sanitize_windows_filename(clean_folder_req, fallback="")
                         target_dir = (base_dir / clean_f).resolve() if clean_f else base_dir
                     else:
                         target_dir = base_dir
             except Exception:
                 target_dir = OUTPUT_DIR.resolve()
-        elif custom_folder_name and str(custom_folder_name).strip():
-            clean_f = sanitize_windows_filename(str(custom_folder_name).strip(), fallback="")
+        elif not is_root_folder:
+            clean_f = sanitize_windows_filename(clean_folder_req, fallback="")
             target_dir = (OUTPUT_DIR / clean_f).resolve() if clean_f else OUTPUT_DIR.resolve()
 
         try:

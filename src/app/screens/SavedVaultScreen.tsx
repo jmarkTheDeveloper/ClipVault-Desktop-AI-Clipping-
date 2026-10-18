@@ -109,7 +109,7 @@ export const SavedVaultScreen: React.FC<SavedVaultScreenProps> = ({
         });
         const standardFolders = ["Shorts Viral", "Movies", "Stream Highlights"];
         const fetchedFolders = (data.folders || []).filter(
-          (f: string) => f && f !== "Main Library" && f !== "all" && f !== "root"
+          (f: string) => f && f !== "Default" && f !== "Main Library" && f !== "all" && f !== "root"
         );
         const combined = Array.from(new Set([...standardFolders, ...fetchedFolders]));
         setVaultFolders(combined);
@@ -161,10 +161,11 @@ export const SavedVaultScreen: React.FC<SavedVaultScreenProps> = ({
 
   const openOutputFolder = (folderName?: string) => {
     const targetFolder = folderName || vaultSelectedFolder;
+    const isRootTarget = !targetFolder || targetFolder === "all" || targetFolder === "Default" || targetFolder === "Main Library" || targetFolder === "root";
     fetch("http://127.0.0.1:8000/api/open_folder", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(targetFolder && targetFolder !== "all" ? { folder_name: targetFolder } : {}),
+      body: JSON.stringify(!isRootTarget ? { folder_name: targetFolder, folder_path: targetFolder } : {}),
     }).catch(() => {});
   };
 
@@ -291,7 +292,7 @@ export const SavedVaultScreen: React.FC<SavedVaultScreenProps> = ({
 
   const handleMoveClips = async (clipPaths: string[], targetFolder: string) => {
     if (!clipPaths || clipPaths.length === 0) return;
-    const cleanTarget = targetFolder === "all" || targetFolder === "root" ? "Main Library" : targetFolder;
+    const cleanTarget = (targetFolder === "all" || targetFolder === "root" || targetFolder === "Default" || targetFolder === "Main Library") ? "Default" : targetFolder;
     const names = clipPaths.map((p) => p.split(/[/\\]/).pop() || p);
 
     setVaultClips((prev) =>
@@ -315,7 +316,7 @@ export const SavedVaultScreen: React.FC<SavedVaultScreenProps> = ({
       if (res.ok) {
         setMoveModalClips(null);
         setSelectedClipPaths([]);
-        setExportNotice(`Moved ${clipPaths.length} clip(s) to "${cleanTarget}"`);
+        setExportNotice(`Moved ${clipPaths.length} clip(s) to "${cleanTarget === "Default" ? "Default (Root)" : cleanTarget}"`);
         setTimeout(() => setExportNotice(""), 3500);
         loadVaultClips(true);
       }
@@ -325,7 +326,7 @@ export const SavedVaultScreen: React.FC<SavedVaultScreenProps> = ({
   };
 
   const handleDeleteFolder = async (folderName: string) => {
-    if (!folderName || folderName === "all" || folderName === "Main Library") return;
+    if (!folderName || folderName === "all" || folderName === "Default" || folderName === "Main Library") return;
     setVaultFolders((prev) => prev.filter((f) => f !== folderName && !f.startsWith(`${folderName}/`)));
     if (vaultSelectedFolder === folderName || vaultSelectedFolder.startsWith(`${folderName}/`)) {
       setVaultSelectedFolder("all");
@@ -405,7 +406,7 @@ export const SavedVaultScreen: React.FC<SavedVaultScreenProps> = ({
       if (!file || !file.name.match(/\.(mp4|mov|webm|mkv)$/i)) continue;
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("target_folder", targetFolder || "Main Library");
+      formData.append("target_folder", targetFolder || "Default");
       try {
         const res = await fetch("http://127.0.0.1:8000/api/import_clip", {
           method: "POST",
@@ -417,7 +418,7 @@ export const SavedVaultScreen: React.FC<SavedVaultScreenProps> = ({
       }
     }
     if (count > 0) {
-      setExportNotice(`Imported ${count} video(s) into ${targetFolder || "Main Library"}!`);
+      setExportNotice(`Imported ${count} video(s) into ${targetFolder || "Default"}!`);
       setTimeout(() => setExportNotice(""), 3000);
       loadVaultClips(true);
     }
@@ -638,11 +639,11 @@ export const SavedVaultScreen: React.FC<SavedVaultScreenProps> = ({
             </h3>
             <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
               <button
-                onClick={() => handleMoveClips(moveModalClips, "Main Library")}
+                onClick={() => handleMoveClips(moveModalClips, "Default")}
                 className="w-full text-left px-4 py-3 rounded-xl bg-white/5 hover:bg-emerald-400/20 border border-white/10 hover:border-emerald-400/50 text-white font-bold text-xs flex items-center justify-between transition-all cursor-pointer group"
               >
                 <span className="flex items-center gap-2">
-                  <Folder className="w-4 h-4 text-emerald-400" /> Main Library (Root)
+                  <Folder className="w-4 h-4 text-emerald-400" /> Default (Root Folder)
                 </span>
                 <span className="text-[10px] text-gray-500 group-hover:text-emerald-300">Move Here →</span>
               </button>
