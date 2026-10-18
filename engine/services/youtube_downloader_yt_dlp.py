@@ -257,15 +257,15 @@ class YouTubeDownloader:
                     with open(sub_file, 'r', encoding='utf-8') as f:
                         data = json.load(f)
                         events = data.get('events', [])
-                        seg_id = 0
+                        raw_events_parsed = []
                         for event in events:
                             t_start = event.get('tStartMs', 0) / 1000.0
                             d_dur = event.get('dDurationMs', 0) / 1000.0
-                            t_end = t_start + d_dur
                             segs = event.get('segs', [])
                             if not segs:
                                 continue
-                            
+
+                            ev_words = []
                             seg_text_parts = []
                             for s in segs:
                                 raw_utf8 = s.get('utf8') or s.get('utf8Str', '')
@@ -273,27 +273,81 @@ class YouTubeDownloader:
                                     seg_text_parts.append(raw_utf8)
                                     offset_s = s.get('tOffsetMs', 0) / 1000.0
                                     word_start = t_start + offset_s
-                                    raw_words = raw_utf8.strip().split()
-                                    w_dur = max(0.2, d_dur / max(1, len(raw_words)))
-                                    for w in raw_words:
+                                    raw_tokens = raw_utf8.strip().split()
+                                    for tok_idx, w in enumerate(raw_tokens):
                                         clean_w = w.strip(".,!?:;\"'()[]{}").upper()
                                         if clean_w:
-                                            words.append({
+                                            ev_words.append({
                                                 'word': clean_w,
-                                                'start': word_start,
-                                                'end': word_start + w_dur
+                                                'raw': w,
+                                                'start': word_start + (tok_idx * 0.18),
                                             })
-                            
-                            seg_text = "".join(seg_text_parts).strip()
-                            if seg_text:
-                                segments.append({
-                                    'id': seg_id,
-                                    'start': t_start,
-                                    'end': t_end,
-                                    'text': seg_text
+                            seg_text = " ".join("".join(seg_text_parts).split()).strip()
+                            if seg_text and ev_words:
+                                raw_events_parsed.append({
+                                    't_start': ev_words[0]['start'],
+                                    'last_word_start': ev_words[-1]['start'],
+                                    'fallback_end': t_start + min(d_dur, max(0.8, len(ev_words) * 0.36)),
+                                    'text': seg_text,
+                                    'ev_words': ev_words,
                                 })
-                                full_text_list.append(seg_text)
-                                seg_id += 1
+
+                        # Flatten all words to assign exact non-overlapping word end timestamps
+                        all_ev_words = [w for ev in raw_events_parsed for w in ev['ev_words']]
+                        for w_i, w_obj in enumerate(all_ev_words):
+                            w_st = w_obj['start']
+                            if w_i + 1 < len(all_ev_words):
+                                next_w_st = all_ev_words[w_i + 1]['start']
+                                w_et = min(w_st + 0.45, max(w_st + 0.12, next_w_st - 0.02))
+                            else:
+                                w_et = w_st + 0.35
+                            w_obj['end'] = w_et
+                            words.append({
+                                'word': w_obj['word'],
+                                'start': round(w_st, 3),
+                                'end': round(w_et, 3),
+                            })
+
+                        question_starters = (
+                            'why ', 'how ', 'what ', 'who ', 'where ', 'when ', 'is it ', 'can you ',
+                            'did you ', 'do you ', 'have you ', 'could you ', 'would you ', 'are you '
+                        )
+                        sentence_starters = (
+                            'i think ', 'i remember ', 'when i ', 'one day ', 'the truth ', 'my dad ',
+                            'my mom ', 'in fact ', 'honestly ', 'actually ', 'for me ', 'there was '
+                        )
+
+                        seg_id = 0
+                        for ev_i, ev in enumerate(raw_events_parsed):
+                            ev_st = ev['t_start']
+                            ev_et = ev['ev_words'][-1].get('end', ev['fallback_end'])
+                            if ev_i + 1 < len(raw_events_parsed):
+                                next_ev_st = raw_events_parsed[ev_i + 1]['t_start']
+                                if ev_et > next_ev_st:
+                                    ev_et = max(ev_st + 0.15, next_ev_st - 0.02)
+                                gap_after = max(0.0, next_ev_st - ev_et)
+                                next_txt_low = raw_events_parsed[ev_i + 1]['text'].lower()
+                            else:
+                                gap_after = 2.0
+                                next_txt_low = ""
+
+                            txt = ev['text']
+                            # Reconstruct natural sentence terminals on unpunctuated YouTube auto-captions
+                            if not txt.endswith(('.', '!', '?')):
+                                if gap_after >= 0.55 or any(next_txt_low.startswith(qs) for qs in question_starters) or (gap_after >= 0.28 and any(next_txt_low.startswith(ss) for ss in sentence_starters)):
+                                    if any(txt.lower().startswith(qs) for qs in question_starters):
+                                        txt = txt + "?"
+                                    else:
+                                        txt = txt + "."
+
+                            segments.append({
+                                'id': seg_id,
+                                'start': round(ev_st, 3),
+                                'end': round(ev_et, 3),
+                                'text': txt,
+                            })
+                            full_text_list.append(txt)
+                            seg_id += 1
 
                 # Cleanup sub file
                 try:

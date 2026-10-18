@@ -416,6 +416,22 @@ class VideoProcessor:
             if progress_callback: progress_callback("Selecting viral highlights with AI...", 40)
             valid_vid_path = str(video_path) if video_path and Path(video_path).exists() else None
 
+            # Extract YouTube 'Most Replayed' crowd-retention heatmap & topic chapters when available
+            video_heatmap = None
+            video_chapters = None
+            if not os.path.isfile(url):
+                try:
+                    yt_info = info if 'info' in locals() and isinstance(info, dict) else self.downloader.get_video_info(url)
+                    if isinstance(yt_info, dict):
+                        video_heatmap = yt_info.get('heatmap')
+                        video_chapters = yt_info.get('chapters')
+                        if video_heatmap:
+                            print(f"    [VideoProcessor] Loaded YouTube 'Most Replayed' crowd-retention heatmap ({len(video_heatmap)} data points).")
+                        if video_chapters:
+                            print(f"    [VideoProcessor] Loaded YouTube topic chapters ({len(video_chapters)} chapters).")
+                except Exception:
+                    pass
+
             # Intelligent Proportional Virality Scaling:
             # If num_clips is None or <= 0, automatically calculate optimal clip yield based on video duration
             target_n = num_clips
@@ -424,7 +440,17 @@ class VideoProcessor:
                 target_n = max(4, min(25, round(duration / 180)))
                 print(f" [Auto Virality]: Video length {duration:.1f}s ({duration/60:.1f}m) -> Auto-discovering top {target_n} viral moments across full video.")
 
-            clip_specs = self.ai_selector.select_clips(segments, duration, target_n, target_duration, topic=topic, video_path=valid_vid_path)
+            clip_specs = self.ai_selector.select_clips(
+                segments,
+                duration,
+                target_n,
+                target_duration,
+                topic=topic,
+                video_path=valid_vid_path,
+                heatmap=video_heatmap,
+                chapters=video_chapters,
+                video_title=title,
+            )
 
         if not clip_specs:
             raise ValueError("Could not select any viral clips from this video.")
