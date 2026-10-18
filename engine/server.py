@@ -481,16 +481,30 @@ def stream_media(request: Request, path: Optional[str] = None, url: Optional[str
         target_path = None
 
     if target_url:
-        # Proxy remote video stream (e.g. Google Video stream URL from YouTube)
+        # Proxy remote video stream (e.g. Google Video direct HTTP/HTTPS byte-range stream)
         req_headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
         }
         range_header = request.headers.get("Range") or request.headers.get("range")
+        start_byte = 0
+        end_byte_str = ""
         if range_header:
             req_headers["Range"] = range_header
+            try:
+                b_spec = range_header.replace("bytes=", "").strip().split("-")
+                if b_spec[0]:
+                    start_byte = int(b_spec[0])
+                if len(b_spec) > 1 and b_spec[1]:
+                    end_byte_str = b_spec[1]
+            except Exception:
+                pass
 
         try:
             r = requests.get(target_url, headers=req_headers, stream=True, timeout=15)
+            if r.status_code >= 400:
+                r.close()
+                raise HTTPException(status_code=r.status_code, detail=f"Upstream stream returned HTTP {r.status_code}")
+
             resp_headers = {
                 "Accept-Ranges": "bytes",
                 "Access-Control-Allow-Origin": "*",
@@ -503,22 +517,49 @@ def stream_media(request: Request, path: Optional[str] = None, url: Optional[str
                 elif k.lower() in r.headers:
                     resp_headers[k] = r.headers[k.lower()]
 
-            if "Content-Type" not in resp_headers:
+            ctype = (resp_headers.get("Content-Type") or "").lower()
+            if not ctype or "mpegurl" in ctype or "text/plain" in ctype:
                 resp_headers["Content-Type"] = "video/mp4"
 
             def iter_remote():
+                nonlocal r
+                bytes_sent = 0
+                retries = 0
                 try:
-                    for chunk in r.iter_content(chunk_size=128 * 1024):
-                        if chunk:
-                            yield chunk
+                    while True:
+                        try:
+                            for chunk in r.iter_content(chunk_size=256 * 1024):
+                                if chunk:
+                                    bytes_sent += len(chunk)
+                                    yield chunk
+                            break
+                        except Exception as stream_err:
+                            retries += 1
+                            if retries > 3:
+                                print(f"[StreamProxy] Remote chunk stream ended after retries: {stream_err}")
+                                break
+                            try:
+                                r.close()
+                            except Exception:
+                                pass
+                            resume_headers = dict(req_headers)
+                            resume_headers["Range"] = f"bytes={start_byte + bytes_sent}-{end_byte_str}"
+                            r = requests.get(target_url, headers=resume_headers, stream=True, timeout=15)
+                            if r.status_code >= 400:
+                                break
                 finally:
-                    r.close()
+                    try:
+                        r.close()
+                    except Exception:
+                        pass
 
             return StreamingResponse(
                 iter_remote(),
                 status_code=r.status_code,
                 headers=resp_headers
             )
+        except HTTPException:
+            raise
         except Exception as e:
             print(f"[StreamProxy] Remote stream error: {e}")
             raise HTTPException(status_code=502, detail=f"Failed to proxy stream: {e}")
@@ -1556,10 +1597,11 @@ def open_system_folder(data: dict = Body(...)):
         return {"success": False, "error": str(e)}
 
 @app.get("/api/video_info")
-def get_video_info(url: str):
+def get_video_info(url: str, refresh: bool = False):
     """
-    Extracts video metadata (title, duration, uploader, stream_url) without downloading.
-    Uses multi-client spoofing and JS runtime to bypass YouTube bot blocks and provide instant preview stream.
+    Extracts video metadata (title, duration, uploader, stream_url, audio_stream_url) without downloading.
+    Strictly selects verified direct HTTP/HTTPS MP4/WebM byte-range streams (never .m3u8 text playlists)
+    so Chromium/Electron HTML5 <video> elements play and seek instantaneously without 'Stream Interrupted'.
     """
     import yt_dlp
     import re
@@ -1582,12 +1624,41 @@ def get_video_info(url: str):
     node_path = shutil.which('node') or (r'C:\Program Files\nodejs\node.exe' if os.path.exists(r'C:\Program Files\nodejs\node.exe') else None)
     js_runtimes = {'node': {'path': node_path}} if node_path else {}
 
+    def _is_direct_http_media(fmt: dict) -> bool:
+        proto = str(fmt.get("protocol") or "").lower()
+        u = str(fmt.get("url") or "")
+        if proto not in ("https", "http"):
+            return False
+        if not u or "manifest.googlevideo.com" in u or ".m3u8" in u or ".mpd" in u:
+            return False
+        if fmt.get("ext") not in ("mp4", "webm", "m4a"):
+            return False
+        return True
+
+    def _probe_stream_ok(test_url: str) -> bool:
+        if not test_url:
+            return False
+        try:
+            pr = requests.get(
+                test_url,
+                headers={
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                    "Range": "bytes=0-64",
+                },
+                timeout=3.5,
+            )
+            ok = pr.status_code in (200, 206) and not pr.content.startswith(b"#EXTM3U")
+            pr.close()
+            return ok
+        except Exception:
+            return False
+
     try:
         from services.youtube_downloader_yt_dlp import YouTubeDownloader
         vid_id = m.group(1) if m else YouTubeDownloader.get_video_id(clean_url)
-        info = YouTubeDownloader.get_cached_video_info(vid_id) if vid_id else None
+        info = None if refresh else (YouTubeDownloader.get_cached_video_info(vid_id) if vid_id else None)
 
-        if not info:
+        def _extract_fresh_info():
             ydl_opts = {
                 'quiet': True,
                 'no_warnings': True,
@@ -1595,52 +1666,103 @@ def get_video_info(url: str):
                 'js_runtimes': js_runtimes,
             }
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(clean_url, download=False)
-                if vid_id and info:
-                    YouTubeDownloader.cache_video_info(vid_id, info)
+                fresh = ydl.extract_info(clean_url, download=False)
+                if vid_id and fresh:
+                    YouTubeDownloader.cache_video_info(vid_id, fresh)
+                return fresh
 
-        stream_url = None
-        formats = info.get("formats", []) if info else []
+        if not info:
+            info = _extract_fresh_info()
 
-        # Prefer 360p or 720p progressive MP4 for ultra-smooth preview streaming in HTML5 video tag
-        for fmt in formats:
-            if fmt.get("format_id") in ["18", "22"] and fmt.get("url"):
-                stream_url = fmt.get("url")
-                break
+        def _select_streams(info_dict):
+            formats = (info_dict or {}).get("formats") or []
+            direct_fmts = [f for f in formats if _is_direct_http_media(f)]
 
-        if not stream_url and formats:
-            for fmt in formats:
-                if fmt.get("ext") == "mp4" and fmt.get("acodec") != "none" and fmt.get("vcodec") != "none" and fmt.get("url"):
-                    stream_url = fmt.get("url")
+            chosen_video_url = None
+            chosen_has_audio = False
+
+            # 1. Check progressive MP4 with both video + audio first (if not blocked by 403)
+            prog_candidates = [
+                f for f in direct_fmts
+                if f.get("vcodec") not in (None, "none") and f.get("acodec") not in (None, "none")
+            ]
+            prog_candidates.sort(key=lambda f: (1 if f.get("ext") == "mp4" else 0, f.get("height") or 0), reverse=True)
+            for pf in prog_candidates:
+                if _probe_stream_ok(pf.get("url")):
+                    chosen_video_url = pf.get("url")
+                    chosen_has_audio = True
                     break
 
-        # Fallback to any progressive video+audio format
-        if not stream_url and formats:
-            for fmt in formats:
-                if fmt.get("vcodec") != "none" and fmt.get("acodec") != "none" and fmt.get("url"):
-                    stream_url = fmt.get("url")
-                    break
+            # 2. Best direct HTTPS H.264 MP4 / WebM stream (prefer 720p -> 480p -> 360p -> 1080p for instant scrubbing)
+            if not chosen_video_url:
+                height_priority = {720: 100, 480: 90, 360: 85, 1080: 80, 240: 60, 1440: 50, 2160: 40}
+                vid_candidates = [
+                    f for f in direct_fmts
+                    if f.get("vcodec") not in (None, "none")
+                    and not str(f.get("vcodec", "")).startswith("av01")  # Prefer H.264/VP9 for universal hardware decode
+                ]
+                if not vid_candidates:
+                    vid_candidates = [f for f in direct_fmts if f.get("vcodec") not in (None, "none")]
 
-        # Fallback to any direct streamable URL
-        if not stream_url and formats:
-            for fmt in formats:
-                if fmt.get("url") and fmt.get("vcodec") != "none":
-                    stream_url = fmt.get("url")
-                    break
+                vid_candidates.sort(
+                    key=lambda f: (
+                        1 if str(f.get("vcodec", "")).startswith("avc1") else 0,
+                        1 if f.get("ext") == "mp4" else 0,
+                        height_priority.get(f.get("height") or 0, 10),
+                        f.get("tbr") or 0,
+                    ),
+                    reverse=True,
+                )
+                for vf in vid_candidates[:6]:
+                    if _probe_stream_ok(vf.get("url")):
+                        chosen_video_url = vf.get("url")
+                        chosen_has_audio = vf.get("acodec") not in (None, "none")
+                        break
+                if not chosen_video_url and vid_candidates:
+                    chosen_video_url = vid_candidates[0].get("url")
 
-        if not stream_url and info:
-            stream_url = info.get("url")
+            # 3. Best direct HTTPS audio stream (for synchronized preview audio when video stream is video-only DASH)
+            chosen_audio_url = None
+            if chosen_video_url and not chosen_has_audio:
+                aud_candidates = [
+                    f for f in direct_fmts
+                    if f.get("acodec") not in (None, "none") and f.get("vcodec") in (None, "none")
+                ]
+                aud_candidates.sort(
+                    key=lambda f: (
+                        1 if f.get("ext") in ("m4a", "mp4") else 0,
+                        f.get("abr") or f.get("tbr") or 0,
+                    ),
+                    reverse=True,
+                )
+                for af in aud_candidates[:4]:
+                    if _probe_stream_ok(af.get("url")):
+                        chosen_audio_url = af.get("url")
+                        break
+                if not chosen_audio_url and aud_candidates:
+                    chosen_audio_url = aud_candidates[0].get("url")
+
+            return chosen_video_url, chosen_audio_url
+
+        stream_url, audio_url = _select_streams(info)
+        # If cached info had expired URLs, refresh once automatically
+        if not stream_url and not refresh:
+            info = _extract_fresh_info()
+            stream_url, audio_url = _select_streams(info)
 
         proxied_url = f"http://127.0.0.1:8000/stream?url={urllib.parse.quote(stream_url, safe='')}" if stream_url else None
+        proxied_audio_url = f"http://127.0.0.1:8000/stream?url={urllib.parse.quote(audio_url, safe='')}" if audio_url else None
 
         return {
-            "success": True,
+            "success": bool(proxied_url or stream_url),
             "title": info.get("title", "YouTube Video") if info else "YouTube Video",
             "duration": float(info.get("duration", 0)) if info else 0.0,
             "author": info.get("uploader", "YouTube Channel") if info else "YouTube",
             "stream_url": proxied_url or stream_url,
             "url": proxied_url or stream_url,
-            "direct_stream_url": stream_url
+            "direct_stream_url": stream_url,
+            "audio_stream_url": proxied_audio_url,
+            "direct_audio_url": audio_url,
         }
     except Exception as e:
         raw_err = str(e)

@@ -496,6 +496,7 @@ export const AiClipperScreen: React.FC<Props> = ({
   const [ytUrl, setYtUrl] = useState("");
   const [localFilePath, setLocalFilePath] = useState("");
   const [activeVideoUrl, setActiveVideoUrl] = useState("");
+  const [activeAudioUrl, setActiveAudioUrl] = useState("");
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [mediaDuration, setMediaDuration] = useState<number>(0);
 
@@ -885,7 +886,7 @@ export const AiClipperScreen: React.FC<Props> = ({
   // Automatically fetch YouTube stream preview when user types or pastes YouTube link.
   // The retry chain is tracked (cancellable) and every attempt is abortable so a slow older
   // request can never overwrite the preview for a newer URL.
-  const fetchYouTubePreview = async (urlToFetch: string, retries = 4) => {
+  const fetchYouTubePreview = async (urlToFetch: string, retries = 4, forceRefresh = false) => {
     // Supersede any older attempt (in-flight request + queued retry) immediately
     previewRequestSeqRef.current += 1;
     const seq = previewRequestSeqRef.current;
@@ -901,6 +902,7 @@ export const AiClipperScreen: React.FC<Props> = ({
 
     if (isLikedVideosUrl(urlToFetch)) {
       setActiveVideoUrl("");
+      setActiveAudioUrl("");
       const likedErr = "Liked Videos Playlist Link Detected: This link was copied from your private YouTube 'Liked videos' playlist (list=LL). YouTube blocks automated tools from accessing private playlists. Please use the direct video link instead.";
       setPreviewError(likedErr);
       setErrorMsg(likedErr);
@@ -911,6 +913,7 @@ export const AiClipperScreen: React.FC<Props> = ({
     const videoId = extractYouTubeId(urlToFetch);
     if (!videoId) {
       setActiveVideoUrl("");
+      setActiveAudioUrl("");
       setPreviewError("");
       setLoadingPreview(false);
       return;
@@ -922,7 +925,8 @@ export const AiClipperScreen: React.FC<Props> = ({
       const controller = new AbortController();
       previewAbortRef.current = controller;
       const timeoutId = setTimeout(() => controller.abort(), 15000); // hung resolver can't wedge the preview
-      const res = await fetch(`http://127.0.0.1:8000/api/video_info?url=${encodeURIComponent(urlToFetch)}`, {
+      const refreshParam = forceRefresh ? "&refresh=true" : "";
+      const res = await fetch(`http://127.0.0.1:8000/api/video_info?url=${encodeURIComponent(urlToFetch)}${refreshParam}`, {
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
@@ -933,10 +937,12 @@ export const AiClipperScreen: React.FC<Props> = ({
         if (isStale()) return;
         if (data.success && (data.stream_url || data.url)) {
           setActiveVideoUrl(data.stream_url || data.url);
+          setActiveAudioUrl(data.audio_stream_url || "");
           setPreviewError("");
           setErrorMsg("");
         } else {
           setActiveVideoUrl("");
+          setActiveAudioUrl("");
           const err = data.error || `This YouTube video (v=${videoId}) is unavailable, private, or has a typo in the URL. Please verify the video link!`;
           setPreviewError(err);
           setErrorMsg(err);
@@ -947,6 +953,7 @@ export const AiClipperScreen: React.FC<Props> = ({
         setLoadingPreview(false);
       } else {
         setActiveVideoUrl("");
+        setActiveAudioUrl("");
         setPreviewError("Unable to fetch YouTube preview. Please verify your video link.");
         setLoadingPreview(false);
       }
@@ -958,12 +965,13 @@ export const AiClipperScreen: React.FC<Props> = ({
         previewRetryTimeoutRef.current = setTimeout(() => {
           previewRetryTimeoutRef.current = null;
           if (isStale()) return;
-          fetchYouTubePreview(urlToFetch, retries - 1);
+          fetchYouTubePreview(urlToFetch, retries - 1, forceRefresh);
         }, 1200);
         return;
       }
       console.error("YouTube preview stream note:", err);
       setActiveVideoUrl("");
+      setActiveAudioUrl("");
       setPreviewError("ClipVault engine is still initializing. Please wait a moment or click Retry Stream.");
       setLoadingPreview(false);
     }
@@ -973,6 +981,7 @@ export const AiClipperScreen: React.FC<Props> = ({
     setErrorMsg("");
     setPreviewError("");
     if (inputType !== "youtube") {
+      setActiveAudioUrl("");
       if (localFilePath) {
         const localUrl = `http://127.0.0.1:8000/stream?path=${encodeURIComponent(localFilePath)}`;
         setActiveVideoUrl(localUrl);
@@ -984,6 +993,7 @@ export const AiClipperScreen: React.FC<Props> = ({
     const videoId = extractYouTubeId(ytUrl);
     if (!videoId) {
       setActiveVideoUrl("");
+      setActiveAudioUrl("");
       setPreviewError("");
       return;
     }
@@ -2163,11 +2173,12 @@ export const AiClipperScreen: React.FC<Props> = ({
 
             <PhonePreview
               activeVideoUrl={activeVideoUrl}
+              activeAudioUrl={activeAudioUrl}
               ytUrl={ytUrl}
               localFilePath={localFilePath}
               loadingPreview={loadingPreview}
               previewError={previewError}
-              onRetryPreview={() => fetchYouTubePreview(ytUrl)}
+              onRetryPreview={() => fetchYouTubePreview(ytUrl, 4, true)}
               isProcessing={running}
               progress={progress}
               layout={layout}

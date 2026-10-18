@@ -24,6 +24,7 @@ import { AskStudioPanel } from "./AskStudioPanel";
 
 interface PhonePreviewProps {
   activeVideoUrl: string;
+  activeAudioUrl?: string;
   ytUrl?: string;
   localFilePath?: string;
   loadingPreview?: boolean;
@@ -641,6 +642,7 @@ const DraggableCaptionOverlay: React.FC<{
 
 export const PhonePreview: React.FC<PhonePreviewProps> = ({
   activeVideoUrl,
+  activeAudioUrl = "",
   ytUrl = "",
   localFilePath = "",
   loadingPreview = false,
@@ -691,7 +693,9 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
   const hasMedia = Boolean(activeVideoUrl);
 
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const lastUpdateTimeRef = useRef<number>(0);
+  const streamRetryCountRef = useRef<number>(0);
 
   // Playback & Scrubber States
   const [internalPlaying, setInternalPlaying] = useState(true);
@@ -706,6 +710,9 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
   const handleAskStudioSeek = (sec: number) => {
     if (videoRef?.current) {
       videoRef.current.currentTime = sec;
+    }
+    if (audioRef.current) {
+      try { audioRef.current.currentTime = sec; } catch {}
     }
     setCurrentTime(sec);
   };
@@ -726,6 +733,9 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
     if (videoRef?.current) {
       videoRef.current.currentTime = startSec;
     }
+    if (audioRef.current) {
+      try { audioRef.current.currentTime = startSec; } catch {}
+    }
     setCurrentTime(startSec);
   };
 
@@ -733,7 +743,30 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
   useEffect(() => {
     setStreamError(false);
     setIsBuffering(false);
+    streamRetryCountRef.current = 0;
   }, [activeVideoUrl]);
+
+  const handleVideoStreamError = () => {
+    setIsBuffering(false);
+    if (streamRetryCountRef.current < 2) {
+      streamRetryCountRef.current += 1;
+      setTimeout(() => {
+        if (onRetryPreview && streamRetryCountRef.current === 1) {
+          onRetryPreview();
+          return;
+        }
+        const vids = containerRef.current?.querySelectorAll("video") || [];
+        vids.forEach((v) => {
+          try {
+            v.load();
+            if (isPlaying) v.play().catch(() => {});
+          } catch {}
+        });
+      }, 600);
+      return;
+    }
+    setStreamError(true);
+  };
 
   const isPlaying = isPlayingProp !== undefined ? isPlayingProp : internalPlaying;
   const setIsPlaying = setIsPlayingProp || setInternalPlaying;
@@ -750,18 +783,28 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
     }
   }, [mediaDuration]);
 
-  // Synchronize mute state across all video elements in the preview
+  // Synchronize mute state across all video + companion audio elements in the preview
   useEffect(() => {
     const vids = containerRef.current?.querySelectorAll("video") || [];
     vids.forEach((v) => {
-      if (v.getAttribute("data-background") === "true") {
+      if (v.getAttribute("data-background") === "true" || Boolean(activeAudioUrl)) {
         v.muted = true;
       } else {
         v.muted = isMuted;
         v.volume = 1.0;
       }
     });
-  }, [isMuted]);
+    if (audioRef.current) {
+      audioRef.current.muted = isMuted;
+      audioRef.current.volume = 1.0;
+      if (!isMuted && isPlaying) {
+        if (videoRef?.current && Math.abs(audioRef.current.currentTime - videoRef.current.currentTime) > 0.25) {
+          try { audioRef.current.currentTime = videoRef.current.currentTime; } catch {}
+        }
+        audioRef.current.play().catch(() => {});
+      }
+    }
+  }, [isMuted, activeAudioUrl, isPlaying]);
 
   const isSeekingRef = useRef<boolean>(false);
   const isDraggingRef = useRef<boolean>(false);
@@ -781,7 +824,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isPlaying, hasMedia]);
 
-  // Synchronize play/pause state across all video elements in the preview
+  // Synchronize play/pause state across all video + companion audio elements in the preview
   useEffect(() => {
     const vids = containerRef.current?.querySelectorAll("video") || document.querySelectorAll("video");
     vids.forEach((v) => {
@@ -791,6 +834,13 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
         v.pause();
       }
     });
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.play().catch(() => {});
+      } else {
+        audioRef.current.pause();
+      }
+    }
   }, [isPlaying]);
 
   // Re-synchronize newly mounted video elements whenever layout, video source, or background video changes
@@ -798,7 +848,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
     const syncAll = () => {
       const vids = containerRef.current?.querySelectorAll("video") || [];
       vids.forEach((v) => {
-        if (v.getAttribute("data-background") === "true") {
+        if (v.getAttribute("data-background") === "true" || Boolean(activeAudioUrl)) {
           v.muted = true;
         } else {
           v.muted = isMuted;
@@ -810,6 +860,15 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
           v.pause();
         }
       });
+      if (audioRef.current) {
+        audioRef.current.muted = isMuted;
+        audioRef.current.volume = 1.0;
+        if (isPlaying) {
+          audioRef.current.play().catch(() => {});
+        } else {
+          audioRef.current.pause();
+        }
+      }
     };
 
     syncAll();
@@ -819,9 +878,9 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
       clearTimeout(timer1);
       clearTimeout(timer2);
     };
-  }, [layout, activeVideoUrl, gameplayBgVideo]);
+  }, [layout, activeVideoUrl, activeAudioUrl, gameplayBgVideo]);
 
-  // Synchronized seek across all active video elements without glitching or rubber-banding
+  // Synchronized seek across all active video + audio elements without glitching or rubber-banding
   const commitSeek = (timeInSeconds: number) => {
     isSeekingRef.current = true;
     if (seekTimeoutRef.current) clearTimeout(seekTimeoutRef.current);
@@ -835,6 +894,11 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
         vid.currentTime = target;
       } catch {}
     });
+    if (audioRef.current) {
+      try {
+        audioRef.current.currentTime = target;
+      } catch {}
+    }
 
     setCurrentTime(target);
 
@@ -859,6 +923,13 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
         vid.pause();
       }
     });
+    if (audioRef.current) {
+      if (nextState) {
+        audioRef.current.play().catch(() => {});
+      } else {
+        audioRef.current.pause();
+      }
+    }
   };
 
   const handleVideoAreaClick = (e: React.MouseEvent) => {
@@ -883,6 +954,12 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
               vid.play().catch(() => {});
             } catch {}
           });
+          if (audioRef.current) {
+            try {
+              audioRef.current.currentTime = detail.time;
+              audioRef.current.play().catch(() => {});
+            } catch {}
+          }
         }
       }
     };
@@ -914,6 +991,12 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
         vid.play().catch(() => {});
       } catch {}
     });
+    if (audioRef.current) {
+      try {
+        audioRef.current.currentTime = startSec;
+        audioRef.current.play().catch(() => {});
+      } catch {}
+    }
     if (onPlaySegment) {
       onPlaySegment(targetSeg);
     }
@@ -933,6 +1016,13 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
       }
     }
 
+    // Keep companion audio tightly synchronized within 250ms of video clock
+    if (audioRef.current && activeAudioUrl) {
+      if (Math.abs(audioRef.current.currentTime - v.currentTime) > 0.28) {
+        try { audioRef.current.currentTime = v.currentTime; } catch {}
+      }
+    }
+
     // Segment preview looping if custom duration mode and loopSegment is active
     if (durationMode === "custom" && loopSegment) {
       const activeSeg = customSegments?.find((s) => s.id === activeSegmentId);
@@ -948,6 +1038,12 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
               vid.play().catch(() => {});
             } catch {}
           });
+          if (audioRef.current) {
+            try {
+              audioRef.current.currentTime = startSec;
+              audioRef.current.play().catch(() => {});
+            } catch {}
+          }
           return;
         }
       }
@@ -1078,11 +1174,21 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
               onClick={handleVideoAreaClick}
               className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center select-none cursor-pointer"
             >
+              {activeAudioUrl && (
+                <audio
+                  ref={audioRef}
+                  src={activeAudioUrl}
+                  preload="auto"
+                  loop
+                  muted={isMuted}
+                  className="hidden"
+                />
+              )}
               {layout === "podcast_split" || layout === "auto_split" ? (
                 /* Dual-Speaker Split (Speaker 1 Top, Speaker 2 Bottom) */
                 <div className="w-full h-full flex flex-col relative select-none bg-black pointer-events-none">
-                  <div className="absolute top-10 left-3 z-30 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-[#00FF66]/40 text-[9px] font-bold text-[#00FF66] flex items-center gap-1 shadow-lg">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#00FF66] animate-pulse" />
+                  <div className="absolute top-10 left-3 z-30 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-emerald-400/40 text-[9px] font-bold text-emerald-400 flex items-center gap-1 shadow-lg">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                     {layout === "auto_split" ? "Auto-Detect Dual Speaker (9:16)" : "Dual-Speaker Split (9:16)"}
                   </div>
 
@@ -1093,7 +1199,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                       src={activeVideoUrl}
                       autoPlay
                       loop
-                      muted={isMuted}
+                      muted={isMuted || Boolean(activeAudioUrl)}
                       playsInline
                       onTimeUpdate={handleTimeUpdate}
                       onLoadedMetadata={handleLoadedMetadata}
@@ -1106,10 +1212,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                         setIsBuffering(false);
                         if (isPlaying) e.currentTarget.play().catch(() => {});
                       }}
-                      onError={() => {
-                        setIsBuffering(false);
-                        setStreamError(true);
-                      }}
+                      onError={handleVideoStreamError}
                       className="w-full h-full object-cover pointer-events-none"
                       style={{ objectPosition: "28% 38%" }}
                     />
@@ -1160,7 +1263,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                       src={activeVideoUrl}
                       youtubeId={youtubeId}
                       crop={cropTop}
-                      isMuted={isMuted}
+                      isMuted={isMuted || Boolean(activeAudioUrl)}
                       onTimeUpdate={handleTimeUpdate}
                       onLoadedMetadata={handleLoadedMetadata}
                       label="Top Crop (Amber)"
@@ -1171,7 +1274,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                       src={activeVideoUrl}
                       youtubeId={youtubeId}
                       crop={cropBottom}
-                      isMuted={isMuted}
+                      isMuted={isMuted || Boolean(activeAudioUrl)}
                       label="Bottom Crop (Cyan)"
                     />
                   </div>
@@ -1189,7 +1292,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                       src={activeVideoUrl}
                       autoPlay
                       loop
-                      muted={isMuted}
+                      muted={isMuted || Boolean(activeAudioUrl)}
                       playsInline
                       onTimeUpdate={handleTimeUpdate}
                       onLoadedMetadata={handleLoadedMetadata}
@@ -1202,10 +1305,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                         setIsBuffering(false);
                         if (isPlaying) e.currentTarget.play().catch(() => {});
                       }}
-                      onError={() => {
-                        setIsBuffering(false);
-                        setStreamError(true);
-                      }}
+                      onError={handleVideoStreamError}
                       className="w-full h-full object-cover pointer-events-none"
                     />
                   </div>
@@ -1251,7 +1351,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                       className="w-full h-full object-cover pointer-events-none"
                       autoPlay
                       loop
-                      muted={isMuted}
+                      muted={isMuted || Boolean(activeAudioUrl)}
                       playsInline
                       onTimeUpdate={handleTimeUpdate}
                       onLoadedMetadata={handleLoadedMetadata}
@@ -1264,10 +1364,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                         setIsBuffering(false);
                         if (isPlaying) e.currentTarget.play().catch(() => {});
                       }}
-                      onError={() => {
-                        setIsBuffering(false);
-                        setStreamError(true);
-                      }}
+                      onError={handleVideoStreamError}
                     />
                   </div>
                   <div className="absolute top-10 left-3 z-20 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-emerald-500/40 text-[9px] font-bold text-emerald-400 flex items-center gap-1 shadow-lg">
@@ -1294,7 +1391,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                     className="w-full max-h-full object-contain relative z-10 pointer-events-none shadow-2xl"
                     autoPlay
                     loop
-                    muted={isMuted}
+                    muted={isMuted || Boolean(activeAudioUrl)}
                     playsInline
                     onTimeUpdate={handleTimeUpdate}
                     onLoadedMetadata={handleLoadedMetadata}
@@ -1307,10 +1404,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                       setIsBuffering(false);
                       if (isPlaying) e.currentTarget.play().catch(() => {});
                     }}
-                    onError={() => {
-                      setIsBuffering(false);
-                      setStreamError(true);
-                    }}
+                    onError={handleVideoStreamError}
                   />
                   <div className="absolute top-10 left-3 z-20 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-white/20 text-[9px] font-bold text-white/80 flex items-center gap-1 shadow-lg">
                     Blurred Canvas (9:16)
@@ -1326,7 +1420,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                     className="w-full max-h-full object-contain relative z-10 pointer-events-none"
                     autoPlay
                     loop
-                    muted={isMuted}
+                    muted={isMuted || Boolean(activeAudioUrl)}
                     playsInline
                     onTimeUpdate={handleTimeUpdate}
                     onLoadedMetadata={handleLoadedMetadata}
@@ -1339,10 +1433,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                       setIsBuffering(false);
                       if (isPlaying) e.currentTarget.play().catch(() => {});
                     }}
-                    onError={() => {
-                      setIsBuffering(false);
-                      setStreamError(true);
-                    }}
+                    onError={handleVideoStreamError}
                   />
                   <div className="absolute top-10 left-3 z-20 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-white/20 text-[9px] font-bold text-white/80 flex items-center gap-1 shadow-lg">
                     Letterbox (9:16)
@@ -1358,7 +1449,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                     className="w-full h-full object-cover object-center relative z-10 pointer-events-none"
                     autoPlay
                     loop
-                    muted={isMuted}
+                    muted={isMuted || Boolean(activeAudioUrl)}
                     playsInline
                     onTimeUpdate={handleTimeUpdate}
                     onLoadedMetadata={handleLoadedMetadata}
@@ -1371,10 +1462,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                       setIsBuffering(false);
                       if (isPlaying) e.currentTarget.play().catch(() => {});
                     }}
-                    onError={() => {
-                      setIsBuffering(false);
-                      setStreamError(true);
-                    }}
+                    onError={handleVideoStreamError}
                   />
                   <div className="absolute top-10 left-3 z-20 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-emerald-400/40 text-[9px] font-bold text-emerald-400 flex items-center gap-1 shadow-lg">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -1451,6 +1539,10 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                     onClick={(e) => {
                       e.stopPropagation();
                       setStreamError(false);
+                      streamRetryCountRef.current = 0;
+                      if (onRetryPreview) {
+                        onRetryPreview();
+                      }
                       const vids = containerRef.current?.querySelectorAll("video") || [];
                       vids.forEach((v) => {
                         try {
@@ -1458,6 +1550,12 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                           if (isPlaying) v.play().catch(() => {});
                         } catch {}
                       });
+                      if (audioRef.current) {
+                        try {
+                          audioRef.current.load();
+                          if (isPlaying) audioRef.current.play().catch(() => {});
+                        } catch {}
+                      }
                     }}
                     className="px-3.5 py-1.5 rounded-xl bg-emerald-400 text-black text-xs font-bold hover:bg-emerald-300 transition-all cursor-pointer shadow-md flex items-center gap-1.5"
                   >
