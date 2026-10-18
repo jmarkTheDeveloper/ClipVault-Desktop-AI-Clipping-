@@ -61,7 +61,7 @@ import { CreatorMaxUpgradeModal } from "../components/CreatorMaxUpgradeModal";
 import { CreatorProUpgradeModal } from "../components/CreatorProUpgradeModal";
 import { DeveloperTierModal, type SimulatedTier } from "../components/DeveloperTierModal";
 
-const G = "#34eb3d";
+const G = "#22c55e";
 
 export type Mode = "ai-clipper" | "opus-clipper" | "movie-recapper" | "saved-vault";
 
@@ -609,8 +609,8 @@ export function ProjectSelectorScreen({
         @import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
 
         @keyframes wfGlowPulse {
-          0%, 100% { box-shadow: 0 0 0 1px rgba(52, 235, 61,0.14), 0 30px 80px rgba(0,0,0,0.8); }
-          50%       { box-shadow: 0 0 50px rgba(52, 235, 61,0.14), 0 0 0 1px rgba(52, 235, 61,0.32), 0 30px 80px rgba(0,0,0,0.8); }
+          0%, 100% { box-shadow: 0 0 0 1px rgba(34, 197, 94,0.14), 0 30px 80px rgba(0,0,0,0.8); }
+          50%       { box-shadow: 0 0 50px rgba(34, 197, 94,0.14), 0 0 0 1px rgba(34, 197, 94,0.32), 0 30px 80px rgba(0,0,0,0.8); }
         }
         @keyframes wfDotPulse {
           0%, 100% { transform: scale(1);   opacity: 1;   }
@@ -674,8 +674,8 @@ export function ProjectSelectorScreen({
                 style={{
                   display: "inline-flex", alignItems: "center", gap: 4,
                   padding: "2px 8px", borderRadius: 6, fontSize: 9.5, fontWeight: 700,
-                  letterSpacing: "0.06em", background: "rgba(52, 235, 61,0.08)",
-                  color: G, border: "1px solid rgba(52, 235, 61,0.28)",
+                  letterSpacing: "0.06em", background: "rgba(34, 197, 94,0.08)",
+                  color: G, border: "1px solid rgba(34, 197, 94,0.28)",
                   fontFamily: "'Geist Mono', monospace", cursor: "pointer",
                   transition: "all 0.2s ease",
                 }}
@@ -761,14 +761,14 @@ export function ProjectSelectorScreen({
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background = "rgba(255, 255, 255, 0.07)";
-                  e.currentTarget.style.borderColor = "rgba(52, 235, 61, 0.35)";
+                  e.currentTarget.style.borderColor = "rgba(34, 197, 94, 0.35)";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.background = "rgba(255, 255, 255, 0.03)";
                   e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.09)";
                 }}
               >
-                <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#34eb3d", boxShadow: "0 0 6px rgba(52,235,61,0.6)" }} />
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 6px rgba(34, 197, 94,0.6)" }} />
                 <span>Free Plan ({freeCredits ? `${freeCredits.remaining}/2 Clips` : "2 Clips/Wk"})</span>
                 <ChevronRight style={{ width: 11, height: 11, color: "rgba(255,255,255,0.4)" }} />
               </button>
@@ -780,8 +780,8 @@ export function ProjectSelectorScreen({
                 }}
                 style={{
                   padding: "5px 11px", borderRadius: 8,
-                  background: "linear-gradient(135deg, rgba(52, 235, 61, 0.16) 0%, rgba(52, 235, 61, 0.08) 100%)",
-                  border: "1px solid rgba(52, 235, 61, 0.38)",
+                  background: "linear-gradient(135deg, rgba(34, 197, 94, 0.16) 0%, rgba(34, 197, 94, 0.08) 100%)",
+                  border: "1px solid rgba(34, 197, 94, 0.38)",
                   color: G, fontSize: 11, fontWeight: 700, cursor: "pointer",
                   display: "flex", alignItems: "center", gap: 5,
                   transition: "all 0.15s ease",
@@ -839,7 +839,7 @@ export function ProjectSelectorScreen({
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background = "rgba(255, 255, 255, 0.07)";
-                  e.currentTarget.style.borderColor = "rgba(52, 235, 61, 0.4)";
+                  e.currentTarget.style.borderColor = "rgba(34, 197, 94, 0.4)";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.background = "rgba(255, 255, 255, 0.03)";
@@ -855,7 +855,7 @@ export function ProjectSelectorScreen({
                   textTransform: "uppercase",
                   padding: "1px 5px",
                   borderRadius: 4,
-                  background: "rgba(52, 235, 61, 0.15)",
+                  background: "rgba(34, 197, 94, 0.15)",
                   color: G,
                   fontFamily: "'Geist Mono', monospace",
                 }}>
@@ -869,7 +869,7 @@ export function ProjectSelectorScreen({
                   onClick={() => setShowUpgradeModal(true)}
                   style={{
                     padding: "5px 11px", borderRadius: 8,
-                    background: "rgba(52, 235, 61, 0.12)", border: "1px solid rgba(52, 235, 61, 0.35)",
+                    background: "rgba(34, 197, 94, 0.12)", border: "1px solid rgba(34, 197, 94, 0.35)",
                     color: G, fontSize: 11, fontWeight: 700, cursor: "pointer",
                     display: "flex", alignItems: "center", gap: 5,
                     transition: "all 0.15s ease",
@@ -901,8 +901,8 @@ export function ProjectSelectorScreen({
               fontFamily: "'Geist', -apple-system, sans-serif",
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = "rgba(52, 235, 61, 0.1)";
-              e.currentTarget.style.borderColor = "rgba(52, 235, 61, 0.35)";
+              e.currentTarget.style.background = "rgba(34, 197, 94, 0.1)";
+              e.currentTarget.style.borderColor = "rgba(34, 197, 94, 0.35)";
               e.currentTarget.style.color = "#fff";
             }}
             onMouseLeave={(e) => {
@@ -933,8 +933,8 @@ export function ProjectSelectorScreen({
           {/* Top Horizon Light Beam */}
           <div style={{
             position: "absolute", top: 0, left: 0, right: 0, height: 1,
-            background: "linear-gradient(90deg, transparent 5%, rgba(52, 235, 61, 0.25) 25%, rgba(52, 235, 61, 0.6) 50%, rgba(52, 235, 61, 0.25) 75%, transparent 95%)",
-            boxShadow: "0 0 20px rgba(52, 235, 61, 0.4)",
+            background: "linear-gradient(90deg, transparent 5%, rgba(34, 197, 94, 0.25) 25%, rgba(34, 197, 94, 0.6) 50%, rgba(34, 197, 94, 0.25) 75%, transparent 95%)",
+            boxShadow: "0 0 20px rgba(34, 197, 94, 0.4)",
             pointerEvents: "none", zIndex: 1,
             animation: "beamShimmer 6s ease-in-out infinite",
           }} />
@@ -942,7 +942,7 @@ export function ProjectSelectorScreen({
           {/* Center Hero Ambient Aurora Nebula */}
           <div style={{
             position: "absolute", width: 950, height: 480, borderRadius: "50%",
-            background: "radial-gradient(ellipse 65% 55% at 50% 35%, rgba(52, 235, 61, 0.13) 0%, rgba(52, 235, 61, 0.035) 45%, transparent 75%)",
+            background: "radial-gradient(ellipse 65% 55% at 50% 35%, rgba(34, 197, 94, 0.13) 0%, rgba(34, 197, 94, 0.035) 45%, transparent 75%)",
             top: "22%", left: "50%",
             pointerEvents: "none", zIndex: 1,
             filter: "blur(40px)",
@@ -953,8 +953,8 @@ export function ProjectSelectorScreen({
           <div style={{
             position: "absolute", width: 520, height: 420, borderRadius: "50%",
             background: isOpusHovered
-              ? "radial-gradient(circle, rgba(52, 235, 61, 0.18) 0%, rgba(52, 235, 61, 0.05) 45%, transparent 70%)"
-              : "radial-gradient(circle, rgba(52, 235, 61, 0.09) 0%, rgba(52, 235, 61, 0.02) 50%, transparent 70%)",
+              ? "radial-gradient(circle, rgba(34, 197, 94, 0.18) 0%, rgba(34, 197, 94, 0.05) 45%, transparent 70%)"
+              : "radial-gradient(circle, rgba(34, 197, 94, 0.09) 0%, rgba(34, 197, 94, 0.02) 50%, transparent 70%)",
             top: "52%", left: "28%",
             pointerEvents: "none", zIndex: 1,
             filter: "blur(45px)",
@@ -966,8 +966,8 @@ export function ProjectSelectorScreen({
           <div style={{
             position: "absolute", width: 520, height: 420, borderRadius: "50%",
             background: isProHovered
-              ? "radial-gradient(circle, rgba(52, 235, 61, 0.18) 0%, rgba(52, 235, 61, 0.05) 45%, transparent 70%)"
-              : "radial-gradient(circle, rgba(52, 235, 61, 0.09) 0%, rgba(52, 235, 61, 0.02) 50%, transparent 70%)",
+              ? "radial-gradient(circle, rgba(34, 197, 94, 0.18) 0%, rgba(34, 197, 94, 0.05) 45%, transparent 70%)"
+              : "radial-gradient(circle, rgba(34, 197, 94, 0.09) 0%, rgba(34, 197, 94, 0.02) 50%, transparent 70%)",
             top: "52%", left: "72%",
             pointerEvents: "none", zIndex: 1,
             filter: "blur(45px)",
@@ -978,7 +978,7 @@ export function ProjectSelectorScreen({
           {/* Precision Micro-Grid with Edge Radial Fade */}
           <div style={{
             position: "absolute", inset: 0, pointerEvents: "none", zIndex: 1,
-            backgroundImage: "radial-gradient(circle, rgba(52, 235, 61, 0.18) 1px, transparent 1px), linear-gradient(to right, rgba(255, 255, 255, 0.015) 1px, transparent 1px), linear-gradient(to bottom, rgba(255, 255, 255, 0.015) 1px, transparent 1px)",
+            backgroundImage: "radial-gradient(circle, rgba(34, 197, 94, 0.18) 1px, transparent 1px), linear-gradient(to right, rgba(255, 255, 255, 0.015) 1px, transparent 1px), linear-gradient(to bottom, rgba(255, 255, 255, 0.015) 1px, transparent 1px)",
             backgroundSize: "36px 36px, 72px 72px, 72px 72px",
             maskImage: "radial-gradient(ellipse 80% 70% at 50% 45%, black 25%, transparent 85%)",
             WebkitMaskImage: "radial-gradient(ellipse 80% 70% at 50% 45%, black 25%, transparent 85%)",
@@ -986,10 +986,10 @@ export function ProjectSelectorScreen({
           }} />
 
           {/* Floating Ambient Sparkles */}
-          <div style={{ position: "absolute", top: "18%", left: "12%", width: 4, height: 4, borderRadius: "50%", background: "#34eb3d", boxShadow: "0 0 10px #34eb3d, 0 0 20px #34eb3d", pointerEvents: "none", zIndex: 1, animation: "particleFloat1 8s ease-in-out infinite" }} />
-          <div style={{ position: "absolute", top: "26%", right: "14%", width: 3, height: 3, borderRadius: "50%", background: "#5def64", boxShadow: "0 0 8px #5def64", pointerEvents: "none", zIndex: 1, animation: "particleFloat2 10s ease-in-out infinite 1.5s" }} />
-          <div style={{ position: "absolute", top: "70%", left: "9%", width: 3, height: 3, borderRadius: "50%", background: "#34eb3d", boxShadow: "0 0 8px #34eb3d", pointerEvents: "none", zIndex: 1, animation: "particleFloat1 11s ease-in-out infinite 3s" }} />
-          <div style={{ position: "absolute", top: "74%", right: "11%", width: 4, height: 4, borderRadius: "50%", background: "#5def64", boxShadow: "0 0 12px #34eb3d", pointerEvents: "none", zIndex: 1, animation: "particleFloat2 9s ease-in-out infinite 2s" }} />
+          <div style={{ position: "absolute", top: "18%", left: "12%", width: 4, height: 4, borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 10px #22c55e, 0 0 20px #22c55e", pointerEvents: "none", zIndex: 1, animation: "particleFloat1 8s ease-in-out infinite" }} />
+          <div style={{ position: "absolute", top: "26%", right: "14%", width: 3, height: 3, borderRadius: "50%", background: "#4ade80", boxShadow: "0 0 8px #4ade80", pointerEvents: "none", zIndex: 1, animation: "particleFloat2 10s ease-in-out infinite 1.5s" }} />
+          <div style={{ position: "absolute", top: "70%", left: "9%", width: 3, height: 3, borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 8px #22c55e", pointerEvents: "none", zIndex: 1, animation: "particleFloat1 11s ease-in-out infinite 3s" }} />
+          <div style={{ position: "absolute", top: "74%", right: "11%", width: 4, height: 4, borderRadius: "50%", background: "#4ade80", boxShadow: "0 0 12px #22c55e", pointerEvents: "none", zIndex: 1, animation: "particleFloat2 9s ease-in-out infinite 2s" }} />
 
           {/* Cinematic Vignette */}
           <div style={{
@@ -1027,7 +1027,7 @@ export function ProjectSelectorScreen({
             }}>
               Transform Long Videos into{" "}
               <span style={{
-                background: "linear-gradient(135deg, #34eb3d 0%, #5def64 50%, #2dca34 100%)",
+                background: "linear-gradient(135deg, #22c55e 0%, #4ade80 50%, #16a34a 100%)",
                 WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
               }}>
                 Viral 9:16 Shorts
@@ -1054,15 +1054,15 @@ export function ProjectSelectorScreen({
                 style={{
                   position: "relative", overflow: "hidden",
                   background: isOpusHovered
-                    ? "linear-gradient(160deg, rgba(52, 235, 61,0.08) 0%, rgba(52, 235, 61,0.02) 100%)"
+                    ? "linear-gradient(160deg, rgba(34, 197, 94,0.08) 0%, rgba(34, 197, 94,0.02) 100%)"
                     : "linear-gradient(160deg, rgba(255,255,255,0.035) 0%, rgba(255,255,255,0.008) 100%)",
                   borderRadius: 20, padding: "24px 26px",
                   border: isOpusHovered
-                    ? "1px solid rgba(52, 235, 61,0.45)"
+                    ? "1px solid rgba(34, 197, 94,0.45)"
                     : "1px solid rgba(255,255,255,0.1)",
                   display: "flex", flexDirection: "column", justifyContent: "space-between",
                   boxShadow: isOpusHovered
-                    ? "0 25px 80px rgba(0,0,0,0.65), 0 0 55px rgba(52, 235, 61,0.2)"
+                    ? "0 25px 80px rgba(0,0,0,0.65), 0 0 55px rgba(34, 197, 94,0.2)"
                     : "0 20px 60px rgba(0,0,0,0.5)",
                   backdropFilter: "blur(20px)",
                   WebkitBackdropFilter: "blur(20px)",
@@ -1076,7 +1076,7 @@ export function ProjectSelectorScreen({
                 <div style={{
                   position: "absolute", top: 0, left: 0, right: 0, height: 1, pointerEvents: "none",
                   background: isOpusHovered
-                    ? "linear-gradient(90deg, transparent, rgba(52, 235, 61,0.7), transparent)"
+                    ? "linear-gradient(90deg, transparent, rgba(34, 197, 94,0.7), transparent)"
                     : "linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent)",
                   transition: "all 0.25s ease",
                 }} />
@@ -1087,8 +1087,8 @@ export function ProjectSelectorScreen({
                     <div style={{
                       display: "flex", alignItems: "center", gap: 6,
                       padding: "5px 11px", borderRadius: 999,
-                      background: isOpusHovered ? "rgba(52, 235, 61,0.1)" : "rgba(255,255,255,0.04)",
-                      border: isOpusHovered ? "1px solid rgba(52, 235, 61,0.3)" : "1px solid rgba(255,255,255,0.1)",
+                      background: isOpusHovered ? "rgba(34, 197, 94,0.1)" : "rgba(255,255,255,0.04)",
+                      border: isOpusHovered ? "1px solid rgba(34, 197, 94,0.3)" : "1px solid rgba(255,255,255,0.1)",
                       transition: "all 0.25s ease",
                     }}>
                       <Zap style={{ width: 12, height: 12, color: isOpusHovered ? G : "rgba(255,255,255,0.85)", transition: "color 0.25s ease" }} />
@@ -1105,11 +1105,11 @@ export function ProjectSelectorScreen({
                     <div style={{
                       width: 52, height: 52, borderRadius: 16, flexShrink: 0,
                       background: isOpusHovered
-                        ? "radial-gradient(circle, rgba(52, 235, 61,0.22) 0%, rgba(52, 235, 61,0.05) 100%)"
+                        ? "radial-gradient(circle, rgba(34, 197, 94,0.22) 0%, rgba(34, 197, 94,0.05) 100%)"
                         : "linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)",
-                      border: isOpusHovered ? "1px solid rgba(52, 235, 61,0.4)" : "1px solid rgba(255,255,255,0.12)",
+                      border: isOpusHovered ? "1px solid rgba(34, 197, 94,0.4)" : "1px solid rgba(255,255,255,0.12)",
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      boxShadow: isOpusHovered ? "0 0 25px rgba(52, 235, 61,0.25)" : "0 4px 20px rgba(0,0,0,0.3)",
+                      boxShadow: isOpusHovered ? "0 0 25px rgba(34, 197, 94,0.25)" : "0 4px 20px rgba(0,0,0,0.3)",
                       transition: "all 0.25s ease",
                     }}>
                       <Sparkles style={{ width: 22, height: 22, color: isOpusHovered ? G : "#fff", transition: "color 0.25s ease" }} />
@@ -1135,8 +1135,8 @@ export function ProjectSelectorScreen({
                         <div style={{
                           width: 17, height: 17, borderRadius: "50%", flexShrink: 0,
                           display: "flex", alignItems: "center", justifyContent: "center",
-                          background: isOpusHovered ? "rgba(52, 235, 61,0.14)" : "rgba(52, 235, 61,0.08)",
-                          border: isOpusHovered ? "1px solid rgba(52, 235, 61,0.35)" : "1px solid rgba(52, 235, 61,0.22)",
+                          background: isOpusHovered ? "rgba(34, 197, 94,0.14)" : "rgba(34, 197, 94,0.08)",
+                          border: isOpusHovered ? "1px solid rgba(34, 197, 94,0.35)" : "1px solid rgba(34, 197, 94,0.22)",
                           transition: "all 0.25s ease",
                         }}>
                           <Check style={{ width: 10, height: 10, color: G }} />
@@ -1162,24 +1162,24 @@ export function ProjectSelectorScreen({
                   style={{
                     width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
                     padding: "14px 20px", borderRadius: 12, cursor: "pointer",
-                    background: `linear-gradient(135deg, ${G} 0%, #5def64 100%)`,
+                    background: `linear-gradient(135deg, ${G} 0%, #4ade80 100%)`,
                     color: "#000",
                     fontSize: 13.5,
                     fontWeight: 800,
                     fontFamily: "'Space Grotesk', 'Geist', sans-serif", letterSpacing: "-0.01em",
-                    border: "1px solid rgba(52, 235, 61,0.65)",
-                    boxShadow: isOpusHovered ? "0 0 45px rgba(52, 235, 61,0.7)" : "0 0 28px rgba(52, 235, 61,0.35)",
+                    border: "1px solid rgba(34, 197, 94,0.65)",
+                    boxShadow: isOpusHovered ? "0 0 45px rgba(34, 197, 94,0.7)" : "0 0 28px rgba(34, 197, 94,0.35)",
                     transition: "all 0.25s ease",
                   }}
                   onMouseEnter={(e) => {
                     if (isOpusHovered) {
-                      e.currentTarget.style.boxShadow = "0 0 45px rgba(52, 235, 61,0.7)";
+                      e.currentTarget.style.boxShadow = "0 0 45px rgba(34, 197, 94,0.7)";
                       e.currentTarget.style.transform = "translateY(-1px)";
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (isOpusHovered) {
-                      e.currentTarget.style.boxShadow = "0 0 28px rgba(52, 235, 61,0.35)";
+                      e.currentTarget.style.boxShadow = "0 0 28px rgba(34, 197, 94,0.35)";
                       e.currentTarget.style.transform = "none";
                     }
                   }}
@@ -1207,15 +1207,15 @@ export function ProjectSelectorScreen({
                 style={{
                   position: "relative", overflow: "hidden",
                   background: isProHovered
-                    ? "linear-gradient(160deg, rgba(52, 235, 61,0.08) 0%, rgba(52, 235, 61,0.02) 100%)"
+                    ? "linear-gradient(160deg, rgba(34, 197, 94,0.08) 0%, rgba(34, 197, 94,0.02) 100%)"
                     : "linear-gradient(160deg, rgba(255,255,255,0.035) 0%, rgba(255,255,255,0.008) 100%)",
                   borderRadius: 20, padding: "24px 26px",
                   border: isProHovered
-                    ? "1px solid rgba(52, 235, 61,0.45)"
+                    ? "1px solid rgba(34, 197, 94,0.45)"
                     : "1px solid rgba(255,255,255,0.1)",
                   display: "flex", flexDirection: "column", justifyContent: "space-between",
                   boxShadow: isProHovered
-                    ? "0 25px 80px rgba(0,0,0,0.65), 0 0 55px rgba(52, 235, 61,0.2)"
+                    ? "0 25px 80px rgba(0,0,0,0.65), 0 0 55px rgba(34, 197, 94,0.2)"
                     : "0 20px 60px rgba(0,0,0,0.5)",
                   backdropFilter: "blur(20px)",
                   WebkitBackdropFilter: "blur(20px)",
@@ -1229,7 +1229,7 @@ export function ProjectSelectorScreen({
                 <div style={{
                   position: "absolute", top: 0, left: 0, right: 0, height: 1, pointerEvents: "none",
                   background: isProHovered
-                    ? "linear-gradient(90deg, transparent, rgba(52, 235, 61,0.7), transparent)"
+                    ? "linear-gradient(90deg, transparent, rgba(34, 197, 94,0.7), transparent)"
                     : "linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent)",
                   transition: "all 0.25s ease",
                 }} />
@@ -1242,10 +1242,10 @@ export function ProjectSelectorScreen({
                       padding: "5px 11px", borderRadius: 999,
                       background: !isEffectivelyLicensed
                         ? "rgba(245, 158, 11, 0.1)"
-                        : (isProHovered ? "rgba(52, 235, 61,0.1)" : "rgba(255,255,255,0.04)"),
+                        : (isProHovered ? "rgba(34, 197, 94,0.1)" : "rgba(255,255,255,0.04)"),
                       border: !isEffectivelyLicensed
                         ? "1px solid rgba(245, 158, 11, 0.35)"
-                        : (isProHovered ? "1px solid rgba(52, 235, 61,0.3)" : "1px solid rgba(255,255,255,0.1)"),
+                        : (isProHovered ? "1px solid rgba(34, 197, 94,0.3)" : "1px solid rgba(255,255,255,0.1)"),
                       transition: "all 0.25s ease",
                     }}>
                       {!isEffectivelyLicensed ? (
@@ -1273,11 +1273,11 @@ export function ProjectSelectorScreen({
                     <div style={{
                       width: 52, height: 52, borderRadius: 16, flexShrink: 0,
                       background: isProHovered
-                        ? "radial-gradient(circle, rgba(52, 235, 61,0.22) 0%, rgba(52, 235, 61,0.05) 100%)"
+                        ? "radial-gradient(circle, rgba(34, 197, 94,0.22) 0%, rgba(34, 197, 94,0.05) 100%)"
                         : "linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)",
-                      border: isProHovered ? "1px solid rgba(52, 235, 61,0.4)" : "1px solid rgba(255,255,255,0.12)",
+                      border: isProHovered ? "1px solid rgba(34, 197, 94,0.4)" : "1px solid rgba(255,255,255,0.12)",
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      boxShadow: isProHovered ? "0 0 25px rgba(52, 235, 61,0.25)" : "0 4px 20px rgba(0,0,0,0.3)",
+                      boxShadow: isProHovered ? "0 0 25px rgba(34, 197, 94,0.25)" : "0 4px 20px rgba(0,0,0,0.3)",
                       transition: "all 0.25s ease",
                     }}>
                       <Layers style={{ width: 22, height: 22, color: isProHovered ? G : "#fff", transition: "color 0.25s ease" }} />
@@ -1303,8 +1303,8 @@ export function ProjectSelectorScreen({
                         <div style={{
                           width: 17, height: 17, borderRadius: "50%", flexShrink: 0,
                           display: "flex", alignItems: "center", justifyContent: "center",
-                          background: isProHovered ? "rgba(52, 235, 61,0.14)" : "rgba(52, 235, 61,0.08)",
-                          border: isProHovered ? "1px solid rgba(52, 235, 61,0.35)" : "1px solid rgba(52, 235, 61,0.22)",
+                          background: isProHovered ? "rgba(34, 197, 94,0.14)" : "rgba(34, 197, 94,0.08)",
+                          border: isProHovered ? "1px solid rgba(34, 197, 94,0.35)" : "1px solid rgba(34, 197, 94,0.22)",
                           transition: "all 0.25s ease",
                         }}>
                           <Check style={{ width: 10, height: 10, color: G }} />
@@ -1340,25 +1340,25 @@ export function ProjectSelectorScreen({
                     width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
                     padding: "14px 20px", borderRadius: 12, cursor: "pointer",
                     background: isProHovered
-                      ? `linear-gradient(135deg, ${G} 0%, #5def64 100%)`
-                      : `linear-gradient(135deg, #2dca34 0%, ${G} 100%)`,
+                      ? `linear-gradient(135deg, ${G} 0%, #4ade80 100%)`
+                      : `linear-gradient(135deg, #16a34a 0%, ${G} 100%)`,
                     color: "#000",
                     fontSize: 13.5,
                     fontWeight: 800,
                     fontFamily: "'Space Grotesk', 'Geist', sans-serif", letterSpacing: "-0.01em",
-                    border: "1px solid rgba(52, 235, 61,0.55)",
-                    boxShadow: isProHovered ? "0 0 45px rgba(52, 235, 61,0.6)" : "0 0 22px rgba(52, 235, 61,0.25)",
+                    border: "1px solid rgba(34, 197, 94,0.55)",
+                    boxShadow: isProHovered ? "0 0 45px rgba(34, 197, 94,0.6)" : "0 0 22px rgba(34, 197, 94,0.25)",
                     transition: "all 0.25s ease",
                   }}
                   onMouseEnter={(e) => {
                     if (isProHovered) {
-                      e.currentTarget.style.boxShadow = "0 0 45px rgba(52, 235, 61,0.6)";
+                      e.currentTarget.style.boxShadow = "0 0 45px rgba(34, 197, 94,0.6)";
                       e.currentTarget.style.transform = "translateY(-1px)";
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (isProHovered) {
-                      e.currentTarget.style.boxShadow = "0 0 22px rgba(52, 235, 61,0.25)";
+                      e.currentTarget.style.boxShadow = "0 0 22px rgba(34, 197, 94,0.25)";
                       e.currentTarget.style.transform = "none";
                     }
                   }}
@@ -1426,7 +1426,7 @@ export function ProjectSelectorScreen({
                   cursor: "pointer", transition: "all 0.15s ease",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "rgba(52, 235, 61, 0.14)";
+                  e.currentTarget.style.background = "rgba(34, 197, 94, 0.14)";
                   e.currentTarget.style.borderColor = G;
                 }}
                 onMouseLeave={(e) => {
@@ -1448,17 +1448,17 @@ export function ProjectSelectorScreen({
                     display: "flex", alignItems: "center", gap: 6,
                     padding: "5px 10px", borderRadius: 7,
                     fontSize: 11.5, fontWeight: 600, color: "#fff",
-                    background: "rgba(52, 235, 61, 0.08)",
-                    border: "1px solid rgba(52, 235, 61, 0.25)",
+                    background: "rgba(34, 197, 94, 0.08)",
+                    border: "1px solid rgba(34, 197, 94, 0.25)",
                     cursor: "pointer", transition: "all 0.15s ease",
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "rgba(52, 235, 61, 0.16)";
+                    e.currentTarget.style.background = "rgba(34, 197, 94, 0.16)";
                     e.currentTarget.style.borderColor = G;
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "rgba(52, 235, 61, 0.08)";
-                    e.currentTarget.style.borderColor = "rgba(52, 235, 61, 0.25)";
+                    e.currentTarget.style.background = "rgba(34, 197, 94, 0.08)";
+                    e.currentTarget.style.borderColor = "rgba(34, 197, 94, 0.25)";
                   }}
                   title="Interactive Studio Walkthrough"
                 >
@@ -1620,7 +1620,7 @@ export function ProjectSelectorScreen({
             <div style={{
               position: "absolute", inset: -1, borderRadius: 24, pointerEvents: "none",
               background: expandedStudio === "opus"
-                ? "linear-gradient(135deg, rgba(52, 235, 61,0.28) 0%, rgba(52, 235, 61,0.06) 50%, transparent 100%)"
+                ? "linear-gradient(135deg, rgba(34, 197, 94,0.28) 0%, rgba(34, 197, 94,0.06) 50%, transparent 100%)"
                 : "linear-gradient(135deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.04) 50%, transparent 100%)",
               filter: "blur(10px)",
             }} />
@@ -1632,18 +1632,18 @@ export function ProjectSelectorScreen({
                 : "linear-gradient(135deg, rgba(10,12,18,0.98) 0%, rgba(14,16,24,0.98) 100%)",
               borderRadius: 22,
               border: expandedStudio === "opus"
-                ? "1px solid rgba(52, 235, 61,0.35)"
+                ? "1px solid rgba(34, 197, 94,0.35)"
                 : "1px solid rgba(255,255,255,0.12)",
               overflow: "hidden",
               boxShadow: expandedStudio === "opus"
-                ? "0 40px 100px rgba(0,0,0,0.85), 0 0 70px rgba(52, 235, 61,0.15)"
+                ? "0 40px 100px rgba(0,0,0,0.85), 0 0 70px rgba(34, 197, 94,0.15)"
                 : "0 40px 100px rgba(0,0,0,0.85)",
             }}>
               {/* Top edge accent line */}
               <div style={{
                 position: "absolute", top: 0, left: 0, right: 0, height: 2, pointerEvents: "none",
                 background: expandedStudio === "opus"
-                  ? `linear-gradient(90deg, transparent 0%, ${G} 40%, rgba(52, 235, 61,0.3) 100%)`
+                  ? `linear-gradient(90deg, transparent 0%, ${G} 40%, rgba(34, 197, 94,0.3) 100%)`
                   : "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 40%, rgba(255,255,255,0.08) 100%)",
               }} />
 
@@ -1655,11 +1655,11 @@ export function ProjectSelectorScreen({
                     <div style={{
                       width: 58, height: 58, borderRadius: 18, flexShrink: 0,
                       background: expandedStudio === "opus"
-                        ? "radial-gradient(circle, rgba(52, 235, 61,0.2) 0%, rgba(52, 235, 61,0.05) 100%)"
+                        ? "radial-gradient(circle, rgba(34, 197, 94,0.2) 0%, rgba(34, 197, 94,0.05) 100%)"
                         : "linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%)",
-                      border: expandedStudio === "opus" ? "1px solid rgba(52, 235, 61,0.35)" : "1px solid rgba(255,255,255,0.14)",
+                      border: expandedStudio === "opus" ? "1px solid rgba(34, 197, 94,0.35)" : "1px solid rgba(255,255,255,0.14)",
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      boxShadow: expandedStudio === "opus" ? "0 0 28px rgba(52, 235, 61,0.2)" : "0 4px 20px rgba(0,0,0,0.4)",
+                      boxShadow: expandedStudio === "opus" ? "0 0 28px rgba(34, 197, 94,0.2)" : "0 4px 20px rgba(0,0,0,0.4)",
                     }}>
                       {expandedStudio === "opus"
                         ? <Sparkles style={{ width: 26, height: 26, color: G }} />
@@ -1671,8 +1671,8 @@ export function ProjectSelectorScreen({
                         <span style={{
                           fontFamily: "'Geist Mono', monospace", fontSize: 9.5, fontWeight: 700,
                           padding: "3px 9px", borderRadius: 999, letterSpacing: "0.1em", textTransform: "uppercase",
-                          background: expandedStudio === "opus" ? "rgba(52, 235, 61,0.1)" : "rgba(255,255,255,0.06)",
-                          border: expandedStudio === "opus" ? "1px solid rgba(52, 235, 61,0.3)" : "1px solid rgba(255,255,255,0.1)",
+                          background: expandedStudio === "opus" ? "rgba(34, 197, 94,0.1)" : "rgba(255,255,255,0.06)",
+                          border: expandedStudio === "opus" ? "1px solid rgba(34, 197, 94,0.3)" : "1px solid rgba(255,255,255,0.1)",
                           color: expandedStudio === "opus" ? G : "rgba(255,255,255,0.7)",
                         }}>
                           {expandedStudio === "opus" ? "Recommended" : "Precision Studio"}
@@ -1741,8 +1741,8 @@ export function ProjectSelectorScreen({
                           <div style={{
                             width: 20, height: 20, borderRadius: "50%", flexShrink: 0, marginTop: 1,
                             display: "flex", alignItems: "center", justifyContent: "center",
-                            background: expandedStudio === "opus" ? "rgba(52, 235, 61,0.12)" : "rgba(255,255,255,0.06)",
-                            border: expandedStudio === "opus" ? "1px solid rgba(52, 235, 61,0.35)" : "1px solid rgba(255,255,255,0.12)",
+                            background: expandedStudio === "opus" ? "rgba(34, 197, 94,0.12)" : "rgba(255,255,255,0.06)",
+                            border: expandedStudio === "opus" ? "1px solid rgba(34, 197, 94,0.35)" : "1px solid rgba(255,255,255,0.12)",
                           }}>
                             <Check style={{ width: 11, height: 11, color: expandedStudio === "opus" ? G : "rgba(255,255,255,0.7)" }} />
                           </div>
@@ -1762,8 +1762,8 @@ export function ProjectSelectorScreen({
                       ).map((tag) => (
                         <span key={tag} style={{
                           padding: "4px 12px", borderRadius: 999, fontSize: 10.5, fontWeight: 600,
-                          background: expandedStudio === "opus" ? "rgba(52, 235, 61,0.07)" : "rgba(255,255,255,0.04)",
-                          border: expandedStudio === "opus" ? "1px solid rgba(52, 235, 61,0.2)" : "1px solid rgba(255,255,255,0.09)",
+                          background: expandedStudio === "opus" ? "rgba(34, 197, 94,0.07)" : "rgba(255,255,255,0.04)",
+                          border: expandedStudio === "opus" ? "1px solid rgba(34, 197, 94,0.2)" : "1px solid rgba(255,255,255,0.09)",
                           color: expandedStudio === "opus" ? G : "rgba(255,255,255,0.65)",
                         }}>{tag}</span>
                       ))}
@@ -1794,17 +1794,17 @@ export function ProjectSelectorScreen({
                         <div key={id} style={{
                           padding: "20px 18px", borderRadius: 16, position: "relative",
                           background: expandedStudio === "opus"
-                            ? "linear-gradient(160deg, rgba(52, 235, 61,0.05) 0%, rgba(0,0,0,0.35) 100%)"
+                            ? "linear-gradient(160deg, rgba(34, 197, 94,0.05) 0%, rgba(0,0,0,0.35) 100%)"
                             : "linear-gradient(160deg, rgba(255,255,255,0.04) 0%, rgba(0,0,0,0.35) 100%)",
                           border: expandedStudio === "opus"
-                            ? "1px solid rgba(52, 235, 61,0.12)"
+                            ? "1px solid rgba(34, 197, 94,0.12)"
                             : "1px solid rgba(255,255,255,0.07)",
                         }}>
                           <div style={{
                             width: 38, height: 38, borderRadius: 10, marginBottom: 14,
                             display: "flex", alignItems: "center", justifyContent: "center",
-                            background: expandedStudio === "opus" ? "rgba(52, 235, 61,0.1)" : "rgba(255,255,255,0.05)",
-                            border: expandedStudio === "opus" ? "1px solid rgba(52, 235, 61,0.25)" : "1px solid rgba(255,255,255,0.1)",
+                            background: expandedStudio === "opus" ? "rgba(34, 197, 94,0.1)" : "rgba(255,255,255,0.05)",
+                            border: expandedStudio === "opus" ? "1px solid rgba(34, 197, 94,0.25)" : "1px solid rgba(255,255,255,0.1)",
                           }}>
                             <StepIcon style={{
                               width: 18, height: 18,
@@ -1838,24 +1838,24 @@ export function ProjectSelectorScreen({
                           display: "inline-flex", alignItems: "center", gap: 9,
                           padding: "12px 24px", borderRadius: 10, cursor: "pointer",
                           background: expandedStudio === "opus"
-                            ? `linear-gradient(135deg, ${G} 0%, #5def64 100%)`
-                            : `linear-gradient(135deg, #2dca34 0%, ${G} 100%)`,
+                            ? `linear-gradient(135deg, ${G} 0%, #4ade80 100%)`
+                            : `linear-gradient(135deg, #16a34a 0%, ${G} 100%)`,
                           color: "#000",
                           fontSize: 13.5, fontWeight: 800,
                           fontFamily: "'Space Grotesk', 'Geist', sans-serif",
-                          boxShadow: expandedStudio === "opus" ? "0 0 32px rgba(52, 235, 61,0.4)" : "0 0 22px rgba(52, 235, 61,0.25)",
-                          border: "1px solid rgba(52, 235, 61,0.55)",
+                          boxShadow: expandedStudio === "opus" ? "0 0 32px rgba(34, 197, 94,0.4)" : "0 0 22px rgba(34, 197, 94,0.25)",
+                          border: "1px solid rgba(34, 197, 94,0.55)",
                           transition: "all 0.2s ease",
                         }}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.boxShadow = expandedStudio === "opus"
-                            ? "0 0 48px rgba(52, 235, 61,0.6)"
-                            : "0 0 34px rgba(52, 235, 61,0.45)";
+                            ? "0 0 48px rgba(34, 197, 94,0.6)"
+                            : "0 0 34px rgba(34, 197, 94,0.45)";
                         }}
                         onMouseLeave={(e) => {
                           e.currentTarget.style.boxShadow = expandedStudio === "opus"
-                            ? "0 0 32px rgba(52, 235, 61,0.4)"
-                            : "0 0 22px rgba(52, 235, 61,0.25)";
+                            ? "0 0 32px rgba(34, 197, 94,0.4)"
+                            : "0 0 22px rgba(34, 197, 94,0.25)";
                         }}
                       >
                         {expandedStudio === "opus"
@@ -1900,7 +1900,7 @@ export function ProjectSelectorScreen({
               background: "#0a0d14",
               border: "1px solid rgba(255,255,255,0.1)",
               borderRadius: 20,
-              boxShadow: "0 35px 120px rgba(0,0,0,0.98), 0 0 1px 1px rgba(52, 235, 61,0.15)",
+              boxShadow: "0 35px 120px rgba(0,0,0,0.98), 0 0 1px 1px rgba(34, 197, 94,0.15)",
               display: "flex",
               flexDirection: "column",
               overflow: "hidden",
@@ -2004,8 +2004,8 @@ export function ProjectSelectorScreen({
                         width: 36,
                         height: 36,
                         borderRadius: 10,
-                        background: "rgba(52, 235, 61,0.08)",
-                        border: "1px solid rgba(52, 235, 61,0.25)",
+                        background: "rgba(34, 197, 94,0.08)",
+                        border: "1px solid rgba(34, 197, 94,0.25)",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -2024,9 +2024,9 @@ export function ProjectSelectorScreen({
                           fontSize: 9,
                           fontFamily: "'Geist Mono', monospace",
                           fontWeight: 700,
-                          background: "rgba(52, 235, 61,0.12)",
+                          background: "rgba(34, 197, 94,0.12)",
                           color: G,
-                          border: "1px solid rgba(52, 235, 61,0.25)",
+                          border: "1px solid rgba(34, 197, 94,0.25)",
                         }}>
                           STUDIO V1.0 • LICENSED
                         </span>
@@ -2077,7 +2077,7 @@ export function ProjectSelectorScreen({
 
                 {/* First-Time Notice Banner */}
                 {!complianceAccepted && (
-                  <div style={{ padding: "9px 24px", background: "rgba(52, 235, 61,0.06)", borderBottom: "1px solid rgba(52, 235, 61,0.15)", display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 11.5, color: "rgba(255,255,255,0.75)", flexShrink: 0 }}>
+                  <div style={{ padding: "9px 24px", background: "rgba(34, 197, 94,0.06)", borderBottom: "1px solid rgba(34, 197, 94,0.15)", display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 11.5, color: "rgba(255,255,255,0.75)", flexShrink: 0 }}>
                     <span style={{ display: "flex", alignItems: "center", gap: 7 }}>
                       <ShieldCheck style={{ width: 14, height: 14, color: G }} />
                       <span><strong>First-Time Security Review:</strong> Please review and confirm the local license &amp; privacy terms to unlock ClipVault Studio.</span>
@@ -2174,8 +2174,8 @@ export function ProjectSelectorScreen({
                               fontWeight: isActive ? 700 : 500,
                               textAlign: "left",
                               color: isActive ? "#fff" : "rgba(255,255,255,0.65)",
-                              background: isActive ? "rgba(52, 235, 61,0.1)" : "transparent",
-                              border: isActive ? "1px solid rgba(52, 235, 61,0.25)" : "1px solid transparent",
+                              background: isActive ? "rgba(34, 197, 94,0.1)" : "transparent",
+                              border: isActive ? "1px solid rgba(34, 197, 94,0.25)" : "1px solid transparent",
                               cursor: "pointer",
                               transition: "all 0.15s",
                             }}
@@ -2224,8 +2224,8 @@ export function ProjectSelectorScreen({
                               fontWeight: isActive ? 700 : 500,
                               textAlign: "left",
                               color: isActive ? "#fff" : "rgba(255,255,255,0.65)",
-                              background: isActive ? "rgba(52, 235, 61,0.1)" : "transparent",
-                              border: isActive ? "1px solid rgba(52, 235, 61,0.25)" : "1px solid transparent",
+                              background: isActive ? "rgba(34, 197, 94,0.1)" : "transparent",
+                              border: isActive ? "1px solid rgba(34, 197, 94,0.25)" : "1px solid transparent",
                               cursor: "pointer",
                               transition: "all 0.15s",
                             }}
@@ -2257,8 +2257,8 @@ export function ProjectSelectorScreen({
                           fontWeight: settingsTab === "faq" ? 700 : 500,
                           textAlign: "left",
                           color: settingsTab === "faq" ? "#fff" : "rgba(255,255,255,0.65)",
-                          background: settingsTab === "faq" ? "rgba(52, 235, 61,0.1)" : "transparent",
-                          border: settingsTab === "faq" ? "1px solid rgba(52, 235, 61,0.25)" : "1px solid transparent",
+                          background: settingsTab === "faq" ? "rgba(34, 197, 94,0.1)" : "transparent",
+                          border: settingsTab === "faq" ? "1px solid rgba(34, 197, 94,0.25)" : "1px solid transparent",
                           cursor: "pointer",
                           transition: "all 0.15s",
                         }}
@@ -2283,8 +2283,8 @@ export function ProjectSelectorScreen({
                           fontWeight: settingsTab === "about" ? 700 : 500,
                           textAlign: "left",
                           color: settingsTab === "about" ? "#fff" : "rgba(255,255,255,0.65)",
-                          background: settingsTab === "about" ? "rgba(52, 235, 61,0.1)" : "transparent",
-                          border: settingsTab === "about" ? "1px solid rgba(52, 235, 61,0.25)" : "1px solid transparent",
+                          background: settingsTab === "about" ? "rgba(34, 197, 94,0.1)" : "transparent",
+                          border: settingsTab === "about" ? "1px solid rgba(34, 197, 94,0.25)" : "1px solid transparent",
                           cursor: "pointer",
                           transition: "all 0.15s",
                         }}
@@ -2457,8 +2457,8 @@ export function ProjectSelectorScreen({
                                       gap: 6,
                                       padding: "7px 14px",
                                       borderRadius: 8,
-                                      background: "rgba(52, 235, 61, 0.12)",
-                                      border: "1px solid rgba(52, 235, 61, 0.35)",
+                                      background: "rgba(34, 197, 94, 0.12)",
+                                      border: "1px solid rgba(34, 197, 94, 0.35)",
                                       color: G,
                                       fontSize: 11.5,
                                       fontWeight: 700,
@@ -2789,7 +2789,7 @@ export function ProjectSelectorScreen({
                                 style={{
                                   padding: "12px",
                                   borderRadius: 8,
-                                  background: defaultRes === opt.id ? "rgba(52, 235, 61,0.08)" : "rgba(255,255,255,0.02)",
+                                  background: defaultRes === opt.id ? "rgba(34, 197, 94,0.08)" : "rgba(255,255,255,0.02)",
                                   border: defaultRes === opt.id ? `1px solid ${G}` : "1px solid rgba(255,255,255,0.08)",
                                   textAlign: "left",
                                   cursor: "pointer",
@@ -2834,7 +2834,7 @@ export function ProjectSelectorScreen({
                                 style={{
                                   padding: "12px",
                                   borderRadius: 8,
-                                  background: defaultFps === opt.id ? "rgba(52, 235, 61,0.08)" : "rgba(255,255,255,0.02)",
+                                  background: defaultFps === opt.id ? "rgba(34, 197, 94,0.08)" : "rgba(255,255,255,0.02)",
                                   border: defaultFps === opt.id ? `1px solid ${G}` : "1px solid rgba(255,255,255,0.08)",
                                   textAlign: "left",
                                   cursor: "pointer",
@@ -2913,7 +2913,7 @@ export function ProjectSelectorScreen({
                             onClick={() => setSettingsTab("updates")}
                             style={{
                               padding: "6px 12px", borderRadius: 6,
-                              background: "rgba(52, 235, 61,0.12)", border: "1px solid rgba(52, 235, 61,0.3)",
+                              background: "rgba(34, 197, 94,0.12)", border: "1px solid rgba(34, 197, 94,0.3)",
                               color: G, fontSize: 11, fontFamily: "'Geist Mono', monospace", fontWeight: 700,
                               cursor: "pointer", transition: "all 0.15s ease",
                             }}
@@ -2957,7 +2957,7 @@ export function ProjectSelectorScreen({
                                 style={{
                                   padding: "12px",
                                   borderRadius: 8,
-                                  background: whisperModel === opt.id ? "rgba(52, 235, 61,0.08)" : "rgba(255,255,255,0.02)",
+                                  background: whisperModel === opt.id ? "rgba(34, 197, 94,0.08)" : "rgba(255,255,255,0.02)",
                                   border: whisperModel === opt.id ? `1px solid ${G}` : "1px solid rgba(255,255,255,0.08)",
                                   textAlign: "left",
                                   cursor: "pointer",
@@ -2997,7 +2997,7 @@ export function ProjectSelectorScreen({
                                 style={{
                                   padding: "12px",
                                   borderRadius: 8,
-                                  background: activeLlm === opt.id ? "rgba(52, 235, 61,0.08)" : "rgba(255,255,255,0.02)",
+                                  background: activeLlm === opt.id ? "rgba(34, 197, 94,0.08)" : "rgba(255,255,255,0.02)",
                                   border: activeLlm === opt.id ? `1px solid ${G}` : "1px solid rgba(255,255,255,0.08)",
                                   textAlign: "left",
                                   cursor: "pointer",
@@ -3006,7 +3006,7 @@ export function ProjectSelectorScreen({
                               >
                                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 2 }}>
                                   <span style={{ fontWeight: 700, fontSize: 12, color: activeLlm === opt.id ? "#fff" : "rgba(255,255,255,0.75)" }}>{opt.label}</span>
-                                  <span style={{ fontSize: 9.5, padding: "1px 6px", borderRadius: 4, background: "rgba(52, 235, 61,0.1)", color: G, fontFamily: "'Geist Mono', monospace" }}>{opt.badge}</span>
+                                  <span style={{ fontSize: 9.5, padding: "1px 6px", borderRadius: 4, background: "rgba(34, 197, 94,0.1)", color: G, fontFamily: "'Geist Mono', monospace" }}>{opt.badge}</span>
                                 </div>
                                 <div style={{ fontSize: 10.5, color: "rgba(255,255,255,0.4)" }}>
                                   {opt.desc}
@@ -3035,7 +3035,7 @@ export function ProjectSelectorScreen({
                                 }}
                                 style={{
                                   flex: 1, padding: "10px 14px", borderRadius: 8,
-                                  background: faceSensitivity === opt.id ? "rgba(52, 235, 61,0.08)" : "rgba(255,255,255,0.02)",
+                                  background: faceSensitivity === opt.id ? "rgba(34, 197, 94,0.08)" : "rgba(255,255,255,0.02)",
                                   border: faceSensitivity === opt.id ? `1px solid ${G}` : "1px solid rgba(255,255,255,0.08)",
                                   textAlign: "left", cursor: "pointer",
                                 }}
@@ -3061,8 +3061,8 @@ export function ProjectSelectorScreen({
                               <span style={{
                                 padding: "2px 8px", borderRadius: 4, fontSize: 9.5,
                                 fontFamily: "'Geist Mono', monospace", fontWeight: 700,
-                                background: "rgba(52, 235, 61, 0.12)", color: G,
-                                border: "1px solid rgba(52, 235, 61, 0.3)",
+                                background: "rgba(34, 197, 94, 0.12)", color: G,
+                                border: "1px solid rgba(34, 197, 94, 0.3)",
                               }}>
                                 CONTINUOUS UPDATES
                               </span>
@@ -3079,8 +3079,8 @@ export function ProjectSelectorScreen({
                             style={{
                               display: "inline-flex", alignItems: "center", gap: 8,
                               padding: "8px 16px", borderRadius: 8,
-                              background: isManualCheckingUpdates ? "rgba(255,255,255,0.05)" : `linear-gradient(135deg, #2dca34 0%, ${G} 100%)`,
-                              border: "1px solid rgba(52, 235, 61, 0.4)",
+                              background: isManualCheckingUpdates ? "rgba(255,255,255,0.05)" : `linear-gradient(135deg, #16a34a 0%, ${G} 100%)`,
+                              border: "1px solid rgba(34, 197, 94, 0.4)",
                               color: isManualCheckingUpdates ? "rgba(255,255,255,0.5)" : "#000",
                               fontSize: 12, fontWeight: 700,
                               cursor: isManualCheckingUpdates ? "not-allowed" : "pointer",
@@ -3097,7 +3097,7 @@ export function ProjectSelectorScreen({
                         {updateCheckFeedback && (
                           <div style={{
                             padding: "12px 16px", borderRadius: 10,
-                            background: "rgba(52, 235, 61, 0.08)", border: "1px solid rgba(52, 235, 61, 0.3)",
+                            background: "rgba(34, 197, 94, 0.08)", border: "1px solid rgba(34, 197, 94, 0.3)",
                             display: "flex", alignItems: "center", gap: 10, fontSize: 12, color: "#fff",
                           }}>
                             <CheckCircle2 style={{ width: 15, height: 15, color: G, flexShrink: 0 }} />
@@ -3161,8 +3161,8 @@ export function ProjectSelectorScreen({
                             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                               <div style={{
                                 width: 28, height: 28, borderRadius: 8,
-                                background: "rgba(52, 235, 61, 0.1)",
-                                border: "1px solid rgba(52, 235, 61, 0.25)",
+                                background: "rgba(34, 197, 94, 0.1)",
+                                border: "1px solid rgba(34, 197, 94, 0.25)",
                                 display: "flex", alignItems: "center", justifyContent: "center",
                                 color: G,
                               }}>
@@ -3175,8 +3175,8 @@ export function ProjectSelectorScreen({
                                   </h4>
                                   <span style={{
                                     fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 9999,
-                                    background: "rgba(52, 235, 61, 0.12)", color: G,
-                                    border: "1px solid rgba(52, 235, 61, 0.25)",
+                                    background: "rgba(34, 197, 94, 0.12)", color: G,
+                                    border: "1px solid rgba(34, 197, 94, 0.25)",
                                     letterSpacing: "0.02em",
                                   }}>
                                     v{APP_CHANGELOG[0]?.version || "1.0.0"} Stable
@@ -3231,9 +3231,9 @@ export function ProjectSelectorScreen({
                                   </div>
                                   <span style={{
                                     padding: "2px 7px", borderRadius: 9999, fontSize: 9.5, fontWeight: 600,
-                                    background: item.type === "fix" ? "rgba(52, 235, 61, 0.08)" : "rgba(255, 255, 255, 0.06)",
+                                    background: item.type === "fix" ? "rgba(34, 197, 94, 0.08)" : "rgba(255, 255, 255, 0.06)",
                                     color: item.type === "fix" ? G : "rgba(255, 255, 255, 0.7)",
-                                    border: `1px solid ${item.type === "fix" ? "rgba(52, 235, 61, 0.2)" : "rgba(255, 255, 255, 0.08)"}`,
+                                    border: `1px solid ${item.type === "fix" ? "rgba(34, 197, 94, 0.2)" : "rgba(255, 255, 255, 0.08)"}`,
                                     whiteSpace: "nowrap", flexShrink: 0,
                                   }}>
                                     {item.badge ? item.badge.replace(/ Fix$/, "") : "Improvement"}
@@ -4010,8 +4010,8 @@ export function ProjectSelectorScreen({
                       padding: "8px 16px",
                       borderRadius: 999,
                       background: "rgba(18, 18, 22, 0.95)",
-                      border: "1px solid rgba(52, 235, 61, 0.4)",
-                      boxShadow: "0 8px 32px rgba(0, 0, 0, 0.85), 0 0 16px rgba(52, 235, 61, 0.25)",
+                      border: "1px solid rgba(34, 197, 94, 0.4)",
+                      boxShadow: "0 8px 32px rgba(0, 0, 0, 0.85), 0 0 16px rgba(34, 197, 94, 0.25)",
                       color: "#fff",
                       fontSize: 11.5,
                       fontWeight: 700,
@@ -4100,10 +4100,10 @@ export function ProjectSelectorScreen({
                             fontWeight: 700,
                             fontSize: 12,
                             color: (agreedTerms && hasScrolledToBottom) ? "#000" : "rgba(0,0,0,0.35)",
-                            background: (agreedTerms && hasScrolledToBottom) ? G : "rgba(52, 235, 61,0.2)",
+                            background: (agreedTerms && hasScrolledToBottom) ? G : "rgba(34, 197, 94,0.2)",
                             border: "none",
                             cursor: (agreedTerms && hasScrolledToBottom) ? "pointer" : "not-allowed",
-                            boxShadow: (agreedTerms && hasScrolledToBottom) ? "0 0 24px rgba(52, 235, 61,0.4)" : "none",
+                            boxShadow: (agreedTerms && hasScrolledToBottom) ? "0 0 24px rgba(34, 197, 94,0.4)" : "none",
                             transition: "all 0.15s",
                           }}
                         >
@@ -4299,8 +4299,8 @@ export function ProjectSelectorScreen({
                   width: 32,
                   height: 32,
                   borderRadius: 8,
-                  background: "rgba(52, 235, 61, 0.12)",
-                  border: "1px solid rgba(52, 235, 61, 0.25)",
+                  background: "rgba(34, 197, 94, 0.12)",
+                  border: "1px solid rgba(34, 197, 94, 0.25)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",

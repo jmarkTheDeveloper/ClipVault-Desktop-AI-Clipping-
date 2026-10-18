@@ -63,7 +63,7 @@ export const SUBTITLE_PRESETS: SubtitlePresetItem[] = [
     id: "capcut_banner",
     name: "Studio Backdrop",
     badge: "BACKDROP",
-    color: "#00e676",
+    color: "#22c55e",
     desc: "High-contrast translucent dark backdrop box with clean word tracking",
   },
   {
@@ -410,7 +410,7 @@ export const SubtitlePreviewSnippet: React.FC<{
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black/85 border border-white/15 shadow-[0_2px_12px_rgba(0,0,0,0.5)]">
             <span
               className={`text-[11px] font-black uppercase tracking-wider transition-all duration-200 ${
-                isHovered && animStep === 0 ? "text-[#00e676]" : "text-white"
+                isHovered && animStep === 0 ? "text-emerald-400" : "text-white"
               }`}
             >
               STUDIO
@@ -418,7 +418,7 @@ export const SubtitlePreviewSnippet: React.FC<{
             <span
               className={`text-[11px] font-black uppercase tracking-wider transition-all duration-200 ${
                 isHovered && animStep === 1
-                  ? "text-[#00e676]"
+                  ? "text-emerald-400"
                   : "text-white/80"
               }`}
             >
@@ -662,7 +662,7 @@ export const SubtitlePreviewSnippet: React.FC<{
           <span
             key={currentWord}
             className={`text-white transition-all duration-200 ${
-              isHovered ? "scale-115 text-emerald-300 drop-shadow-[0_0_10px_rgba(52, 235, 61,0.8)]" : ""
+              isHovered ? "scale-115 text-emerald-300 drop-shadow-[0_0_10px_rgba(34, 197, 94,0.8)]" : ""
             }`}
             style={{
               WebkitTextStroke: "0.8px #000",
@@ -717,7 +717,7 @@ export const SubtitleStyleCard: React.FC<SubtitleStyleCardProps> = ({
         compact ? "p-2 min-h-[68px]" : "p-3 min-h-[78px] sm:min-h-[84px]"
       } ${
         isSelected
-          ? "bg-[#34eb3d]/[0.06] border-[#34eb3d]/50 shadow-[0_0_8px_rgba(52, 235, 61,0.1)]"
+          ? "bg-emerald-500/[0.06] border-emerald-500/50 shadow-[0_0_8px_rgba(34, 197, 94,0.1)]"
           : isHovered
           ? "bg-[#151720] border-white/30 shadow-[0_4px_20px_rgba(0,0,0,0.5)] scale-[1.02]"
           : "bg-[#0E1015] border-white/[0.08] hover:border-white/[0.22] hover:bg-[#151720]"
@@ -733,7 +733,7 @@ export const SubtitleStyleCard: React.FC<SubtitleStyleCardProps> = ({
         <span
           className={`text-[9.5px] font-bold tracking-tight truncate transition-colors ${
             isSelected
-              ? "text-[#34eb3d]"
+              ? "text-emerald-400"
               : isHovered
               ? "text-white"
               : "text-gray-400 group-hover:text-gray-200"
@@ -744,7 +744,7 @@ export const SubtitleStyleCard: React.FC<SubtitleStyleCardProps> = ({
         <span
           className={`text-[7.5px] font-mono font-bold px-1 py-0.2 rounded shrink-0 ${
             isSelected
-              ? "bg-[#34eb3d]/20 text-[#34eb3d]"
+              ? "bg-emerald-500/20 text-emerald-400"
               : "bg-white/[0.05] text-gray-400"
           }`}
         >
@@ -754,7 +754,7 @@ export const SubtitleStyleCard: React.FC<SubtitleStyleCardProps> = ({
 
       {/* Active Checkmark Pill */}
       {isSelected && (
-        <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#34eb3d] text-black flex items-center justify-center shadow-md">
+        <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 text-black flex items-center justify-center shadow-md">
           <Check className="w-2.5 h-2.5 stroke-[3]" />
         </div>
       )}

@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { LEMON_PRO_CHECKOUT_URL, LEMON_MAX_CHECKOUT_URL } from "./CreatorProUpgradeModal";
 
-const G = "#34eb3d";
+const G = "#22c55e";
 
 export type SimulatedTier = "free" | "pro" | "max" | null;
 
@@ -88,8 +88,8 @@ export function DeveloperTierModal({
       price: "$11",
       cadence: "per month",
       badge: "Most Popular",
-      badgeColor: "border-[#34eb3d]/40 bg-[#34eb3d]/10 text-[#34eb3d]",
-      accentBorder: "border-[#34eb3d]/30",
+      badgeColor: "border-emerald-500/40 bg-emerald-500/10 text-emerald-400",
+      accentBorder: "border-emerald-500/30",
       features: [
         { label: "1-Click Auto Clipper", value: "Unlimited Autonomous Exports", state: "check", highlight: true },
         { label: "Pro Timeline Editor", value: "3 Clips / Week", state: "limited", highlight: true },
@@ -113,8 +113,8 @@ export function DeveloperTierModal({
       price: "$15",
       cadence: "per month",
       badge: "Uncapped Master",
-      badgeColor: "border-[#00e676]/50 bg-[#00e676]/15 text-[#00e676]",
-      accentBorder: "border-[#00e676]/50 shadow-[0_0_30px_rgba(0,230,118,0.12)]",
+      badgeColor: "border-emerald-500/50 bg-emerald-500/15 text-emerald-400",
+      accentBorder: "border-emerald-500/50 shadow-[0_0_30px_rgba(34, 197, 94,0.12)]",
       features: [
         { label: "1-Click Auto Clipper", value: "Unlimited Autonomous Exports", state: "check", highlight: true },
         { label: "Pro Timeline Editor", value: "Unlimited (Zero Caps)", state: "check", highlight: true },
@@ -135,14 +135,14 @@ export function DeveloperTierModal({
 
   return (
     <div className="fixed inset-0 z-[99999] bg-black/90 backdrop-blur-md flex items-center justify-center pt-14 pb-4 px-3 sm:px-5 select-none animate-in fade-in duration-200">
-      <div className="relative w-full max-w-5xl max-h-[calc(100vh-76px)] rounded-3xl bg-[#0a0c10] border border-white/10 shadow-[0_0_80px_rgba(0,0,0,0.9),0_0_40px_rgba(52,235,61,0.15)] flex flex-col text-zinc-100 overflow-hidden">
+      <div className="relative w-full max-w-5xl max-h-[calc(100vh-76px)] rounded-3xl bg-[#0a0c10] border border-white/10 shadow-[0_0_80px_rgba(0,0,0,0.9),0_0_40px_rgba(34, 197, 94,0.15)] flex flex-col text-zinc-100 overflow-hidden">
         {/* Top ambient green line */}
-        <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-[#34eb3d] to-transparent pointer-events-none" />
+        <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-[#22c55e] to-transparent pointer-events-none" />
 
         {/* Modal Header */}
         <header className="px-6 py-4.5 border-b border-white/[0.08] flex items-center justify-between flex-shrink-0 bg-[#0e1117]/80">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-[#34eb3d]/10 border border-[#34eb3d]/30 flex items-center justify-center text-[#34eb3d]">
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
               <Terminal className="w-4 h-4" />
             </div>
             <div>
@@ -150,7 +150,7 @@ export function DeveloperTierModal({
                 <h2 className="text-base sm:text-lg font-black text-white tracking-tight">
                   Developer Tier Matrix &amp; Simulator
                 </h2>
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#34eb3d]/15 text-[#34eb3d] border border-[#34eb3d]/30 uppercase">
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 uppercase">
                   Founder Special
                 </span>
               </div>
@@ -167,7 +167,7 @@ export function DeveloperTierModal({
                 type="button"
                 onClick={() => setActiveTab("matrix")}
                 className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
-                  activeTab === "matrix" ? "bg-[#34eb3d] text-black" : "text-zinc-400 hover:text-white"
+                  activeTab === "matrix" ? "bg-emerald-500 text-black" : "text-zinc-400 hover:text-white"
                 }`}
               >
                 Comparison Matrix
@@ -176,7 +176,7 @@ export function DeveloperTierModal({
                 type="button"
                 onClick={() => setActiveTab("simulator")}
                 className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
-                  activeTab === "simulator" ? "bg-[#34eb3d] text-black" : "text-zinc-400 hover:text-white"
+                  activeTab === "simulator" ? "bg-emerald-500 text-black" : "text-zinc-400 hover:text-white"
                 }`}
               >
                 Live Sandbox Switcher
@@ -207,11 +207,11 @@ export function DeveloperTierModal({
                     <div
                       key={tier.id}
                       className={`rounded-2xl p-5 bg-[#0f121a] border transition-all flex flex-col justify-between relative ${tier.accentBorder} ${
-                        isSimulatedActive ? "ring-2 ring-[#34eb3d] shadow-[0_0_30px_rgba(52,235,61,0.2)]" : ""
+                        isSimulatedActive ? "ring-2 ring-[#22c55e] shadow-[0_0_30px_rgba(34, 197, 94,0.2)]" : ""
                       }`}
                     >
                       {isSimulatedActive && (
-                        <div className="absolute -top-3 left-4 px-2 py-0.5 rounded-full bg-[#34eb3d] text-black font-extrabold text-[10px] uppercase tracking-wide">
+                        <div className="absolute -top-3 left-4 px-2 py-0.5 rounded-full bg-emerald-500 text-black font-extrabold text-[10px] uppercase tracking-wide">
                           Active Sandbox Simulation
                         </div>
                       )}
@@ -244,7 +244,7 @@ export function DeveloperTierModal({
                                   feat.state === "locked"
                                     ? "text-amber-400 font-normal"
                                     : feat.highlight
-                                    ? "text-[#34eb3d] font-bold"
+                                    ? "text-emerald-400 font-bold"
                                     : "text-zinc-200"
                                 }`}
                               >
@@ -272,7 +272,7 @@ export function DeveloperTierModal({
                               className="w-full py-2 px-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-zinc-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer border border-white/10"
                             >
                               <span>Test Lemon Squeezy Link</span>
-                              <ExternalLink className="w-3 h-3 text-[#34eb3d]" />
+                              <ExternalLink className="w-3 h-3 text-emerald-400" />
                             </button>
                             <button
                               type="button"
@@ -295,8 +295,8 @@ export function DeveloperTierModal({
                           }}
                           className={`w-full py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                             isSimulatedActive
-                              ? "bg-[#34eb3d] text-black font-extrabold"
-                              : "bg-[#34eb3d]/15 text-[#34eb3d] hover:bg-[#34eb3d]/25 border border-[#34eb3d]/30"
+                              ? "bg-emerald-500 text-black font-extrabold"
+                              : "bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 border border-emerald-500/30"
                           }`}
                         >
                           {isSimulatedActive ? (
@@ -320,7 +320,7 @@ export function DeveloperTierModal({
               {/* Founder Architecture Notes */}
               <div className="rounded-2xl p-4.5 bg-white/[0.02] border border-white/[0.08] space-y-2 text-xs">
                 <div className="flex items-center gap-2 text-zinc-200 font-bold">
-                  <Info className="w-4 h-4 text-[#34eb3d]" />
+                  <Info className="w-4 h-4 text-emerald-400" />
                   <span>Founder Architecture &amp; Enforcement Summary</span>
                 </div>
                 <p className="text-zinc-400 text-[11.5px] leading-relaxed">
@@ -336,13 +336,13 @@ export function DeveloperTierModal({
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
                     <h3 className="text-base font-bold text-white flex items-center gap-2">
-                      <ShieldCheck className="w-4 h-4 text-[#34eb3d]" />
+                      <ShieldCheck className="w-4 h-4 text-emerald-400" />
                       <span>Application Edition Profile</span>
                     </h3>
                     <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
                       appEdition === "consumer"
                         ? "bg-amber-500/15 text-amber-300 border border-amber-500/30"
-                        : "bg-[#34eb3d]/15 text-[#34eb3d] border border-[#34eb3d]/30"
+                        : "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
                     }`}>
                       {appEdition === "consumer" ? "Consumer Product Active" : "Developer Studio Active"}
                     </span>
@@ -362,7 +362,7 @@ export function DeveloperTierModal({
                     }}
                     className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
                       appEdition === "consumer"
-                        ? "bg-[#34eb3d]/20 border-[#34eb3d] text-white shadow-[0_0_20px_rgba(52,235,61,0.25)]"
+                        ? "bg-emerald-500/20 border-emerald-500 text-white shadow-[0_0_20px_rgba(34, 197, 94,0.25)]"
                         : "bg-white/[0.03] border-white/10 text-zinc-300 hover:text-white hover:border-white/20"
                     }`}
                   >
@@ -379,7 +379,7 @@ export function DeveloperTierModal({
                     }}
                     className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
                       appEdition === "developer"
-                        ? "bg-[#34eb3d]/20 border-[#34eb3d] text-white shadow-[0_0_20px_rgba(52,235,61,0.25)]"
+                        ? "bg-emerald-500/20 border-emerald-500 text-white shadow-[0_0_20px_rgba(34, 197, 94,0.25)]"
                         : "bg-white/[0.03] border-white/10 text-zinc-300 hover:text-white hover:border-white/20"
                     }`}
                   >
@@ -394,7 +394,7 @@ export function DeveloperTierModal({
               <div className="rounded-2xl p-6 bg-[#0f121a] border border-white/10 space-y-5">
                 <div className="space-y-1">
                   <h3 className="text-base font-bold text-white flex items-center gap-2">
-                    <Terminal className="w-4 h-4 text-[#34eb3d]" />
+                    <Terminal className="w-4 h-4 text-emerald-400" />
                     <span>Instant Workspace Tier Simulation</span>
                   </h3>
                   <p className="text-xs text-zinc-400 leading-relaxed">
@@ -415,14 +415,14 @@ export function DeveloperTierModal({
                       onClick={() => onSelectSimulatedTier(btn.id as any)}
                       className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
                         currentSimulatedTier === btn.id
-                          ? "bg-[#34eb3d]/20 border-[#34eb3d] text-white shadow-[0_0_20px_rgba(52,235,61,0.25)]"
+                          ? "bg-emerald-500/20 border-emerald-500 text-white shadow-[0_0_20px_rgba(34, 197, 94,0.25)]"
                           : "bg-white/[0.03] border-white/10 text-zinc-300 hover:text-white hover:border-white/20"
                       }`}
                     >
                       <div className="font-bold text-xs">{btn.label}</div>
                       <div className="text-[10.5px] text-zinc-400 mt-0.5">{btn.sub}</div>
                       {currentSimulatedTier === btn.id && (
-                        <div className="mt-2 text-[10px] font-mono text-[#34eb3d] font-bold flex items-center gap-1">
+                        <div className="mt-2 text-[10px] font-mono text-emerald-400 font-bold flex items-center gap-1">
                           <Check className="w-3 h-3" />
                           <span>Active Simulation</span>
                         </div>
@@ -449,7 +449,7 @@ export function DeveloperTierModal({
                       if (onSwitchAppEdition) onSwitchAppEdition("consumer");
                       onClose();
                     }}
-                    className="py-2.5 px-4 rounded-xl bg-[#34eb3d]/15 hover:bg-[#34eb3d]/25 text-[#34eb3d] font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer border border-[#34eb3d]/30"
+                    className="py-2.5 px-4 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer border border-emerald-500/30"
                   >
                     <span>Exit Dev Mode &amp; Go to Consumer UI</span>
                   </button>
@@ -460,7 +460,7 @@ export function DeveloperTierModal({
               <div className="rounded-2xl p-6 bg-[#0f121a] border border-white/10 space-y-4">
                 <div className="space-y-1">
                   <h3 className="text-base font-bold text-white flex items-center gap-2">
-                    <Sliders className="w-4 h-4 text-[#34eb3d]" />
+                    <Sliders className="w-4 h-4 text-emerald-400" />
                     <span>Quota &amp; Credit Reset Simulator</span>
                   </h3>
                   <p className="text-xs text-zinc-400 leading-relaxed">
@@ -481,7 +481,7 @@ export function DeveloperTierModal({
                   <button
                     type="button"
                     onClick={onResetCredits}
-                    className="py-3 px-4 rounded-xl bg-[#34eb3d]/15 hover:bg-[#34eb3d]/25 border border-[#34eb3d]/40 text-[#34eb3d] font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+                    className="py-3 px-4 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-400 font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
                   >
                     <RefreshCw className="w-3.5 h-3.5" />
                     <span>Restore Full Quota (2 Free / 3 Studio)</span>
@@ -496,7 +496,7 @@ export function DeveloperTierModal({
         <footer className="px-6 py-3.5 border-t border-white/[0.08] flex items-center justify-between text-xs bg-[#0e1117]/80 flex-shrink-0">
           <div className="flex items-center gap-2 text-zinc-400 font-mono text-[11px]">
             <span>Simulation Mode:</span>
-            <span className={currentSimulatedTier ? "text-[#34eb3d] font-bold uppercase" : "text-zinc-500 uppercase"}>
+            <span className={currentSimulatedTier ? "text-emerald-400 font-bold uppercase" : "text-zinc-500 uppercase"}>
               {currentSimulatedTier ? `SIMULATED ${currentSimulatedTier}` : "PRODUCTION ENGINE"}
             </span>
           </div>

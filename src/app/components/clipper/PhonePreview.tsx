@@ -578,7 +578,7 @@ const DraggableCaptionOverlay: React.FC<{
           <div className="flex items-center pointer-events-none lowercase font-black text-base" style={fontSans}>
             <span
               key={currentWord}
-              className="text-white transition-all duration-200 scale-115 text-emerald-300 drop-shadow-[0_0_10px_rgba(52, 235, 61,0.8)]"
+              className="text-white transition-all duration-200 scale-115 text-emerald-300 drop-shadow-[0_0_10px_rgba(34, 197, 94,0.8)]"
               style={{
                 WebkitTextStroke: "1px #000",
                 textShadow: "0 3px 10px rgba(0,0,0,0.9), -1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000, 1.5px 1.5px 0 #000",

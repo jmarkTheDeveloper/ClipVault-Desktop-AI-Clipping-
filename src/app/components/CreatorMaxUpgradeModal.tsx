@@ -64,10 +64,10 @@ export function CreatorMaxUpgradeModal({
     >
       <div 
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-lg rounded-2xl bg-[#0c0d12] border border-[#34eb3d]/40 shadow-[0_0_60px_rgba(52,235,61,0.18)] p-6 sm:p-8 text-zinc-100 overflow-hidden cursor-default"
+        className="relative w-full max-w-lg rounded-2xl bg-[#0c0d12] border border-emerald-500/40 shadow-[0_0_60px_rgba(34, 197, 94,0.18)] p-6 sm:p-8 text-zinc-100 overflow-hidden cursor-default"
       >
         {/* Top ambient highlight */}
-        <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-[#34eb3d] to-transparent" />
+        <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-[#22c55e] to-transparent" />
 
         {/* Close Button */}
         <button
@@ -86,7 +86,7 @@ export function CreatorMaxUpgradeModal({
 
         {/* Header Badge */}
         <div className="flex items-center gap-2 mb-4">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#34eb3d]/10 border border-[#34eb3d]/30 text-[#34eb3d] text-[11px] font-bold uppercase tracking-wider">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] font-bold uppercase tracking-wider">
             <Lock className="w-3 h-3" />
             <span>Weekly Editor Limit Reached</span>
           </div>
@@ -99,7 +99,7 @@ export function CreatorMaxUpgradeModal({
         <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed mb-6">
           Your Creator Pro ($11/mo) subscription includes 3 weekly clips in the Pro Timeline Editor.
           You have utilized all 3 clips for this 7-day period. Your editor credits will refresh in{" "}
-          <span className="text-[#34eb3d] font-bold">
+          <span className="text-emerald-400 font-bold">
             {resetsInDays} {resetsInDays === 1 ? "day" : "days"}
           </span>
           {resetsAt ? ` (${resetsAt})` : ""}.
@@ -115,7 +115,7 @@ export function CreatorMaxUpgradeModal({
             </div>
             <div className="space-y-1.5 text-[11px] text-zinc-400">
               <div className="flex items-center gap-1.5 text-zinc-200">
-                <CheckCircle2 className="w-3 h-3 text-[#34eb3d] shrink-0" />
+                <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
                 <span>Unlimited 1-Click Auto Clipper</span>
               </div>
               <div className="flex items-center gap-1.5 text-amber-300">
@@ -126,25 +126,25 @@ export function CreatorMaxUpgradeModal({
           </div>
 
           {/* Upgrade Tier */}
-          <div className="rounded-xl p-3.5 bg-[#34eb3d]/[0.06] border border-[#34eb3d]/40 text-xs space-y-2 relative shadow-[0_0_20px_rgba(52,235,61,0.12)]">
+          <div className="rounded-xl p-3.5 bg-emerald-500/[0.06] border border-emerald-500/40 text-xs space-y-2 relative shadow-[0_0_20px_rgba(34, 197, 94,0.12)]">
             <div className="font-bold text-white flex items-center justify-between">
-              <span className="text-[#34eb3d]">Creator Max</span>
+              <span className="text-emerald-400">Creator Max</span>
               <div className="text-right">
                 <span className="text-zinc-200 font-bold">$15 / mo</span>
-                <span className="text-[10px] text-[#34eb3d] block font-mono">or $119/yr (Save 34%)</span>
+                <span className="text-[10px] text-emerald-400 block font-mono">or $119/yr (Save 34%)</span>
               </div>
             </div>
             <div className="space-y-1.5 text-[11px] text-zinc-300">
               <div className="flex items-center gap-1.5 font-medium">
-                <CheckCircle2 className="w-3 h-3 text-[#34eb3d] shrink-0" />
+                <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
                 <span>Unlimited 1-Click Auto Clipper</span>
               </div>
               <div className="flex items-center gap-1.5 font-medium text-white">
-                <Sparkles className="w-3 h-3 text-[#34eb3d] shrink-0" />
-                <span className="font-semibold text-[#34eb3d]">Unlimited Pro Timeline Editor</span>
+                <Sparkles className="w-3 h-3 text-emerald-400 shrink-0" />
+                <span className="font-semibold text-emerald-400">Unlimited Pro Timeline Editor</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-3 h-3 text-[#34eb3d] shrink-0" />
+                <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
                 <span>Up to 3 Workstation Activations</span>
               </div>
             </div>
@@ -156,7 +156,7 @@ export function CreatorMaxUpgradeModal({
           <button
             type="button"
             onClick={handleOpenCheckout}
-            className="w-full py-3 px-4 rounded-xl bg-[#34eb3d] text-black font-extrabold text-xs flex items-center justify-center gap-2 hover:bg-[#2dca34] transition-all shadow-[0_0_25px_rgba(52,235,61,0.35)] hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
+            className="w-full py-3 px-4 rounded-xl bg-emerald-500 text-black font-extrabold text-xs flex items-center justify-center gap-2 hover:bg-[#16a34a] transition-all shadow-[0_0_25px_rgba(34, 197, 94,0.35)] hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
           >
             <span>Upgrade to Creator Max ($15/mo or $119/yr)</span>
             <ExternalLink className="w-3.5 h-3.5" />
@@ -171,7 +171,7 @@ export function CreatorMaxUpgradeModal({
               }}
               className="w-full py-2.5 px-4 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold text-xs flex items-center justify-center gap-2 border border-white/10 transition-colors cursor-pointer"
             >
-              <Zap className="w-3.5 h-3.5 text-[#34eb3d]" />
+              <Zap className="w-3.5 h-3.5 text-emerald-400" />
               <span>Use 1-Click Auto Clipper (100% Unlimited)</span>
               <ArrowRight className="w-3.5 h-3.5 text-zinc-400" />
             </button>

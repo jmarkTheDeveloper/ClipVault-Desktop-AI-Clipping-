@@ -1855,7 +1855,7 @@ export const AiClipperScreen: React.FC<Props> = ({
           <div className="w-px h-5 bg-white/10" />
           <div className="flex items-center gap-2.5">
             <span className="text-white font-bold text-base">ClipVault Pro</span>
-            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-[#34eb3d]/10 text-[#34eb3d] border border-[#34eb3d]/25 tracking-wide">
+            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 tracking-wide">
               PRO
             </span>
           </div>
@@ -1871,7 +1871,7 @@ export const AiClipperScreen: React.FC<Props> = ({
                 loadVaultClips(true);
               }
             }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-[#34eb3d]/15 text-gray-300 hover:text-[#34eb3d] border border-white/10 hover:border-[#34eb3d]/30 text-xs font-bold transition-all cursor-pointer ml-2 shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-emerald-500/15 text-gray-300 hover:text-emerald-400 border border-white/10 hover:border-emerald-500/30 text-xs font-bold transition-all cursor-pointer ml-2 shadow-sm"
             title="Open Dedicated Saved Clips Vault"
           >
             <FolderCheck className="w-3.5 h-3.5 text-emerald-400" />
@@ -1893,11 +1893,11 @@ export const AiClipperScreen: React.FC<Props> = ({
               onClick={() => setShowCreatorMaxModal(true)}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
                 effectiveStudioCredits.remaining > 0
-                  ? "bg-white/5 border-[#34eb3d]/30 text-white hover:border-[#34eb3d]"
+                  ? "bg-white/5 border-emerald-500/30 text-white hover:border-emerald-500"
                   : "bg-amber-500/10 border-amber-500/40 text-amber-300 hover:bg-amber-500/20"
               }`}
             >
-              <Sparkles className="w-3.5 h-3.5 text-[#34eb3d]" />
+              <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
               <span>
                 {`Pro Editor: ${effectiveStudioCredits.remaining}/3 Weekly Clips`}
               </span>

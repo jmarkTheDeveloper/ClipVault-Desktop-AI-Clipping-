@@ -558,12 +558,12 @@ export function AskStudioPanel({
           title={hasApiKey ? "Open Ask ClipVault (AI Video Assistant)" : "Please put an API key first (AI Chat is Locked)"}
           className={`absolute bottom-6 right-6 z-30 group flex items-center gap-2.5 px-4 py-2.5 rounded-full border text-white font-medium text-xs backdrop-blur-xl transition-all duration-200 ${
             hasApiKey
-              ? "bg-[#080d0a]/90 hover:bg-[#0c140f] border-[#34eb3d]/40 shadow-[0_8px_32px_rgba(52, 235, 61,0.25)] hover:shadow-[0_8px_36px_rgba(52, 235, 61,0.45)] ring-1 ring-[#34eb3d]/25 hover:scale-105 cursor-pointer"
+              ? "bg-[#080d0a]/90 hover:bg-[#0c140f] border-emerald-500/40 shadow-[0_8px_32px_rgba(34, 197, 94,0.25)] hover:shadow-[0_8px_36px_rgba(34, 197, 94,0.45)] ring-1 ring-[#22c55e]/25 hover:scale-105 cursor-pointer"
               : "bg-[#141416]/80 hover:bg-[#1c1c1f] border-zinc-700/60 shadow-none ring-1 ring-white/5 opacity-60 grayscale cursor-not-allowed"
           }`}
         >
           <div className={`w-5 h-5 rounded-full flex items-center justify-center shadow-inner ${
-            hasApiKey ? "bg-gradient-to-tr from-[#34eb3d] to-[#5def64] text-black" : "bg-zinc-700 text-zinc-400"
+            hasApiKey ? "bg-gradient-to-tr from-[#22c55e] to-[#4ade80] text-black" : "bg-zinc-700 text-zinc-400"
           }`}>
             {hasApiKey ? (
               <Sparkles className="w-3 h-3 text-black animate-pulse" />
@@ -571,11 +571,11 @@ export function AskStudioPanel({
               <Lock className="w-2.5 h-2.5 text-zinc-300" />
             )}
           </div>
-          <span className={hasApiKey ? "bg-gradient-to-r from-emerald-200 to-[#34eb3d] bg-clip-text text-transparent font-bold tracking-wide" : "text-zinc-400 font-bold"}>
+          <span className={hasApiKey ? "bg-gradient-to-r from-emerald-200 to-[#22c55e] bg-clip-text text-transparent font-bold tracking-wide" : "text-zinc-400 font-bold"}>
             Ask ClipVault
           </span>
           <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${
-            hasApiKey ? "bg-[#34eb3d]/20 text-[#34eb3d] border border-[#34eb3d]/30" : "bg-red-500/15 text-red-400 border border-red-500/25"
+            hasApiKey ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" : "bg-red-500/15 text-red-400 border border-red-500/25"
           }`}>
             {hasApiKey ? "AI" : "LOCKED"}
           </span>

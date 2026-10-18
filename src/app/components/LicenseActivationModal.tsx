@@ -210,7 +210,7 @@ export function LicenseActivationModal({
 
         {/* Industry Standard Typography Header */}
         <div className="space-y-2">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-[#00e676]/10 border border-[#00e676]/20 text-[10px] font-mono font-bold tracking-widest text-[#00e676] uppercase">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-mono font-bold tracking-widest text-emerald-400 uppercase">
             Workstation Activation
           </div>
           <h2 className="text-xl font-bold text-white tracking-tight">
@@ -293,7 +293,7 @@ export function LicenseActivationModal({
               disabled={isLoading || Boolean(successMsg) || isLocked}
               spellCheck={false}
               autoComplete="off"
-              className="w-full bg-white/[0.04] border border-white/[0.12] focus:border-[#00e676] focus:ring-1 focus:ring-[#00e676]/40 rounded-xl pl-10 pr-20 py-3 text-xs sm:text-sm text-white font-mono placeholder-zinc-500 outline-none transition-all disabled:opacity-50"
+              className="w-full bg-white/[0.04] border border-white/[0.12] focus:border-emerald-500 focus:ring-1 focus:ring-[#22c55e]/40 rounded-xl pl-10 pr-20 py-3 text-xs sm:text-sm text-white font-mono placeholder-zinc-500 outline-none transition-all disabled:opacity-50"
             />
             <button
               type="button"
@@ -301,7 +301,7 @@ export function LicenseActivationModal({
               disabled={isLoading || Boolean(successMsg) || isLocked}
               className="absolute right-2 px-3 py-1.5 rounded-lg bg-white/[0.08] hover:bg-white/[0.14] text-[11px] font-bold text-zinc-200 transition-all cursor-pointer flex items-center gap-1 shadow-sm disabled:opacity-50"
             >
-              <Clipboard className="w-3 h-3 text-[#00e676]" />
+              <Clipboard className="w-3 h-3 text-emerald-400" />
               <span>Paste</span>
             </button>
           </div>
@@ -309,7 +309,7 @@ export function LicenseActivationModal({
           <button
             type="submit"
             disabled={isLoading || Boolean(successMsg) || isLocked}
-            className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-[#00e676] to-[#00DF6D] hover:brightness-110 text-black font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(0,230,118,0.25)] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.01]"
+            className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-[#22c55e] to-[#00DF6D] hover:brightness-110 text-black font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(34, 197, 94,0.25)] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.01]"
           >
             {isLoading ? (
               <>
@@ -332,7 +332,7 @@ export function LicenseActivationModal({
 
         {/* Workstation Verification Notice */}
         <div className="w-full p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.08] text-[11px] text-zinc-300 text-left flex items-start gap-2.5">
-          <ShieldCheck className="w-4 h-4 text-[#00e676] shrink-0 mt-0.5" />
+          <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
           <div className="space-y-0.5">
             <span className="font-bold text-white block">Official Workstation License</span>
             <p className="text-zinc-400 text-[10.5px] leading-relaxed">
@@ -359,7 +359,7 @@ export function LicenseActivationModal({
             href={checkoutUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[#00e676] hover:text-[#00c853] font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="text-emerald-400 hover:text-[#00c853] font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
           >
             <span>Purchase ClipVault License</span>
             <ExternalLink className="w-3 h-3" />

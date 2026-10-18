@@ -117,7 +117,7 @@ const FolderCard: React.FC<FolderCardProps> = ({
       onDragLeave={onDragLeave}
       className={`group relative p-4 rounded-2xl border transition-all duration-200 cursor-pointer flex flex-col justify-between select-none ${
         isDragOver
-          ? "bg-emerald-400/20 border-emerald-400 ring-2 ring-emerald-400 scale-[1.02] shadow-[0_0_25px_rgba(52, 235, 61,0.35)]"
+          ? "bg-emerald-400/20 border-emerald-400 ring-2 ring-emerald-400 scale-[1.02] shadow-[0_0_25px_rgba(34, 197, 94,0.35)]"
           : isSelected
           ? "bg-[#1e1a12] border-emerald-400/70 shadow-lg ring-1 ring-emerald-400/30"
           : "bg-[#141414] hover:bg-[#1c1c1c] border-white/5 hover:border-emerald-400/40 hover:shadow-xl"
@@ -1250,7 +1250,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
             {/* Primary Action: Open in Windows Explorer */}
             <button
               onClick={() => openOutputFolder(vaultSelectedFolder !== "all" && vaultSelectedFolder !== "Main Library" ? vaultSelectedFolder : undefined)}
-              className="px-3 py-1.5 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-black font-extrabold text-xs transition-all shadow-[0_0_20px_rgba(52, 235, 61,0.25)] flex items-center gap-1.5 cursor-pointer shrink-0 hover:scale-[1.02] active:scale-95"
+              className="px-3 py-1.5 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-black font-extrabold text-xs transition-all shadow-[0_0_20px_rgba(34, 197, 94,0.25)] flex items-center gap-1.5 cursor-pointer shrink-0 hover:scale-[1.02] active:scale-95"
               title="Open the active folder in native Windows Explorer"
             >
               <FolderOpen className="w-3.5 h-3.5 text-black" />

@@ -38,7 +38,7 @@ import { SUBTITLE_PRESETS, SubtitleStyleCard } from "../components/clipper/Subti
 import { isLikedVideosUrl, cleanYouTubeUrl } from "../components/clipper/types";
 import { CreatorProUpgradeModal } from "../components/CreatorProUpgradeModal";
 
-const G = "#34eb3d";
+const G = "#22c55e";
 
 interface Props {
   onBack: () => void;
@@ -750,7 +750,7 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
           {!isEffectivelyLicensed && (
             <div className="flex items-center gap-2">
               <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/[0.1] text-[11px] font-mono font-bold text-gray-300">
-                <span className="w-2 h-2 rounded-full bg-[#34eb3d]" />
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
                 <span>Free: {freeCredits ? `${freeCredits.remaining}/2 Clips` : "2 Clips/Wk"}</span>
               </div>
               <button
@@ -759,7 +759,7 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
                   setUpgradeReason("upgrade_menu");
                   setShowUpgradeModal(true);
                 }}
-                className="px-2.5 py-1 rounded-lg bg-[#34eb3d]/15 hover:bg-[#34eb3d]/25 border border-[#34eb3d]/40 text-[#34eb3d] text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                className="px-2.5 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-400 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
               >
                 <Sparkles className="w-3 h-3" />
                 <span>Upgrade</span>
@@ -776,7 +776,7 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
                 className="px-2.5 py-1 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.1] text-gray-300 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
                 title="Activate License Key"
               >
-                <Key className="w-3 h-3 text-[#34eb3d]" />
+                <Key className="w-3 h-3 text-emerald-400" />
                 <span className="hidden sm:inline">Activate Key</span>
               </button>
             </div>
@@ -793,12 +793,12 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
             }`}
             title="Configure AI Model and API Key (Gemini, OpenAI, Groq, DeepSeek, Local Hardware)"
           >
-            <Sparkles className="w-3.5 h-3.5 text-[#34eb3d]" />
+            <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
             <span className="max-w-[130px] truncate">{activeEngineObj?.name || "AI Engine"}</span>
             <span
               className={`w-2 h-2 rounded-full shrink-0 ${
                 activeEngineKey || activeEngineObj?.providerType === "local"
-                  ? "bg-[#34eb3d] shadow-[0_0_6px_#34eb3d]"
+                  ? "bg-emerald-500 shadow-[0_0_6px_#22c55e]"
                   : "bg-emerald-400 animate-pulse"
               }`}
             />
@@ -816,7 +816,7 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                    <CheckCircle2 className="w-5 h-5 text-[#34eb3d]" />
+                    <CheckCircle2 className="w-5 h-5 text-emerald-400" />
                     <span>Generated {generatedClips.length} Viral Clips</span>
                   </h2>
                   <p className="text-xs text-gray-400 mt-0.5">
@@ -906,7 +906,7 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
                       {/* Buffering Indicator */}
                       {isBuffering && (
                         <div className="absolute inset-0 flex items-center justify-center bg-black/40 pointer-events-none z-10">
-                          <Loader2 className="w-8 h-8 text-[#34eb3d] animate-spin" />
+                          <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
                         </div>
                       )}
 
@@ -919,7 +919,7 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
                           }}
                           className="absolute inset-0 flex items-center justify-center bg-black/30 cursor-pointer transition-all z-10"
                         >
-                          <div className="w-12 h-12 rounded-full bg-[#34eb3d] text-black flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all">
+                          <div className="w-12 h-12 rounded-full bg-emerald-500 text-black flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all">
                             <Play className="w-6 h-6 ml-0.5 fill-black" />
                           </div>
                         </div>
@@ -942,7 +942,7 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
                                 videoRef.current.currentTime = newTime;
                               }
                             }}
-                            className="w-full h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-[#34eb3d] hover:h-1.5 transition-all"
+                            className="w-full h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-[#22c55e] hover:h-1.5 transition-all"
                           />
                         </div>
 
@@ -959,7 +959,7 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
                                   setIsPlaying(!isPlaying);
                                 }
                               }}
-                              className="text-white hover:text-[#34eb3d] transition-colors cursor-pointer"
+                              className="text-white hover:text-emerald-400 transition-colors cursor-pointer"
                             >
                               {isPlaying ? <Pause className="w-3.5 h-3.5 fill-white" /> : <Play className="w-3.5 h-3.5 fill-white" />}
                             </button>
@@ -1025,12 +1025,12 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
 
                           <div className="flex items-center justify-between text-xs pt-1">
                             <span className="text-gray-400 font-medium flex items-center gap-1.5">
-                              <TrendingUp className="w-3.5 h-3.5 text-[#34eb3d]" /> Narrative Flow
+                              <TrendingUp className="w-3.5 h-3.5 text-emerald-400" /> Narrative Flow
                             </span>
-                            <span className="font-bold text-[#34eb3d]">{activeClip.sub_scores.flow}/100</span>
+                            <span className="font-bold text-emerald-400">{activeClip.sub_scores.flow}/100</span>
                           </div>
                           <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
-                            <div className="h-full bg-[#34eb3d] rounded-full" style={{ width: `${activeClip.sub_scores.flow}%` }} />
+                            <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${activeClip.sub_scores.flow}%` }} />
                           </div>
                         </div>
                       )}
@@ -1071,7 +1071,7 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
                         <button
                           type="button"
                           onClick={onGoToVault}
-                          className="px-4 py-2 rounded-lg bg-[#34eb3d] text-black text-xs font-bold hover:brightness-110 transition-all flex items-center gap-1.5 cursor-pointer shadow-lg shadow-[#34eb3d]/20"
+                          className="px-4 py-2 rounded-lg bg-emerald-500 text-black text-xs font-bold hover:brightness-110 transition-all flex items-center gap-1.5 cursor-pointer shadow-lg shadow-[#22c55e]/20"
                         >
                           <span>Go to Vault</span>
                           <ExternalLink className="w-3.5 h-3.5" />
@@ -1093,7 +1093,7 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
                     }}
                     className={`rounded-xl border transition-all cursor-pointer flex flex-col overflow-hidden group/thumb ${
                       activeClipIndex === idx
-                        ? "bg-[#34eb3d]/10 border-[#34eb3d] ring-1 ring-[#34eb3d]/40 shadow-xl shadow-[#34eb3d]/10"
+                        ? "bg-emerald-500/10 border-emerald-500 ring-1 ring-[#22c55e]/40 shadow-xl shadow-[#22c55e]/10"
                         : "bg-white/[0.03] border-white/[0.08] hover:bg-white/[0.06] hover:border-white/20"
                     }`}
                   >
@@ -1116,7 +1116,7 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
                       <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-black/80 backdrop-blur-md text-[10px] font-bold text-white border border-white/10">
                         #{idx + 1}
                       </div>
-                      <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-black/80 backdrop-blur-md text-[10px] font-bold text-[#34eb3d] border border-[#34eb3d]/30">
+                      <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-black/80 backdrop-blur-md text-[10px] font-bold text-emerald-400 border border-emerald-500/30">
                         {clip.virality_score} pts
                       </div>
                       <div className="absolute bottom-2 left-2 px-1.5 py-0.5 rounded bg-black/80 text-[10px] font-mono text-gray-300">
@@ -1138,7 +1138,7 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
 
               {/* Header Title Hero */}
               <div className="text-center max-w-2xl mx-auto space-y-2.5">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#34eb3d]/10 border border-[#34eb3d]/25 text-[#34eb3d] text-[11px] font-bold tracking-wide uppercase shadow-sm">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-[11px] font-bold tracking-wide uppercase shadow-sm">
                   <Sparkles className="w-3.5 h-3.5" />
                   <span>Next-Gen Autonomous Video Intelligence</span>
                 </div>
@@ -1182,7 +1182,7 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
                         onClick={() => setSourceTab("url")}
                         className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                           sourceTab === "url"
-                            ? "bg-[#34eb3d] text-black shadow-md"
+                            ? "bg-emerald-500 text-black shadow-md"
                             : "text-gray-400 hover:text-white"
                         }`}
                       >
@@ -1194,7 +1194,7 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
                         onClick={() => setSourceTab("local")}
                         className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                           sourceTab === "local"
-                            ? "bg-[#34eb3d] text-black shadow-md"
+                            ? "bg-emerald-500 text-black shadow-md"
                             : "text-gray-400 hover:text-white"
                         }`}
                       >
@@ -1224,7 +1224,7 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
                           className={`w-full rounded-xl pl-10 pr-24 py-3.5 text-sm text-white placeholder-gray-500 focus:outline-none transition-all disabled:opacity-50 ${
                             isLikedVideosUrl(url)
                               ? "bg-red-500/10 border border-red-500/80 focus:border-red-500 focus:ring-1 focus:ring-red-500/30"
-                              : "bg-white/[0.03] border border-white/[0.12] focus:border-[#34eb3d] focus:ring-1 focus:ring-[#34eb3d]/40"
+                              : "bg-white/[0.03] border border-white/[0.12] focus:border-emerald-500 focus:ring-1 focus:ring-[#22c55e]/40"
                           }`}
                         />
                         <div className="absolute right-2.5 flex items-center gap-1.5">
@@ -1281,14 +1281,14 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
                     /* Input View 2: Local Video File Browse Card */
                     <div
                       onClick={handleSelectLocalFile}
-                      className="border-2 border-dashed border-white/[0.12] hover:border-[#34eb3d]/60 rounded-xl p-5 bg-white/[0.02] hover:bg-white/[0.04] transition-all cursor-pointer flex flex-col items-center justify-center gap-2 text-center group"
+                      className="border-2 border-dashed border-white/[0.12] hover:border-emerald-500/60 rounded-xl p-5 bg-white/[0.02] hover:bg-white/[0.04] transition-all cursor-pointer flex flex-col items-center justify-center gap-2 text-center group"
                     >
-                      <div className="w-10 h-10 rounded-full bg-white/[0.05] group-hover:bg-[#34eb3d]/10 flex items-center justify-center text-gray-400 group-hover:text-[#34eb3d] transition-colors">
+                      <div className="w-10 h-10 rounded-full bg-white/[0.05] group-hover:bg-emerald-500/10 flex items-center justify-center text-gray-400 group-hover:text-emerald-400 transition-colors">
                         <UploadCloud className="w-5 h-5" />
                       </div>
                       <div className="text-xs font-bold text-gray-200 group-hover:text-white">
                         {url && videoInfo?.uploader === "Local Video File" ? (
-                          <span className="text-[#34eb3d]">Selected: {videoInfo.title}</span>
+                          <span className="text-emerald-400">Selected: {videoInfo.title}</span>
                         ) : (
                           <span>Click to browse video file from your computer</span>
                         )}
@@ -1300,7 +1300,7 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
                   {/* Live Video Info Card Preview */}
                   {resolvingInfo && (
                     <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] flex items-center gap-3 animate-pulse">
-                      <Loader2 className="w-4 h-4 text-[#34eb3d] animate-spin" />
+                      <Loader2 className="w-4 h-4 text-emerald-400 animate-spin" />
                       <span className="text-xs text-gray-400">Resolving video title, duration, and stream metadata...</span>
                     </div>
                   )}
@@ -1313,7 +1313,7 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
                   )}
 
                   {videoInfo && !resolvingInfo && (
-                    <div className="p-3.5 rounded-xl bg-[#34eb3d]/[0.04] border border-[#34eb3d]/30 flex items-center justify-between gap-3.5">
+                    <div className="p-3.5 rounded-xl bg-emerald-500/[0.04] border border-emerald-500/30 flex items-center justify-between gap-3.5">
                       <div className="flex items-center gap-3.5 min-w-0">
                         {videoInfo.thumbnail ? (
                           <img
@@ -1331,7 +1331,7 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
                           <p className="text-[11px] text-gray-400 flex items-center gap-2 mt-0.5">
                             {videoInfo.uploader && <span>{videoInfo.uploader}</span>}
                             {videoInfo.duration > 0 && (
-                              <span className="flex items-center gap-1 text-[#34eb3d] font-semibold">
+                              <span className="flex items-center gap-1 text-emerald-400 font-semibold">
                                 <Clock className="w-3 h-3" />
                                 {Math.floor(videoInfo.duration / 60)}m {Math.floor(videoInfo.duration % 60)}s
                               </span>
@@ -1362,7 +1362,7 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
                   <div id="tour-opus-framing" className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.06] flex flex-col gap-4.5 shadow-sm">
                     <div className="flex items-center justify-between pb-1 border-b border-white/[0.06]">
                       <span className="text-xs font-bold text-white flex items-center gap-2">
-                        <Layers className="w-4 h-4 text-[#34eb3d]" />
+                        <Layers className="w-4 h-4 text-emerald-400" />
                         <span>Framing & Video Size</span>
                       </span>
                       <span className="text-[10px] text-gray-500 font-medium">Core Visuals</span>
@@ -1383,7 +1383,7 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
                             onClick={() => setAspectRatio(ar.id as any)}
                             className={`py-2.5 px-2 rounded-xl text-center border transition-all cursor-pointer ${
                               aspectRatio === ar.id
-                                ? "bg-[#34eb3d]/15 border-[#34eb3d] text-white shadow-sm font-bold"
+                                ? "bg-emerald-500/15 border-emerald-500 text-white shadow-sm font-bold"
                                 : "bg-white/[0.02] border-white/[0.06] text-gray-400 hover:text-white hover:bg-white/[0.04]"
                             }`}
                           >
@@ -1435,7 +1435,7 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
                             }}
                             className={`p-3 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer group ${
                               layoutMode === item.id
-                                ? "bg-[#34eb3d]/10 border-[#34eb3d] text-white shadow-[0_0_14px_rgba(52, 235, 61,0.12)]"
+                                ? "bg-emerald-500/10 border-emerald-500 text-white shadow-[0_0_14px_rgba(34, 197, 94,0.12)]"
                                 : "bg-white/[0.02] border-white/[0.06] text-gray-400 hover:text-white hover:bg-white/[0.04] hover:border-white/[0.12]"
                             }`}
                           >
@@ -1445,7 +1445,7 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
                                 <span
                                   className={`text-[8.5px] px-1.5 py-0.5 rounded font-mono font-bold border transition-colors ${
                                     layoutMode === item.id
-                                      ? "bg-[#34eb3d]/20 text-[#34eb3d] border-[#34eb3d]/40"
+                                      ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40"
                                       : "bg-white/[0.04] text-gray-400 border-white/[0.08]"
                                   }`}
                                 >
@@ -1454,7 +1454,7 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
                               </div>
                               <div className="text-[10.5px] text-gray-400 mt-0.5 leading-tight">{item.sub}</div>
                             </div>
-                            {layoutMode === item.id && <Check className="w-4 h-4 text-[#34eb3d] shrink-0" />}
+                            {layoutMode === item.id && <Check className="w-4 h-4 text-emerald-400 shrink-0" />}
                           </button>
                         ))}
                       </div>
@@ -1465,14 +1465,14 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
                   <div id="tour-opus-captions" className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.06] flex flex-col gap-4.5 shadow-sm relative z-20">
                     <div className="flex items-center justify-between pb-1 border-b border-white/[0.06]">
                       <span className="text-xs font-bold text-white flex items-center gap-2">
-                        <Subtitles className="w-4 h-4 text-[#34eb3d]" />
+                        <Subtitles className="w-4 h-4 text-emerald-400" />
                         <span>AI Captions & Styles</span>
                       </span>
                       <button
                         type="button"
                         onClick={() => setCaptionsEnabled(!captionsEnabled)}
                         className={`w-9 h-5 rounded-full p-0.5 transition-colors cursor-pointer flex items-center ${
-                          captionsEnabled ? "bg-[#34eb3d]" : "bg-white/20"
+                          captionsEnabled ? "bg-emerald-500" : "bg-white/20"
                         }`}
                         title={captionsEnabled ? "Captions enabled" : "Captions disabled"}
                       >
@@ -1492,7 +1492,7 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
                             <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
                               Subtitle Style Preset
                             </span>
-                            <span className="text-[9.5px] text-[#34eb3d] font-mono font-bold">
+                            <span className="text-[9.5px] text-emerald-400 font-mono font-bold">
                               Kinetic Visuals
                             </span>
                           </div>
@@ -1533,7 +1533,7 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
                                   • {activePreset.desc}
                                 </span>
                               </div>
-                              <span className="text-[8.5px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#34eb3d]/15 text-[#34eb3d] border border-[#34eb3d]/30 shrink-0">
+                              <span className="text-[8.5px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shrink-0">
                                 {activePreset.badge}
                               </span>
                             </div>
@@ -1545,7 +1545,7 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
                           <div className="flex items-center justify-between">
                             <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Position</span>
                             {(layoutMode === "podcast_split" || layoutMode === "auto_split") && (
-                              <span className="text-[9.5px] text-[#34eb3d] font-medium">Split Seam (Middle)</span>
+                              <span className="text-[9.5px] text-emerald-400 font-medium">Split Seam (Middle)</span>
                             )}
                           </div>
                           <div className="grid grid-cols-3 gap-2">
@@ -1560,7 +1560,7 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
                                 onClick={() => setCaptionPlacement(pos.id as any)}
                                 className={`py-2.5 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
                                   captionPlacement === pos.id
-                                    ? "bg-[#34eb3d]/15 border-[#34eb3d] text-white shadow-sm"
+                                    ? "bg-emerald-500/15 border-emerald-500 text-white shadow-sm"
                                     : "bg-white/[0.02] border-white/[0.06] text-gray-400 hover:text-white hover:bg-white/[0.04]"
                                 }`}
                               >
@@ -1571,7 +1571,7 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
                         </div>
 
                         <div className="p-2.5 rounded-xl bg-black/40 border border-white/[0.06] text-[10.5px] text-gray-400 flex items-center gap-2">
-                          <Sparkles className="w-3.5 h-3.5 text-[#34eb3d] shrink-0" />
+                          <Sparkles className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                           <span>Pre-rendered with multi-stage Gaussian bloom & genuine Montserrat-Black.</span>
                         </div>
                       </div>
@@ -1588,7 +1588,7 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
                   <div id="tour-opus-curation" className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.06] flex flex-col gap-4.5 shadow-sm">
                     <div className="flex items-center justify-between pb-1 border-b border-white/[0.06]">
                       <span className="text-xs font-bold text-white flex items-center gap-2">
-                        <TrendingUp className="w-4 h-4 text-[#34eb3d]" />
+                        <TrendingUp className="w-4 h-4 text-emerald-400" />
                         <span>Viral Intelligence & Output</span>
                       </span>
                       <span className="text-[10px] text-gray-500 font-medium">Export Master</span>
@@ -1624,7 +1624,7 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
                             onClick={() => setClipYield(item.id as any)}
                             className={`p-3.5 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer group ${
                               clipYield === item.id
-                                ? "bg-[#34eb3d]/10 border-[#34eb3d] text-white shadow-[0_0_14px_rgba(52, 235, 61,0.12)]"
+                                ? "bg-emerald-500/10 border-emerald-500 text-white shadow-[0_0_14px_rgba(34, 197, 94,0.12)]"
                                 : "bg-white/[0.02] border-white/[0.06] text-gray-400 hover:text-white hover:bg-white/[0.04] hover:border-white/[0.12]"
                             }`}
                           >
@@ -1634,7 +1634,7 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
                                 <span
                                   className={`text-[8.5px] px-1.5 py-0.5 rounded font-mono font-bold border ${
                                     clipYield === item.id
-                                      ? "bg-[#34eb3d]/20 text-[#34eb3d] border-[#34eb3d]/40"
+                                      ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40"
                                       : "bg-white/[0.04] text-gray-400 border-white/[0.08]"
                                   }`}
                                 >
@@ -1643,7 +1643,7 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
                               </div>
                               <div className="text-[10.5px] text-gray-400 mt-0.5 leading-tight">{item.sub}</div>
                             </div>
-                            {clipYield === item.id && <Check className="w-4 h-4 text-[#34eb3d] shrink-0" />}
+                            {clipYield === item.id && <Check className="w-4 h-4 text-emerald-400 shrink-0" />}
                           </button>
                         ))}
                       </div>
@@ -1698,7 +1698,7 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
                             }}
                             className={`py-2.5 px-2 rounded-xl text-center border transition-all cursor-pointer relative ${
                               quality === q.id
-                                ? "bg-[#34eb3d]/15 border-[#34eb3d] text-white shadow-sm font-bold"
+                                ? "bg-emerald-500/15 border-emerald-500 text-white shadow-sm font-bold"
                                 : q.locked
                                 ? "bg-white/[0.01] border-white/[0.04] text-gray-500 hover:border-amber-500/40"
                                 : "bg-white/[0.02] border-white/[0.06] text-gray-400 hover:text-white hover:bg-white/[0.04]"
@@ -1727,18 +1727,18 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
 
                 {/* Progress Bar (Active Rendering) */}
                 {isGenerating && (
-                  <div className="p-4 rounded-2xl bg-[#34eb3d]/5 border border-[#34eb3d]/20 flex flex-col gap-2.5">
+                  <div className="p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/20 flex flex-col gap-2.5">
                     <div className="flex items-center justify-between text-xs">
                       <span className="font-bold text-white flex items-center gap-2">
-                        <Loader2 className="w-4 h-4 text-[#34eb3d] animate-spin" />
+                        <Loader2 className="w-4 h-4 text-emerald-400 animate-spin" />
                         {progressStatus}
                       </span>
-                      <span className="font-bold text-[#34eb3d]">{progressPercent}%</span>
+                      <span className="font-bold text-emerald-400">{progressPercent}%</span>
                     </div>
 
                     <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
                       <div
-                        className="h-full bg-[#34eb3d] rounded-full transition-all duration-300"
+                        className="h-full bg-emerald-500 rounded-full transition-all duration-300"
                         style={{ width: `${progressPercent}%` }}
                       />
                     </div>
@@ -1768,7 +1768,7 @@ export function OpusClipperScreen({ onBack, onGoToVault, isLicensed, onOpenActiv
                       className={`w-full py-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2.5 transition-all cursor-pointer shadow-xl ${
                         !url.trim() || resolvingInfo
                           ? "bg-white/[0.05] text-gray-500 border border-white/[0.08] cursor-not-allowed"
-                          : "bg-gradient-to-r from-[#34eb3d] via-[#5def64] to-[#2dca34] text-black hover:brightness-110 shadow-[0_4px_24px_rgba(52, 235, 61,0.30)] hover:shadow-[0_6px_32px_rgba(52, 235, 61,0.45)] hover:-translate-y-0.5 active:translate-y-0"
+                          : "bg-gradient-to-r from-[#22c55e] via-[#4ade80] to-[#16a34a] text-black hover:brightness-110 shadow-[0_4px_24px_rgba(34, 197, 94,0.30)] hover:shadow-[0_6px_32px_rgba(34, 197, 94,0.45)] hover:-translate-y-0.5 active:translate-y-0"
                       }`}
                     >
                       <Sparkles className="w-4 h-4 fill-black" />

@@ -362,11 +362,11 @@ export function SystemEnvironmentModal({ isOpen, onClose, isStandalone = false }
               width: 18,
               height: 18,
               borderRadius: 4,
-              background: "linear-gradient(135deg, #00e676 0%, #00b0ff 100%)",
+              background: "linear-gradient(135deg, #22c55e 0%, #00b0ff 100%)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              boxShadow: "0 0 10px rgba(0, 230, 118, 0.3)",
+              boxShadow: "0 0 10px rgba(34, 197, 94, 0.3)",
             }}
           >
             <Layers style={{ width: 11, height: 11, color: "#000" }} />
@@ -461,12 +461,12 @@ export function SystemEnvironmentModal({ isOpen, onClose, isStandalone = false }
                   width: 32,
                   height: 32,
                   borderRadius: 6,
-                  background: "rgba(0, 230, 118, 0.1)",
-                  border: "1px solid rgba(0, 230, 118, 0.25)",
+                  background: "rgba(34, 197, 94, 0.1)",
+                  border: "1px solid rgba(34, 197, 94, 0.25)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: "#00e676",
+                  color: "#22c55e",
                 }}
               >
                 <Cpu style={{ width: 18, height: 18 }} />
@@ -487,11 +487,11 @@ export function SystemEnvironmentModal({ isOpen, onClose, isStandalone = false }
                   fontSize: 11,
                   fontFamily: "'Consolas', monospace",
                   fontWeight: 600,
-                  color: stage === "completed" ? "#00e676" : "#38bdf8",
+                  color: stage === "completed" ? "#22c55e" : "#38bdf8",
                   padding: "4px 10px",
                   borderRadius: 4,
-                  background: stage === "completed" ? "rgba(0, 230, 118, 0.08)" : "rgba(56, 189, 248, 0.08)",
-                  border: stage === "completed" ? "1px solid rgba(0, 230, 118, 0.2)" : "1px solid rgba(56, 189, 248, 0.2)",
+                  background: stage === "completed" ? "rgba(34, 197, 94, 0.08)" : "rgba(56, 189, 248, 0.08)",
+                  border: stage === "completed" ? "1px solid rgba(34, 197, 94, 0.2)" : "1px solid rgba(56, 189, 248, 0.2)",
                   display: "inline-flex",
                   alignItems: "center",
                   gap: 6,
@@ -502,7 +502,7 @@ export function SystemEnvironmentModal({ isOpen, onClose, isStandalone = false }
                     width: 6,
                     height: 6,
                     borderRadius: "50%",
-                    background: stage === "completed" ? "#00e676" : "#38bdf8",
+                    background: stage === "completed" ? "#22c55e" : "#38bdf8",
                   }}
                 />
                 {stage === "completed" ? "DIAGNOSTICS PASSED" : "SCANNING SUBSYSTEMS"}
@@ -519,7 +519,7 @@ export function SystemEnvironmentModal({ isOpen, onClose, isStandalone = false }
                   <span style={{ color: "#d1d5db", fontWeight: 600 }}>
                     Initializing subsystem drivers and hardware acceleration interfaces...
                   </span>
-                  <span style={{ color: "#00e676", fontFamily: "'Consolas', monospace", fontWeight: 700 }}>
+                  <span style={{ color: "#22c55e", fontFamily: "'Consolas', monospace", fontWeight: 700 }}>
                     {progress}%
                   </span>
                 </div>
@@ -536,7 +536,7 @@ export function SystemEnvironmentModal({ isOpen, onClose, isStandalone = false }
                     style={{
                       width: `${progress}%`,
                       height: "100%",
-                      background: "linear-gradient(90deg, #00e676 0%, #38bdf8 100%)",
+                      background: "linear-gradient(90deg, #22c55e 0%, #38bdf8 100%)",
                       borderRadius: 2,
                       transition: "width 0.25s ease-out",
                     }}
@@ -566,12 +566,12 @@ export function SystemEnvironmentModal({ isOpen, onClose, isStandalone = false }
                         padding: "8px 12px",
                         borderRadius: 4,
                         background: isPassed
-                          ? "rgba(0, 230, 118, 0.04)"
+                          ? "rgba(34, 197, 94, 0.04)"
                           : isRunning
                           ? "rgba(56, 189, 248, 0.05)"
                           : "transparent",
                         border: isPassed
-                          ? "1px solid rgba(0, 230, 118, 0.15)"
+                          ? "1px solid rgba(34, 197, 94, 0.15)"
                           : isRunning
                           ? "1px solid rgba(56, 189, 248, 0.2)"
                           : "1px solid transparent",
@@ -592,11 +592,11 @@ export function SystemEnvironmentModal({ isOpen, onClose, isStandalone = false }
                             alignItems: "center",
                             justifyContent: "center",
                             background: isPassed
-                              ? "rgba(0, 230, 118, 0.15)"
+                              ? "rgba(34, 197, 94, 0.15)"
                               : isRunning
                               ? "rgba(56, 189, 248, 0.15)"
                               : "rgba(255, 255, 255, 0.05)",
-                            color: isPassed ? "#00e676" : isRunning ? "#38bdf8" : "#9ca3af",
+                            color: isPassed ? "#22c55e" : isRunning ? "#38bdf8" : "#9ca3af",
                             fontSize: 10,
                             fontFamily: "'Consolas', monospace",
                             fontWeight: 700,
@@ -639,13 +639,13 @@ export function SystemEnvironmentModal({ isOpen, onClose, isStandalone = false }
                           borderRadius: 3,
                           textTransform: "uppercase",
                           background: isPassed
-                            ? "rgba(0, 230, 118, 0.12)"
+                            ? "rgba(34, 197, 94, 0.12)"
                             : isRunning
                             ? "rgba(56, 189, 248, 0.12)"
                             : "rgba(255, 255, 255, 0.04)",
-                          color: isPassed ? "#00e676" : isRunning ? "#38bdf8" : "#6b7280",
+                          color: isPassed ? "#22c55e" : isRunning ? "#38bdf8" : "#6b7280",
                           border: isPassed
-                            ? "1px solid rgba(0, 230, 118, 0.25)"
+                            ? "1px solid rgba(34, 197, 94, 0.25)"
                             : isRunning
                             ? "1px solid rgba(56, 189, 248, 0.25)"
                             : "1px solid rgba(255, 255, 255, 0.06)",
@@ -682,7 +682,7 @@ export function SystemEnvironmentModal({ isOpen, onClose, isStandalone = false }
                   </span>
                 </div>
                 {telemetryLogs.map((log, i) => (
-                  <div key={i} style={{ color: log.includes("STATUS:") ? "#00e676" : log.includes("CODEC:") ? "#38bdf8" : "#9ca3af" }}>
+                  <div key={i} style={{ color: log.includes("STATUS:") ? "#22c55e" : log.includes("CODEC:") ? "#38bdf8" : "#9ca3af" }}>
                     {log}
                   </div>
                 ))}
@@ -698,8 +698,8 @@ export function SystemEnvironmentModal({ isOpen, onClose, isStandalone = false }
                 style={{
                   padding: "14px 18px",
                   borderRadius: 6,
-                  background: "linear-gradient(135deg, rgba(0, 230, 118, 0.08) 0%, rgba(56, 189, 248, 0.04) 100%)",
-                  border: "1px solid rgba(0, 230, 118, 0.25)",
+                  background: "linear-gradient(135deg, rgba(34, 197, 94, 0.08) 0%, rgba(56, 189, 248, 0.04) 100%)",
+                  border: "1px solid rgba(34, 197, 94, 0.25)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
@@ -712,12 +712,12 @@ export function SystemEnvironmentModal({ isOpen, onClose, isStandalone = false }
                       width: 28,
                       height: 28,
                       borderRadius: 4,
-                      background: "rgba(0, 230, 118, 0.15)",
-                      border: "1px solid rgba(0, 230, 118, 0.3)",
+                      background: "rgba(34, 197, 94, 0.15)",
+                      border: "1px solid rgba(34, 197, 94, 0.3)",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      color: "#00e676",
+                      color: "#22c55e",
                       flexShrink: 0,
                     }}
                   >
@@ -737,9 +737,9 @@ export function SystemEnvironmentModal({ isOpen, onClose, isStandalone = false }
                   style={{
                     padding: "4px 10px",
                     borderRadius: 4,
-                    background: "rgba(0, 230, 118, 0.1)",
-                    border: "1px solid rgba(0, 230, 118, 0.25)",
-                    color: "#00e676",
+                    background: "rgba(34, 197, 94, 0.1)",
+                    border: "1px solid rgba(34, 197, 94, 0.25)",
+                    color: "#22c55e",
                     fontSize: 11,
                     fontFamily: "'Consolas', monospace",
                     fontWeight: 700,
@@ -775,7 +775,7 @@ export function SystemEnvironmentModal({ isOpen, onClose, isStandalone = false }
                     <span style={{ fontSize: 10, color: "#6b7280", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
                       Host Processor (CPU)
                     </span>
-                    <span style={{ fontSize: 10, color: "#00e676", fontFamily: "'Consolas', monospace", fontWeight: 600 }}>
+                    <span style={{ fontSize: 10, color: "#22c55e", fontFamily: "'Consolas', monospace", fontWeight: 600 }}>
                       AVX2 / FMA3
                     </span>
                   </div>
@@ -831,7 +831,7 @@ export function SystemEnvironmentModal({ isOpen, onClose, isStandalone = false }
                     <span style={{ fontSize: 10, color: "#6b7280", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
                       System Physical Memory
                     </span>
-                    <span style={{ fontSize: 10, color: isLowMemory ? "#fbbf24" : "#00e676", fontFamily: "'Consolas', monospace", fontWeight: 600 }}>
+                    <span style={{ fontSize: 10, color: isLowMemory ? "#fbbf24" : "#22c55e", fontFamily: "'Consolas', monospace", fontWeight: 600 }}>
                       {isLowMemory ? "Standard Buffer" : "High-Speed Buffer"}
                     </span>
                   </div>
@@ -859,7 +859,7 @@ export function SystemEnvironmentModal({ isOpen, onClose, isStandalone = false }
                     <span style={{ fontSize: 10, color: "#6b7280", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
                       Scratch Workspace Volume
                     </span>
-                    <span style={{ fontSize: 10, color: "#00e676", fontFamily: "'Consolas', monospace", fontWeight: 600 }}>
+                    <span style={{ fontSize: 10, color: "#22c55e", fontFamily: "'Consolas', monospace", fontWeight: 600 }}>
                       I/O Verified
                     </span>
                   </div>
@@ -882,12 +882,12 @@ export function SystemEnvironmentModal({ isOpen, onClose, isStandalone = false }
                       style={{
                         background: "transparent",
                         border: "none",
-                        color: activeTab === "diagnostics" ? "#00e676" : "#6b7280",
+                        color: activeTab === "diagnostics" ? "#22c55e" : "#6b7280",
                         fontSize: 11,
                         fontWeight: 700,
                         cursor: "pointer",
                         padding: "4px 0",
-                        borderBottom: activeTab === "diagnostics" ? "2px solid #00e676" : "2px solid transparent",
+                        borderBottom: activeTab === "diagnostics" ? "2px solid #22c55e" : "2px solid transparent",
                         display: "inline-flex",
                         alignItems: "center",
                         gap: 6,
@@ -904,12 +904,12 @@ export function SystemEnvironmentModal({ isOpen, onClose, isStandalone = false }
                       style={{
                         background: "transparent",
                         border: "none",
-                        color: activeTab === "telemetry" ? "#00e676" : "#6b7280",
+                        color: activeTab === "telemetry" ? "#22c55e" : "#6b7280",
                         fontSize: 11,
                         fontWeight: 700,
                         cursor: "pointer",
                         padding: "4px 0",
-                        borderBottom: activeTab === "telemetry" ? "2px solid #00e676" : "2px solid transparent",
+                        borderBottom: activeTab === "telemetry" ? "2px solid #22c55e" : "2px solid transparent",
                         display: "inline-flex",
                         alignItems: "center",
                         gap: 6,
@@ -940,7 +940,7 @@ export function SystemEnvironmentModal({ isOpen, onClose, isStandalone = false }
                           gap: 4,
                         }}
                       >
-                        {copiedLog ? <CheckCheck style={{ width: 12, height: 12, color: "#00e676" }} /> : <Copy style={{ width: 12, height: 12 }} />}
+                        {copiedLog ? <CheckCheck style={{ width: 12, height: 12, color: "#22c55e" }} /> : <Copy style={{ width: 12, height: 12 }} />}
                         <span>{copiedLog ? "Copied" : "Copy Trace"}</span>
                       </button>
                     )}
@@ -994,7 +994,7 @@ export function SystemEnvironmentModal({ isOpen, onClose, isStandalone = false }
                         }}
                       >
                         <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                          <CheckCircle2 style={{ width: 13, height: 13, color: "#00e676", flexShrink: 0 }} />
+                          <CheckCircle2 style={{ width: 13, height: 13, color: "#22c55e", flexShrink: 0 }} />
                           <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
                             <span style={{ fontSize: 11, fontWeight: 600, color: "#e5e7eb" }}>
                               {item.name}
@@ -1011,9 +1011,9 @@ export function SystemEnvironmentModal({ isOpen, onClose, isStandalone = false }
                             fontWeight: 700,
                             padding: "1px 6px",
                             borderRadius: 3,
-                            background: "rgba(0, 230, 118, 0.1)",
-                            color: "#00e676",
-                            border: "1px solid rgba(0, 230, 118, 0.2)",
+                            background: "rgba(34, 197, 94, 0.1)",
+                            color: "#22c55e",
+                            border: "1px solid rgba(34, 197, 94, 0.2)",
                             flexShrink: 0,
                           }}
                         >
@@ -1043,7 +1043,7 @@ export function SystemEnvironmentModal({ isOpen, onClose, isStandalone = false }
                     }}
                   >
                     {telemetryLogs.map((log, i) => (
-                      <div key={i} style={{ color: log.includes("STATUS:") ? "#00e676" : log.includes("INIT") ? "#38bdf8" : "#9ca3af" }}>
+                      <div key={i} style={{ color: log.includes("STATUS:") ? "#22c55e" : log.includes("INIT") ? "#38bdf8" : "#9ca3af" }}>
                         {log}
                       </div>
                     ))}
@@ -1078,7 +1078,7 @@ export function SystemEnvironmentModal({ isOpen, onClose, isStandalone = false }
                     checked={dontShowAgain}
                     onChange={(e) => setDontShowAgain(e.target.checked)}
                     style={{
-                      accentColor: "#00e676",
+                      accentColor: "#22c55e",
                       width: 14,
                       height: 14,
                       cursor: "pointer",
@@ -1116,7 +1116,7 @@ export function SystemEnvironmentModal({ isOpen, onClose, isStandalone = false }
                     type="button"
                     onClick={handleConfirm}
                     style={{
-                      background: "#00e676",
+                      background: "#22c55e",
                       border: "none",
                       borderRadius: 5,
                       padding: "8px 20px",
@@ -1127,7 +1127,7 @@ export function SystemEnvironmentModal({ isOpen, onClose, isStandalone = false }
                       display: "inline-flex",
                       alignItems: "center",
                       gap: 8,
-                      boxShadow: "0 2px 10px rgba(0, 230, 118, 0.25)",
+                      boxShadow: "0 2px 10px rgba(34, 197, 94, 0.25)",
                       transition: "all 0.15s ease",
                     }}
                     onMouseEnter={(e) => {
@@ -1135,7 +1135,7 @@ export function SystemEnvironmentModal({ isOpen, onClose, isStandalone = false }
                       e.currentTarget.style.transform = "translateY(-1px)";
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "#00e676";
+                      e.currentTarget.style.background = "#22c55e";
                       e.currentTarget.style.transform = "translateY(0)";
                     }}
                   >

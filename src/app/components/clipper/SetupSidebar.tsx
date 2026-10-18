@@ -63,9 +63,9 @@ function getSegmentDurationLabel(start: string, end: string): string {
   return "";
 }
 
-const Section = ({ title, children, accent = "text-[#34eb3d]" }: { title: string; children: React.ReactNode; accent?: string }) => (
+const Section = ({ title, children, accent = "text-emerald-400" }: { title: string; children: React.ReactNode; accent?: string }) => (
   <div className="space-y-3">
-    <h3 className={`text-xs font-black ${accent} uppercase tracking-wider`}>{title}</h3>
+    <h3 className={`text-xs font-bold ${accent} uppercase tracking-wider`}>{title}</h3>
     {children}
   </div>
 );
@@ -331,7 +331,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                 onClick={() => setInputType("youtube")}
                 className={`flex-1 py-1.5 text-xs font-extrabold rounded-lg transition-all cursor-pointer ${
                   inputType === "youtube"
-                    ? "bg-gradient-to-r from-[#34eb3d] to-[#5def64] text-black shadow-[0_0_12px_rgba(52, 235, 61,0.15)]"
+                    ? "bg-gradient-to-r from-[#22c55e] to-[#4ade80] text-black shadow-[0_0_12px_rgba(34, 197, 94,0.15)]"
                     : "text-gray-400 hover:text-white"
                 }`}
               >
@@ -341,7 +341,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                 onClick={() => setInputType("local")}
                 className={`flex-1 py-1.5 text-xs font-extrabold rounded-lg transition-all cursor-pointer ${
                   inputType === "local"
-                    ? "bg-gradient-to-r from-[#34eb3d] to-[#5def64] text-black shadow-[0_0_12px_rgba(52, 235, 61,0.15)]"
+                    ? "bg-gradient-to-r from-[#22c55e] to-[#4ade80] text-black shadow-[0_0_12px_rgba(34, 197, 94,0.15)]"
                     : "text-gray-400 hover:text-white"
                 }`}
               >
@@ -472,11 +472,11 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                 }}
                 className={`p-2.5 rounded-xl text-left border transition-all cursor-pointer ${
                   (exportResolution || quality) === q.id
-                    ? "bg-gradient-to-br from-[rgba(52, 235, 61,0.08)] to-transparent border-[#34eb3d]/50 shadow-[0_0_8px_rgba(52, 235, 61,0.1)]"
+                    ? "bg-gradient-to-br from-[rgba(34, 197, 94,0.08)] to-transparent border-emerald-500/50 shadow-[0_0_8px_rgba(34, 197, 94,0.1)]"
                     : "bg-white/[0.02] border-white/5 hover:border-white/10"
                 }`}
               >
-                <p className={`text-xs font-bold ${(exportResolution || quality) === q.id ? "text-[#34eb3d]" : "text-white"}`}>{q.label}</p>
+                <p className={`text-xs font-bold ${(exportResolution || quality) === q.id ? "text-emerald-400" : "text-white"}`}>{q.label}</p>
                 <p className="text-[10px] text-gray-400 mt-0.5">{q.desc}</p>
               </button>
             ))}
@@ -493,11 +493,11 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                 onClick={() => setAspectRatio && setAspectRatio(ar.id)}
                 className={`p-2.5 rounded-xl text-left border transition-all cursor-pointer ${
                   (aspectRatio || "9:16") === ar.id
-                    ? "bg-gradient-to-br from-[rgba(52, 235, 61,0.08)] to-transparent border-[#34eb3d]/50 shadow-[0_0_8px_rgba(52, 235, 61,0.1)]"
+                    ? "bg-gradient-to-br from-[rgba(34, 197, 94,0.08)] to-transparent border-emerald-500/50 shadow-[0_0_8px_rgba(34, 197, 94,0.1)]"
                     : "bg-white/[0.02] border-white/5 hover:border-white/10"
                 }`}
               >
-                <p className={`text-xs font-bold truncate ${(aspectRatio || "9:16") === ar.id ? "text-[#34eb3d]" : "text-white"}`}>{ar.label}</p>
+                <p className={`text-xs font-bold truncate ${(aspectRatio || "9:16") === ar.id ? "text-emerald-400" : "text-white"}`}>{ar.label}</p>
                 <p className="text-[10px] text-gray-400 mt-0.5 truncate">{ar.desc}</p>
               </button>
             ))}
@@ -519,22 +519,22 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                     }}
                     className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-left border transition-all cursor-pointer ${
                       layout === l.id
-                        ? "bg-gradient-to-br from-[rgba(52, 235, 61,0.08)] to-transparent border-[#34eb3d]/50 shadow-[0_0_8px_rgba(52, 235, 61,0.1)]"
+                        ? "bg-gradient-to-br from-[rgba(34, 197, 94,0.08)] to-transparent border-emerald-500/50 shadow-[0_0_8px_rgba(34, 197, 94,0.1)]"
                         : "bg-white/[0.02] border-white/5 hover:border-white/10"
                     }`}
                   >
                     <span
                       className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                        layout === l.id ? "bg-[#34eb3d] text-black" : "bg-white/10 text-gray-400"
+                        layout === l.id ? "bg-emerald-500 text-black" : "bg-white/10 text-gray-400"
                       }`}
                     >
                       {i + 1}
                     </span>
                     <div className="flex-1 min-w-0">
-                      <p className={`text-xs font-semibold truncate ${layout === l.id ? "text-[#34eb3d]" : "text-white"}`}>{l.label}</p>
+                      <p className={`text-xs font-semibold truncate ${layout === l.id ? "text-emerald-400" : "text-white"}`}>{l.label}</p>
                       <p className="text-[10px] text-gray-400 truncate">{l.desc}</p>
                     </div>
-                    {layout === l.id && <Check className="w-3.5 h-3.5 text-[#34eb3d] flex-shrink-0" />}
+                    {layout === l.id && <Check className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />}
                   </button>
                   {layout === l.id && l.id === "custom_split" && (
                     <button
@@ -675,13 +675,13 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                 }}
                 className={`p-2 rounded-xl text-left border transition-all cursor-pointer ${
                   enableFaceTracker && cameraStyle === "instant"
-                    ? "bg-gradient-to-br from-[rgba(52, 235, 61,0.08)] to-transparent border-[#34eb3d]/50 shadow-[0_0_8px_rgba(52, 235, 61,0.1)]"
+                    ? "bg-gradient-to-br from-[rgba(34, 197, 94,0.08)] to-transparent border-emerald-500/50 shadow-[0_0_8px_rgba(34, 197, 94,0.1)]"
                     : "bg-white/[0.02] border-white/5 hover:border-white/10"
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <p className="text-white text-xs font-extrabold">Instant</p>
-                  <span className="text-[8px] font-bold px-1 py-0.2 rounded bg-[#34eb3d]/20 text-[#34eb3d]">Fast</span>
+                  <span className="text-[8px] font-bold px-1 py-0.2 rounded bg-emerald-500/20 text-emerald-400">Fast</span>
                 </div>
                 <p className="text-[10px] text-gray-400 mt-0.5 leading-tight">Hard cut to speaker</p>
               </button>
@@ -693,7 +693,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                 }}
                 className={`p-2 rounded-xl text-left border transition-all cursor-pointer ${
                   enableFaceTracker && cameraStyle === "snappy"
-                    ? "bg-gradient-to-br from-[rgba(52, 235, 61,0.08)] to-transparent border-[#34eb3d]/50 shadow-[0_0_8px_rgba(52, 235, 61,0.1)]"
+                    ? "bg-gradient-to-br from-[rgba(34, 197, 94,0.08)] to-transparent border-emerald-500/50 shadow-[0_0_8px_rgba(34, 197, 94,0.1)]"
                     : "bg-white/[0.02] border-white/5 hover:border-white/10"
                 }`}
               >
@@ -708,7 +708,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                 }}
                 className={`p-2 rounded-xl text-left border transition-all cursor-pointer ${
                   enableFaceTracker && cameraStyle === "smooth"
-                    ? "bg-gradient-to-br from-[rgba(52, 235, 61,0.08)] to-transparent border-[#34eb3d]/50 shadow-[0_0_8px_rgba(52, 235, 61,0.1)]"
+                    ? "bg-gradient-to-br from-[rgba(34, 197, 94,0.08)] to-transparent border-emerald-500/50 shadow-[0_0_8px_rgba(34, 197, 94,0.1)]"
                     : "bg-white/[0.02] border-white/5 hover:border-white/10"
                 }`}
               >
@@ -858,7 +858,9 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                   type="button"
                   onClick={() => setDurationMode(d.id)}
                   className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-left border transition-all cursor-pointer ${
-                    durationMode === d.id ? "bg-emerald-400/10 border-emerald-400/50 shadow-sm" : "bg-white/[0.02] border-white/5 hover:bg-white/[0.05]"
+                    durationMode === d.id
+                      ? "bg-emerald-500/[0.08] border-emerald-500/50 shadow-[0_0_8px_rgba(34,197,94,0.08)]"
+                      : "bg-white/[0.02] border-white/5 hover:border-white/10"
                   }`}
                 >
                   <span
@@ -868,10 +870,11 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                   >
                     {i + 1}
                   </span>
-                  <div>
-                    <p className="text-xs font-semibold text-white">{d.label}</p>
-                    <p className="text-[10px] text-gray-500">{d.desc}</p>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-xs font-semibold truncate ${durationMode === d.id ? "text-emerald-400" : "text-white"}`}>{d.label}</p>
+                    <p className="text-[10px] text-gray-400 truncate">{d.desc}</p>
                   </div>
+                  {durationMode === d.id && <Check className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />}
                 </button>
 
                 {/* Multi-Segment Custom Timestamp Range Inputs */}
@@ -955,8 +958,8 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                                     }}
                                     className={`px-2 py-0.5 rounded-lg text-[10px] font-extrabold flex items-center gap-1 transition-all shadow-sm cursor-pointer ${
                                       isActive && isPlaying
-                                        ? "bg-[#34eb3d] text-black shadow-[0_0_8px_rgba(52, 235, 61,0.15)]"
-                                        : "bg-[#34eb3d]/15 hover:bg-[#34eb3d] text-[#34eb3d] hover:text-black border border-[#34eb3d]/30"
+                                        ? "bg-emerald-500 text-black shadow-[0_0_8px_rgba(34, 197, 94,0.15)]"
+                                        : "bg-emerald-500/15 hover:bg-emerald-500 text-emerald-400 hover:text-black border border-emerald-500/30"
                                     }`}
                                     title={isActive && isPlaying ? "Pause preview playback" : "Play this clip in video player"}
                                   >
@@ -1217,12 +1220,12 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                     onClick={() => setIsFolderDropdownOpen(!isFolderDropdownOpen)}
                     className={`w-full rounded-xl px-3.5 py-2.5 text-xs text-white bg-black/60 border transition-all flex items-center justify-between cursor-pointer ${
                       isFolderDropdownOpen
-                        ? "border-[#00e676] shadow-[0_0_12px_rgba(0,230,118,0.2)]"
+                        ? "border-emerald-500 shadow-[0_0_12px_rgba(34, 197, 94,0.2)]"
                         : "border-white/15 hover:border-white/25"
                     }`}
                   >
                     <div className="flex items-center gap-2 min-w-0">
-                      <Folder className="w-3.5 h-3.5 text-[#00e676] shrink-0" />
+                      <Folder className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                       <span className="font-semibold text-white truncate">
                         {!customFolderName || customFolderName === "Default" || customFolderName === "Main Library"
                           ? "Default (Root Folder)"
@@ -1231,7 +1234,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                     </div>
                     <ChevronDown
                       className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 shrink-0 ${
-                        isFolderDropdownOpen ? "rotate-180 text-[#00e676]" : ""
+                        isFolderDropdownOpen ? "rotate-180 text-emerald-400" : ""
                       }`}
                     />
                   </button>
@@ -1252,15 +1255,15 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                             }}
                             className={`w-full px-3.5 py-2 text-left text-xs flex items-center justify-between transition-colors cursor-pointer ${
                               isSelected
-                                ? "bg-[#00e676]/15 text-[#00e676] font-bold"
+                                ? "bg-emerald-500/15 text-emerald-400 font-bold"
                                 : "text-zinc-300 hover:text-white hover:bg-white/[0.06]"
                             }`}
                           >
                             <div className="flex items-center gap-2">
-                              <Folder className={`w-3.5 h-3.5 ${isSelected ? "text-[#00e676]" : "text-gray-400"}`} />
+                              <Folder className={`w-3.5 h-3.5 ${isSelected ? "text-emerald-400" : "text-gray-400"}`} />
                               <span>{folder === "Default" ? "Default (Root Folder)" : folder}</span>
                             </div>
-                            {isSelected && <Check className="w-3.5 h-3.5 text-[#00e676]" />}
+                            {isSelected && <Check className="w-3.5 h-3.5 text-emerald-400" />}
                           </button>
                         );
                       })}
@@ -1562,7 +1565,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                       <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
                         Subtitle Style
                       </label>
-                      <span className="text-[9px] text-[#34eb3d] font-mono font-bold">
+                      <span className="text-[9px] text-emerald-400 font-mono font-bold">
                         Visual Templates
                       </span>
                     </div>
@@ -1666,11 +1669,11 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
               onClick={runClipper}
               className={`w-full py-4 rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-2 cursor-pointer ${
                 isKeyMissingForActiveEngine
-                  ? "bg-[#34eb3d]/20 text-[#34eb3d] border border-[#34eb3d]/40 hover:bg-[#34eb3d]/30 shadow-[0_0_20px_rgba(52, 235, 61,0.25)]"
-                  : "bg-gradient-to-r from-[#34eb3d] to-[#2dca34] text-black hover:brightness-110 shadow-[0_0_16px_rgba(52, 235, 61,0.2)] hover:shadow-[0_0_24px_rgba(52, 235, 61,0.35)]"
+                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500/30 shadow-[0_0_20px_rgba(34, 197, 94,0.25)]"
+                  : "bg-gradient-to-r from-[#22c55e] to-[#16a34a] text-black hover:brightness-110 shadow-[0_0_16px_rgba(34, 197, 94,0.2)] hover:shadow-[0_0_24px_rgba(34, 197, 94,0.35)]"
               }`}
             >
-              <Zap className={`w-4 h-4 ${isKeyMissingForActiveEngine ? "fill-[#34eb3d] text-[#34eb3d]" : "fill-black text-black"}`} />
+              <Zap className={`w-4 h-4 ${isKeyMissingForActiveEngine ? "fill-emerald-400 text-emerald-400" : "fill-black text-black"}`} />
               {isKeyMissingForActiveEngine ? `Enter ${activeEngineName} API Key` : done ? "Re-Run AI Clipper" : "Run AI Clipper"}
             </button>
           )}

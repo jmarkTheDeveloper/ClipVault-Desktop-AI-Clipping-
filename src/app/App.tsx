@@ -43,7 +43,7 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
               localStorage.removeItem("clipvault_history");
               window.location.reload();
             }}
-            className="px-5 py-2.5 rounded-xl bg-[#34eb3d] text-black font-bold text-xs hover:brightness-110 transition-all cursor-pointer shadow-lg"
+            className="px-5 py-2.5 rounded-xl bg-emerald-500 text-black font-bold text-xs hover:brightness-110 transition-all cursor-pointer shadow-lg"
           >
             Reload ClipVault Cleanly
           </button>
@@ -656,38 +656,38 @@ export default function App() {
               setClipperViewMode("setup");
               setScreen("ai-clipper");
             }}
-            className="fixed bottom-6 right-6 z-[9999] bg-[#0d0f12]/95 border border-[#34eb3d]/40 shadow-[0_12px_36px_rgba(0,0,0,0.8),0_0_24px_rgba(52, 235, 61,0.25)] rounded-2xl p-4 flex items-center gap-4 cursor-pointer hover:border-[#34eb3d] hover:scale-[1.02] transition-all backdrop-blur-xl animate-in fade-in slide-in-from-bottom-4 duration-300 max-w-md group"
+            className="fixed bottom-6 right-6 z-[9999] bg-[#0d0f12]/95 border border-emerald-500/40 shadow-[0_12px_36px_rgba(0,0,0,0.8),0_0_24px_rgba(34, 197, 94,0.25)] rounded-2xl p-4 flex items-center gap-4 cursor-pointer hover:border-emerald-500 hover:scale-[1.02] transition-all backdrop-blur-xl animate-in fade-in slide-in-from-bottom-4 duration-300 max-w-md group"
           >
             <div className="relative flex-shrink-0">
-              <div className="w-10 h-10 rounded-xl bg-[#34eb3d]/15 border border-[#34eb3d]/30 flex items-center justify-center text-[#34eb3d]">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
                 <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                 </svg>
               </div>
-              <span className="absolute -top-1 -right-1 w-3 h-3 bg-[#34eb3d] rounded-full animate-ping" />
+              <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full animate-ping" />
             </div>
 
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-2 mb-1">
                 <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-[#34eb3d] animate-pulse" />
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                   AI Clipping in Background
                 </span>
-                <span className="text-xs font-extrabold text-[#34eb3d]">{taskState.progress}%</span>
+                <span className="text-xs font-extrabold text-emerald-400">{taskState.progress}%</span>
               </div>
               <p className="text-[11px] text-gray-400 truncate max-w-[220px]">
                 {taskState.statusText || "Rendering high-resolution vertical clips..."}
               </p>
               <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden mt-2">
                 <div
-                  className="bg-gradient-to-r from-[#34eb3d] to-[#2dca34] h-full rounded-full transition-all duration-300"
+                  className="bg-gradient-to-r from-[#22c55e] to-[#16a34a] h-full rounded-full transition-all duration-300"
                   style={{ width: `${Math.max(5, taskState.progress)}%` }}
                 />
               </div>
             </div>
 
-            <div className="px-2.5 py-1.5 rounded-lg bg-white/10 group-hover:bg-[#34eb3d] group-hover:text-black text-gray-300 text-[11px] font-bold transition-all flex items-center gap-1 flex-shrink-0">
+            <div className="px-2.5 py-1.5 rounded-lg bg-white/10 group-hover:bg-emerald-500 group-hover:text-black text-gray-300 text-[11px] font-bold transition-all flex items-center gap-1 flex-shrink-0">
               View
               <span>→</span>
             </div>
@@ -697,11 +697,11 @@ export default function App() {
         {/* Auto-Update Notification Banner: Update Ready */}
         {updateNotification.status === "ready" && (
           <div className="fixed top-6 right-6 z-[9999] animate-in fade-in slide-in-from-top-4 duration-300">
-            <div className="flex items-center gap-3.5 bg-[#07150a]/95 border border-[#34eb3d]/60 shadow-[0_12px_36px_rgba(0,0,0,0.9),0_0_25px_rgba(52, 235, 61,0.35)] px-4 py-3 rounded-2xl backdrop-blur-xl">
-              <div className="w-2.5 h-2.5 rounded-full bg-[#34eb3d] animate-pulse flex-shrink-0" />
+            <div className="flex items-center gap-3.5 bg-[#07150a]/95 border border-emerald-500/60 shadow-[0_12px_36px_rgba(0,0,0,0.9),0_0_25px_rgba(34, 197, 94,0.35)] px-4 py-3 rounded-2xl backdrop-blur-xl">
+              <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" />
               <div>
                 <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                  <Check className="w-3.5 h-3.5 text-[#34eb3d]" />
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
                   Bug Fixes Ready (v{updateNotification.version || "New"})
                 </div>
                 <div className="text-[10.5px] text-gray-300">
@@ -716,7 +716,7 @@ export default function App() {
               </button>
               <button
                 onClick={() => (window as any).electronAPI?.restartAndInstallUpdate?.()}
-                className="px-3.5 py-1.5 bg-[#34eb3d] hover:bg-[#2dca34] text-black text-xs font-extrabold rounded-xl transition-all cursor-pointer shadow-md"
+                className="px-3.5 py-1.5 bg-emerald-500 hover:bg-[#16a34a] text-black text-xs font-extrabold rounded-xl transition-all cursor-pointer shadow-md"
               >
                 Restart &amp; Update
               </button>
@@ -777,9 +777,9 @@ export default function App() {
               setScreen("saved-vault");
               setShowDoneToast(false);
             }}
-            className="fixed top-6 right-6 z-[9999] bg-[#0a1d0c]/95 border border-[#34eb3d] shadow-[0_12px_36px_rgba(0,0,0,0.9),0_0_30px_rgba(52, 235, 61,0.4)] rounded-2xl p-4 flex items-center gap-3 cursor-pointer hover:scale-[1.02] transition-all backdrop-blur-xl animate-in fade-in slide-in-from-top-4 duration-300"
+            className="fixed top-6 right-6 z-[9999] bg-[#0a1d0c]/95 border border-emerald-500 shadow-[0_12px_36px_rgba(0,0,0,0.9),0_0_30px_rgba(34, 197, 94,0.4)] rounded-2xl p-4 flex items-center gap-3 cursor-pointer hover:scale-[1.02] transition-all backdrop-blur-xl animate-in fade-in slide-in-from-top-4 duration-300"
           >
-            <div className="w-10 h-10 rounded-xl bg-[#34eb3d] text-black font-extrabold flex items-center justify-center shadow-lg">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500 text-black font-extrabold flex items-center justify-center shadow-lg">
               <Check className="w-5 h-5 stroke-[2.5]" />
             </div>
             <div>
@@ -877,14 +877,14 @@ export default function App() {
               <div className="bg-white/5 border border-white/10 p-3.5 rounded-2xl text-left space-y-2">
                 <div className="flex items-center justify-between text-xs font-bold">
                   <span className="text-gray-300 flex items-center gap-2 truncate max-w-[220px]">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#34eb3d] animate-pulse flex-shrink-0" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" />
                     <span className="truncate">{taskState.statusText || "Processing video clips..."}</span>
                   </span>
-                  <span className="text-[#34eb3d] font-extrabold ml-2">{taskState.progress}%</span>
+                  <span className="text-emerald-400 font-extrabold ml-2">{taskState.progress}%</span>
                 </div>
                 <div className="w-full bg-white/10 h-2 rounded-full overflow-hidden">
                   <div
-                    className="bg-gradient-to-r from-[#34eb3d] to-[#2dca34] h-full rounded-full transition-all duration-300"
+                    className="bg-gradient-to-r from-[#22c55e] to-[#16a34a] h-full rounded-full transition-all duration-300"
                     style={{ width: `${Math.max(5, taskState.progress)}%` }}
                   />
                 </div>
@@ -896,7 +896,7 @@ export default function App() {
                   onClick={() => {
                     setShowExitConfirmModal(false);
                   }}
-                  className="w-full sm:flex-1 py-3 px-4 rounded-xl bg-[#34eb3d] text-black font-extrabold text-xs hover:brightness-110 shadow-[0_0_20px_rgba(52, 235, 61,0.3)] transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                  className="w-full sm:flex-1 py-3 px-4 rounded-xl bg-emerald-500 text-black font-extrabold text-xs hover:brightness-110 shadow-[0_0_20px_rgba(34, 197, 94,0.3)] transition-all cursor-pointer flex items-center justify-center gap-1.5"
                 >
                   Keep Clipping in Background
                 </button>

@@ -3,7 +3,7 @@
 /* ─────────────────────────────────────────────────────────────────────────────
    ClipVault brand ramp
 
-   One authored green ramp anchored on #34eb3d — a vivid spring green (hue ~123°)
+   One authored green ramp anchored on #22c55e — a vivid spring green (hue ~123°)
    rather than the old flat Material Green A400, which was used identically for
    text, fills, borders and glows and so left every control on one flat tone.
 
@@ -13,17 +13,17 @@
    so the whole app follows one palette.
    ───────────────────────────────────────────────────────────────────────────── */
 :root {
-  --brand-50: #ecfdf5;
-  --brand-100: #d1fae5;
-  --brand-200: #a7f3d0;
-  --brand-300: #6ee7b7;
-  --brand-400: #34d399;
-  --brand-500: #10b981;
-  --brand-600: #059669;
-  --brand-700: #047857;
-  --brand-800: #065f46;
-  --brand-900: #064e3b;
-  --brand-950: #022c22;
+  --brand-50: #f0fdf4;
+  --brand-100: #dcfce7;
+  --brand-200: #bbf7d0;
+  --brand-300: #86efac;
+  --brand-400: #4ade80;
+  --brand-500: #22c55e;
+  --brand-600: #16a34a;
+  --brand-700: #15803d;
+  --brand-800: #166534;
+  --brand-900: #14532d;
+  --brand-950: #052e16;
 
   --font-size: 14px;
   --background: #09090b;
@@ -116,10 +116,8 @@
   --color-brand-900: var(--brand-900);
   --color-brand-950: var(--brand-950);
 
-  /* The emerald-* utilities are the app's brand green, so the WHOLE ramp is
-     mapped onto brand. Previously only 300-600 were overridden, which meant
-     every emerald-200/900/950 in the code silently fell back to Tailwind's own
-     emerald — a different green sitting right beside the brand one. */
+  /* Map emerald-*, green-*, and teal-* onto the single unified ClipVault brand green ramp
+     so there are never competing bluish-mint vs yellow-lime greens anywhere in the UI. */
   --color-emerald-50: var(--brand-50);
   --color-emerald-100: var(--brand-100);
   --color-emerald-200: var(--brand-200);
@@ -131,6 +129,30 @@
   --color-emerald-800: var(--brand-800);
   --color-emerald-900: var(--brand-900);
   --color-emerald-950: var(--brand-950);
+
+  --color-green-50: var(--brand-50);
+  --color-green-100: var(--brand-100);
+  --color-green-200: var(--brand-200);
+  --color-green-300: var(--brand-300);
+  --color-green-400: var(--brand-400);
+  --color-green-500: var(--brand-500);
+  --color-green-600: var(--brand-600);
+  --color-green-700: var(--brand-700);
+  --color-green-800: var(--brand-800);
+  --color-green-900: var(--brand-900);
+  --color-green-950: var(--brand-950);
+
+  --color-teal-50: var(--brand-50);
+  --color-teal-100: var(--brand-100);
+  --color-teal-200: var(--brand-200);
+  --color-teal-300: var(--brand-300);
+  --color-teal-400: var(--brand-400);
+  --color-teal-500: var(--brand-500);
+  --color-teal-600: var(--brand-600);
+  --color-teal-700: var(--brand-700);
+  --color-teal-800: var(--brand-800);
+  --color-teal-900: var(--brand-900);
+  --color-teal-950: var(--brand-950);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
