@@ -551,11 +551,10 @@ class VideoProcessor:
             final_w, final_h = _calc_dims(1920, active_ar)
 
         # 2. Determine Master Compositing Canvas (target_w x target_h)
-        # Compositing at 1080p (or 1440p QHD when source is native 1440p/4K) keeps Python->FFmpeg rawvideo pipe
-        # throughput fast (~6-10 MB/frame instead of 25 MB/frame) while FFmpeg's multi-threaded C scaler outputs
-        # the full 2160x3840 4K/8K master directly into the hardware GPU encoder.
+        # Compositing at 1440p QHD (1440x2560) for 1440p/4K/8K exports preserves full native 4K vertical crop
+        # resolution (1215x2160) without downscaling to 1080p, while keeping Python->FFmpeg rawvideo pipe fast.
         if is_8k_export or is_4k_export or is_1440p_export:
-            if src_h >= 1440 or src_w >= 2560:
+            if use_smart_slicing or src_h >= 1080 or src_w >= 1920:
                 target_w, target_h = _calc_dims(2560, active_ar)
             else:
                 target_w, target_h = _calc_dims(1920, active_ar)
@@ -566,10 +565,12 @@ class VideoProcessor:
 
         print(f"    [VideoProcessor] Master Compositing Canvas: {target_w}x{target_h} -> Final Output: {final_w}x{final_h} (Aspect: {active_ar:.3f}, Export Profile: {res_str})")
 
-        # Build fast multi-threaded FFmpeg C-level scaling filter (avoid single-threaded CPU unsharp 5x5 convolution bottleneck)
+        # Build fast multi-threaded FFmpeg C-level Lanczos scaling + lightweight 3x3 luma detail sharpening
         vf_filters = []
         if (target_w, target_h) != (final_w, final_h):
-            vf_filters.append(f"scale={final_w}:{final_h}:flags=bicubic")
+            vf_filters.append(f"scale={final_w}:{final_h}:flags=lanczos,unsharp=3:3:0.50:3:3:0.0")
+        elif is_8k_export or is_4k_export or is_1440p_export:
+            vf_filters.append("unsharp=3:3:0.35:3:3:0.0")
 
         export_scale_params = ['-vf', ",".join(vf_filters)] if vf_filters else []
 
@@ -735,24 +736,15 @@ class VideoProcessor:
                 clip_fallback_words = copy.deepcopy(words) if words else []
 
                 # 3. Dynamic anti-ContentID bypass (Fast C-Level Visual & Acoustic Fingerprint Disruption)
+                # Uses zero-blur horizontal matrix mirror + 1.04x tempo shift without redundant Python frame re-interpolation
                 if yt_bypass:
                     from moviepy.video.fx.mirror_x import mirror_x
                     from moviepy.video.fx.speedx import speedx
-                    from moviepy.video.fx.crop import crop
                     
-                    # 1. Flip horizontally (C-pointer matrix inversion, zero overhead)
+                    # 1. Flip horizontally (C-pointer matrix inversion, zero overhead and zero pixel blur)
                     clip = mirror_x(clip)
                     # 2. Slight tempo shift (1.04x)
                     clip = speedx(clip, 1.04)
-                    
-                    # 3. Micro-crop 1.04x to break outer bounding box perceptual hash
-                    cw, ch = clip.size
-                    crop_w = int(cw / 1.04)
-                    crop_h = int(ch / 1.04)
-                    if crop_w % 2 != 0: crop_w -= 1
-                    if crop_h % 2 != 0: crop_h -= 1
-                    clip = crop(clip, width=crop_w, height=crop_h, x_center=cw/2, y_center=ch/2)
-                    clip = clip.resize((cw, ch))
                     clips_to_close.append(clip)
                     if clip_fallback_words:
                         for w_info in clip_fallback_words:

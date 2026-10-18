@@ -56,10 +56,18 @@ class YouTubeDownloader:
     def cache_video_info(cls, video_id: str, info: Dict[str, Any]):
         if video_id and info and info.get("formats"):
             import time
+            formats = info.get("formats") or []
+            new_max_h = max(((f.get("height") or 0) for f in formats), default=0)
+            existing = GLOBAL_YT_INFO_CACHE.get(video_id)
+            if existing:
+                old_formats = (existing[1] or {}).get("formats") or []
+                old_max_h = max(((f.get("height") or 0) for f in old_formats), default=0)
+                if old_max_h > new_max_h:
+                    return
             GLOBAL_YT_INFO_CACHE[video_id] = (time.time(), info)
 
     @classmethod
-    def get_cached_video_info(cls, video_id: str, max_age_sec: float = 1800.0) -> Optional[Dict[str, Any]]:
+    def get_cached_video_info(cls, video_id: str, max_age_sec: float = 1800.0, min_height: int = 0) -> Optional[Dict[str, Any]]:
         if not video_id:
             return None
         entry = GLOBAL_YT_INFO_CACHE.get(video_id)
@@ -70,6 +78,11 @@ class YouTubeDownloader:
         if (time.time() - ts) > max_age_sec:
             GLOBAL_YT_INFO_CACHE.pop(video_id, None)
             return None
+        if min_height > 0 and info:
+            formats = info.get("formats") or []
+            max_h = max(((f.get("height") or 0) for f in formats), default=0)
+            if max_h < min_height:
+                return None
         return info
 
     @staticmethod
@@ -116,7 +129,7 @@ class YouTubeDownloader:
         return None
 
     def _get_base_opts(self) -> Dict[str, Any]:
-        """Returns standard resilient yt-dlp options with multi-client anti-bot bypass."""
+        """Returns standard resilient yt-dlp options with JS runtime for full 4K/1080p adaptive manifest extraction."""
         node_path = shutil.which('node') or (r'C:\Program Files\nodejs\node.exe' if os.path.exists(r'C:\Program Files\nodejs\node.exe') else None)
 
         js_runtimes = {}
@@ -143,8 +156,9 @@ class YouTubeDownloader:
         except Exception:
             pass
 
-        # IMPORTANT: Do NOT set a custom desktop 'user_agent' here because yt-dlp disables
-        # tv/ios/android/mweb clients when a custom user_agent overrides their native client UA.
+        # CRITICAL: Do NOT set 'player_skip': ['webpage', 'configs'] or legacy 'tv'/'mweb' client lists!
+        # Skipping webpage/configs prevented yt-dlp's JS runtime from deciphering adaptive DASH/HLS streams,
+        # which caused YouTube to return ONLY itag 18 (640x360 @ 294 kbps) instead of 3840x2160 (4K) / 1080p!
         opts = {
             'geo_bypass': True,
             'nocheckcertificate': True,
@@ -159,12 +173,6 @@ class YouTubeDownloader:
             'socket_timeout': 25,
             'ffmpeg_location': ffmpeg_bin,
             'js_runtimes': js_runtimes,
-            'extractor_args': {
-                'youtube': {
-                    'player_client': ['tv', 'mweb', 'web_creator', 'ios', 'android', 'web'],
-                    'player_skip': ['webpage', 'configs'],
-                }
-            },
         }
 
         if YOUTUBE_COOKIES_CONTENT and "PASTE" not in YOUTUBE_COOKIES_CONTENT:
@@ -340,10 +348,85 @@ class YouTubeDownloader:
         print(f" Audio stream downloaded: {audio_path.name} ({duration:.1f}s)")
         return audio_path, title, duration
 
+    def _download_hls_fmp4_range(
+        self,
+        m3u8_url: str,
+        headers: Optional[Dict[str, str]],
+        start_sec: float,
+        end_sec: float,
+        out_file: Path,
+    ) -> Tuple[float, int]:
+        """
+        Downloads ONLY the initialization header (#EXT-X-MAP) and exact #EXTINF media segments
+        covering [start_sec, end_sec] from a YouTube HLS (m3u8_native) stream in parallel.
+        Bypasses YouTube's single-stream HTTP throttling (ratebypass=yes) and completes 4K slices in ~3-4s.
+        Returns (first_segment_start_sec, total_bytes_downloaded).
+        """
+        import urllib.request
+        import concurrent.futures
+
+        default_ua = YOUTUBE_USER_AGENT or "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+        req_headers = dict(headers or {})
+        if "User-Agent" not in req_headers and "user-agent" not in req_headers:
+            req_headers["User-Agent"] = default_ua
+
+        req = urllib.request.Request(m3u8_url, headers=req_headers)
+        with urllib.request.urlopen(req, timeout=12) as resp:
+            playlist_text = resp.read().decode("utf-8", errors="ignore")
+
+        init_uri = None
+        m_map = re.search(r'#EXT-X-MAP:URI="([^"]+)"', playlist_text)
+        if m_map:
+            init_uri = m_map.group(1)
+
+        pad_start = max(0.0, start_sec - 1.5)
+        pad_end = end_sec + 4.5
+        segs: List[Tuple[float, float, str]] = []
+        cur_t = 0.0
+        lines = [ln.strip() for ln in playlist_text.splitlines() if ln.strip()]
+        for idx, ln in enumerate(lines):
+            if ln.startswith("#EXTINF:"):
+                try:
+                    dur = float(ln.split(":", 1)[1].split(",", 1)[0])
+                except Exception:
+                    dur = 5.0
+                seg_url = lines[idx + 1] if (idx + 1) < len(lines) else ""
+                if seg_url and not seg_url.startswith("#"):
+                    if (cur_t + dur) >= pad_start and cur_t <= pad_end:
+                        segs.append((cur_t, dur, seg_url))
+                cur_t += dur
+
+        if not segs:
+            raise RuntimeError("No matching #EXTINF segments found in HLS manifest for requested range.")
+
+        urls_to_dl = ([init_uri] if init_uri else []) + [s[2] for s in segs]
+
+        def _fetch_chunk(u: str) -> bytes:
+            last_err = None
+            for _ in range(3):
+                try:
+                    r = urllib.request.Request(u, headers=req_headers)
+                    with urllib.request.urlopen(r, timeout=15) as res:
+                        return res.read()
+                except Exception as e:
+                    last_err = e
+            raise RuntimeError(f"Segment fetch failed: {last_err}")
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+            chunks = list(pool.map(_fetch_chunk, urls_to_dl))
+
+        total_bytes = 0
+        with open(out_file, "wb") as f_out:
+            for c in chunks:
+                f_out.write(c)
+                total_bytes += len(c)
+
+        return segs[0][0], total_bytes
+
     def download_slice(self, url: str, start_sec: float, end_sec: float, quality: str = "1080p", output_path: Optional[Path] = None, progress_callback: Optional[Any] = None) -> Path:
         """
         Downloads ONLY the targeted [start_sec, end_sec] interval from YouTube in true HD / 4K.
-        Uses direct HTTP range seeking and ultra-fast ffmpeg stream slicing (completes in 2-4 seconds).
+        Uses parallel unthrottled HLS fMP4 segment extraction or direct HTTP range seeking (completes in 3-8 seconds).
         """
         video_id = self.get_video_id(url) or "clip_slice"
         if output_path is None:
@@ -370,9 +453,9 @@ class YouTubeDownloader:
 
             if cached_stream:
                 video_url, audio_url, video_headers, audio_headers = cached_stream
-                import time, re
+                import time
                 now_ts = int(time.time())
-                exp_match = re.search(r'[?&]expire=(\d+)', video_url or '')
+                exp_match = re.search(r'(?:[?&]expire=|/expire/)(\d+)', video_url or '')
                 if exp_match and int(exp_match.group(1)) < (now_ts + 90):
                     print(f"    [YouTubeDownloader] Cached stream CDN URLs for {video_id} have expired. Refreshing...")
                     cached_stream = None
@@ -381,7 +464,8 @@ class YouTubeDownloader:
                     print(f"    [YouTubeDownloader] Reusing cached stream CDN URLs for {video_id}")
             
             if not cached_stream:
-                info = self.get_cached_video_info(video_id)
+                # Require min_height=720 from cache so a stale 360p metadata probe never blocks 4K/1080p slicing
+                info = self.get_cached_video_info(video_id, min_height=720)
                 if not info:
                     opts = self._get_base_opts()
                     opts.update({'skip_download': True})
@@ -393,18 +477,14 @@ class YouTubeDownloader:
 
                 formats = info.get("formats", []) if info else []
 
-                # Find matching quality video stream with intelligent supersampling
-                # Allows higher source resolution (up to 4K / 2160p) so 9:16 vertical crops
-                # have genuine 1080x1920 / 2160x3840 native pixel clarity instead of blurry digital zoom
+                # Always supersample from up to 4K (2160p) when slicing so 9:16 vertical crops
+                # retain genuine native 1080x1920 / 2160x3840 optical detail without digital zoom blur.
                 q_low = str(quality or "1080p").lower().strip()
                 if "8k" in q_low or "4320" in q_low:
                     target_h = 4320
-                elif q_low in ("4k", "2160p", "1440p", "2k", "1080p", "source", "original"):
-                    target_h = 2160
                 else:
-                    target_h = 1440
+                    target_h = 2160
                 
-                # 1. Look for video formats matching target resolution
                 def is_within_target(f):
                     h, w = f.get("height") or 0, f.get("width") or 0
                     if not h and not w:
@@ -417,9 +497,10 @@ class YouTubeDownloader:
                     u = str(f.get("url") or "").lower()
                     return "m3u8" not in proto and "m3u8" not in u
 
-                # CRITICAL FIX: Never filter by is_direct_http before resolution sorting!
-                # Filtering by is_direct_http first caused yt-dlp to pick 360p (itag 18) direct streams
-                # while ignoring 4K (2160p) and 1080p HLS/DASH streams.
+                def has_ratebypass(f):
+                    u = str(f.get("url") or "").lower()
+                    return "ratebypass=yes" in u or "/ratebypass/yes" in u
+
                 video_candidates = [
                     f for f in formats 
                     if f.get("vcodec") != "none" and f.get("url") and is_within_target(f)
@@ -433,10 +514,12 @@ class YouTubeDownloader:
                     video_candidates = [f for f in formats if f.get("vcodec") != "none" and f.get("url")]
 
                 if video_candidates:
+                    # Sort highest resolution first, then unthrottled (ratebypass=yes) streams so 4K slices download in ~3s
                     video_candidates.sort(
                         key=lambda f: (
                             (f.get("height") or 0) * (f.get("width") or 0),
                             f.get("height") or 0,
+                            1 if has_ratebypass(f) else 0,
                             1 if is_direct_http(f) else 0,
                             f.get("tbr") or 0
                         ),
@@ -446,8 +529,7 @@ class YouTubeDownloader:
                     best_h = best_vid.get("height") or 0
                     best_w = best_vid.get("width") or 0
                     max_avail_h = max(((f.get("height") or 0) for f in formats), default=0)
-                    print(f"    [YouTubeDownloader] Selected source stream: {best_w}x{best_h} (max available: {max_avail_h}p, vcodec={best_vid.get('vcodec')}, proto={best_vid.get('protocol')})")
-                    # If direct candidate is low-res (< 720p) when higher resolution exists, use full yt-dlp range engine
+                    print(f"    [YouTubeDownloader] Selected source stream: {best_w}x{best_h} (max available: {max_avail_h}p, vcodec={best_vid.get('vcodec')}, proto={best_vid.get('protocol')}, ratebypass={has_ratebypass(best_vid)})")
                     if best_h > 0 and best_h < 720 and max_avail_h >= 720:
                         print(f"    [YouTubeDownloader] Bypassing low-res ({best_h}p) direct candidate in favor of high-res ({max_avail_h}p) yt-dlp stream...")
                         video_url = None
@@ -458,7 +540,7 @@ class YouTubeDownloader:
                             audio_url = video_url
                             audio_headers = video_headers
 
-                # 2. Look for best dedicated audio format (prioritize original/default language over dubbed tracks)
+                # 2. Look for best dedicated audio format (prioritize original/default language + ratebypass=yes)
                 def _audio_score(f):
                     lang = str(f.get("language") or "").lower()
                     note = str(f.get("format_note") or "").lower()
@@ -469,13 +551,15 @@ class YouTubeDownloader:
                     is_original = 1 if (lang_pref > 0 or "original" in note or "default" in note) else 0
                     is_not_dubbed = 1 if ("dubbed" not in note and "dubbed" not in url_str) else 0
                     is_english = 1 if (lang in ("en", "eng", "en-us", "en-gb") or "english" in note) else 0
+                    unthrottled = 1 if has_ratebypass(f) else 0
                     is_audio_only = 1 if f.get("vcodec") == "none" else 0
                     bitrate = f.get("abr") or f.get("tbr") or 0
-                    return (is_original, is_not_dubbed, lang_pref, is_english, is_audio_only, bitrate)
+                    return (is_original, is_not_dubbed, lang_pref, is_english, unthrottled, is_audio_only, bitrate)
 
                 audio_candidates = [
                     f for f in formats 
-                    if f.get("acodec") and f.get("acodec") != "none" and f.get("url") and is_direct_http(f)
+                    if (f.get("acodec") and f.get("acodec") != "none" or "sgoap" in str(f.get("url") or "") or f.get("format_id", "").startswith(("233", "234", "140", "251")))
+                    and f.get("vcodec") in (None, "none") and f.get("url")
                 ]
                 if not audio_candidates:
                     audio_candidates = [
@@ -489,9 +573,6 @@ class YouTubeDownloader:
                     audio_headers = best_aud.get("http_headers") or {}
 
                 if video_url:
-                    # Bound this cache. CDN URLs carry `expire=` params and are invalidated by the
-                    # next task anyway, so keeping every entry for the process lifetime was a pure
-                    # leak (URLs + headers per video, forever).
                     if len(self._stream_cache) >= 16:
                         try:
                             self._stream_cache.pop(next(iter(self._stream_cache)), None)
@@ -502,6 +583,79 @@ class YouTubeDownloader:
             if video_url:
                 ffmpeg_bin = imageio_ffmpeg.get_ffmpeg_exe()
                 duration_sec = max(1.0, end_sec - start_sec)
+                is_hls_v = "m3u8" in str(video_url).lower()
+                is_hls_a = bool(audio_url and "m3u8" in str(audio_url).lower())
+
+                # Fast Path A: Parallel HLS fMP4 segment range extraction (unthrottled ratebypass=yes 4K/1080p)
+                if is_hls_v:
+                    temp_v_seg = self.temp_dir / f"seg_v_{video_id}_{int(start_sec)}_{int(end_sec)}.mp4"
+                    temp_a_seg = self.temp_dir / f"seg_a_{video_id}_{int(start_sec)}_{int(end_sec)}.mp4"
+                    try:
+                        import time as _t
+                        t_hls = _t.time()
+                        if progress_callback:
+                            progress_callback("Downloading unthrottled 4K/HD segments...", 24)
+                        v_seg_start, v_bytes = self._download_hls_fmp4_range(video_url, video_headers, start_sec, end_sec, temp_v_seg)
+                        a_seg_start = v_seg_start
+                        a_bytes = 0
+                        if audio_url and audio_url != video_url and is_hls_a:
+                            a_seg_start, a_bytes = self._download_hls_fmp4_range(audio_url, audio_headers, start_sec, end_sec, temp_a_seg)
+                        print(
+                            f"    [YouTubeDownloader] Parallel HLS segments fetched: "
+                            f"video={v_bytes / (1024*1024):.2f} MB, audio={a_bytes / (1024*1024):.2f} MB in {_t.time() - t_hls:.2f}s"
+                        )
+                        v_local_ss = max(0.0, start_sec - v_seg_start)
+                        a_local_ss = max(0.0, start_sec - a_seg_start)
+                        hls_cmd = [
+                            ffmpeg_bin,
+                            "-y",
+                            "-loglevel", "error",
+                            "-ss", f"{v_local_ss:.3f}",
+                            "-i", str(temp_v_seg),
+                        ]
+                        if temp_a_seg.exists() and temp_a_seg.stat().st_size > 1024:
+                            hls_cmd.extend([
+                                "-ss", f"{a_local_ss:.3f}",
+                                "-i", str(temp_a_seg),
+                                "-t", f"{duration_sec:.3f}",
+                                "-map", "0:v:0",
+                                "-map", "1:a:0",
+                            ])
+                        else:
+                            hls_cmd.extend([
+                                "-t", f"{duration_sec:.3f}",
+                                "-map", "0:v:0",
+                                "-map", "0:a:0?",
+                            ])
+                        hls_cmd.extend([
+                            "-c:v", "libx264",
+                            "-preset", "ultrafast",
+                            "-crf", "10",
+                            "-c:a", "aac",
+                            "-b:a", "320k",
+                            "-avoid_negative_ts", "make_zero",
+                            str(temp_slice),
+                        ])
+                        proc = subprocess.run(hls_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, timeout=90)
+                        if proc.returncode == 0 and temp_slice.exists() and temp_slice.stat().st_size > 10240:
+                            if output_path.exists():
+                                try: output_path.unlink()
+                                except Exception: pass
+                            shutil.move(str(temp_slice), str(output_path))
+                            print(f"    [YouTubeDownloader] 4K/HD HLS slice extracted: {output_path.name} ({round(output_path.stat().st_size / (1024*1024), 2)} MB)")
+                            return output_path
+                        else:
+                            err_msg = proc.stderr.decode('utf-8', errors='ignore')[-300:] if proc.stderr else "Unknown error"
+                            print(f"    [YouTubeDownloader] Local HLS mux warning: {err_msg}")
+                    except Exception as hls_err:
+                        print(f"    [YouTubeDownloader] Parallel HLS segment slice note: {hls_err}")
+                    finally:
+                        for p_tmp in (temp_v_seg, temp_a_seg):
+                            if p_tmp.exists():
+                                try: p_tmp.unlink()
+                                except Exception: pass
+
+                # Fast Path B: Direct HTTP range seeking with ffmpeg
                 default_ua = YOUTUBE_USER_AGENT or "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 
                 def _fmt_headers(hdrs):
@@ -566,7 +720,6 @@ class YouTubeDownloader:
                 ])
 
                 print(f"    [YouTubeDownloader] Running direct HTTP range slice with ffmpeg ({duration_sec:.1f}s)...")
-                # Direct HTTP range seeking should finish quickly; if CDN stalls, fallback to yt-dlp partial downloader
                 slice_timeout = min(75, max(30, int(duration_sec * 0.9)))
                 proc = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, timeout=slice_timeout)
                 if proc.returncode == 0 and temp_slice.exists() and temp_slice.stat().st_size > 10240:

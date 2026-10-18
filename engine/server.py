@@ -1592,12 +1592,6 @@ def get_video_info(url: str):
                 'quiet': True,
                 'no_warnings': True,
                 'skip_download': True,
-                'extractor_args': {
-                    'youtube': {
-                        'player_client': ['tv', 'mweb', 'web_creator', 'ios', 'android', 'web'],
-                        'player_skip': ['webpage', 'configs'],
-                    }
-                },
                 'js_runtimes': js_runtimes,
             }
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:

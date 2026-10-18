@@ -893,16 +893,26 @@ class FaceTracker:
         raw_shots = merged_shots
 
         # ── Compute Adaptive Quality-Aware Zoom Ceiling ──
-        # Protects output against pixelation: if source resolution is already low (< 720p),
-        # prevent excessive digital zooming even if the user slider is set high.
+        # Protects output against pixelation: vertical 9:16 crops already extract 31.6% of horizontal width,
+        # so extra digital zoom is strictly scaled by native source pixel height.
         effective_max_zoom = float(max_digital_zoom) if (max_digital_zoom and max_digital_zoom > 1.0) else 1.0
         if adaptive_crop and effective_max_zoom > 1.0:
-            if height >= 1080:
-                safe_zoom_cap = effective_max_zoom
-            elif height >= 720:
-                safe_zoom_cap = min(effective_max_zoom, 1.50)
+            if crop_ratio < 0.85:
+                if height >= 2160:
+                    safe_zoom_cap = min(effective_max_zoom, 1.25)
+                elif height >= 1440:
+                    safe_zoom_cap = min(effective_max_zoom, 1.18)
+                elif height >= 1080:
+                    safe_zoom_cap = min(effective_max_zoom, 1.10)
+                else:
+                    safe_zoom_cap = 1.0
             else:
-                safe_zoom_cap = min(effective_max_zoom, 1.20)
+                if height >= 1080:
+                    safe_zoom_cap = effective_max_zoom
+                elif height >= 720:
+                    safe_zoom_cap = min(effective_max_zoom, 1.25)
+                else:
+                    safe_zoom_cap = 1.0
         else:
             safe_zoom_cap = effective_max_zoom
 
@@ -1253,7 +1263,7 @@ class FaceTracker:
             cropped_patch = frame[y1:y1 + ch, x1:x1 + cw]
 
             if cropped_patch.shape[0] != final_out_h or cropped_patch.shape[1] != final_out_w:
-                interp = cv2.INTER_AREA if (final_out_w < cropped_patch.shape[1] or final_out_h < cropped_patch.shape[0]) else cv2.INTER_LINEAR
+                interp = cv2.INTER_AREA if (final_out_w < cropped_patch.shape[1] or final_out_h < cropped_patch.shape[0]) else cv2.INTER_LANCZOS4
                 return cv2.resize(cropped_patch, (final_out_w, final_out_h), interpolation=interp)
             return cropped_patch
 
