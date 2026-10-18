@@ -74,6 +74,35 @@ def _load_rust_library():
                 ]
                 lib.purge_temp_directory_native.restype = ctypes.c_uint64
 
+                # 5. Optional v2.0 exports (console scrollback unlocker, frame diff, audio RMS)
+                if hasattr(lib, "configure_windows_console_native"):
+                    lib.configure_windows_console_native.argtypes = []
+                    lib.configure_windows_console_native.restype = ctypes.c_int32
+                    try:
+                        lib.configure_windows_console_native()
+                    except Exception:
+                        pass
+
+                if hasattr(lib, "compute_frame_luma_diff_native"):
+                    lib.compute_frame_luma_diff_native.argtypes = [
+                        ctypes.POINTER(ctypes.c_uint8),
+                        ctypes.POINTER(ctypes.c_uint8),
+                        ctypes.c_size_t,
+                        ctypes.c_size_t,
+                        ctypes.c_size_t,
+                    ]
+                    lib.compute_frame_luma_diff_native.restype = ctypes.c_double
+
+                if hasattr(lib, "compute_audio_rms_envelope_i16"):
+                    lib.compute_audio_rms_envelope_i16.argtypes = [
+                        ctypes.POINTER(ctypes.c_int16),
+                        ctypes.c_size_t,
+                        ctypes.c_size_t,
+                        ctypes.POINTER(ctypes.c_float),
+                        ctypes.c_size_t,
+                    ]
+                    lib.compute_audio_rms_envelope_i16.restype = ctypes.c_size_t
+
                 _RUST_VERSION = int(lib.clipvault_rust_version())
                 _RUST_LIB = lib
                 print(f"[RUST-CORE] Native Rust Accelerator loaded (v{_RUST_VERSION / 100:.2f}) from {os.path.basename(dll_path)}")
@@ -192,3 +221,76 @@ def rust_purge_temp_directory(temp_dir: str, min_age_secs: int = 0) -> int | Non
     encoded_path = os.path.abspath(temp_dir).encode("utf-8")
     freed = _RUST_LIB.purge_temp_directory_native(encoded_path, int(max(0, min_age_secs)))
     return int(freed)
+
+
+def rust_compute_frame_luma_diff(frame_a: np.ndarray, frame_b: np.ndarray, stride_step: int = 2) -> float | None:
+    """
+    Computes a zero-allocation 3-zone (Left/Center/Right) + global RGB frame difference in native Rust.
+    Returns difference score in [0.0, 255.0], or None if unavailable.
+    """
+    if _RUST_LIB is None or not hasattr(_RUST_LIB, "compute_frame_luma_diff_native"):
+        return None
+    if (
+        frame_a.shape != frame_b.shape
+        or frame_a.dtype != np.uint8
+        or frame_b.dtype != np.uint8
+        or frame_a.ndim != 3
+        or frame_a.shape[2] < 3
+    ):
+        return None
+
+    fa = np.ascontiguousarray(frame_a)
+    fb = np.ascontiguousarray(frame_b)
+    h, w = fa.shape[0], fa.shape[1]
+    ptr_a = fa.ctypes.data_as(ctypes.POINTER(ctypes.c_uint8))
+    ptr_b = fb.ctypes.data_as(ctypes.POINTER(ctypes.c_uint8))
+    val = float(_RUST_LIB.compute_frame_luma_diff_native(ptr_a, ptr_b, int(h), int(w), int(max(1, stride_step))))
+    return val if val >= 0.0 else None
+
+
+def rust_compute_audio_rms_envelope(samples_i16: np.ndarray, window_size: int = 1600) -> np.ndarray | None:
+    """
+    Computes a zero-allocation sliding-window RMS audio energy envelope for 16-bit PCM audio in native Rust.
+    """
+    if _RUST_LIB is None or not hasattr(_RUST_LIB, "compute_audio_rms_envelope_i16"):
+        return None
+    if samples_i16 is None or len(samples_i16) < window_size or window_size <= 0:
+        return None
+
+    arr = np.ascontiguousarray(samples_i16, dtype=np.int16)
+    max_win = len(arr) // window_size
+    if max_win <= 0:
+        return None
+
+    out = np.empty(max_win, dtype=np.float32)
+    s_ptr = arr.ctypes.data_as(ctypes.POINTER(ctypes.c_int16))
+    o_ptr = out.ctypes.data_as(ctypes.POINTER(ctypes.c_float))
+    n_written = int(_RUST_LIB.compute_audio_rms_envelope_i16(s_ptr, len(arr), int(window_size), o_ptr, int(max_win)))
+    return out[:n_written] if n_written > 0 else None
+
+
+def unlock_windows_console_scrolling() -> None:
+    """
+    Ensures Windows Console (conhost.exe) has mouse-wheel scrolling enabled and QuickEdit freeze disabled.
+    """
+    if os.name != "nt":
+        return
+    try:
+        if _RUST_LIB is not None and hasattr(_RUST_LIB, "configure_windows_console_native"):
+            if _RUST_LIB.configure_windows_console_native() == 1:
+                return
+        kernel32 = ctypes.windll.kernel32
+        h_in = kernel32.CreateFileW("CONIN$", 0xC0000000, 3, None, 3, 0, None)
+        if h_in not in (0, -1, 0xFFFFFFFF, 0xFFFFFFFFFFFFFFFF):
+            mode = ctypes.c_uint32(0)
+            if kernel32.GetConsoleMode(h_in, ctypes.byref(mode)):
+                # Clear ENABLE_MOUSE_INPUT (0x10) and ENABLE_QUICK_EDIT_MODE (0x40), set ENABLE_EXTENDED_FLAGS (0x80)
+                new_mode = (mode.value & ~0x0050) | 0x0080
+                kernel32.SetConsoleMode(h_in, ctypes.c_uint32(new_mode))
+            kernel32.CloseHandle(h_in)
+    except Exception:
+        pass
+
+
+unlock_windows_console_scrolling()
+

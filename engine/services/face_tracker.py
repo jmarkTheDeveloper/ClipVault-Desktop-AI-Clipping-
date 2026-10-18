@@ -656,7 +656,7 @@ class FaceTracker:
                 zh = cv2.calcHist([zone], [0, 1], None, [8, 8], [0, 180, 0, 256])
                 cv2.normalize(zh, zh, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX)
                 z_hists.append(zh)
-            return small_rgb.astype(np.float32), z_hists
+            return np.ascontiguousarray(small_rgb, dtype=np.uint8), z_hists
 
         def _signature_diff(sig_a, sig_b) -> Tuple[float, float]:
             """Returns (zone_hist_diff, spatial_l1_diff) between two frame signatures."""
@@ -669,7 +669,16 @@ class FaceTracker:
                 for ha, hb in zip(hists_a, hists_b)
             ]
             zone_hdiff = float(np.mean(z_diffs))
-            spatial_diff = float(np.mean(np.abs(thumb_a - thumb_b)) / 255.0)
+            rust_diff = None
+            try:
+                from services.rust_accelerator import rust_compute_frame_luma_diff
+                rust_diff = rust_compute_frame_luma_diff(thumb_a, thumb_b, stride_step=1)
+            except Exception:
+                pass
+            if rust_diff is not None:
+                spatial_diff = float(rust_diff / 255.0)
+            else:
+                spatial_diff = float(np.mean(np.abs(thumb_a.astype(np.float32) - thumb_b.astype(np.float32))) / 255.0)
             return zone_hdiff, spatial_diff
 
         pre_frames = []
@@ -1105,6 +1114,44 @@ class FaceTracker:
                         "cy": float(target_cy),
                     })
 
+            # Pre-solve critically-damped 2nd-order camera trajectory once per shot in native Rust
+            traj_t_arr = None
+            smooth_x_arr = None
+            smooth_y_arr = None
+            if len(trajectory) >= 2:
+                traj_t_arr = np.array([pt["t"] for pt in trajectory], dtype=np.float64)
+                raw_x_arr = np.array([pt["cx"] for pt in trajectory], dtype=np.float64)
+                raw_y_arr = np.array([pt["cy"] for pt in trajectory], dtype=np.float64)
+                dead_w = float(cw) * 0.10
+                dead_h = float(ch) * 0.10
+                dt_sample = float(np.median(np.diff(traj_t_arr))) if len(traj_t_arr) > 1 else 0.20
+                dt_sample = max(0.033, min(0.50, dt_sample))
+
+                try:
+                    from services.rust_accelerator import rust_solve_spring_damper_1d
+                    smooth_x_arr = rust_solve_spring_damper_1d(
+                        raw_x_arr, dt=dt_sample, stiffness=18.0, damping=8.5, deadzone_px=dead_w, substeps=4
+                    )
+                    smooth_y_arr = rust_solve_spring_damper_1d(
+                        raw_y_arr, dt=dt_sample, stiffness=16.0, damping=8.0, deadzone_px=dead_h, substeps=4
+                    )
+                except Exception:
+                    smooth_x_arr = None
+                    smooth_y_arr = None
+
+                if smooth_x_arr is None or smooth_y_arr is None:
+                    fx = [float(raw_x_arr[0])]
+                    fy = [float(raw_y_arr[0])]
+                    for k in range(1, len(raw_x_arr)):
+                        dx = float(raw_x_arr[k]) - fx[-1]
+                        dy = float(raw_y_arr[k]) - fy[-1]
+                        step_x = 0.0 if abs(dx) < dead_w else (dx - np.sign(dx) * dead_w) * 0.35
+                        step_y = 0.0 if abs(dy) < dead_h else (dy - np.sign(dy) * dead_h) * 0.30
+                        fx.append(fx[-1] + step_x)
+                        fy.append(fy[-1] + step_y)
+                    smooth_x_arr = np.array(fx, dtype=np.float64)
+                    smooth_y_arr = np.array(fy, dtype=np.float64)
+
             shot_keyframes.append({
                 "shot_idx": shot_idx,
                 "t_start": float(shot_start_t),
@@ -1117,6 +1164,9 @@ class FaceTracker:
                 "cy": float(target_cy),
                 "is_scene_cut": bool(shot_dict.get("is_scene_cut", False)),
                 "trajectory": trajectory,
+                "traj_t_arr": traj_t_arr,
+                "smooth_x_arr": smooth_x_arr,
+                "smooth_y_arr": smooth_y_arr,
             })
 
         if target_resolution and len(target_resolution) == 2:
@@ -1169,29 +1219,15 @@ class FaceTracker:
                     ch = curr_sk["ch"]
 
             else:  # "smooth" or default
-                # ── SMOOTH: Gentle fluid Steadicam gimbal with deadzone filtering ──
-                traj = curr_sk["trajectory"]
+                # ── SMOOTH: Pre-solved Rust critically-damped Steadicam gimbal ──
                 cw = curr_sk["cw"]
                 ch = curr_sk["ch"]
-                if traj and len(traj) >= 2:
-                    traj_t = [pt["t"] for pt in traj]
-                    traj_x = [pt["cx"] for pt in traj]
-                    traj_y = [pt["cy"] for pt in traj]
-                    # Deadzone filter
-                    filtered_x = [traj_x[0]]
-                    filtered_y = [traj_y[0]]
-                    dead_w = cw * 0.10
-                    dead_h = ch * 0.10
-                    for k in range(1, len(traj_x)):
-                        dx = traj_x[k] - filtered_x[-1]
-                        dy = traj_y[k] - filtered_y[-1]
-                        step_x = 0.0 if abs(dx) < dead_w else (dx - np.sign(dx) * dead_w) * 0.35
-                        step_y = 0.0 if abs(dy) < dead_h else (dy - np.sign(dy) * dead_h) * 0.30
-                        filtered_x.append(filtered_x[-1] + step_x)
-                        filtered_y.append(filtered_y[-1] + step_y)
-
-                    cur_cx = float(np.interp(t, traj_t, filtered_x))
-                    cur_cy = float(np.interp(t, traj_t, filtered_y))
+                traj_t_arr = curr_sk.get("traj_t_arr")
+                smooth_x_arr = curr_sk.get("smooth_x_arr")
+                smooth_y_arr = curr_sk.get("smooth_y_arr")
+                if traj_t_arr is not None and smooth_x_arr is not None and smooth_y_arr is not None:
+                    cur_cx = float(np.interp(t, traj_t_arr, smooth_x_arr))
+                    cur_cy = float(np.interp(t, traj_t_arr, smooth_y_arr))
 
                     # Eased glide on shot transitions if not scene cut
                     glide_dur = 0.50
@@ -1217,7 +1253,7 @@ class FaceTracker:
             cropped_patch = frame[y1:y1 + ch, x1:x1 + cw]
 
             if cropped_patch.shape[0] != final_out_h or cropped_patch.shape[1] != final_out_w:
-                interp = cv2.INTER_AREA if (final_out_w < cropped_patch.shape[1] or final_out_h < cropped_patch.shape[0]) else cv2.INTER_LANCZOS4
+                interp = cv2.INTER_AREA if (final_out_w < cropped_patch.shape[1] or final_out_h < cropped_patch.shape[0]) else cv2.INTER_LINEAR
                 return cv2.resize(cropped_patch, (final_out_w, final_out_h), interpolation=interp)
             return cropped_patch
 
