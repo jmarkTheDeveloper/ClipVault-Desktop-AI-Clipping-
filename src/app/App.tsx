@@ -115,6 +115,9 @@ export default function App() {
   const [isLicensed, setIsLicensed] = useState<boolean>(cachedLicense);
   const [licenseStatus, setLicenseStatus] = useState<"checking" | "online" | "unreachable">("checking");
   const [showActivationModal, setShowActivationModal] = useState<boolean>(false);
+  const [isBackendBooting, setIsBackendBooting] = useState<boolean>(true);
+  const [bootProgress, setBootProgress] = useState<number>(18);
+  const [bootMessage, setBootMessage] = useState<string>("Initializing local AI engine, please wait...");
 
   useEffect(() => {
     const handleOpenActivation = () => setShowActivationModal(true);
@@ -122,7 +125,7 @@ export default function App() {
     return () => window.removeEventListener("clipvault-open-activation", handleOpenActivation);
   }, []);
 
-  const checkLicense = React.useCallback((retries = 4, delay = 1000) => {
+  const checkLicense = React.useCallback((retries = 25, delay = 600) => {
     setLicenseStatus("checking");
     return fetch("http://127.0.0.1:8000/api/license/status")
       .then((r) => r.json())
@@ -160,6 +163,55 @@ export default function App() {
 
   useEffect(() => {
     checkLicense();
+  }, [checkLicense]);
+
+  // Startup Readiness Splash Polling ("Welcome to ClipVault, please wait...")
+  useEffect(() => {
+    let active = true;
+    const startTime = Date.now();
+    const messages = [
+      "Initializing local AI engine, please wait...",
+      "Connecting neural video & audio pipelines...",
+      "Preparing 4K / 8K hardware encoder studio...",
+      "Almost ready — finalizing workspace..."
+    ];
+    let step = 0;
+
+    const pollHealth = async () => {
+      if (!active) return;
+      try {
+        const res = await fetch("http://127.0.0.1:8000/api/health", { cache: "no-store" });
+        if (res.ok) {
+          if (!active) return;
+          setBootProgress(100);
+          setBootMessage("Engine ready! Launching ClipVault...");
+          checkLicense(3, 400);
+          const elapsed = Date.now() - startTime;
+          const remaining = Math.max(250, 750 - elapsed);
+          setTimeout(() => {
+            if (active) setIsBackendBooting(false);
+          }, remaining);
+          return;
+        }
+      } catch {}
+
+      if (!active) return;
+      step += 1;
+      setBootProgress((prev) => Math.min(92, prev + Math.max(3, Math.round((92 - prev) * 0.18))));
+      setBootMessage(messages[Math.min(messages.length - 1, Math.floor(step / 3))]);
+
+      // Safety cap so UI never stays locked if user is inspecting offline
+      if (Date.now() - startTime > 18000) {
+        setIsBackendBooting(false);
+        return;
+      }
+      setTimeout(pollHealth, 350);
+    };
+
+    pollHealth();
+    return () => {
+      active = false;
+    };
   }, [checkLicense]);
 
   // Background Task State Tracking
@@ -767,6 +819,61 @@ export default function App() {
             } catch {}
           }}
         />
+
+        {/* Animated Welcome & Backend Readiness Splash Overlay */}
+        {isBackendBooting && (
+          <div className="fixed inset-0 z-[100000] bg-[#06090e]/95 backdrop-blur-2xl flex flex-col items-center justify-center p-6 select-none animate-in fade-in duration-300">
+            <div className="relative flex flex-col items-center max-w-md w-full text-center space-y-6">
+              {/* Ambient Glow */}
+              <div className="absolute -top-12 w-44 h-44 bg-[#34eb3d]/15 rounded-full blur-3xl pointer-events-none animate-pulse" />
+
+              {/* Animated ClipVault Logo Badge */}
+              <div className="relative">
+                <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-[#34eb3d] to-[#1db926] p-[2px] shadow-[0_0_45px_rgba(52,235,61,0.35)]">
+                  <div className="w-full h-full rounded-[22px] bg-[#080c14] flex items-center justify-center">
+                    <span className="text-4xl font-black tracking-tighter bg-gradient-to-br from-[#34eb3d] to-[#7aff80] bg-clip-text text-transparent">
+                      V
+                    </span>
+                  </div>
+                </div>
+                <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[#34eb3d] border-4 border-[#06090e] animate-ping" />
+                <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[#34eb3d] border-4 border-[#06090e]" />
+              </div>
+
+              {/* Welcome Title & Status */}
+              <div className="space-y-2">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#34eb3d]/10 border border-[#34eb3d]/30 text-[#34eb3d] text-[10px] font-extrabold uppercase tracking-widest">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#34eb3d] animate-pulse" />
+                  AI Studio Engine Starting
+                </div>
+                <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                  Welcome to <span className="text-[#34eb3d]">ClipVault</span>
+                </h1>
+                <p className="text-xs sm:text-sm text-gray-400 font-medium">
+                  Please wait while we wake up the local AI clipping engine...
+                </p>
+              </div>
+
+              {/* Animated Progress Bar */}
+              <div className="w-full bg-white/[0.04] border border-white/10 rounded-2xl p-4 space-y-2.5 shadow-inner">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-300 font-semibold truncate pr-2">
+                    {bootMessage}
+                  </span>
+                  <span className="text-[#34eb3d] font-black tabular-nums">
+                    {bootProgress}%
+                  </span>
+                </div>
+                <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-[#34eb3d] via-[#6bff72] to-[#28c930] rounded-full transition-all duration-300 shadow-[0_0_12px_rgba(52,235,61,0.6)]"
+                    style={{ width: `${bootProgress}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Active Clipping Task Exit Confirmation Guard Overlay */}
         {showExitConfirmModal && (

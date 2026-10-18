@@ -392,6 +392,9 @@ function createWindow() {
   mainWindow.once('ready-to-show', () => {
     mainWindow.maximize();
     mainWindow.show();
+    if (process.platform === 'win32' && fs.existsSync(iconIco)) {
+      try { mainWindow.setIcon(iconIco); } catch (e) {}
+    }
     mainWindow.focus();
     setupAutoUpdater();
   });
@@ -547,7 +550,7 @@ async function freePort(port) {
 // Fix 3: smart port conflict resolution — auto-adopt healthy engine or auto-recycle stale instance without popup
 async function ensurePortAvailable(port) {
   for (;;) {
-    if (await waitForPortFree(port)) return true;
+    if (!(await isPortInUse(port))) return true;
 
     // Check if port 8000 is occupied by a ClipVault engine instance
     const engineState = await isClipVaultEngineHealthy(port);
@@ -559,7 +562,7 @@ async function ensurePortAvailable(port) {
       // It is an older ClipVault engine that hasn't synced our token yet — terminate its process tree cleanly.
       console.log(`[Electron]: Recycling previous ClipVault engine on port ${port} to sync session token...`);
       await freePort(port);
-      if (await waitForPortFree(port, 10, 350)) {
+      if (await waitForPortFree(port, 8, 250)) {
         return true;
       }
       // If it still responds as ClipVault after recycle attempt, reuse rather than blocking the user with a modal
@@ -582,7 +585,7 @@ async function ensurePortAvailable(port) {
     if (choice === 0) {
       console.log(`[Electron]: User requested to free port ${port}. Terminating stale process...`);
       await freePort(port);
-      await new Promise((r) => setTimeout(r, 600));
+      await new Promise((r) => setTimeout(r, 300));
     } else if (choice === 2) {
       return false;
     }
@@ -714,10 +717,10 @@ function startPythonBackend() {
       console.log('[Electron]: Port 8000 already running active ClipVault engine. Connected successfully.');
       return;
     }
-    setTimeout(spawnPython, 600);
+    spawnPython();
   }).catch((err) => {
     console.error('[Electron]: Port availability check failed, starting engine anyway:', err);
-    setTimeout(spawnPython, 600);
+    spawnPython();
   });
 }
 
@@ -772,22 +775,23 @@ app.whenReady().then(() => {
 
       cleanupLegacyWindowsShortcuts();
 
-      const rootDir = path.resolve(__dirname, '..');
-      const shortcutOptions = {
-        target: process.execPath,
-        args: app.isPackaged ? '' : `"${rootDir}"`,
-        cwd: rootDir,
-        appUserModelId: 'ClipVault',
-        description: 'ClipVault',
-        icon: iconIco,
-        iconIndex: 0,
-      };
-      if (fs.existsSync(iconIco)) {
+      // CRITICAL: Only create ClipVault.lnk if it does not already exist!
+      // Overwriting an existing Start Menu .lnk while the window is launching invalidates
+      // the Windows 11 Explorer Shell icon cache mid-startup and turns the taskbar icon blank.
+      if (fs.existsSync(iconIco) && !fs.existsSync(shortcutPath)) {
+        const rootDir = path.resolve(__dirname, '..');
+        const shortcutOptions = {
+          target: process.execPath,
+          args: app.isPackaged ? '' : `"${rootDir}"`,
+          cwd: rootDir,
+          appUserModelId: 'ClipVault',
+          description: 'ClipVault',
+          icon: iconIco,
+          iconIndex: 0,
+        };
         try {
-          shell.writeShortcutLink(shortcutPath, 'replace', shortcutOptions);
-        } catch (e) {
           shell.writeShortcutLink(shortcutPath, 'create', shortcutOptions);
-        }
+        } catch (e) {}
       }
     } catch (err) {
       console.error('[Electron]: Shortcut creation error:', err);

@@ -87,8 +87,21 @@ import re
 import requests
 from pathlib import Path
 
-from services.video_processor import VideoProcessor
 from services.auth_verifier import AuthVerifier
+
+_VideoProcessorClass = None
+_vp_lock = threading.Lock()
+_engine_warmed_up = False
+
+def _get_video_processor():
+    global _VideoProcessorClass, _engine_warmed_up
+    if _VideoProcessorClass is None:
+        with _vp_lock:
+            if _VideoProcessorClass is None:
+                from services.video_processor import VideoProcessor as _VP
+                _VideoProcessorClass = _VP
+                _engine_warmed_up = True
+    return _VideoProcessorClass
 
 app = FastAPI(
     title="AI Video Clipping Engine API",
@@ -104,10 +117,24 @@ async def startup_event():
             _logger.addFilter(_clean_filter)
             for _handler in _logger.handlers:
                 _handler.addFilter(_clean_filter)
-        from services.system_guard import SystemGuard
-        SystemGuard.purge_temp_dir()
-        from services.youtube_downloader_yt_dlp import YouTubeDownloader
-        YouTubeDownloader.auto_update_ytdlp_background()
+
+        def _bg_startup_tasks():
+            try:
+                from services.system_guard import SystemGuard
+                SystemGuard.purge_temp_dir()
+            except Exception:
+                pass
+            try:
+                from services.youtube_downloader_yt_dlp import YouTubeDownloader
+                YouTubeDownloader.auto_update_ytdlp_background()
+            except Exception:
+                pass
+            try:
+                _get_video_processor()
+            except Exception as vp_err:
+                print(f" [Startup]: Background warmup note: {vp_err}")
+
+        threading.Thread(target=_bg_startup_tasks, daemon=True).start()
     except Exception as e:
         print(f" [Startup]: Non-critical startup task notification: {e}")
 
@@ -666,7 +693,7 @@ class ReRenderRequest(BaseModel):
 def re_render_clip_endpoint(req: ReRenderRequest):
     """Re-renders an existing clip with custom words, captions, and punch-ins in seconds."""
     try:
-        processor = VideoProcessor(caption_style=req.caption_style)
+        processor = _get_video_processor()(caption_style=req.caption_style)
         result = processor.re_render_clip(
             clip_path=req.clip_path,
             words=req.words,
@@ -751,7 +778,7 @@ def execute_rendering_task(task_id: str, request: ProcessRequest, cancel_event: 
         tasks_db[task_id]["message"] = "Initializing video processor..."
         tasks_db[task_id]["progress"] = 5
         api_key = getattr(request, "api_key", None) or os.environ.get("GEMINI_API_KEY")
-        processor = VideoProcessor(
+        processor = _get_video_processor()(
             api_key=api_key,
             ai_engine=request.ai_engine,
             caption_style=request.caption_style
