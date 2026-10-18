@@ -13,6 +13,7 @@ import { InteractiveTour, FirstTimeWelcomeModal } from "./components/Interactive
 import { SystemEnvironmentModal } from "./components/SystemEnvironmentModal";
 import { LicenseActivationModal } from "./components/LicenseActivationModal";
 import { UpdateNotificationModal } from "./components/UpdateNotificationModal";
+import { Logo } from "./components/Logo";
 import { AlertTriangle, Check, X, Download } from "lucide-react";
 
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; error: any }> {
@@ -117,7 +118,7 @@ export default function App() {
   const [showActivationModal, setShowActivationModal] = useState<boolean>(false);
   const [isBackendBooting, setIsBackendBooting] = useState<boolean>(true);
   const [bootProgress, setBootProgress] = useState<number>(18);
-  const [bootMessage, setBootMessage] = useState<string>("Initializing local AI engine, please wait...");
+  const [bootMessage, setBootMessage] = useState<string>("Starting local service...");
 
   useEffect(() => {
     const handleOpenActivation = () => setShowActivationModal(true);
@@ -170,10 +171,10 @@ export default function App() {
     let active = true;
     const startTime = Date.now();
     const messages = [
-      "Initializing local AI engine, please wait...",
-      "Connecting neural video & audio pipelines...",
-      "Preparing 4K / 8K hardware encoder studio...",
-      "Almost ready — finalizing workspace..."
+      "Starting local service...",
+      "Loading media pipeline...",
+      "Preparing workspace...",
+      "Almost ready..."
     ];
     let step = 0;
 
@@ -184,7 +185,7 @@ export default function App() {
         if (res.ok) {
           if (!active) return;
           setBootProgress(100);
-          setBootMessage("Engine ready! Launching ClipVault...");
+          setBootMessage("Ready");
           checkLicense(3, 400);
           const elapsed = Date.now() - startTime;
           const remaining = Math.max(250, 750 - elapsed);
@@ -820,55 +821,34 @@ export default function App() {
           }}
         />
 
-        {/* Animated Welcome & Backend Readiness Splash Overlay */}
+        {/* Clean Industry-Standard Startup Splash Screen */}
         {isBackendBooting && (
-          <div className="fixed inset-0 z-[100000] bg-[#06090e]/95 backdrop-blur-2xl flex flex-col items-center justify-center p-6 select-none animate-in fade-in duration-300">
-            <div className="relative flex flex-col items-center max-w-md w-full text-center space-y-6">
-              {/* Ambient Glow */}
-              <div className="absolute -top-12 w-44 h-44 bg-[#34eb3d]/15 rounded-full blur-3xl pointer-events-none animate-pulse" />
-
-              {/* Animated ClipVault Logo Badge */}
-              <div className="relative">
-                <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-[#34eb3d] to-[#1db926] p-[2px] shadow-[0_0_45px_rgba(52,235,61,0.35)]">
-                  <div className="w-full h-full rounded-[22px] bg-[#080c14] flex items-center justify-center">
-                    <span className="text-4xl font-black tracking-tighter bg-gradient-to-br from-[#34eb3d] to-[#7aff80] bg-clip-text text-transparent">
-                      V
-                    </span>
-                  </div>
-                </div>
-                <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[#34eb3d] border-4 border-[#06090e] animate-ping" />
-                <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[#34eb3d] border-4 border-[#06090e]" />
+          <div className="fixed inset-0 z-[100000] bg-[#09090b] flex flex-col items-center justify-center p-6 select-none animate-in fade-in duration-200">
+            <div className="flex flex-col items-center w-64 text-center">
+              {/* Official ClipVault Logo Icon */}
+              <div className="mb-5 rounded-[14px] overflow-hidden shadow-lg ring-1 ring-white/10">
+                <Logo size={52} />
               </div>
 
-              {/* Welcome Title & Status */}
-              <div className="space-y-2">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#34eb3d]/10 border border-[#34eb3d]/30 text-[#34eb3d] text-[10px] font-extrabold uppercase tracking-widest">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#34eb3d] animate-pulse" />
-                  AI Studio Engine Starting
-                </div>
-                <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                  Welcome to <span className="text-[#34eb3d]">ClipVault</span>
-                </h1>
-                <p className="text-xs sm:text-sm text-gray-400 font-medium">
-                  Please wait while we wake up the local AI clipping engine...
-                </p>
-              </div>
+              {/* Clean Neutral Typography */}
+              <h1 className="text-[17px] font-semibold text-zinc-100 tracking-tight">
+                Welcome to ClipVault
+              </h1>
+              <p className="mt-1 text-xs text-zinc-500 font-normal">
+                Please wait while the application starts...
+              </p>
 
-              {/* Animated Progress Bar */}
-              <div className="w-full bg-white/[0.04] border border-white/10 rounded-2xl p-4 space-y-2.5 shadow-inner">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-gray-300 font-semibold truncate pr-2">
-                    {bootMessage}
-                  </span>
-                  <span className="text-[#34eb3d] font-black tabular-nums">
-                    {bootProgress}%
-                  </span>
-                </div>
-                <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+              {/* Minimal Progress Track */}
+              <div className="mt-6 w-full space-y-2">
+                <div className="w-full h-1 bg-zinc-800/90 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-[#34eb3d] via-[#6bff72] to-[#28c930] rounded-full transition-all duration-300 shadow-[0_0_12px_rgba(52,235,61,0.6)]"
+                    className="h-full bg-zinc-200 rounded-full transition-all duration-300 ease-out"
                     style={{ width: `${bootProgress}%` }}
                   />
+                </div>
+                <div className="flex items-center justify-between text-[11px] text-zinc-500">
+                  <span className="truncate">{bootMessage}</span>
+                  <span className="tabular-nums font-medium text-zinc-400">{bootProgress}%</span>
                 </div>
               </div>
             </div>
