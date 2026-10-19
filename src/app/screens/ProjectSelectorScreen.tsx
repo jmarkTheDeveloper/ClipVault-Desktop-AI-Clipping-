@@ -1885,6 +1885,7 @@ export function ProjectSelectorScreen({
             alignItems: "center",
             justifyContent: "center",
             padding: "54px 24px 24px",
+            WebkitAppRegion: "no-drag" as any,
           }}
           onClick={() => {
             if (complianceAccepted) {
@@ -1904,6 +1905,7 @@ export function ProjectSelectorScreen({
               display: "flex",
               flexDirection: "column",
               overflow: "hidden",
+              WebkitAppRegion: "no-drag" as any,
             }}
             onClick={(e) => e.stopPropagation()}
           >

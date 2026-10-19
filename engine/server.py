@@ -2747,10 +2747,12 @@ def set_output_dir(payload: dict = Body(...)):
     return {"success": True, "output_dir": str(target)}
 
 if __name__ == "__main__":
+    import multiprocessing
+    multiprocessing.freeze_support()
     import uvicorn
     if sys.platform == "win32":
         try:
             asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
         except Exception:
             pass
-    uvicorn.run("server:app", host="127.0.0.1", port=8000, log_level="info")
+    uvicorn.run(app, host="127.0.0.1", port=8000, log_level="info")

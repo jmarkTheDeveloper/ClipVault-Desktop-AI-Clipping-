@@ -188,10 +188,12 @@ export function LicenseActivationModal({
           handleDismiss(e);
         }
       }}
+      style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
       className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4 select-none cursor-pointer"
     >
       <div 
         onClick={(e) => e.stopPropagation()}
+        style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
         className="relative w-full max-w-md bg-[#0e0e12] border border-white/10 rounded-2xl p-6 sm:p-8 shadow-[0_25px_80px_rgba(0,0,0,0.95)] flex flex-col items-center text-center space-y-5 ring-1 ring-white/5 animate-in fade-in zoom-in-95 duration-200 cursor-default"
       >
         
