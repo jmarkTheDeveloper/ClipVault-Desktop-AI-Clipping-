@@ -46,8 +46,20 @@ export function LicenseActivationModal({
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [isLocked, setIsLocked] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
 
   const MAX_ATTEMPTS = 5;
+
+  const handleRetryClick = async () => {
+    if (!onRetry || isRetrying) return;
+    setIsRetrying(true);
+    setErrorMsg(null);
+    try {
+      await onRetry();
+    } finally {
+      setTimeout(() => setIsRetrying(false), 800);
+    }
+  };
 
   const handleDismiss = (e?: React.MouseEvent) => {
     if (e) {
@@ -249,10 +261,12 @@ export function LicenseActivationModal({
               {onRetry && (
                 <button
                   type="button"
-                  onClick={onRetry}
-                  className="mt-1 px-2.5 py-1 rounded-lg bg-white/[0.08] hover:bg-white/[0.14] text-[11px] font-bold text-zinc-100 transition-all cursor-pointer"
+                  onClick={handleRetryClick}
+                  disabled={isRetrying}
+                  className="mt-1 px-3 py-1 rounded-lg bg-white/[0.08] hover:bg-white/[0.14] text-[11px] font-bold text-zinc-100 transition-all cursor-pointer inline-flex items-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  Check again
+                  {isRetrying && <Loader2 className="w-3 h-3 animate-spin text-amber-400" />}
+                  <span>{isRetrying ? "Checking engine..." : "Check again"}</span>
                 </button>
               )}
             </div>

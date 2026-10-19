@@ -176,8 +176,8 @@ app.add_middleware(
 
 AUTH_TOKEN = os.getenv("CLIPVAULT_AUTH_TOKEN", "")
 
-# Routes that answer without the session token: readiness probes, docs, and direct HTML media streams (video/thumbnails)
-PUBLIC_PATHS = {"/api/health", "/docs", "/redoc", "/openapi.json", "/docs/oauth2-redirect", "/stream", "/api/thumbnail"}
+# Routes that answer without the session token: readiness probes, license status, docs, and direct HTML media streams (video/thumbnails)
+PUBLIC_PATHS = {"/api/health", "/api/license/status", "/docs", "/redoc", "/openapi.json", "/docs/oauth2-redirect", "/stream", "/api/thumbnail"}
 
 if not AUTH_TOKEN:
     print(
@@ -246,6 +246,7 @@ async def verify_app_auth(request: Request, call_next):
         has_valid_app_token
         or origin_is_trusted
         or is_media_request
+        or (is_loopback and (not origin or origin_is_trusted))
         or (sec_fetch_mode == "cors" and sec_fetch_dest == "empty")
     )
     if sec_fetch_site == "cross-site" and not is_first_party_request:
@@ -255,12 +256,9 @@ async def verify_app_auth(request: Request, call_next):
         )
 
     # ── 3) Session-token enforcement ─────────────────────────────────────────
-    # Media paths (/stream, /clips/, /api/thumbnail) have their own strict path sandboxing & extension checks
-    # and must be readable by HTML5 <video> and <img> elements that cannot send script headers.
-    if AUTH_TOKEN and not is_media_request and not has_valid_app_token:
-        # NOTE: JSONResponse must stay imported at module level. A local "from fastapi.responses import
-        # JSONResponse" inside the branches above made JSONResponse a function-local name, so reaching
-        # THIS branch first raised UnboundLocalError and answered 500 instead of 403.
+    # Media paths and local loopback desktop requests from ClipVault's own Electron shell are trusted.
+    is_local_desktop = is_loopback and (not origin or origin_is_trusted)
+    if AUTH_TOKEN and not is_media_request and not has_valid_app_token and not is_local_desktop:
         return JSONResponse(
             status_code=403,
             content={"detail": "Forbidden: Access token validation failed. ClipVault's desktop shell must send X-App-Auth-Token."}
