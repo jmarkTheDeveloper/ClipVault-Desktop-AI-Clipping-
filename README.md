@@ -1,30 +1,35 @@
-
 <div align="center">
-
-#     STILL IN DEVELOPMENT!
 
 # ⚡ ClipVault Studio AI
 ### Autonomous Desktop AI Video Clipping, Virality Engine & Studio
 
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue.svg?logo=typescript)](https://www.typescriptlang.org/)
-[![React 18](https://img.shields.io/badge/React-18.3-61DAFB.svg?logo=react)](https://reactjs.org/)
-[![Electron](https://img.shields.io/badge/Electron-30.0-47848F.svg?logo=electron)](https://www.electronjs.org/)
-[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB.svg?logo=python)](https://python.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688.svg?logo=fastapi)](https://fastapi.tiangolo.com/)
-[![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-3.4-38B2AC.svg?logo=tailwind-css)](https://tailwindcss.com/)
-[![FFmpeg](https://img.shields.io/badge/FFmpeg-Hardware_Accelerated-007808.svg?logo=ffmpeg)](https://ffmpeg.org/)
-[![License: Proprietary Commercial](https://img.shields.io/badge/License-Proprietary%20Commercial-red.svg)](./LICENSE)
+[![Status: Active Development](https://img.shields.io/badge/Status-Active_Development-orange.svg?style=flat-square&logo=github)](https://github.com/jmarkTheDeveloper/ClipVault-Desktop-AI-Clipping-)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.5-3178C6.svg?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![React 18](https://img.shields.io/badge/React-18.3-61DAFB.svg?style=flat-square&logo=react&logoColor=black)](https://reactjs.org/)
+[![Electron](https://img.shields.io/badge/Electron-30.0-47848F.svg?style=flat-square&logo=electron&logoColor=white)](https://www.electronjs.org/)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB.svg?style=flat-square&logo=python&logoColor=white)](https://python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688.svg?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Rust Core](https://img.shields.io/badge/Rust_Core-SIMD_Accelerated-DEA584.svg?style=flat-square&logo=rust&logoColor=white)](./engine/rust_core)
+[![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-3.4-38B2AC.svg?style=flat-square&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![FFmpeg](https://img.shields.io/badge/FFmpeg-Hardware_Accelerated-007808.svg?style=flat-square&logo=ffmpeg&logoColor=white)](https://ffmpeg.org/)
+[![License: Proprietary Commercial](https://img.shields.io/badge/License-Proprietary%20Commercial-red.svg?style=flat-square)](./LICENSE)
+
+<br/>
+
+> [!IMPORTANT]
+> **Active Development Notice**: ClipVault Studio AI is currently in rapid, active development. Core neural tracking models, Rust SIMD compositors, and automated virality pipelines are continuously receiving production updates.
 
 <p align="center">
-  <b>ClipVault</b> transforms full-length YouTube videos, podcasts, and local files into ultra-engaging, high-retention 9:16 vertical Shorts, TikToks, and Reels with dynamic kinetic animated subtitles, active face tracking, and smart stream slicing.
+  <b>ClipVault Studio AI</b> transforms full-length YouTube videos, podcasts, and local footage into high-retention, publication-ready 9:16 vertical Shorts, TikToks, and Reels — complete with dynamic kinetic animated typography, active AI speaker reframing, and instant byte-range stream slicing.
 </p>
 
 [Key Features](#-key-features) •
 [Architecture](#-architecture) •
 [Installation & Quick Start](#-installation--quick-start) •
-[Video Layouts & Kinetic Typography](#-video-layouts--dynamic-framing) •
+[Video Layouts & Dynamic Framing](#-video-layouts--dynamic-framing) •
 [Quality Assurance](#-quality-assurance--testing) •
-[Changelog](#-changelog--release-notes)
+[Changelog](#-changelog--release-notes) •
+[License](#-license--intellectual-property)
 
 ---
 
@@ -34,33 +39,40 @@
 
 ### 🚀 Zero-Lag Desktop Architecture
 - **Thread & Priority Management**: Background rendering tasks automatically adjust process priorities to ensure **0% OS stutter, cursor lag, or UI freezing**, even during high-bitrate 4K encoding.
-- **Hardware Acceleration**: Automatic encoder detection:
+- **Hardware-Accelerated Encoders**: Automatic silicon hardware detection and zero-copy rendering:
   - **Intel Arc / QuickSync Video** (`h264_qsv`)
   - **NVIDIA NVENC** (`h264_nvenc`)
   - **AMD AMF** (`h264_amf`)
   - **Optimized Multi-Threaded CPU** (`libx264`)
+- **Native Rust SIMD Accelerator**: High-performance pixel compositing and alpha-channel word blending compiled directly to native machine assembly via [`clipvault_rust.dll`](./engine/services/bin/clipvault_rust.dll).
+- **HTTP 206 Byte-Range Streaming**: Ultra-smooth in-app video playback and scrubbing powered by an internal streaming proxy with instant 32MB range response buffers.
 
 ### 🧠 Multi-Engine AI Virality Analysis
-- AI scans transcripts and audio energy to pinpoint peak retention hooks, emotional climaxes, and shareable punchlines.
-- Compatible with **OpenAI (Sora/GPT-4o)**, **Anthropic Claude 3.5**, **Google Gemini 1.5 Pro / Flash**, **Higgsfield AI**, and **DeepSeek**.
-- Automatic virality scoring (1–100 pts) with generated catchy titles, viral hashtags, and curation rationales.
+- AI models scan transcripts, dialogue hooks, and narrative sentiment to isolate peak retention moments, emotional climaxes, and shareable punchlines.
+- Compatible with industry-leading frontier LLMs:
+  - **Google Gemini 1.5 Pro / Flash**
+  - **OpenAI GPT-4o / Sora APIs**
+  - **Anthropic Claude 3.5 Sonnet**
+  - **DeepSeek & Local Custom Endpoints**
+- Dynamic virality scoring (1–100 pts) with auto-generated contextual titles, platform-optimized tags, and curation rationales.
 
 ### ✂️ Smart Partial Stream Slicing (`yt-dlp` + FFmpeg)
-- Rather than downloading massive 4-hour livestreams, ClipVault resolves the live audio/video streams and slices **only the exact timestamp chunks** directly over HTTP in seconds.
+- Rather than downloading massive 2-to-4 hour videos, ClipVault resolves the live audio/video streams and downloads **only the exact timestamp chunks** directly over HTTP in seconds.
+- Instant dialogue transcript ingestion from YouTube native tracks in ~0.5s when available, bypassing lengthy audio extraction.
 
 ### 🎨 Kinetic Animated Subtitles & Typography
-- Word-by-word karaoke typography with genuine SIL OFL / Google Open Fonts:
+- Word-by-word karaoke typography rendered with genuine SIL OFL / Google Open Fonts:
   - **Montserrat**, **Anton**, **Bebas Neue**, **Bangers**, **Luckiest Guy**, **Rubik**, **Plus Jakarta Sans**, and **Outfit**.
-- Pre-configured viral caption styles:
+- Pre-configured, creator-tested subtitle aesthetics:
   - 🟡 **Viral Iconic Yellow** (Bold black outline + energetic word highlight)
   - 🟢 **Neon Toxic Lime** (Cyberpunk aesthetic with glowing drop shadows)
   - 🔵 **Ocean Blue Wave** (Clean podcast captioning)
   - 🔴 **Hot Crimson Punch** (High-intensity creator edits)
   - ⚪ **Clean Minimal White**
-- Automatic pop sound effects (**SFX**) and context-aware **animated emojis** placed at keyword punchlines.
+- Automated pop sound effects (**SFX**) and context-aware **animated emojis** placed synchronously at keyword punchlines.
 
 ### 📐 Video Layouts & Dynamic Framing
-1. **Auto Face-Tracking (9:16)**: OpenCV-driven computer vision actively tracks speaker faces to keep them centered.
+1. **Auto Face-Tracking (9:16)**: Computer vision with 3-step binary cut detection tracks active speakers and centers faces with smooth camera panning.
 2. **Satisfying Gameplay Split**: Top-half speaker video combined with satisfying gameplay (Subway Surfers, GTA 5, Minecraft Parkour, ASMR) with custom background import support.
 3. **Landscape + Blurred Canvas**: Fits horizontal video inside a 9:16 frame with a 40% dimmed Gaussian-blurred background.
 4. **Landscape Fit (Letterbox)**: Clean centered letterbox with padded bars.
@@ -78,32 +90,37 @@
 
 ```
 ClipVault Studio/
-├── electron/                  # Electron Main Process & Preload IPC
-│   ├── main.js                # Window lifecycle, native drag-out, child processes
-│   └── preload.cjs            # Safe context bridge
-├── src/                       # Frontend Application (React 18 + TypeScript + Tailwind)
+├── electron/                         # Electron Main Process & Native Preload IPC
+│   ├── main.js                       # Window lifecycle, protocol streaming, native drag-out
+│   └── preload.cjs                   # Secure context bridge with listener cleanup
+├── src/                              # Frontend Application (React 18 + TypeScript + Tailwind)
 │   ├── app/
-│   │   ├── components/clipper/ # SetupSidebar, PhonePreview, SavedClipsVault, CropModal
-│   │   ├── screens/           # AiClipperScreen, MovieRecapperScreen, EditorScreen
-│   │   └── utils/             # API client, types, storage helpers
-├── engine/                    # Python Backend Engine (FastAPI + MoviePy)
-│   ├── server.py              # REST API & background rendering task runner
-│   ├── config.py              # Path configs & hardware acceleration
-│   ├── assets/fonts/          # genuine SIL OFL viral fonts
+│   │   ├── components/clipper/       # SetupSidebar, PhonePreview, SavedClipsVault, CropModal
+│   │   ├── screens/                  # AiClipperScreen, MovieRecapperScreen, EditorScreen, HomeScreen
+│   │   └── utils/                    # API client, types, storage helpers
+├── engine/                           # Python Backend Engine (FastAPI + MoviePy)
+│   ├── server.py                     # REST API & background rendering task runner
+│   ├── config.py                     # Path configs & hardware acceleration
+│   ├── assets/fonts/                 # Genuine SIL OFL viral creator fonts
+│   ├── rust_core/                    # Native Rust SIMD video & alpha compositor source
 │   ├── services/
-│   │   ├── video_processor.py # Main orchestration pipeline
-│   │   ├── layout_compositor.py # 9:16 cropping, splits, gameplay composition
-│   │   ├── caption_maker.py   # Word-by-word subtitle rasterizer
-│   │   ├── whisper_transcriber.py # Faster-Whisper multi-language transcription
-│   │   ├── ai_selector.py     # LLM virality analysis & hook extraction
-│   │   ├── youtube_downloader_yt_dlp.py # Stream slicing engine
-│   │   └── color_grader.py    # LUT & cinematic color profiles
-└── qa_check.py                # Automated 14-point Quality Assurance suite
+│   │   ├── bin/                      # Compiled native binaries (clipvault_rust.dll)
+│   │   ├── video_processor.py        # Main orchestration pipeline
+│   │   ├── layout_compositor.py      # 9:16 cropping, splits, gameplay composition
+│   │   ├── caption_maker.py          # Word-by-word subtitle rasterizer (binary-search bisect)
+│   │   ├── face_tracker.py           # Neural lookahead face tracker & virtual camera
+│   │   ├── whisper_transcriber.py    # Faster-Whisper multi-language transcription
+│   │   ├── ai_selector.py            # LLM virality analysis & hook extraction
+│   │   ├── youtube_downloader_yt_dlp.py # High-speed stream slicing engine
+│   │   ├── scene_detector.py         # Visual shot boundary cut detection
+│   │   ├── thumbnail_generator.py    # Auto-generation of 9:16 YouTube/TikTok posters
+│   │   └── color_grader.py           # Cinematic LUT profiles
+└── qa_check.py                       # Automated 14-point Quality Assurance suite
 ```
 
-### Development / Architecture Docs
-- **[`docs/BUILD.md`](./docs/BUILD.md)** — build & release guide: PyInstaller engine bundle → Vite renderer → electron-builder NSIS installer, clean-VM installer testing, the GitHub auto-update feed requirement, and Windows code signing.
-- **[`docs/HANDOFF.md`](./docs/HANDOFF.md)** — developer hand-off notes and in-depth architecture walkthrough.
+### Architecture & Engineering Guides
+- **[`docs/BUILD.md`](./docs/BUILD.md)** — Build & release guide: PyInstaller engine bundle → Vite renderer → electron-builder NSIS installer, clean-VM installer testing, the GitHub auto-update feed requirement, and Windows code signing.
+- **[`docs/HANDOFF.md`](./docs/HANDOFF.md)** — Developer hand-off notes and in-depth architecture walkthrough.
 
 ---
 
@@ -183,13 +200,13 @@ python qa_check.py
 
 ---
 
-## 💖 Support & Sponsorship
+## 💖 Support & Community
 
-If you find ClipVault useful or want to support ongoing open-source development, you can support me on Patreon!
+If you find ClipVault useful or want to support ongoing development, consider starring the repository and supporting us:
 
 <div align="center">
 
-<p><sub>Published with 💚 by <b>ClipVault Studio LLC</b>.</sub></p>
+<p><sub>Built with 💚 by <b>ClipVault Studio LLC</b>.</sub></p>
 
 </div>
 
@@ -212,5 +229,3 @@ Distributed under the **Exclusive Proprietary Commercial Software License**.
 - **Commercial & SaaS Restrictions**: Commercial resale, subscription monetization, SaaS re-hosting, and unauthorized commercial redistribution are strictly prohibited without an official commercial agreement directly from **ClipVault Studio LLC**.
 
 See the [`LICENSE`](./LICENSE) file for complete legal terms.
-
-
