@@ -1,72 +1,119 @@
-EXPORT PROPRIETARY COMMERCIAL SOFTWARE LICENSE
+CLIPVAULT STUDIO PROPRIETARY SOFTWARE LICENSE & END USER LICENSE AGREEMENT (EULA)
 
-Copyright (c) 2026 ClipVault Studio LLC. All Rights Reserved.
+Copyright (c) 2026 ClipVault Studio LLC. All rights reserved.
 Publisher: ClipVault Studio LLC
 
-==============================================================================
-1. GRANT OF LICENSE & EXCLUSIVE RIGHTS
-==============================================================================
+IMPORTANT: PLEASE READ THIS SOFTWARE LICENSE AGREEMENT CAREFULLY BEFORE DOWNLOADING, 
+INSTALLING, COPYING, OR USING THIS SOFTWARE. BY INSTALLING, COPYING, OR OTHERWISE USING 
+CLIPVAULT STUDIO ("SOFTWARE"), YOU AGREE TO BE BOUND BY THE TERMS OF THIS AGREEMENT. 
+IF YOU DO NOT AGREE TO THESE TERMS, DO NOT INSTALL OR USE THE SOFTWARE.
 
-This software, source code, visual assets, user interfaces, architectures, 
-algorithms, and associated documentation ("ClipVault" or "Software") are the 
-exclusive intellectual property of ClipVault Studio LLC ("Licensor").
+--------------------------------------------------------------------------------
 
-All commercial rights, monetization rights, licensing rights, distribution 
-rights, and intellectual property rights are exclusively and solely reserved 
+1. OWNERSHIP AND INTELLECTUAL PROPERTY
+
+The Software, including its graphical user interfaces, source code, compiled binaries, 
+proprietary algorithms, kinetic subtitle typography, neural tracking models, visual assets, 
+and documentation, is the exclusive intellectual property of ClipVault Studio LLC 
+("Licensor") and is protected by international copyright laws, treaties, and trade secret laws. 
+
+All rights not expressly granted to you under this Agreement are strictly reserved 
 by ClipVault Studio LLC.
 
-==============================================================================
-2. PERMITTED USES
-==============================================================================
+--------------------------------------------------------------------------------
 
-Under this License, you are granted a limited, personal, non-commercial, 
-revocable license to:
-- Inspect, view, and audit the source code for personal learning, educational 
-  review, and private evaluation.
-- Run the desktop software locally on your personal machine for personal, 
-  individual content creation.
+2. GRANT OF LICENSE
 
-==============================================================================
-3. STRICT PROHIBITIONS & COMMERCIAL RESTRICTIONS
-==============================================================================
+Subject to the terms and conditions of this Agreement, Licensor grants you a personal, 
+worldwide, non-exclusive, non-transferable, revocable license to:
 
-Without prior express written consent and an official commercial agreement 
-executed directly by ClipVault Studio LLC, you are strictly FORBIDDEN from:
+(a) Download, install, and execute the executable binary of the Software on devices owned 
+    or controlled by you for local video clipping and content creation.
+(b) Access and review the public source code repository solely for personal learning, 
+    independent security review, and private educational evaluation.
 
-a. COMMERCIAL EXPLOITATION & MONETIZATION:
-   Selling, reselling, renting, leasing, sublicensing, or charging fees for 
-   this software, any derivative work, binary distribution, or component thereof.
+--------------------------------------------------------------------------------
 
-b. SAAS & CLOUD RE-HOSTING:
-   Hosting, deploying, or offering ClipVault as a software-as-a-service (SaaS), 
-   cloud API, web service, bot service, or commercial platform.
+3. USER CONTENT & EXPORTED MEDIA OWNERSHIP
 
-c. REDISTRIBUTION & FORK RESALE:
-   Publicly redistributing, republishing, re-branding, or distributing copies 
-   or forks of this codebase (in source or binary format) for commercial gain.
+You retain full, exclusive ownership of and intellectual property rights in all video files, 
+audio tracks, and media content that you import into, process, or render using the Software. 
+Licensor claims no ownership or royalty rights in the clips, shorts, or videos created 
+or exported by you through the use of the Software.
 
-d. TRADEMARK & ATTRIBUTION REMOVAL:
-   Removing, altering, or obscuring any copyright notices, trademark notices, 
-   licensor attributions, or license terms in the Software.
+--------------------------------------------------------------------------------
 
-==============================================================================
-4. COMMERCIAL LICENSING & INQUIRIES
-==============================================================================
+4. RESTRICTIONS AND PROHIBITIONS
 
-If you represent an organization, enterprise, or agency wishing to obtain a 
-commercial license, enterprise deployment, or bespoke integration of ClipVault:
+Except as explicitly permitted in Section 2, you agree that you shall NOT, directly or 
+indirectly:
 
-Contact ClipVault Studio LLC:
-- Official Publisher: ClipVault Studio LLC
+(a) Commercial Exploitation: Sell, resell, rent, lease, sublicense, distribute, or charge 
+    any fee for the Software, its source code, or any compiled distribution thereof.
+(b) Hosted / SaaS Services: Host, bundle, or operate the Software or its underlying 
+    engine as a Software-as-a-Service (SaaS), cloud service, hosted API, or automated 
+    web platform for commercial access by third parties.
+(c) Re-branding & Distribution: Republish, re-brand, or redistribute fork copies of the 
+    Software under a different name or brand identity for commercial gain.
+(d) Removal of Notices: Remove, obscure, or alter any copyright, patent, trademark, or 
+    proprietary rights notices affixed to or contained within the Software.
 
-==============================================================================
-5. DISCLAIMER OF WARRANTY & LIMITATION OF LIABILITY
-==============================================================================
+--------------------------------------------------------------------------------
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
-FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
-AUTHOR, LICENSOR, OR COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER 
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, 
-OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN 
-THE SOFTWARE.
+5. THIRD-PARTY AND OPEN SOURCE COMPONENTS
+
+The Software incorporates or interfaces with certain open-source tools, machine learning 
+models, and runtime utilities (including, without limitation, FFmpeg, OpenCV, Faster-Whisper, 
+and SIL Open Font License typefaces). 
+
+Such third-party components are governed by their respective open-source licenses. Nothing in 
+this Agreement limits your rights under, or grants you rights that supersede, the terms 
+and conditions of any applicable open-source software license.
+
+--------------------------------------------------------------------------------
+
+6. UPDATES AND MAINTENANCE
+
+Licensor may from time to time develop patches, bug fixes, updates, or new versions of the 
+Software ("Updates"). Such Updates may be delivered automatically or made available via 
+official channels. This Agreement governs any Updates provided by Licensor, unless 
+accompanied by a separate license.
+
+--------------------------------------------------------------------------------
+
+7. TERMINATION
+
+This Agreement is effective until terminated. Your rights under this Agreement will 
+terminate automatically without notice from Licensor if you fail to comply with any of 
+the terms herein. Upon termination, you shall cease all use of the Software and permanently 
+destroy all copies in your possession.
+
+--------------------------------------------------------------------------------
+
+8. DISCLAIMER OF WARRANTIES
+
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THE SOFTWARE IS PROVIDED ON AN "AS IS" 
+AND "AS AVAILABLE" BASIS, WITH ALL FAULTS AND WITHOUT WARRANTY OF ANY KIND. LICENSOR 
+EXPRESSLY DISCLAIMS ALL WARRANTIES, WHETHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, 
+INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A 
+PARTICULAR PURPOSE, ACCURACY, AND NON-INFRINGEMENT.
+
+--------------------------------------------------------------------------------
+
+9. LIMITATION OF LIABILITY
+
+IN NO EVENT SHALL CLIPVAULT STUDIO LLC, ITS OFFICERS, DIRECTORS, EMPLOYEES, OR AGENTS 
+BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, EXEMPLARY, OR PUNITIVE 
+DAMAGES, INCLUDING LOSS OF PROFITS, DATA, USE, GOODWILL, OR OTHER INTANGIBLE LOSSES, 
+ARISING OUT OF OR IN CONNECTION WITH YOUR USE OR INABILITY TO USE THE SOFTWARE, 
+EVEN IF LICENSOR HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+
+--------------------------------------------------------------------------------
+
+10. CONTACT AND COMMERCIAL INQUIRIES
+
+For enterprise licensing, commercial distribution partnerships, custom API integrations, 
+or questions regarding this Agreement, please contact:
+
+ClipVault Studio LLC
+Repository: https://github.com/jmarkTheDeveloper/ClipVault-Desktop-AI-Clipping-
