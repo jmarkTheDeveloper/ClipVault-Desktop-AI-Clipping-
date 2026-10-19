@@ -40,6 +40,20 @@ export const ClipDetailsModal: React.FC<ClipDetailsModalProps> = ({
   const fallbackSrc = isElectron ? httpStreamSrc : nativeLocalSrc;
   const [currentSrc, setCurrentSrc] = React.useState<string>(primarySrc);
 
+  const modalVideoRef = React.useRef<HTMLVideoElement | null>(null);
+
+  React.useEffect(() => {
+    return () => {
+      if (modalVideoRef.current) {
+        try {
+          modalVideoRef.current.pause();
+          modalVideoRef.current.removeAttribute("src");
+          modalVideoRef.current.load();
+        } catch {}
+      }
+    };
+  }, []);
+
   React.useEffect(() => {
     if (clip) {
       setCurrentSrc(primarySrc);
@@ -115,7 +129,7 @@ export const ClipDetailsModal: React.FC<ClipDetailsModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 animate-fadeIn"
+      className="fixed inset-0 z-50 bg-[#070709]/90 flex items-center justify-center p-4 sm:p-6 animate-fadeIn"
       onClick={onClose}
     >
       <div
@@ -132,12 +146,14 @@ export const ClipDetailsModal: React.FC<ClipDetailsModalProps> = ({
         {/* 9:16 Video Player */}
         <div className="w-full md:w-80 aspect-[9/16] bg-black rounded-2xl overflow-hidden border border-white/10 shadow-inner shrink-0 relative">
           <video
+            ref={modalVideoRef}
             key={currentSrc}
             src={currentSrc}
             autoPlay
             loop
             controls
             playsInline
+            preload="auto"
             onCanPlay={(e) => {
               (e.target as HTMLVideoElement).play().catch(() => {});
             }}

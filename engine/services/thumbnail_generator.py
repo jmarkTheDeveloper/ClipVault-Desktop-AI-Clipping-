@@ -148,7 +148,8 @@ class ThumbnailGenerator:
         if not cap.isOpened():
             raise ValueError(f"Could not open video file: {video_path}")
 
-        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        try:
+            total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
         duration = total_frames / fps if fps > 0 else 10.0
 
@@ -202,8 +203,8 @@ class ThumbnailGenerator:
                 final_highest_score = score
                 final_best_frame = frame_rgb
                 final_best_face = face_info
-
-        cap.release()
+        finally:
+            cap.release()
 
         if final_best_frame is None:
             final_best_frame = np.zeros((1920, 1080, 3), dtype=np.uint8)

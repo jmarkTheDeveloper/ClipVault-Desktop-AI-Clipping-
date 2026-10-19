@@ -2,7 +2,7 @@ import { app, BrowserWindow, session, shell, globalShortcut, nativeImage, protoc
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 import { spawn, exec } from 'child_process';
 import util from 'util';
 import nodeNet from 'node:net'; // Fix 3: TCP probe for port 8000 (never taskkill a foreign PID)
@@ -837,8 +837,11 @@ app.whenReady().then(() => {
         return new Response('Forbidden', { status: 403 });
       }
 
-      const fileUrl = 'file:///' + resolvedPath.replace(/\\/g, '/');
-      const response = await net.fetch(fileUrl, { bypassCustomProtocolHandlers: true }).catch(() => null);
+      const fileUrl = pathToFileURL(resolvedPath).href;
+      const response = await net.fetch(fileUrl, {
+        headers: request.headers,
+        bypassCustomProtocolHandlers: true
+      }).catch(() => null);
       if (response) {
         return response;
       }

@@ -38,7 +38,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   startDrag: (filePath) => ipcRenderer.send('start-drag', filePath),
   showNotification: (options) => ipcRenderer.invoke('show-notification', options),
   onCloseRequested: (callback) => {
-    ipcRenderer.on('app-close-requested', () => callback());
+    const handler = () => callback();
+    ipcRenderer.on('app-close-requested', handler);
+    return () => ipcRenderer.removeListener('app-close-requested', handler);
   },
   confirmExit: () => {
     try {
@@ -55,13 +57,41 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getUpdateStatus: () => ipcRenderer.invoke('get-update-status'),
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
   restartAndInstallUpdate: () => ipcRenderer.invoke('restart-and-install-update'),
-  onCheckingForUpdate: (callback) => ipcRenderer.on('checking-for-update', () => callback()),
-  onUpdateAvailable: (callback) => ipcRenderer.on('update-available', (_e, info) => callback(info)),
-  onUpdateNotAvailable: (callback) => ipcRenderer.on('update-not-available', (_e, info) => callback(info)),
-  onUpdateProgress: (callback) => ipcRenderer.on('update-download-progress', (_e, progress) => callback(progress)),
-  onUpdateDownloaded: (callback) => ipcRenderer.on('update-downloaded', (_e, info) => callback(info)),
-  onUpdateError: (callback) => ipcRenderer.on('update-error', (_e, err) => callback(err)),
+  onCheckingForUpdate: (callback) => {
+    const handler = () => callback();
+    ipcRenderer.on('checking-for-update', handler);
+    return () => ipcRenderer.removeListener('checking-for-update', handler);
+  },
+  onUpdateAvailable: (callback) => {
+    const handler = (_e, info) => callback(info);
+    ipcRenderer.on('update-available', handler);
+    return () => ipcRenderer.removeListener('update-available', handler);
+  },
+  onUpdateNotAvailable: (callback) => {
+    const handler = (_e, info) => callback(info);
+    ipcRenderer.on('update-not-available', handler);
+    return () => ipcRenderer.removeListener('update-not-available', handler);
+  },
+  onUpdateProgress: (callback) => {
+    const handler = (_e, progress) => callback(progress);
+    ipcRenderer.on('update-download-progress', handler);
+    return () => ipcRenderer.removeListener('update-download-progress', handler);
+  },
+  onUpdateDownloaded: (callback) => {
+    const handler = (_e, info) => callback(info);
+    ipcRenderer.on('update-downloaded', handler);
+    return () => ipcRenderer.removeListener('update-downloaded', handler);
+  },
+  onUpdateError: (callback) => {
+    const handler = (_e, err) => callback(err);
+    ipcRenderer.on('update-error', handler);
+    return () => ipcRenderer.removeListener('update-error', handler);
+  },
   getAppEdition: () => ipcRenderer.invoke('get-app-edition'),
   setAppEdition: (edition) => ipcRenderer.invoke('set-app-edition', edition),
-  onAppEditionChanged: (callback) => ipcRenderer.on('app-edition-changed', (_e, edition) => callback(edition)),
+  onAppEditionChanged: (callback) => {
+    const handler = (_e, edition) => callback(edition);
+    ipcRenderer.on('app-edition-changed', handler);
+    return () => ipcRenderer.removeListener('app-edition-changed', handler);
+  },
 });

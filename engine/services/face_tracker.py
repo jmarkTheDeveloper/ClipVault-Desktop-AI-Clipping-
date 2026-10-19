@@ -637,9 +637,9 @@ class FaceTracker:
         self.face_cache = {}
 
         # ── PASS 1: Global Lookahead Video Pre-Scan ("Watch the video first") ──
-        # Sample at 4.0 FPS with spatial + 3-zone chromatic cut detection, then binary-search
+        # Sample at 3.0 FPS with spatial + 3-zone chromatic cut detection, then binary-search
         # every detected cut to 1-frame (~25ms) precision so transitions never lag by even a single frame.
-        fps_sample = 4.0
+        fps_sample = 3.0
         num_samples = max(6, int(round(clip.duration * fps_sample)))
         sample_times = np.linspace(0.02, max(0.08, clip.duration - 0.02), num_samples)
 

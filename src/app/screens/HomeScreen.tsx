@@ -213,6 +213,9 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
 
   const handleStartScreenRecording = async () => {
     try {
+      if (screenPreviewUrl && screenPreviewUrl.startsWith("blob:")) {
+        try { URL.revokeObjectURL(screenPreviewUrl); } catch {}
+      }
       setRecordTime(0);
       recordedChunksRef.current = [];
       const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
@@ -246,9 +249,22 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
 
   const handleStopScreenRecording = () => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
-      mediaRecorderRef.current.stop();
+      try { mediaRecorderRef.current.stop(); } catch {}
+    }
+    if (recordedStream) {
+      try { recordedStream.getTracks().forEach((t) => t.stop()); } catch {}
+      setRecordedStream(null);
     }
     setIsRecordingScreen(false);
+  };
+
+  const handleCloseScreenRecorder = () => {
+    handleStopScreenRecording();
+    if (screenPreviewUrl && screenPreviewUrl.startsWith("blob:")) {
+      try { URL.revokeObjectURL(screenPreviewUrl); } catch {}
+    }
+    setScreenPreviewUrl(null);
+    setShowScreenRecordModal(false);
   };
 
   const handleImportScreenRecordToEditor = () => {
@@ -1060,7 +1076,7 @@ export function HomeScreen({ onOpenEditor, onOpenAiChat }: { onOpenEditor: () =>
               <h3 className="text-white font-bold text-lg flex items-center gap-2">
                 <Monitor className="w-5 h-5 text-emerald-400" /> Screen Recorder Studio
               </h3>
-              <button onClick={() => { handleStopScreenRecording(); setShowScreenRecordModal(false); }} className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white">
+              <button onClick={handleCloseScreenRecorder} className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white">
                 <X className="w-4 h-4" />
               </button>
             </div>

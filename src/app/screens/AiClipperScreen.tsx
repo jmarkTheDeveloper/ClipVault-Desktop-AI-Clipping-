@@ -1349,6 +1349,7 @@ export const AiClipperScreen: React.FC<Props> = ({
                 virality_score: (typeof firstClip === "object" && typeof firstClip.virality_score === "number") ? firstClip.virality_score : 95,
                 sub_scores: (typeof firstClip === "object" && firstClip.sub_scores) ? firstClip.sub_scores : { hook: 96, flow: 94, value: 97, trend: 95 },
                 folder: (!customFolderName || customFolderName === "Default" || customFolderName === "Main Library") ? "Default" : customFolderName,
+                size_mb: (typeof firstClip === "object" && typeof firstClip.size_mb === "number") ? firstClip.size_mb : 0,
                 created_at: Date.now() / 1000,
                 thumbnail_url: (typeof firstClip === "object" && firstClip.thumbnail_url) ? firstClip.thumbnail_url : "",
               };

@@ -21,6 +21,8 @@ export interface ClipMetadata {
   created_at: number;
   size_mb: number;
   folder: string;
+  thumbnail_url?: string;
+  file_size?: string;
   start?: number;
   end?: number;
   duration?: number;

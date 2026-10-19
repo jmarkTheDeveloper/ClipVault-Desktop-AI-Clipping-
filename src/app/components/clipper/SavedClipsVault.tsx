@@ -338,7 +338,7 @@ const FolderRow: React.FC<FolderCardProps> = ({
 // ---------------------------------------------------------------------------
 // Video Clip Card (9:16 Preview Card with Native OS Drag-Out)
 // ---------------------------------------------------------------------------
-const VaultClipCard: React.FC<{
+const VaultClipCard = React.memo<{
   clip: ClipMetadata;
   isSelected: boolean;
   selectedCount: number;
@@ -348,7 +348,7 @@ const VaultClipCard: React.FC<{
   onContextMenu: (e: React.MouseEvent, clip: ClipMetadata) => void;
   onDragStart: (e: React.DragEvent) => void;
   onDragEnd: () => void;
-}> = ({
+}>(({
   clip,
   isSelected,
   selectedCount,
@@ -360,26 +360,48 @@ const VaultClipCard: React.FC<{
   onDragEnd,
 }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [hasError, setHasError] = useState(false);
-
   const [isHovered, setIsHovered] = useState(false);
 
-  const handleMouseEnter = () => {
-    setIsHovered(true);
-    if (videoRef.current && !hasError) {
-      videoRef.current.play().catch(() => {});
-    }
-  };
-
-  const handleMouseLeave = () => {
-    setIsHovered(false);
-    if (videoRef.current && !hasError) {
-      videoRef.current.pause();
+  const releaseVideo = () => {
+    if (videoRef.current) {
       try {
-        videoRef.current.currentTime = 0.1;
+        videoRef.current.pause();
+        videoRef.current.removeAttribute("src");
+        videoRef.current.load();
       } catch {}
     }
   };
+
+  const handleMouseEnter = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+    }
+    // Debounce hover video preview by 300ms.
+    // If cursor is roaming across cards, no video decoder or file stream is ever spawned!
+    hoverTimeoutRef.current = setTimeout(() => {
+      setIsHovered(true);
+    }, 300);
+  };
+
+  const handleMouseLeave = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+    setIsHovered(false);
+    releaseVideo();
+  };
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+      }
+      releaseVideo();
+    };
+  }, []);
 
   const getStreamUrl = (pathOrUrl?: string) => {
     if (!pathOrUrl) return "";
@@ -399,16 +421,6 @@ const VaultClipCard: React.FC<{
   const fallbackSrc = isElectron ? httpStreamSrc : nativeLocalSrc;
   const [currentSrc, setCurrentSrc] = useState<string>(primarySrc);
   const [thumbError, setThumbError] = useState<boolean>(false);
-
-  const releaseVideo = () => {
-    if (videoRef.current) {
-      try {
-        videoRef.current.pause();
-        videoRef.current.removeAttribute("src");
-        videoRef.current.load();
-      } catch {}
-    }
-  };
 
   useEffect(() => {
     setCurrentSrc(primarySrc);
@@ -524,13 +536,13 @@ const VaultClipCard: React.FC<{
 
         {/* Exact Video Timeline Range Badge */}
         {clip.start !== undefined && clip.end !== undefined && (
-          <div className="absolute top-2 left-11 bg-black/85 backdrop-blur-md px-2 py-0.5 rounded-md text-[10px] font-bold text-emerald-300 border border-emerald-400/30 flex items-center gap-1 shadow-md pointer-events-none z-10">
+          <div className="absolute top-2 left-11 bg-[#0c0c0e]/95 px-2 py-0.5 rounded-md text-[10px] font-bold text-emerald-300 border border-emerald-400/30 flex items-center gap-1 shadow-md pointer-events-none z-10">
             <Clock className="w-3 h-3 text-emerald-400 shrink-0" />
             <span>{Math.floor(clip.start / 60)}:{(Math.floor(clip.start % 60) < 10 ? "0" : "") + Math.floor(clip.start % 60)} - {Math.floor(clip.end / 60)}:{(Math.floor(clip.end % 60) < 10 ? "0" : "") + Math.floor(clip.end % 60)}</span>
           </div>
         )}
 
-        <div className="absolute top-2 right-2 group-hover:opacity-0 transition-opacity bg-black/80 backdrop-blur-md px-2 py-1 rounded-md text-[10px] font-bold text-white border border-white/10 pointer-events-none">
+        <div className="absolute top-2 right-2 group-hover:opacity-0 transition-opacity bg-[#0c0c0e]/90 px-2 py-1 rounded-md text-[10px] font-bold text-white border border-white/10 pointer-events-none">
           9:16
         </div>
 
@@ -545,7 +557,7 @@ const VaultClipCard: React.FC<{
         )}
 
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center pointer-events-none">
-          <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity transform scale-75 group-hover:scale-100">
+          <div className="w-12 h-12 bg-black/60 border border-white/20 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity transform scale-75 group-hover:scale-100 shadow-xl">
             <Play className="w-5 h-5 fill-white text-white ml-1" />
           </div>
         </div>
@@ -592,7 +604,18 @@ const VaultClipCard: React.FC<{
       </div>
     </div>
   );
-};
+}, (prev, next) => {
+  return (
+    prev.isSelected === next.isSelected &&
+    prev.selectedCount === next.selectedCount &&
+    prev.clip.path === next.clip.path &&
+    prev.clip.title === next.clip.title &&
+    prev.clip.virality_score === next.clip.virality_score &&
+    prev.clip.created_at === next.clip.created_at &&
+    prev.clip.folder === next.clip.folder &&
+    prev.clip.duration === next.clip.duration
+  );
+});
 
 // ---------------------------------------------------------------------------
 // Main SavedClipsVault Component

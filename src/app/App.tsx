@@ -199,7 +199,7 @@ export default function App() {
       if (!active) return;
       step += 1;
       setBootProgress((prev) => Math.min(92, prev + Math.max(3, Math.round((92 - prev) * 0.18))));
-      setBootMessage(messages[Math.min(messages.length - 1, Math.floor(step / 3))]);
+      setBootMessage(messages[Math.min(messages.length - 1, Math.floor(step / 3))] || "Starting ClipVault AI Engine...");
 
       // Safety cap so UI never stays locked if user is inspecting offline
       if (Date.now() - startTime > 18000) {
@@ -245,33 +245,34 @@ export default function App() {
 
   useEffect(() => {
     const electronAPI = (window as any).electronAPI;
+    const cleanups: (() => void)[] = [];
     if (electronAPI) {
       if (electronAPI.onCheckingForUpdate) {
-        electronAPI.onCheckingForUpdate(() => {
+        cleanups.push(electronAPI.onCheckingForUpdate(() => {
           setUpdateNotification((prev) => ({ ...prev, status: "checking" }));
-        });
+        }));
       }
       if (electronAPI.onUpdateAvailable) {
-        electronAPI.onUpdateAvailable((info: any) => {
+        cleanups.push(electronAPI.onUpdateAvailable((info: any) => {
           setUpdateNotification({
             status: "downloading",
             version: info?.version,
             progress: 0,
             releaseNotes: info?.releaseNotes,
           });
-        });
+        }));
       }
       if (electronAPI.onUpdateProgress) {
-        electronAPI.onUpdateProgress((progress: any) => {
+        cleanups.push(electronAPI.onUpdateProgress((progress: any) => {
           setUpdateNotification((prev) => ({
             ...prev,
             status: "downloading",
             progress: Math.round(progress?.percent || 0),
           }));
-        });
+        }));
       }
       if (electronAPI.onUpdateDownloaded) {
-        electronAPI.onUpdateDownloaded((info: any) => {
+        cleanups.push(electronAPI.onUpdateDownloaded((info: any) => {
           setUpdateNotification({
             status: "ready",
             version: info?.version,
@@ -279,14 +280,19 @@ export default function App() {
           });
           // Automatically prompt user so they know fixes are ready
           setShowUpdateModal(true);
-        });
+        }));
       }
       if (electronAPI.onUpdateNotAvailable) {
-        electronAPI.onUpdateNotAvailable(() => {
+        cleanups.push(electronAPI.onUpdateNotAvailable(() => {
           setUpdateNotification((prev) => ({ ...prev, status: "idle" }));
-        });
+        }));
       }
     }
+    return () => {
+      cleanups.forEach((c) => {
+        if (typeof c === "function") c();
+      });
+    };
   }, []);
 
   // Global event listener to open What's New & Bug Fixes from anywhere
@@ -329,8 +335,9 @@ export default function App() {
   // Intercept Electron Window Close (X) & Web Unload when clipping task is active
   useEffect(() => {
     const electronAPI = (window as any).electronAPI;
+    let unsubscribeClose: (() => void) | undefined;
     if (electronAPI?.onCloseRequested) {
-      electronAPI.onCloseRequested(() => {
+      unsubscribeClose = electronAPI.onCloseRequested(() => {
         if (taskState.running) {
           setShowExitConfirmModal(true);
         } else {
@@ -343,6 +350,14 @@ export default function App() {
       });
     }
 
+    return () => {
+      if (typeof unsubscribeClose === "function") {
+        unsubscribeClose();
+      }
+    };
+  }, [taskState.running]);
+
+  useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (taskState.running) {
         e.preventDefault();
