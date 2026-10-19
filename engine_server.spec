@@ -94,6 +94,13 @@ for asset_dir in ['assets', 'models', 'bg_music']:
     else:
         print('[engine_server.spec] WARNING: expected data folder missing: %s' % ap)
 
+rust_bin_dir = os.path.join(engine_base, 'services', 'bin')
+if os.path.isdir(rust_bin_dir):
+    datas.append((rust_bin_dir, os.path.join('services', 'bin')))
+    rust_dll = os.path.join(rust_bin_dir, 'clipvault_rust.dll')
+    if os.path.isfile(rust_dll):
+        binaries.append((rust_dll, os.path.join('services', 'bin')))
+
 a = Analysis(
     [os.path.join(engine_base, 'server.py')],
     pathex=[engine_base],

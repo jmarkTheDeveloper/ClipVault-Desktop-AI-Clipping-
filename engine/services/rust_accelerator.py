@@ -20,6 +20,7 @@ def _load_rust_library():
     if _RUST_LIB is not None:
         return _RUST_LIB
 
+    import sys
     base_dir = os.path.dirname(os.path.abspath(__file__))
     candidates = [
         os.path.join(base_dir, "bin", "clipvault_rust.dll"),
@@ -27,6 +28,23 @@ def _load_rust_library():
         os.path.join(base_dir, "bin", "libclipvault_rust.so"),
         os.path.join(base_dir, "bin", "libclipvault_rust.dylib"),
     ]
+
+    # Support PyInstaller frozen bundle execution
+    if getattr(sys, "frozen", False):
+        meipass = getattr(sys, "_MEIPASS", "")
+        exe_dir = os.path.dirname(sys.executable)
+        if meipass:
+            candidates.extend([
+                os.path.join(meipass, "services", "bin", "clipvault_rust.dll"),
+                os.path.join(meipass, "engine", "services", "bin", "clipvault_rust.dll"),
+                os.path.join(meipass, "bin", "clipvault_rust.dll"),
+                os.path.join(meipass, "clipvault_rust.dll"),
+            ])
+        candidates.extend([
+            os.path.join(exe_dir, "services", "bin", "clipvault_rust.dll"),
+            os.path.join(exe_dir, "_internal", "services", "bin", "clipvault_rust.dll"),
+            os.path.join(exe_dir, "clipvault_rust.dll"),
+        ])
 
     for dll_path in candidates:
         if os.path.exists(dll_path):
