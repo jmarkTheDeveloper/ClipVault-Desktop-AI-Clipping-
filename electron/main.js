@@ -539,7 +539,8 @@ async function freePort(port) {
   if (process.platform === 'win32') {
     try {
       await execAsync(
-        `powershell -NoProfile -NonInteractive -Command "$pids = @(Get-NetTCPConnection -LocalPort ${port} -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique | Where-Object { $_ -and $_ -gt 4 }); foreach ($id in $pids) { taskkill /F /T /PID $id 2>$null; Get-CimInstance Win32_Process -Filter \\"ParentProcessId = $id\\" -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue } }"`
+        `powershell -NoProfile -NonInteractive -WindowStyle Hidden -Command "$pids = @(Get-NetTCPConnection -LocalPort ${port} -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique | Where-Object { $_ -and $_ -gt 4 }); foreach ($id in $pids) { taskkill /F /T /PID $id 2>$null; Get-CimInstance Win32_Process -Filter \\"ParentProcessId = $id\\" -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue } }"`,
+        { windowsHide: true }
       );
     } catch (err) {
       console.warn(`[Electron]: Could not force-free port ${port}:`, err);

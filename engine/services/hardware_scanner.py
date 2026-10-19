@@ -24,19 +24,29 @@ class HardwareScanner:
             'specs': []
         }
         if sys.platform == 'win32':
+            flags = getattr(subprocess, 'CREATE_NO_WINDOW', 0x08000000)
             try:
-                cpu_raw = subprocess.check_output(['powershell', '-NoProfile', '-Command', 'Get-CimInstance Win32_Processor | Select-Object -ExpandProperty Name'], text=True, timeout=4).strip()
+                cpu_raw = subprocess.check_output(
+                    ['powershell', '-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-Command', 'Get-CimInstance Win32_Processor | Select-Object -ExpandProperty Name'],
+                    text=True, timeout=4, creationflags=flags
+                ).strip()
                 if cpu_raw: info['cpu'] = cpu_raw.splitlines()[0].strip()
             except Exception: pass
             try:
-                gpu_raw = subprocess.check_output(['powershell', '-NoProfile', '-Command', 'Get-CimInstance Win32_VideoController | Select-Object -ExpandProperty Name'], text=True, timeout=4).strip()
+                gpu_raw = subprocess.check_output(
+                    ['powershell', '-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-Command', 'Get-CimInstance Win32_VideoController | Select-Object -ExpandProperty Name'],
+                    text=True, timeout=4, creationflags=flags
+                ).strip()
                 if gpu_raw:
                     gpus = [g.strip() for g in gpu_raw.splitlines() if g.strip()]
                     info['gpu'] = ' + '.join(gpus)
             except Exception: pass
 
             try:
-                npu_raw = subprocess.check_output(['powershell', '-NoProfile', '-Command', 'Get-CimInstance Win32_PnPEntity | Select-Object -ExpandProperty Name'], text=True, timeout=4).strip()
+                npu_raw = subprocess.check_output(
+                    ['powershell', '-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-Command', 'Get-CimInstance Win32_PnPEntity | Select-Object -ExpandProperty Name'],
+                    text=True, timeout=4, creationflags=flags
+                ).strip()
                 if npu_raw:
                     for line in npu_raw.splitlines():
                         l = line.strip()

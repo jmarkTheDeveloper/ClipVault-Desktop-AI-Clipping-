@@ -170,9 +170,10 @@ class VideoProcessor:
             pass
 
         try:
+            flags = getattr(subprocess, 'CREATE_NO_WINDOW', 0x08000000)
             output = subprocess.check_output(
-                ['powershell', '-NoProfile', '-Command', 'Get-CimInstance Win32_VideoController | Select-Object -ExpandProperty Name'],
-                text=True, timeout=25
+                ['powershell', '-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-Command', 'Get-CimInstance Win32_VideoController | Select-Object -ExpandProperty Name'],
+                text=True, timeout=25, creationflags=flags
             )
             if 'AMD' in output or 'Radeon' in output:
                 print("    [Hardware Acceleration]: AMD AMF (h264_amf)...")
