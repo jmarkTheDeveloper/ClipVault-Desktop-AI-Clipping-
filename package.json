@@ -13,6 +13,7 @@
     "dev:developer": "concurrently --kill-others \"vite\" \"wait-on http-get://127.0.0.1:54321 && cross-env NODE_ENV=development CLIPVAULT_EDITION=developer electron .\"",
     "start:consumer": "cross-env NODE_ENV=production CLIPVAULT_EDITION=consumer electron .",
     "build:consumer": "vite build",
+    "consumer": "npm run build && npm run start:consumer",
     "create:shortcuts": "powershell -ExecutionPolicy Bypass -File tools/create_desktop_shortcuts.ps1",
     "sync": "node sync.cjs",
     "sync:watch": "node auto_git_watch.cjs",

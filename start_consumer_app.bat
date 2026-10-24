@@ -16,10 +16,9 @@ echo Live Reload: Disabled (Safe from real-time developer edits)
 echo Dev Tools: Hidden (Pristine customer-facing experience)
 echo.
 
-if not exist "dist\index.html" (
-    echo Building latest consumer assets...
-    call npm run build
-)
+echo Updating consumer interface assets (Vite build)...
+call npm run build
+echo.
 
 npm run start:consumer
 pause
