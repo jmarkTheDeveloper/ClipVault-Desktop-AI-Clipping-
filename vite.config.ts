@@ -32,6 +32,20 @@ export default defineConfig({
     },
   },
 
+  build: {
+    // Desktop apps run locally from fast NVMe SSD, not over slow 3G cellular networks.
+    // Raise warning limit and split vendor chunks cleanly to keep build console pristine.
+    chunkSizeWarningLimit: 2000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          lucide: ['lucide-react'],
+        }
+      }
+    }
+  },
+
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
   assetsInclude: ['**/*.svg', '**/*.csv'],
   optimizeDeps: {
