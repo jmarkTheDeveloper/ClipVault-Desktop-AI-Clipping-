@@ -5,6 +5,8 @@ import json
 import shutil
 import tempfile
 import subprocess
+import uuid
+WIN_NO_WINDOW = subprocess.CREATE_NO_WINDOW if sys.platform == 'win32' else 0
 from pathlib import Path
 from typing import Optional, Tuple, List, Dict, Any
 from urllib.parse import urlparse, parse_qs
@@ -487,7 +489,7 @@ class YouTubeDownloader:
             slice_name = f"slice_{video_id}_{int(start_sec)}_{int(end_sec)}.mp4"
             output_path = self.temp_dir / slice_name
 
-        temp_slice = self.temp_dir / f"tmp_{output_path.name}"
+        temp_slice = self.temp_dir / f"tmp_{uuid.uuid4().hex[:8]}_{output_path.name}"
         if temp_slice.exists():
             try: temp_slice.unlink()
             except Exception: pass
@@ -536,8 +538,14 @@ class YouTubeDownloader:
                 q_low = str(quality or "1080p").lower().strip()
                 if "8k" in q_low or "4320" in q_low:
                     target_h = 4320
-                else:
+                elif "4k" in q_low or "2160" in q_low:
                     target_h = 2160
+                elif "1440" in q_low or "2k" in q_low:
+                    target_h = 1440
+                elif "720" in q_low:
+                    target_h = 720
+                else:
+                    target_h = 1080
                 
                 def is_within_target(f):
                     h, w = f.get("height") or 0, f.get("width") or 0
@@ -642,8 +650,9 @@ class YouTubeDownloader:
 
                 # Fast Path A: Parallel HLS fMP4 segment range extraction (unthrottled ratebypass=yes 4K/1080p)
                 if is_hls_v:
-                    temp_v_seg = self.temp_dir / f"seg_v_{video_id}_{int(start_sec)}_{int(end_sec)}.mp4"
-                    temp_a_seg = self.temp_dir / f"seg_a_{video_id}_{int(start_sec)}_{int(end_sec)}.mp4"
+                    u_tag = uuid.uuid4().hex[:6]
+                    temp_v_seg = self.temp_dir / f"seg_v_{video_id}_{int(start_sec)}_{int(end_sec)}_{u_tag}.mp4"
+                    temp_a_seg = self.temp_dir / f"seg_a_{video_id}_{int(start_sec)}_{int(end_sec)}_{u_tag}.mp4"
                     try:
                         import time as _t
                         t_hls = _t.time()
@@ -690,7 +699,7 @@ class YouTubeDownloader:
                             "-avoid_negative_ts", "make_zero",
                             str(temp_slice),
                         ])
-                        proc = subprocess.run(hls_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, timeout=90)
+                        proc = subprocess.run(hls_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, timeout=90, creationflags=WIN_NO_WINDOW)
                         if proc.returncode == 0 and temp_slice.exists() and temp_slice.stat().st_size > 10240:
                             if output_path.exists():
                                 try: output_path.unlink()
@@ -775,7 +784,7 @@ class YouTubeDownloader:
 
                 print(f"    [YouTubeDownloader] Running direct HTTP range slice with ffmpeg ({duration_sec:.1f}s)...")
                 slice_timeout = min(75, max(30, int(duration_sec * 0.9)))
-                proc = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, timeout=slice_timeout)
+                proc = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, timeout=slice_timeout, creationflags=WIN_NO_WINDOW)
                 if proc.returncode == 0 and temp_slice.exists() and temp_slice.stat().st_size > 10240:
                     if output_path.exists():
                         try: output_path.unlink()
@@ -794,10 +803,16 @@ class YouTubeDownloader:
         audio_spec = 'bestaudio[language_preference>=0]/bestaudio[format_note*=original]/bestaudio[language=en]/bestaudio'
         if "8k" in q_low or "4320" in q_low:
             format_str = f'bestvideo[height<=4320]+{audio_spec}/bestvideo+bestaudio/best[height<=4320]/best'
-        elif q_low in ("4k", "2160p", "1440p", "2k", "1080p", "source", "original"):
+        elif "4k" in q_low or "2160" in q_low:
             format_str = f'bestvideo[height<=2160]+{audio_spec}/bestvideo+bestaudio/best[height<=2160]/best'
-        else:
+        elif "1440" in q_low or "2k" in q_low:
             format_str = f'bestvideo[height<=1440]+{audio_spec}/bestvideo+bestaudio/best[height<=1440]/best'
+        elif "720" in q_low:
+            format_str = f'bestvideo[height<=720]+{audio_spec}/bestvideo+bestaudio/best[height<=720]/best'
+        elif "source" in q_low or "original" in q_low:
+            format_str = f'bestvideo+{audio_spec}/bestvideo+bestaudio/best'
+        else:
+            format_str = f'bestvideo[height<=1080]+{audio_spec}/bestvideo+bestaudio/best[height<=1080]/best'
 
         def ytdl_progress(d):
             if d.get('status') == 'downloading' and progress_callback:
@@ -885,10 +900,16 @@ class YouTubeDownloader:
         audio_spec = 'bestaudio[language_preference>=0]/bestaudio[format_note*=original]/bestaudio[language=en]/bestaudio'
         if "8k" in q_low or "4320" in q_low:
             format_str = f'bestvideo[height<=4320]+{audio_spec}/bestvideo+bestaudio/best[height<=4320]/best'
-        elif q_low in ("4k", "2160p", "1440p", "2k", "1080p", "source", "original"):
+        elif "4k" in q_low or "2160" in q_low:
             format_str = f'bestvideo[height<=2160]+{audio_spec}/bestvideo+bestaudio/best[height<=2160]/best'
-        else:
+        elif "1440" in q_low or "2k" in q_low:
             format_str = f'bestvideo[height<=1440]+{audio_spec}/bestvideo+bestaudio/best[height<=1440]/best'
+        elif "720" in q_low:
+            format_str = f'bestvideo[height<=720]+{audio_spec}/bestvideo+bestaudio/best[height<=720]/best'
+        elif "source" in q_low or "original" in q_low:
+            format_str = f'bestvideo+{audio_spec}/bestvideo+bestaudio/best'
+        else:
+            format_str = f'bestvideo[height<=1080]+{audio_spec}/bestvideo+bestaudio/best[height<=1080]/best'
 
         def ytdl_dl_progress(d):
             if d.get('status') == 'downloading' and progress_callback:

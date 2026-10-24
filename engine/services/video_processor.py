@@ -660,7 +660,32 @@ class VideoProcessor:
         print(f"\n Processing {len(clip_specs)} viral clips (Saving to: {target_dir})...")
 
         last_clip_error = None
+        prefetch_executor = None
+        prefetch_futures = {}
+
+        if use_smart_slicing and len(clip_specs) > 1:
+            from concurrent.futures import ThreadPoolExecutor
+            prefetch_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="SlicePrefetch")
+
+            def _prefetch_slice(c_idx, c_info):
+                c_start = c_info['start']
+                c_end = c_info['end']
+                try:
+                    return self.downloader.download_slice(url, c_start, c_end, quality=res_str, progress_callback=None)
+                except Exception:
+                    fallback_q = "4k" if is_8k_export else ("1080p" if is_4k_export else "720p")
+                    return self.downloader.download_slice(url, c_start, c_end, quality=fallback_q, progress_callback=None)
+
+            # Prime the initial 2 slices into the background prefetch pipeline
+            for prime_idx in range(1, min(len(clip_specs) + 1, 3)):
+                prefetch_futures[prime_idx] = prefetch_executor.submit(_prefetch_slice, prime_idx, clip_specs[prime_idx - 1])
+
         for i, clip_info in enumerate(clip_specs, 1):
+            # Prime lookahead slice (i + 2) in background while current clip renders
+            if prefetch_executor and (i + 2) <= len(clip_specs):
+                ahead_idx = i + 2
+                if ahead_idx not in prefetch_futures:
+                    prefetch_futures[ahead_idx] = prefetch_executor.submit(_prefetch_slice, ahead_idx, clip_specs[ahead_idx - 1])
             start = clip_info['start']
             end = clip_info['end']
             title_text = clip_info.get('title', f'Clip {i}')
@@ -672,24 +697,34 @@ class VideoProcessor:
             try:
                 if use_smart_slicing:
                     if progress_callback:
-                        progress_callback(f"Downloading clip {i}/{len(clip_specs)} slice ({start:.0f}s-{end:.0f}s)...", 40 + int((i - 1) / len(clip_specs) * 20))
-                    try:
-                        slice_to_cleanup = self.downloader.download_slice(url, start, end, quality=res_str, progress_callback=progress_callback)
-                        video = VideoFileClip(str(slice_to_cleanup))
-                        clips_to_close.append(video)
-                        clip = video
-                    except Exception as slice_err:
-                        print(f"     Smart slice download note ({slice_err}). Attempting resilient high-res fallback for clip {i}...")
+                        progress_callback(f"Preparing clip {i}/{len(clip_specs)} slice ({start:.0f}s-{end:.0f}s)...", 40 + int((i - 1) / len(clip_specs) * 20))
+                    
+                    if i in prefetch_futures:
                         try:
-                            fallback_q = "4k" if is_8k_export else ("1080p" if is_4k_export else "720p")
-                            slice_to_cleanup = self.downloader.download_slice(url, start, end, quality=fallback_q, progress_callback=progress_callback)
-                            video = VideoFileClip(str(slice_to_cleanup))
-                            clips_to_close.append(video)
-                            clip = video
-                        except Exception as retry_err:
-                            print(f"     [VideoProcessor] Warning: Could not download slice for clip {i} ({retry_err}). Skipping this clip.")
-                            last_clip_error = str(retry_err)
-                            continue
+                            slice_to_cleanup = prefetch_futures[i].result(timeout=120)
+                            print(f"    [VideoProcessor] Instant slice hit for clip {i} (pre-fetched in background)")
+                        except Exception as pref_err:
+                            print(f"    [VideoProcessor] Background prefetch note for clip {i} ({pref_err}). Falling back to direct download...")
+                            slice_to_cleanup = None
+                        finally:
+                            prefetch_futures.pop(i, None)
+
+                    if not slice_to_cleanup or not Path(slice_to_cleanup).exists():
+                        try:
+                            slice_to_cleanup = self.downloader.download_slice(url, start, end, quality=res_str, progress_callback=progress_callback)
+                        except Exception as slice_err:
+                            print(f"     Smart slice download note ({slice_err}). Attempting resilient high-res fallback for clip {i}...")
+                            try:
+                                fallback_q = "4k" if is_8k_export else ("1080p" if is_4k_export else "720p")
+                                slice_to_cleanup = self.downloader.download_slice(url, start, end, quality=fallback_q, progress_callback=progress_callback)
+                            except Exception as retry_err:
+                                print(f"     [VideoProcessor] Warning: Could not download slice for clip {i} ({retry_err}). Skipping this clip.")
+                                last_clip_error = str(retry_err)
+                                continue
+
+                    video = VideoFileClip(str(slice_to_cleanup))
+                    clips_to_close.append(video)
+                    clip = video
                 else:
                     video = VideoFileClip(str(video_path))
                     clips_to_close.append(video)
@@ -1107,6 +1142,21 @@ class VideoProcessor:
                     except Exception:
                         pass
                 gc.collect()
+
+        if prefetch_executor:
+            try:
+                prefetch_executor.shutdown(wait=False, cancel_futures=True)
+            except Exception:
+                pass
+            for leftover_future in list(prefetch_futures.values()):
+                try:
+                    if leftover_future.done() and not leftover_future.cancelled():
+                        leftover_p = leftover_future.result()
+                        if leftover_p and Path(leftover_p).exists():
+                            Path(leftover_p).unlink(missing_ok=True)
+                except Exception:
+                    pass
+            prefetch_futures.clear()
 
         self.face_tracker.close()
         self.caption_maker.font_cache.clear()
