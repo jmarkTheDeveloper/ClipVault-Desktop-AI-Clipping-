@@ -872,50 +872,65 @@ export default function App() {
 
         {/* Active Clipping Task Exit Confirmation Guard Overlay */}
         {showExitConfirmModal && (
-          <div className="fixed inset-0 z-[99999] bg-black/85 backdrop-blur-xl flex items-center justify-center p-6 animate-in fade-in duration-200">
-            <div className="bg-[#0d0f12] border border-amber-500/40 shadow-[0_20px_60px_rgba(0,0,0,0.95),0_0_40px_rgba(245,158,11,0.25)] rounded-3xl p-6 sm:p-8 max-w-md w-full text-center space-y-6 relative overflow-hidden">
-              {/* Top Warning Badge */}
-              <div className="w-16 h-16 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400 text-2xl flex items-center justify-center mx-auto shadow-lg relative font-bold">
-                !
-              </div>
+          <div
+            style={{ WebkitAppRegion: "no-drag" }}
+            className="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-150 select-none"
+          >
+            <div
+              style={{ WebkitAppRegion: "no-drag" }}
+              className="bg-[#121418] border border-zinc-800/90 shadow-2xl shadow-black/90 rounded-2xl max-w-[440px] w-full p-6 text-left relative overflow-hidden ring-1 ring-white/5 space-y-5"
+            >
+              {/* Subtle Ambient Accent Glow */}
+              <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-64 h-28 bg-amber-500/10 blur-3xl rounded-full pointer-events-none" />
 
-              <div className="space-y-2">
-                <h3 className="text-xl font-black text-white tracking-tight">
-                  Active Clipping Task in Progress
-                </h3>
-                <p className="text-xs text-gray-300 leading-relaxed">
-                  ClipVault is currently processing video clips in the background ({taskState.progress}% complete). Closing the app now will cancel your active task and discard unsaved progress.
-                </p>
-              </div>
-
-              {/* Progress Pill Bar */}
-              <div className="bg-white/5 border border-white/10 p-3.5 rounded-2xl text-left space-y-2">
-                <div className="flex items-center justify-between text-xs font-bold">
-                  <span className="text-gray-300 flex items-center gap-2 truncate max-w-[220px]">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" />
-                    <span className="truncate">{taskState.statusText || "Processing video clips..."}</span>
-                  </span>
-                  <span className="text-emerald-400 font-extrabold ml-2">{taskState.progress}%</span>
+              {/* Header with Studio Badge */}
+              <div className="flex items-start gap-3.5 relative">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center flex-shrink-0 shadow-sm mt-0.5">
+                  <AlertTriangle className="w-5 h-5 text-amber-400" />
                 </div>
-                <div className="w-full bg-white/10 h-2 rounded-full overflow-hidden">
+                <div className="space-y-1 min-w-0 flex-1">
+                  <h3 className="text-[15px] font-semibold text-zinc-100 tracking-tight">
+                    Clipping Task in Progress
+                  </h3>
+                  <p className="text-xs text-zinc-400 leading-relaxed">
+                    ClipVault is currently rendering video clips in the background ({taskState.progress}% complete). Exiting now will cancel the operation and discard unsaved progress.
+                  </p>
+                </div>
+              </div>
+
+              {/* High-Precision Progress Monitor */}
+              <div className="bg-zinc-900/80 border border-zinc-800/80 rounded-xl p-3.5 space-y-2.5">
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2 min-w-0 pr-2">
+                    <span className="relative flex h-2 w-2 flex-shrink-0">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    <span className="text-zinc-300 font-medium truncate text-[12px]">
+                      {taskState.statusText || "Rendering viral clips..."}
+                    </span>
+                  </div>
+                  <span className="text-emerald-400 font-mono font-semibold text-xs tabular-nums flex-shrink-0">
+                    {taskState.progress}%
+                  </span>
+                </div>
+
+                {/* Sleek Gradient Bar */}
+                <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden">
                   <div
-                    className="bg-gradient-to-r from-[#22c55e] to-[#16a34a] h-full rounded-full transition-all duration-300"
+                    className="bg-emerald-500 h-full rounded-full transition-all duration-300 ease-out shadow-[0_0_10px_rgba(16,185,129,0.4)]"
                     style={{ width: `${Math.max(5, taskState.progress)}%` }}
                   />
+                </div>
+
+                <div className="flex items-center justify-between text-[11px] text-zinc-500 pt-0.5">
+                  <span>Hardware Pipeline Active</span>
+                  <span>Safe to minimize window</span>
                 </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
-                <button
-                  onClick={() => {
-                    setShowExitConfirmModal(false);
-                  }}
-                  className="w-full sm:flex-1 py-3 px-4 rounded-xl bg-emerald-500 text-black font-extrabold text-xs hover:brightness-110 shadow-[0_0_20px_rgba(34, 197, 94,0.3)] transition-all cursor-pointer flex items-center justify-center gap-1.5"
-                >
-                  Keep Clipping in Background
-                </button>
-
+              <div className="flex items-center justify-end gap-2.5 pt-1">
                 <button
                   onClick={() => {
                     if ((window as any).electronAPI?.confirmExit) {
@@ -926,9 +941,18 @@ export default function App() {
                       window.location.reload();
                     }
                   }}
-                  className="w-full sm:w-auto py-3 px-4 rounded-xl bg-red-500/15 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/30 text-xs font-bold transition-all cursor-pointer"
+                  className="px-3.5 py-2 rounded-lg text-xs font-medium text-zinc-400 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all cursor-pointer"
                 >
-                  Exit & Cancel Task
+                  Cancel Task & Exit
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShowExitConfirmModal(false);
+                  }}
+                  className="px-4 py-2 rounded-lg text-xs font-semibold bg-emerald-500 hover:bg-emerald-400 text-zinc-950 shadow-sm transition-all cursor-pointer flex items-center gap-1.5 active:scale-[0.98]"
+                >
+                  <span>Continue in Background</span>
                 </button>
               </div>
             </div>
