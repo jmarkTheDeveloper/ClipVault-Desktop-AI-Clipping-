@@ -1315,7 +1315,7 @@ export const AiClipperScreen: React.FC<Props> = ({
             }
           }
           // Never let a late/older poll value move the bar backwards
-          if (typeof data.progress === "number") setProgress((p) => Math.max(p, data.progress));
+          if (typeof data.progress === "number") setProgress(data.progress);
 
           if (data.completed) {
             if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);

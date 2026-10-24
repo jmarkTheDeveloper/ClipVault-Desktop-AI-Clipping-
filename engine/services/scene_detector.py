@@ -81,7 +81,10 @@ class SceneDetector:
 
                 prev_hist = hist
                 current_frame_idx += step_frames
-                cap.set(cv2.CAP_PROP_POS_FRAMES, current_frame_idx)
+                # Fast forward frame buffer with grab() instead of expensive demuxer seeks
+                for _ in range(step_frames - 1):
+                    if not cap.grab():
+                        break
 
             return scene_cuts
 
