@@ -10,6 +10,7 @@ import { SUBTITLE_PRESETS } from "../components/clipper/SubtitleStyleCard";
 import { SavedClipsVault } from "../components/clipper/SavedClipsVault";
 import { GalleryView } from "../components/clipper/GalleryView";
 import { ClipDetailsModal } from "../components/clipper/ClipDetailsModal";
+import { safeDecodeURIComponent } from "../utils/safeDecode";
 import { extractYouTubeId, parseTimestampToSec, isLikedVideosUrl, cleanYouTubeUrl } from "../components/clipper/types";
 import type { ViewMode, ClipMetadata, CropBox, EngineOption, CustomSegment } from "../components/clipper/types";
 
@@ -1523,7 +1524,7 @@ export const AiClipperScreen: React.FC<Props> = ({
 
   const deleteVaultClip = async (filePath: string) => {
     if (!filePath) return;
-    const decodedPath = decodeURIComponent(filePath);
+    const decodedPath = safeDecodeURIComponent(filePath);
     const cleanName = decodedPath.split(/[/\\]/).pop() || decodedPath;
     const cleanStem = cleanName.replace(/\.[^/.]+$/, "");
 
@@ -1531,7 +1532,7 @@ export const AiClipperScreen: React.FC<Props> = ({
     if (typeof document !== "undefined") {
       document.querySelectorAll("video").forEach((v) => {
         try {
-          const s = decodeURIComponent(v.currentSrc || v.src || "");
+          const s = safeDecodeURIComponent(v.currentSrc || v.src || "");
           if (s.includes(cleanName) || s.includes(cleanStem)) {
             v.pause();
             v.removeAttribute("src");
@@ -1544,8 +1545,8 @@ export const AiClipperScreen: React.FC<Props> = ({
     // 2. Clear preview modal immediately if viewing this clip
     setPreviewVaultClip((cur) => {
       if (!cur) return null;
-      const curPath = decodeURIComponent(String(cur.path || ""));
-      const curName = decodeURIComponent(String(cur.filename || ""));
+      const curPath = safeDecodeURIComponent(String(cur.path || ""));
+      const curName = safeDecodeURIComponent(String(cur.filename || ""));
       return (curPath === decodedPath || curName === cleanName || curPath.includes(cleanName)) ? null : cur;
     });
 
@@ -1553,8 +1554,8 @@ export const AiClipperScreen: React.FC<Props> = ({
     setVaultClips((prev) =>
       prev.filter((c) => {
         if (!c) return false;
-        const cPath = decodeURIComponent(String(c.path || ""));
-        const cName = decodeURIComponent(String(c.filename || ""));
+        const cPath = safeDecodeURIComponent(String(c.path || ""));
+        const cName = safeDecodeURIComponent(String(c.filename || ""));
         if (cPath === decodedPath || cName === cleanName || cPath.endsWith(cleanName)) {
           return false;
         }
@@ -1564,11 +1565,11 @@ export const AiClipperScreen: React.FC<Props> = ({
     setGeneratedClips((prev) =>
       prev.filter((c) => {
         if (!c) return false;
-        const p = decodeURIComponent(typeof c === "object" ? String(c.path || c.url || "") : String(c || ""));
+        const p = safeDecodeURIComponent(typeof c === "object" ? String(c.path || c.url || "") : String(c || ""));
         return p !== decodedPath && !p.endsWith(cleanName);
       })
     );
-    setSelectedClipPaths((prev) => prev.filter((p) => decodeURIComponent(p) !== decodedPath));
+    setSelectedClipPaths((prev) => prev.filter((p) => safeDecodeURIComponent(p) !== decodedPath));
 
     // 4. Send delete request to backend
     try {
@@ -1593,14 +1594,14 @@ export const AiClipperScreen: React.FC<Props> = ({
 
   const deleteVaultClips = async (filePaths: string[]) => {
     if (!filePaths || filePaths.length === 0) return;
-    const decodedPaths = filePaths.map((fp) => decodeURIComponent(fp));
+    const decodedPaths = filePaths.map((fp) => safeDecodeURIComponent(fp));
     const names = decodedPaths.map((fp) => fp.split(/[/\\]/).pop() || fp);
 
     // 1. Immediately disconnect any HTML5 video elements in the DOM to release OS file locks
     if (typeof document !== "undefined") {
       document.querySelectorAll("video").forEach((v) => {
         try {
-          const s = decodeURIComponent(v.currentSrc || v.src || "");
+          const s = safeDecodeURIComponent(v.currentSrc || v.src || "");
           if (names.some((n) => s.includes(n))) {
             v.pause();
             v.removeAttribute("src");
@@ -1616,15 +1617,15 @@ export const AiClipperScreen: React.FC<Props> = ({
     setVaultClips((prev) =>
       prev.filter((c) => {
         if (!c) return false;
-        const cPath = decodeURIComponent(String(c.path || ""));
-        const cName = decodeURIComponent(String(c.filename || ""));
+        const cPath = safeDecodeURIComponent(String(c.path || ""));
+        const cName = safeDecodeURIComponent(String(c.filename || ""));
         return !decodedPaths.includes(cPath) && !names.includes(cName) && !names.some((n) => cPath.endsWith(n));
       })
     );
     setGeneratedClips((prev) =>
       prev.filter((c) => {
         if (!c) return false;
-        const p = decodeURIComponent(typeof c === "object" ? String(c.path || c.url || "") : String(c || ""));
+        const p = safeDecodeURIComponent(typeof c === "object" ? String(c.path || c.url || "") : String(c || ""));
         return !decodedPaths.includes(p) && !names.some((n) => p.endsWith(n));
       })
     );

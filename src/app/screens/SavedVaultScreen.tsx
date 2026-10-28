@@ -15,6 +15,7 @@ import {
 import { SavedClipsVault } from "../components/clipper/SavedClipsVault";
 import { ClipDetailsModal } from "../components/clipper/ClipDetailsModal";
 import type { ClipMetadata } from "../components/clipper/types";
+import { safeDecodeURIComponent } from "../utils/safeDecode";
 
 interface SavedVaultScreenProps {
   onBack: () => void;
@@ -195,14 +196,14 @@ export const SavedVaultScreen: React.FC<SavedVaultScreenProps> = ({
 
   const deleteVaultClip = async (filePath: string) => {
     if (!filePath) return;
-    const decodedPath = decodeURIComponent(filePath);
+    const decodedPath = safeDecodeURIComponent(filePath);
     const cleanName = decodedPath.split(/[/\\]/).pop() || decodedPath;
 
     // Disconnect playing video in DOM if needed
     if (typeof document !== "undefined") {
       document.querySelectorAll("video").forEach((v) => {
         try {
-          const s = decodeURIComponent(v.currentSrc || v.src || "");
+          const s = safeDecodeURIComponent(v.currentSrc || v.src || "");
           if (s.includes(cleanName) || s.includes(decodedPath)) {
             v.pause();
             v.removeAttribute("src");
@@ -219,12 +220,12 @@ export const SavedVaultScreen: React.FC<SavedVaultScreenProps> = ({
     setVaultClips((prev) =>
       prev.filter((c) => {
         if (!c) return false;
-        const cPath = decodeURIComponent(String(c.path || ""));
-        const cName = decodeURIComponent(String(c.filename || ""));
+        const cPath = safeDecodeURIComponent(String(c.path || ""));
+        const cName = safeDecodeURIComponent(String(c.filename || ""));
         return cPath !== decodedPath && cName !== cleanName && !cPath.endsWith(cleanName);
       })
     );
-    setSelectedClipPaths((prev) => prev.filter((p) => decodeURIComponent(p) !== decodedPath));
+    setSelectedClipPaths((prev) => prev.filter((p) => safeDecodeURIComponent(p) !== decodedPath));
 
     try {
       const res = await fetch("http://127.0.0.1:8000/api/delete_clip", {
@@ -245,13 +246,13 @@ export const SavedVaultScreen: React.FC<SavedVaultScreenProps> = ({
 
   const deleteVaultClips = async (filePaths: string[]) => {
     if (!filePaths || filePaths.length === 0) return;
-    const decodedPaths = filePaths.map((fp) => decodeURIComponent(fp));
+    const decodedPaths = filePaths.map((fp) => safeDecodeURIComponent(fp));
     const names = decodedPaths.map((fp) => fp.split(/[/\\]/).pop() || fp);
 
     if (typeof document !== "undefined") {
       document.querySelectorAll("video").forEach((v) => {
         try {
-          const s = decodeURIComponent(v.currentSrc || v.src || "");
+          const s = safeDecodeURIComponent(v.currentSrc || v.src || "");
           if (names.some((n) => s.includes(n))) {
             v.pause();
             v.removeAttribute("src");
@@ -266,8 +267,8 @@ export const SavedVaultScreen: React.FC<SavedVaultScreenProps> = ({
     setVaultClips((prev) =>
       prev.filter((c) => {
         if (!c) return false;
-        const cPath = decodeURIComponent(String(c.path || ""));
-        const cName = decodeURIComponent(String(c.filename || ""));
+        const cPath = safeDecodeURIComponent(String(c.path || ""));
+        const cName = safeDecodeURIComponent(String(c.filename || ""));
         return !decodedPaths.includes(cPath) && !names.includes(cName) && !names.some((n) => cPath.endsWith(n));
       })
     );

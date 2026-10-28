@@ -814,7 +814,20 @@ app.whenReady().then(() => {
   protocol.handle('local', async (request) => {
     try {
       const rawUrl = request.url.replace(/^local:\/\//i, '').replace(/^local:\//i, '');
-      const decodedPath = decodeURIComponent(rawUrl);
+      let decodedPath = rawUrl;
+      try {
+        decodedPath = decodeURIComponent(rawUrl);
+      } catch {
+        try {
+          decodedPath = decodeURI(rawUrl);
+        } catch {
+          try {
+            decodedPath = decodeURIComponent(rawUrl.replace(/%(?![0-9a-fA-F]{2})/g, "%25"));
+          } catch {
+            decodedPath = rawUrl;
+          }
+        }
+      }
       let normPath = decodedPath.replace(/\\/g, '/');
       if (process.platform === 'win32' && normPath.startsWith('/')) {
         normPath = normPath.slice(1);
