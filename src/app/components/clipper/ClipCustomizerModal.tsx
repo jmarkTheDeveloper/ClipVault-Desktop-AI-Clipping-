@@ -61,6 +61,7 @@ const ClipCustomizerModalContent: React.FC<ClipCustomizerContentProps> = ({
   const [dynamicPunchIn, setDynamicPunchIn] = useState<boolean>(true);
   const [isRendering, setIsRendering] = useState<boolean>(false);
   const [renderProgress, setRenderProgress] = useState<string>("");
+  const customizerVideoRef = React.useRef<HTMLVideoElement | null>(null);
   const [previewSrc, setPreviewSrc] = useState<string>(
     clip.path ? getStreamUrl(clip.path) : (clip.url ? getStreamUrl(clip.url) : "")
   );
@@ -138,24 +139,59 @@ const ClipCustomizerModalContent: React.FC<ClipCustomizerContentProps> = ({
           <X className="w-4 h-4" />
         </button>
 
-        {/* 9:16 Video Player Preview */}
-        <div className="w-full lg:w-80 aspect-[9/16] bg-black rounded-2xl overflow-hidden border border-white/10 shadow-inner shrink-0 relative flex items-center justify-center">
-          <video
-            key={previewSrc}
-            src={previewSrc}
-            autoPlay
-            loop
-            controls
-            playsInline
-            className="w-full h-full object-contain bg-black"
-          />
+        {/* 9:16 Video Player Preview & Quick Seek */}
+        <div className="w-full lg:w-80 flex flex-col gap-2 shrink-0">
+          <div className="w-full aspect-[9/16] bg-black rounded-2xl overflow-hidden border border-white/10 shadow-inner relative flex items-center justify-center">
+            <video
+              ref={customizerVideoRef}
+              key={previewSrc}
+              src={previewSrc}
+              autoPlay
+              loop
+              controls
+              playsInline
+              className="w-full h-full object-contain bg-black"
+            />
 
-          {isRendering && (
-            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center p-4 text-center space-y-3">
-              <RefreshCw className="w-8 h-8 text-emerald-400 animate-spin" />
-              <p className="text-xs font-bold text-white leading-relaxed">{renderProgress}</p>
-            </div>
-          )}
+            {isRendering && (
+              <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center p-4 text-center space-y-3 z-20">
+                <RefreshCw className="w-8 h-8 text-emerald-400 animate-spin" />
+                <p className="text-xs font-bold text-white leading-relaxed">{renderProgress}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Quick Scrub & Seek Navigation Dock */}
+          <div className="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-white/[0.04] border border-white/10 text-xs text-gray-300 select-none">
+            <button
+              type="button"
+              onClick={() => {
+                if (customizerVideoRef.current) {
+                  customizerVideoRef.current.currentTime = Math.max(0, customizerVideoRef.current.currentTime - 5);
+                }
+              }}
+              className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/15 text-gray-200 hover:text-white font-mono text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer"
+              title="Seek back 5 seconds (or Left Arrow)"
+            >
+              -5s
+            </button>
+            <span className="text-[10px] text-gray-400 font-mono">
+              Use ← / → or scrub bar
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                if (customizerVideoRef.current) {
+                  const dur = customizerVideoRef.current.duration || 99999;
+                  customizerVideoRef.current.currentTime = Math.min(dur, customizerVideoRef.current.currentTime + 5);
+                }
+              }}
+              className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/15 text-gray-200 hover:text-white font-mono text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer"
+              title="Seek forward 5 seconds (or Right Arrow)"
+            >
+              +5s
+            </button>
+          </div>
         </div>
 
         {/* Editor Controls & Transcript Inspector */}

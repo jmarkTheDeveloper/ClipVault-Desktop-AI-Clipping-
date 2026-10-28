@@ -62,11 +62,30 @@ export const ClipDetailsModal: React.FC<ClipDetailsModalProps> = ({
 
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const activeTag = document.activeElement?.tagName?.toLowerCase();
+      const isInput = activeTag === "input" || activeTag === "textarea";
+
       if (e.key === "Escape") {
         if (showDeleteConfirm) {
           setShowDeleteConfirm(false);
         } else {
           onClose();
+        }
+      } else if (!isInput && modalVideoRef.current) {
+        if (e.key === "ArrowLeft") {
+          e.preventDefault();
+          modalVideoRef.current.currentTime = Math.max(0, modalVideoRef.current.currentTime - 5);
+        } else if (e.key === "ArrowRight") {
+          e.preventDefault();
+          const dur = modalVideoRef.current.duration || 99999;
+          modalVideoRef.current.currentTime = Math.min(dur, modalVideoRef.current.currentTime + 5);
+        } else if (e.key === " " || e.key === "Spacebar") {
+          e.preventDefault();
+          if (modalVideoRef.current.paused) {
+            modalVideoRef.current.play().catch(() => {});
+          } else {
+            modalVideoRef.current.pause();
+          }
         }
       }
     };
@@ -143,27 +162,58 @@ export const ClipDetailsModal: React.FC<ClipDetailsModalProps> = ({
           <X className="w-4 h-4" />
         </button>
 
-        {/* 9:16 Video Player */}
-        <div className="w-full md:w-80 aspect-[9/16] bg-black rounded-2xl overflow-hidden border border-white/10 shadow-inner shrink-0 relative">
-          <video
-            ref={modalVideoRef}
-            key={currentSrc}
-            src={currentSrc}
-            autoPlay
-            loop
-            controls
-            playsInline
-            preload="auto"
-            onCanPlay={(e) => {
-              (e.target as HTMLVideoElement).play().catch(() => {});
-            }}
-            onError={() => {
-              if (currentSrc !== fallbackSrc && fallbackSrc) {
-                setCurrentSrc(fallbackSrc);
-              }
-            }}
-            className="w-full h-full object-contain bg-black"
-          />
+        {/* 9:16 Video Player & Seek Transport */}
+        <div className="w-full md:w-80 flex flex-col gap-2 shrink-0">
+          <div className="w-full aspect-[9/16] bg-black rounded-2xl overflow-hidden border border-white/10 shadow-inner relative">
+            <video
+              ref={modalVideoRef}
+              key={currentSrc}
+              src={currentSrc}
+              autoPlay
+              loop
+              controls
+              playsInline
+              preload="auto"
+              onError={() => {
+                if (currentSrc !== fallbackSrc && fallbackSrc) {
+                  setCurrentSrc(fallbackSrc);
+                }
+              }}
+              className="w-full h-full object-contain bg-black"
+            />
+          </div>
+
+          {/* Quick Scrub & Seek Navigation Dock */}
+          <div className="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-white/[0.04] border border-white/10 text-xs text-gray-300 select-none">
+            <button
+              type="button"
+              onClick={() => {
+                if (modalVideoRef.current) {
+                  modalVideoRef.current.currentTime = Math.max(0, modalVideoRef.current.currentTime - 5);
+                }
+              }}
+              className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/15 text-gray-200 hover:text-white font-mono text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer"
+              title="Seek back 5 seconds (or Left Arrow)"
+            >
+              -5s
+            </button>
+            <span className="text-[10px] text-gray-400 font-mono">
+              Use ← / → or scrub bar
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                if (modalVideoRef.current) {
+                  const dur = modalVideoRef.current.duration || 99999;
+                  modalVideoRef.current.currentTime = Math.min(dur, modalVideoRef.current.currentTime + 5);
+                }
+              }}
+              className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/15 text-gray-200 hover:text-white font-mono text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer"
+              title="Seek forward 5 seconds (or Right Arrow)"
+            >
+              +5s
+            </button>
+          </div>
         </div>
 
         {/* Details & Actions */}

@@ -1,6 +1,7 @@
 import { app, BrowserWindow, session, shell, globalShortcut, nativeImage, protocol, net, dialog, ipcMain, Notification } from 'electron';
 import path from 'path';
 import fs from 'fs';
+import { Readable } from 'stream';
 import crypto from 'crypto';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { spawn, exec } from 'child_process';
@@ -43,8 +44,24 @@ if (process.platform === 'win32') {
 }
 
 // Register privileged scheme BEFORE app is ready to bypass all security blocks
+const MIME_TYPES = {
+  '.mp4': 'video/mp4',
+  '.mkv': 'video/x-matroska',
+  '.mov': 'video/quicktime',
+  '.webm': 'video/webm',
+  '.avi': 'video/x-msvideo',
+  '.mp3': 'audio/mpeg',
+  '.m4a': 'audio/mp4',
+  '.wav': 'audio/wav',
+  '.aac': 'audio/aac',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+};
+
 protocol.registerSchemesAsPrivileged([
-  { scheme: 'local', privileges: { bypassCSP: true, supportFetchAPI: true, corsEnabled: true, stream: true } }
+  { scheme: 'local', privileges: { standard: true, secure: true, bypassCSP: true, supportFetchAPI: true, corsEnabled: true, stream: true } }
 ]);
 
 // Enable GPU and hardware video decoding for smooth playback and lag-free UI
@@ -851,15 +868,79 @@ app.whenReady().then(() => {
         return new Response('Forbidden', { status: 403 });
       }
 
-      const fileUrl = pathToFileURL(resolvedPath).href;
-      const response = await net.fetch(fileUrl, {
-        headers: request.headers,
-        bypassCustomProtocolHandlers: true
-      }).catch(() => null);
-      if (response) {
-        return response;
+      if (!fs.existsSync(resolvedPath)) {
+        return new Response('File not found', { status: 404 });
       }
-      return new Response('File not found', { status: 404 });
+
+      const stat = fs.statSync(resolvedPath);
+      if (!stat.isFile()) {
+        return new Response('Not a file', { status: 400 });
+      }
+
+      const ext = path.extname(resolvedPath).toLowerCase();
+      const mimeType = MIME_TYPES[ext] || 'application/octet-stream';
+      const total = stat.size;
+      const rangeHeader = request.headers.get('range') || request.headers.get('Range');
+
+      // Full HTTP 206 Partial Content (Byte Range) support for video & audio scrubbing
+      if (rangeHeader && rangeHeader.startsWith('bytes=')) {
+        const parts = rangeHeader.replace('bytes=', '').trim().split('-');
+        let start = parts[0] ? parseInt(parts[0], 10) : 0;
+        let end = parts[1] ? parseInt(parts[1], 10) : total - 1;
+
+        if (isNaN(start)) {
+          start = total - parseInt(parts[1], 10);
+          end = total - 1;
+        }
+        if (isNaN(end) || end >= total) {
+          end = total - 1;
+        }
+
+        if (start > end || start >= total) {
+          return new Response('Range Not Satisfiable', {
+            status: 416,
+            headers: {
+              'Content-Range': `bytes */${total}`,
+              'Accept-Ranges': 'bytes',
+              'Access-Control-Allow-Origin': '*'
+            }
+          });
+        }
+
+        const chunkSize = end - start + 1;
+        const nodeStream = fs.createReadStream(resolvedPath, { start, end });
+        const webStream = Readable.toWeb(nodeStream);
+
+        return new Response(webStream, {
+          status: 206,
+          statusText: 'Partial Content',
+          headers: {
+            'Content-Range': `bytes ${start}-${end}/${total}`,
+            'Accept-Ranges': 'bytes',
+            'Content-Length': String(chunkSize),
+            'Content-Type': mimeType,
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+            'Access-Control-Allow-Headers': '*'
+          }
+        });
+      }
+
+      // Initial video load (200 OK) with Accept-Ranges advertised so HTML5 players enable timeline scrubbing
+      const nodeStream = fs.createReadStream(resolvedPath);
+      const webStream = Readable.toWeb(nodeStream);
+
+      return new Response(webStream, {
+        status: 200,
+        headers: {
+          'Accept-Ranges': 'bytes',
+          'Content-Length': String(total),
+          'Content-Type': mimeType,
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+          'Access-Control-Allow-Headers': '*'
+        }
+      });
     } catch {
       return new Response('File not found', { status: 404 });
     }
