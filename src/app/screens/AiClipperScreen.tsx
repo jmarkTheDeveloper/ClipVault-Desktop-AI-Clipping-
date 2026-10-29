@@ -680,7 +680,7 @@ export const AiClipperScreen: React.FC<Props> = ({
 
   const handleTriggerAiAutoFind = () => {
     setDurationMode("custom");
-    setAutoAskQuery("⚡ Find moments worth clipping & auto-add to custom segments");
+    setAutoAskQuery("Find moments worth clipping & auto-add to custom segments");
     setIsAskStudioOpen(true);
   };
 

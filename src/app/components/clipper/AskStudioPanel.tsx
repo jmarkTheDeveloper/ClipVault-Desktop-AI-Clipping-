@@ -59,7 +59,7 @@ interface AskStudioPanelProps {
 }
 
 const DEFAULT_SUGGESTIONS = [
-  "⚡ Find moments worth clipping & auto-add to custom segments",
+  "Find moments worth clipping & auto-add to custom segments",
   "Give me timestamps of the most interesting moments",
   "Summarize what this video is about",
   "Find the funniest or most intense moments",
@@ -865,7 +865,7 @@ export function AskStudioPanel({
                                     {isAddedAsSeg ? (
                                       <>
                                         <Check className="w-3 h-3 text-emerald-400" />
-                                        <span>✓ Added</span>
+                                        <span>Added</span>
                                       </>
                                     ) : (
                                       <>
