@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import type { CropBox, CustomSegment } from "./types";
 import { extractYouTubeId, parseTimestampToSec, isLikedVideosUrl, cleanYouTubeUrl } from "./types";
-import { AskStudioPanel } from "./AskStudioPanel";
+import { AskStudioPanel, type VideoMoment } from "./AskStudioPanel";
 
 interface PhonePreviewProps {
   activeVideoUrl: string;
@@ -69,6 +69,10 @@ interface PhonePreviewProps {
   isKeyMissingForActiveEngine?: boolean;
   selectedEngine?: string;
   activeEngineName?: string;
+  isAskStudioOpen?: boolean;
+  setIsAskStudioOpen?: (v: boolean) => void;
+  autoAskQuery?: string;
+  setAutoAskQuery?: (q: string) => void;
 }
 
 function formatTime(seconds: number): string {
@@ -687,6 +691,10 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
   isKeyMissingForActiveEngine,
   selectedEngine,
   activeEngineName,
+  isAskStudioOpen: propIsAskStudioOpen,
+  setIsAskStudioOpen: propSetIsAskStudioOpen,
+  autoAskQuery,
+  setAutoAskQuery,
 }) => {
   const youtubeId = extractYouTubeId(ytUrl);
   const posterUrl = youtubeId ? `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg` : "";
@@ -705,7 +713,9 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
   const [loopSegment, setLoopSegment] = useState(true);
 
   // Ask ClipVault Assistant State
-  const [isAskStudioOpen, setIsAskStudioOpen] = useState(false);
+  const [internalAskStudioOpen, setInternalAskStudioOpen] = useState(false);
+  const isAskStudioOpen = propIsAskStudioOpen !== undefined ? propIsAskStudioOpen : internalAskStudioOpen;
+  const setIsAskStudioOpen = propSetIsAskStudioOpen || setInternalAskStudioOpen;
 
   const handleAskStudioSeek = (sec: number) => {
     if (videoRef?.current) {
@@ -737,6 +747,68 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
       try { audioRef.current.currentTime = startSec; } catch {}
     }
     setCurrentTime(startSec);
+  };
+
+  const handleAddCustomSegment = (startSec: number, endSec: number, title?: string) => {
+    const sFmt = formatTime(startSec);
+    const eFmt = formatTime(endSec);
+    const newSeg: CustomSegment = {
+      id: String(Date.now() + Math.floor(Math.random() * 1000)),
+      start: sFmt,
+      end: eFmt,
+    };
+
+    if (setDurationMode) setDurationMode("custom");
+
+    if (setCustomSegments) {
+      setCustomSegments((prev) => {
+        // If there is only 1 default empty segment (0:00 - blank), replace it
+        if (prev.length === 1 && (!prev[0].end || (prev[0].start === "0:00" && !prev[0].end))) {
+          return [newSeg];
+        }
+        return [...prev, newSeg];
+      });
+    }
+
+    if (setActiveSegmentId) setActiveSegmentId(newSeg.id);
+    if (setStartTs) setStartTs(sFmt);
+    if (setEndTs) setEndTs(eFmt);
+
+    if (videoRef?.current) {
+      videoRef.current.currentTime = startSec;
+    }
+    if (audioRef.current) {
+      try { audioRef.current.currentTime = startSec; } catch {}
+    }
+    setCurrentTime(startSec);
+  };
+
+  const handleAddAllMomentsAsSegments = (moments: VideoMoment[]) => {
+    if (!moments || moments.length === 0) return;
+
+    const newSegments: CustomSegment[] = moments.map((m, idx) => ({
+      id: String(Date.now() + idx),
+      start: formatTime(m.start),
+      end: formatTime(m.end),
+    }));
+
+    if (setDurationMode) setDurationMode("custom");
+
+    if (setCustomSegments) {
+      setCustomSegments(newSegments);
+    }
+
+    if (setActiveSegmentId) setActiveSegmentId(newSegments[0].id);
+    if (setStartTs) setStartTs(newSegments[0].start);
+    if (setEndTs) setEndTs(newSegments[0].end);
+
+    if (videoRef?.current) {
+      videoRef.current.currentTime = moments[0].start;
+    }
+    if (audioRef.current) {
+      try { audioRef.current.currentTime = moments[0].start; } catch {}
+    }
+    setCurrentTime(moments[0].start);
   };
 
   // Reset stream error when URL changes
@@ -1830,6 +1902,11 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
         currentTime={currentTime}
         onSeek={handleAskStudioSeek}
         onSetClipBounds={handleAskStudioSetClipBounds}
+        onAddCustomSegment={handleAddCustomSegment}
+        onAddAllMomentsAsSegments={handleAddAllMomentsAsSegments}
+        customSegmentsCount={customSegments?.length || 0}
+        autoQuery={autoAskQuery}
+        onClearAutoQuery={() => setAutoAskQuery && setAutoAskQuery("")}
         onOpenEngineSettings={onOpenEngineSettings}
         activeEngineKey={activeEngineKey}
         isKeyMissingForActiveEngine={isKeyMissingForActiveEngine}

@@ -214,9 +214,12 @@ USER QUESTION:
 INSTRUCTIONS:
 1. Answer the creator's question directly, clearly, engagingly, and concisely based strictly on the transcript.
 2. Whenever you reference specific moments, topics, or clips, YOU MUST format timestamps strictly as [MM:SS - MM:SS] or [HH:MM:SS - HH:MM:SS] (or single timestamp [MM:SS]).
-3. If recommending interesting, funny, or viral clips:
-   - Provide the exact start and end timestamps.
-   - Give each moment a punchy title and 1-2 sentence explanation of why it's worth watching or clipping.
+3. If asked to find parts or moments worth clipping (e.g. 'find moments worth clipping', 'viral clips', 'best moments to clip'):
+   - Select 2 to 4 of the highest-energy, self-contained segments ideal for short-form video (YouTube Shorts, Reels, TikTok).
+   - Target each clip duration to be approximately 30 to 75 seconds long.
+   - Provide exact start and end timestamps with clean boundaries.
+   - Give each clip a punchy, click-worthy title (e.g. 'The Raw Truth About...', 'Unfiltered Confession').
+   - Provide a 1-sentence explanation of why it will hook viewers in the first 3 seconds.
 4. At the very end of your response, output a valid JSON code block enclosed in ```json and ``` with a "moments" list containing all highlighted moments so the user can click to seek or clip them:
 ```json
 {{
@@ -399,9 +402,10 @@ INSTRUCTIONS:
         """
         q_lower = question.lower()
         is_summary = any(k in q_lower for k in ['summarize', 'summary', 'overview', 'what is this video', 'about', 'topics'])
+        is_clipping = any(k in q_lower for k in ['clip', 'clipping', 'worth clipping', 'viral', 'segment', 'segments', 'moments worth'])
         
         words = re.findall(r'\b[a-zA-Z0-9_\'-]+\b', q_lower)
-        stopwords = {'the', 'and', 'for', 'that', 'this', 'with', 'about', 'from', 'they', 'what', 'when', 'where', 'who', 'how', 'why', 'have', 'were', 'been', 'their', 'there', 'give', 'timestamps', 'video', 'talked', 'talking', 'summarize', 'summary', 'overview', 'tell', 'show', 'most', 'interesting', 'things'}
+        stopwords = {'the', 'and', 'for', 'that', 'this', 'with', 'about', 'from', 'they', 'what', 'when', 'where', 'who', 'how', 'why', 'have', 'were', 'been', 'their', 'there', 'give', 'timestamps', 'video', 'talked', 'talking', 'summarize', 'summary', 'overview', 'tell', 'show', 'most', 'interesting', 'things', 'clip', 'clipping', 'worth', 'find'}
         keywords = [w for w in words if w not in stopwords and len(w) > 2]
 
         matched_blocks = []

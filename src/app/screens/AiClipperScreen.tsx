@@ -674,6 +674,16 @@ export const AiClipperScreen: React.FC<Props> = ({
     } catch {}
   }, [running, statusText, progress, done, generatedClips.length]);
 
+  // Ask ClipVault Assistant State & One-Click Trigger
+  const [isAskStudioOpen, setIsAskStudioOpen] = useState(false);
+  const [autoAskQuery, setAutoAskQuery] = useState("");
+
+  const handleTriggerAiAutoFind = () => {
+    setDurationMode("custom");
+    setAutoAskQuery("⚡ Find moments worth clipping & auto-add to custom segments");
+    setIsAskStudioOpen(true);
+  };
+
   // Saved Clips Vault State
   const [vaultClips, setVaultClips] = useState<ClipMetadata[]>([]);
   const [vaultFolders, setVaultFolders] = useState<string[]>(["Shorts Viral", "Movies", "Stream Highlights"]);
@@ -2214,6 +2224,7 @@ export const AiClipperScreen: React.FC<Props> = ({
                 onPlaySegment={handlePlaySegment}
                 isPlaying={isPlaying}
                 onTogglePlay={() => setIsPlaying((prev) => !prev)}
+                onTriggerAiAutoFind={handleTriggerAiAutoFind}
               />
             )}
 
@@ -2266,6 +2277,10 @@ export const AiClipperScreen: React.FC<Props> = ({
               isKeyMissingForActiveEngine={isKeyMissingForActiveEngine}
               selectedEngine={selectedEngine}
               activeEngineName={activeEngineName}
+              isAskStudioOpen={isAskStudioOpen}
+              setIsAskStudioOpen={setIsAskStudioOpen}
+              autoAskQuery={autoAskQuery}
+              setAutoAskQuery={setAutoAskQuery}
             />
           </>
         )}

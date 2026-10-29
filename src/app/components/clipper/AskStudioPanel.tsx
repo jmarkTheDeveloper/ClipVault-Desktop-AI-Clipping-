@@ -46,6 +46,11 @@ interface AskStudioPanelProps {
   currentTime?: number;
   onSeek?: (seconds: number) => void;
   onSetClipBounds?: (startSec: number, endSec: number) => void;
+  onAddCustomSegment?: (startSec: number, endSec: number, title?: string) => void;
+  onAddAllMomentsAsSegments?: (moments: VideoMoment[]) => void;
+  customSegmentsCount?: number;
+  autoQuery?: string;
+  onClearAutoQuery?: () => void;
   onOpenEngineSettings?: () => void;
   activeEngineKey?: string;
   isKeyMissingForActiveEngine?: boolean;
@@ -54,6 +59,7 @@ interface AskStudioPanelProps {
 }
 
 const DEFAULT_SUGGESTIONS = [
+  "⚡ Find moments worth clipping & auto-add to custom segments",
   "Give me timestamps of the most interesting moments",
   "Summarize what this video is about",
   "Find the funniest or most intense moments",
@@ -265,6 +271,11 @@ export function AskStudioPanel({
   currentTime = 0,
   onSeek,
   onSetClipBounds,
+  onAddCustomSegment,
+  onAddAllMomentsAsSegments,
+  customSegmentsCount,
+  autoQuery,
+  onClearAutoQuery,
   onOpenEngineSettings,
   activeEngineKey,
   isKeyMissingForActiveEngine,
@@ -275,6 +286,8 @@ export function AskStudioPanel({
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [pinnedMomentIndex, setPinnedMomentIndex] = useState<string | null>(null);
+  const [addedMomentKeys, setAddedMomentKeys] = useState<Set<string>>(new Set());
+  const [addedAllNotice, setAddedAllNotice] = useState<number | null>(null);
   const [showKeyModal, setShowKeyModal] = useState(false);
 
   const isDummyKey = (k?: string | null) => {
@@ -359,6 +372,16 @@ export function AskStudioPanel({
     }
   }, [isOpen, hasApiKey]);
 
+  // Execute autoQuery if triggered by an external one-click action
+  useEffect(() => {
+    if (isOpen && autoQuery) {
+      handleSendMessage(autoQuery);
+      if (onClearAutoQuery) {
+        onClearAutoQuery();
+      }
+    }
+  }, [isOpen, autoQuery]);
+
   const handleSendMessage = async (textToSend?: string) => {
     const query = (textToSend || inputText).trim();
     if (!query || isLoading) return;
@@ -440,15 +463,24 @@ export function AskStudioPanel({
         return;
       }
 
+      const parsedMoments: VideoMoment[] = Array.isArray(data.moments) ? data.moments : [];
       const assistantMessage: ChatMessage = {
         id: `ai-${Date.now()}`,
         role: "assistant",
         content: data.answer || "Here is what I found in the video transcript.",
-        moments: Array.isArray(data.moments) ? data.moments : [],
+        moments: parsedMoments,
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
+
+      // If user requested clipping auto-add, immediately populate Custom Timestamp Segments
+      const isAutoAddQuery = /worth clipping|auto-add|clip time range|clip segments/i.test(query);
+      if (isAutoAddQuery && onAddAllMomentsAsSegments && parsedMoments.length > 0) {
+        onAddAllMomentsAsSegments(parsedMoments);
+        setAddedAllNotice(parsedMoments.length);
+        setTimeout(() => setAddedAllNotice(null), 5000);
+      }
     } catch (err: any) {
       const errorMessage: ChatMessage = {
         id: `err-${Date.now()}`,
@@ -684,18 +716,37 @@ export function AskStudioPanel({
 
               {/* Quick Suggestion Chips */}
               <div className="flex flex-col gap-2 w-full pt-2">
-                {DEFAULT_SUGGESTIONS.map((suggestion, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => handleSendMessage(suggestion)}
-                    disabled={isLoading || !hasApiKey}
-                    className="w-full text-left px-3.5 py-2.5 rounded-2xl bg-[#141412] hover:bg-[#1e1c14] border border-white/5 hover:border-emerald-400/35 text-gray-200 hover:text-white text-xs transition-all duration-150 flex items-center justify-between group cursor-pointer shadow-sm disabled:cursor-not-allowed"
-                  >
-                    <span className="line-clamp-2 pr-2">{suggestion}</span>
-                    <ChevronRight className="w-3.5 h-3.5 text-gray-500 group-hover:text-emerald-400 transition-colors flex-shrink-0" />
-                  </button>
-                ))}
+                {DEFAULT_SUGGESTIONS.map((suggestion, idx) => {
+                  const isTopAction = idx === 0;
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => handleSendMessage(suggestion)}
+                      disabled={isLoading || !hasApiKey}
+                      className={`w-full text-left px-3.5 py-2.5 rounded-2xl border text-xs transition-all duration-150 flex items-center justify-between group cursor-pointer shadow-sm disabled:cursor-not-allowed ${
+                        isTopAction
+                          ? "bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-400/40 hover:border-emerald-400 text-emerald-200 font-bold shadow-[0_0_20px_rgba(34,197,94,0.15)]"
+                          : "bg-[#141412] hover:bg-[#1e1c14] border-white/5 hover:border-emerald-400/35 text-gray-200 hover:text-white"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 pr-2 min-w-0">
+                        {isTopAction && (
+                          <Sparkles className="w-3.5 h-3.5 text-emerald-400 shrink-0 animate-pulse" />
+                        )}
+                        <span className="line-clamp-2">{suggestion}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {isTopAction && (
+                          <span className="px-1.5 py-0.5 rounded text-[8.5px] font-black uppercase bg-emerald-400 text-black">
+                            One-Click
+                          </span>
+                        )}
+                        <ChevronRight className="w-3.5 h-3.5 text-gray-500 group-hover:text-emerald-400 transition-colors flex-shrink-0" />
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           ) : (
@@ -726,15 +777,42 @@ export function AskStudioPanel({
 
                     {/* Interactive Moment Cards */}
                     {msg.moments && msg.moments.length > 0 && (
-                      <div className="space-y-2 w-full pt-1">
-                        <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-400 px-1">
-                          <Flame className="w-3.5 h-3.5 text-emerald-400" />
-                          <span>Featured Video Moments ({msg.moments.length})</span>
+                      <div className="space-y-2.5 w-full pt-1">
+                        {/* Auto-Add Notification Banner if triggered */}
+                        {addedAllNotice && (
+                          <div className="p-2.5 rounded-xl bg-emerald-500/15 border border-emerald-400/40 text-[11px] text-emerald-300 font-bold flex items-center gap-2 animate-fadeIn shadow-sm">
+                            <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                            <span>Added {addedAllNotice} viral moments directly to Custom Timestamp Segments!</span>
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-between gap-2 px-1">
+                          <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-400">
+                            <Flame className="w-3.5 h-3.5 text-emerald-400" />
+                            <span>Featured Video Moments ({msg.moments.length})</span>
+                          </div>
+
+                          {onAddAllMomentsAsSegments && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onAddAllMomentsAsSegments(msg.moments!);
+                                setAddedAllNotice(msg.moments!.length);
+                                setTimeout(() => setAddedAllNotice(null), 4000);
+                              }}
+                              className="px-2.5 py-1 rounded-lg bg-emerald-400 hover:bg-emerald-300 text-black font-black text-[10px] flex items-center gap-1 shadow-md transition-all cursor-pointer"
+                              title="Add all detected moments as custom timestamp segments in timeline"
+                            >
+                              <Scissors className="w-3 h-3 text-black" />
+                              <span>+ Add All ({msg.moments.length})</span>
+                            </button>
+                          )}
                         </div>
 
                         {msg.moments.map((moment, mIdx) => {
                           const cardKey = `${msg.id}-${mIdx}`;
                           const isPinned = pinnedMomentIndex === cardKey;
+                          const isAddedAsSeg = addedMomentKeys.has(cardKey);
 
                           return (
                             <div
@@ -759,15 +837,42 @@ export function AskStudioPanel({
                                 </p>
                               )}
 
-                              <div className="flex items-center gap-2 pt-1">
+                              <div className="flex items-center gap-1.5 pt-1">
                                 {onSeek && (
                                   <button
                                     type="button"
                                     onClick={() => onSeek(moment.start)}
-                                    className="flex-1 py-1.5 px-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-200 hover:text-white font-medium text-[10px] flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                                    className="flex-1 py-1.5 px-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-200 hover:text-white font-medium text-[10px] flex items-center justify-center gap-1 transition-all cursor-pointer"
                                   >
                                     <Play className="w-2.5 h-2.5 text-emerald-400 fill-emerald-400" />
-                                    <span>Jump to {moment.label.split(" - ")[0] || moment.label}</span>
+                                    <span>Jump</span>
+                                  </button>
+                                )}
+
+                                {onAddCustomSegment && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      onAddCustomSegment(moment.start, moment.end, moment.title);
+                                      setAddedMomentKeys((prev) => new Set([...prev, cardKey]));
+                                    }}
+                                    className={`flex-1 py-1.5 px-2 rounded-xl border font-bold text-[10px] flex items-center justify-center gap-1 transition-all cursor-pointer ${
+                                      isAddedAsSeg
+                                        ? "bg-emerald-500/20 border-emerald-400 text-emerald-300"
+                                        : "bg-emerald-400/15 hover:bg-emerald-400/25 border-emerald-400/40 text-emerald-300 hover:text-emerald-200"
+                                    }`}
+                                  >
+                                    {isAddedAsSeg ? (
+                                      <>
+                                        <Check className="w-3 h-3 text-emerald-400" />
+                                        <span>✓ Added</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Scissors className="w-3 h-3 text-emerald-300" />
+                                        <span>+ Add Segment</span>
+                                      </>
+                                    )}
                                   </button>
                                 )}
 
@@ -775,22 +880,20 @@ export function AskStudioPanel({
                                   <button
                                     type="button"
                                     onClick={() => handlePinClip(moment, cardKey)}
-                                    className={`flex-1 py-1.5 px-2.5 rounded-xl border font-bold text-[10px] flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                                    className={`py-1.5 px-2 rounded-xl border font-bold text-[10px] flex items-center justify-center gap-1 transition-all cursor-pointer ${
                                       isPinned
-                                        ? "bg-emerald-500/20 border-emerald-400 text-emerald-300"
-                                        : "bg-emerald-400/20 hover:bg-emerald-400/30 border-emerald-400/40 text-emerald-300 hover:text-emerald-200"
+                                        ? "bg-cyan-500/20 border-cyan-400 text-cyan-300"
+                                        : "bg-white/5 hover:bg-white/10 border-white/10 text-gray-400 hover:text-white"
                                     }`}
+                                    title="Pin start and end to current active clip bounds"
                                   >
                                     {isPinned ? (
                                       <>
-                                        <Check className="w-3 h-3 text-emerald-400" />
-                                        <span>Bounds Pinned!</span>
+                                        <Check className="w-3 h-3 text-cyan-400" />
+                                        <span>Pinned</span>
                                       </>
                                     ) : (
-                                      <>
-                                        <Scissors className="w-3 h-3 text-emerald-300" />
-                                        <span>Set as Clip</span>
-                                      </>
+                                      <span>Pin</span>
                                     )}
                                   </button>
                                 )}

@@ -198,6 +198,7 @@ interface SetupSidebarProps {
   onPlaySegment?: (seg: CustomSegment) => void;
   isPlaying?: boolean;
   onTogglePlay?: () => void;
+  onTriggerAiAutoFind?: () => void;
 }
 
 export const SetupSidebar: React.FC<SetupSidebarProps> = ({
@@ -295,6 +296,7 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
   onPlaySegment,
   isPlaying = false,
   onTogglePlay,
+  onTriggerAiAutoFind,
 }) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [isFolderDropdownOpen, setIsFolderDropdownOpen] = useState(false);
@@ -881,27 +883,40 @@ export const SetupSidebar: React.FC<SetupSidebarProps> = ({
                 {d.id === "custom" && (
                   durationMode === "custom" ? (
                     <div className="space-y-3 p-3.5 rounded-xl bg-emerald-400/5 border border-emerald-400/30 animate-fadeIn">
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between gap-2">
                         <span className="text-[10px] font-extrabold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
                           <Clock className="w-3.5 h-3.5" />
                           Custom Timestamp Segments ({customSegments.length})
                         </span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const newSeg: CustomSegment = { id: String(Date.now()), start: "", end: "" };
-                            if (setCustomSegments) {
-                              setCustomSegments((prev) => [...prev, newSeg]);
-                            }
-                            if (setActiveSegmentId) {
-                              setActiveSegmentId(newSeg.id);
-                            }
-                          }}
-                          className="text-[10px] bg-emerald-400 hover:bg-emerald-300 text-black font-extrabold px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-sm transition-all cursor-pointer"
-                        >
-                          <Plus className="w-3 h-3 text-black" />
-                          Add Segment
-                        </button>
+                        <div className="flex items-center gap-1.5">
+                          {onTriggerAiAutoFind && (
+                            <button
+                              type="button"
+                              onClick={onTriggerAiAutoFind}
+                              className="text-[10px] bg-emerald-400/15 hover:bg-emerald-400/25 border border-emerald-400/40 text-emerald-300 font-extrabold px-2 py-1 rounded-lg flex items-center gap-1 shadow-sm transition-all cursor-pointer group"
+                              title="Ask AI to find best viral moments and automatically add them to custom segments"
+                            >
+                              <Sparkles className="w-3 h-3 text-emerald-400 group-hover:scale-110 transition-transform animate-pulse" />
+                              <span>AI Auto-Find</span>
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newSeg: CustomSegment = { id: String(Date.now()), start: "", end: "" };
+                              if (setCustomSegments) {
+                                setCustomSegments((prev) => [...prev, newSeg]);
+                              }
+                              if (setActiveSegmentId) {
+                                setActiveSegmentId(newSeg.id);
+                              }
+                            }}
+                            className="text-[10px] bg-emerald-400 hover:bg-emerald-300 text-black font-extrabold px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-sm transition-all cursor-pointer"
+                          >
+                            <Plus className="w-3 h-3 text-black" />
+                            Add Segment
+                          </button>
+                        </div>
                       </div>
 
                       {/* Segments List */}
