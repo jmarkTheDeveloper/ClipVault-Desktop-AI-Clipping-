@@ -114,6 +114,26 @@ class VideoQAService:
             except Exception as e:
                 print(f"[VideoQAService] Whisper transcription notice: {e}")
 
+        # 3. YouTube audio download fallback if native subtitles were absent or rate-limited (HTTP 429)
+        if url and ("youtube.com" in url or "youtu.be" in url):
+            try:
+                downloader = YouTubeDownloader()
+                video_id = downloader.get_video_id(url)
+                cached_audios = list(downloader.temp_dir.glob(f"audio_{video_id}.*")) if video_id else []
+                audio_path = cached_audios[0] if cached_audios else None
+                if not audio_path or not audio_path.exists():
+                    audio_path, _, _ = downloader.download_audio_only(url)
+                if audio_path and os.path.exists(str(audio_path)):
+                    from services.whisper_transcriber import WhisperSingleton
+                    transcriber = WhisperSingleton()
+                    words, full_text, segments = transcriber.transcribe(str(audio_path), language=language or "en")
+                    if segments:
+                        subs = (words, full_text, segments)
+                        cls._transcript_cache[cache_key] = subs
+                        return subs
+            except Exception as e:
+                print(f"[VideoQAService] YouTube audio fallback Whisper transcription notice: {e}")
+
         return None
 
     @classmethod
