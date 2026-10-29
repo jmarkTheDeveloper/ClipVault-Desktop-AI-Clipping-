@@ -217,6 +217,56 @@ class YouTubeDownloader:
             return None
 
         target_langs = [language] if language and language != "auto" else ['en']
+
+        # 0. Primary High-Speed Transcript Fetch via YouTubeTranscriptApi (0.5s, bypasses yt-dlp 429 throttling)
+        try:
+            from youtube_transcript_api import YouTubeTranscriptApi
+            transcript_fetcher = YouTubeTranscriptApi()
+            transcript_data = None
+            try:
+                transcript_data = transcript_fetcher.fetch(video_id, languages=target_langs)
+            except Exception:
+                try:
+                    transcript_data = transcript_fetcher.fetch(video_id)
+                except Exception:
+                    pass
+
+            if transcript_data and hasattr(transcript_data, 'snippets') and transcript_data.snippets:
+                words: List[Dict] = []
+                segments: List[Dict] = []
+                full_text_list: List[str] = []
+                for idx, s in enumerate(transcript_data.snippets):
+                    text = (getattr(s, 'text', '') or '').strip()
+                    if not text:
+                        continue
+                    full_text_list.append(text)
+                    st = float(getattr(s, 'start', 0.0))
+                    dur = float(getattr(s, 'duration', 2.0))
+                    et = st + dur
+                    segments.append({
+                        'id': idx,
+                        'start': st,
+                        'end': et,
+                        'text': text
+                    })
+                    seg_words = text.split()
+                    if seg_words:
+                        wdur = dur / max(1, len(seg_words))
+                        for widx, w in enumerate(seg_words):
+                            cw = w.strip(".,!?:;\"'()[]{}").upper()
+                            if cw:
+                                w_start = st + widx * wdur
+                                words.append({
+                                    'word': cw,
+                                    'start': round(w_start, 2),
+                                    'end': round(w_start + wdur, 2)
+                                })
+                if segments:
+                    full_text = " ".join(full_text_list)
+                    print(f" Instantly fetched {len(segments)} native YouTube caption segments via YouTubeTranscriptApi.")
+                    return words, full_text, segments
+        except Exception as yta_err:
+            print(f"YouTubeTranscriptApi notice: {yta_err}")
         opts = self._get_base_opts()
         opts.update({
             'skip_download': True,
