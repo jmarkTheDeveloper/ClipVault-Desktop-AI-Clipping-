@@ -1063,7 +1063,7 @@ export const AiClipperScreen: React.FC<Props> = ({
       if (isMounted) {
         fetchYouTubePreview(ytUrl);
       }
-    }, 400);
+    }, 100);
 
     return () => {
       isMounted = false;

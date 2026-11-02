@@ -1094,16 +1094,20 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
   const handleTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement>) => {
     if (isDraggingRef.current || isSeekingRef.current || isCropEditorOpen) return;
     const v = e.currentTarget;
+    if (isBuffering && !v.paused && v.readyState >= 2) {
+      setIsBuffering(false);
+    }
     if (v.duration && !isNaN(v.duration) && isFinite(v.duration) && v.duration > 0) {
       if (!duration || Math.abs(duration - v.duration) > 1) {
         setDuration(v.duration);
       }
     }
 
-    // Keep companion audio tightly synchronized within 250ms of video clock
+    // Keep companion audio tightly synchronized with video clock once audio has buffered
     if (audioRef.current && activeAudioUrl) {
-      if (Math.abs(audioRef.current.currentTime - v.currentTime) > 0.28) {
-        try { audioRef.current.currentTime = v.currentTime; } catch {}
+      const aud = audioRef.current;
+      if (aud.readyState >= 2 && !aud.seeking && Math.abs(aud.currentTime - v.currentTime) > 0.45) {
+        try { aud.currentTime = v.currentTime; } catch {}
       }
     }
 
@@ -1282,11 +1286,14 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                       ref={videoRef}
                       src={activeVideoUrl}
                       autoPlay={false}
+                      preload="auto"
                       loop
                       muted={isMuted || Boolean(activeAudioUrl)}
                       playsInline
                       onTimeUpdate={handleTimeUpdate}
                       onLoadedMetadata={handleLoadedMetadata}
+                      onLoadedData={() => setIsBuffering(false)}
+                      onCanPlayThrough={() => setIsBuffering(false)}
                       onWaiting={() => setIsBuffering(true)}
                       onPlaying={() => {
                         setIsBuffering(false);
@@ -1375,11 +1382,14 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                       ref={videoRef}
                       src={activeVideoUrl}
                       autoPlay={false}
+                      preload="auto"
                       loop
                       muted={isMuted || Boolean(activeAudioUrl)}
                       playsInline
                       onTimeUpdate={handleTimeUpdate}
                       onLoadedMetadata={handleLoadedMetadata}
+                      onLoadedData={() => setIsBuffering(false)}
+                      onCanPlayThrough={() => setIsBuffering(false)}
                       onWaiting={() => setIsBuffering(true)}
                       onPlaying={() => {
                         setIsBuffering(false);
@@ -1434,11 +1444,14 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                       poster={posterUrl || undefined}
                       className="w-full h-full object-cover pointer-events-none"
                       autoPlay={false}
+                      preload="auto"
                       loop
                       muted={isMuted || Boolean(activeAudioUrl)}
                       playsInline
                       onTimeUpdate={handleTimeUpdate}
                       onLoadedMetadata={handleLoadedMetadata}
+                      onLoadedData={() => setIsBuffering(false)}
+                      onCanPlayThrough={() => setIsBuffering(false)}
                       onWaiting={() => setIsBuffering(true)}
                       onPlaying={() => {
                         setIsBuffering(false);
@@ -1474,11 +1487,14 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                     poster={posterUrl || undefined}
                     className="w-full max-h-full object-contain relative z-10 pointer-events-none shadow-2xl"
                     autoPlay={false}
+                    preload="auto"
                     loop
                     muted={isMuted || Boolean(activeAudioUrl)}
                     playsInline
                     onTimeUpdate={handleTimeUpdate}
                     onLoadedMetadata={handleLoadedMetadata}
+                    onLoadedData={() => setIsBuffering(false)}
+                    onCanPlayThrough={() => setIsBuffering(false)}
                     onWaiting={() => setIsBuffering(true)}
                     onPlaying={() => {
                       setIsBuffering(false);
@@ -1503,11 +1519,14 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                     poster={posterUrl || undefined}
                     className="w-full max-h-full object-contain relative z-10 pointer-events-none"
                     autoPlay={false}
+                    preload="auto"
                     loop
                     muted={isMuted || Boolean(activeAudioUrl)}
                     playsInline
                     onTimeUpdate={handleTimeUpdate}
                     onLoadedMetadata={handleLoadedMetadata}
+                    onLoadedData={() => setIsBuffering(false)}
+                    onCanPlayThrough={() => setIsBuffering(false)}
                     onWaiting={() => setIsBuffering(true)}
                     onPlaying={() => {
                       setIsBuffering(false);
@@ -1532,11 +1551,14 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                     poster={posterUrl || undefined}
                     className="w-full h-full object-cover object-center relative z-10 pointer-events-none"
                     autoPlay={false}
+                    preload="auto"
                     loop
                     muted={isMuted || Boolean(activeAudioUrl)}
                     playsInline
                     onTimeUpdate={handleTimeUpdate}
                     onLoadedMetadata={handleLoadedMetadata}
+                    onLoadedData={() => setIsBuffering(false)}
+                    onCanPlayThrough={() => setIsBuffering(false)}
                     onWaiting={() => setIsBuffering(true)}
                     onPlaying={() => {
                       setIsBuffering(false);
