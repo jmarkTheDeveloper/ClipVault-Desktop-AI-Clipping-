@@ -238,6 +238,7 @@ export const SavedVaultScreen: React.FC<SavedVaultScreenProps> = ({
         setExportNotice("Clip deleted permanently!");
         setTimeout(() => setExportNotice(""), 3000);
         setTimeout(() => loadVaultClips(true), 150);
+        window.dispatchEvent(new CustomEvent("clipvault:vault-updated"));
       }
     } catch (err) {
       console.error("Failed to delete clip:", err);
@@ -285,6 +286,7 @@ export const SavedVaultScreen: React.FC<SavedVaultScreenProps> = ({
         setExportNotice(`${data.deleted_count || decodedPaths.length} clip(s) deleted permanently!`);
         setTimeout(() => setExportNotice(""), 3000);
         setTimeout(() => loadVaultClips(true), 150);
+        window.dispatchEvent(new CustomEvent("clipvault:vault-updated"));
       }
     } catch (err) {
       console.error("Failed to batch delete clips:", err);
@@ -454,7 +456,10 @@ export const SavedVaultScreen: React.FC<SavedVaultScreenProps> = ({
         <div className="flex items-center gap-4" style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}>
           <button
             type="button"
-            onClick={onBack}
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent("clipvault:vault-updated"));
+              onBack();
+            }}
             className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors cursor-pointer px-2.5 py-1.5 rounded-lg hover:bg-white/5 border border-transparent hover:border-white/10"
             title="Return to previous screen"
           >

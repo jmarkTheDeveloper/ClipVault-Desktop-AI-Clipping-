@@ -923,6 +923,26 @@ export const AiClipperScreen: React.FC<Props> = ({
     };
   }, []);
 
+  // Re-sync vault clips whenever this screen becomes active or visible
+  useEffect(() => {
+    if (activeScreen === "ai-clipper") {
+      loadVaultClips(true);
+    }
+  }, [activeScreen]);
+
+  // Global vault sync listener: update badge count whenever vault clips change or app regains focus
+  useEffect(() => {
+    const handleVaultSync = () => {
+      loadVaultClips(true);
+    };
+    window.addEventListener("clipvault:vault-updated", handleVaultSync);
+    window.addEventListener("focus", handleVaultSync);
+    return () => {
+      window.removeEventListener("clipvault:vault-updated", handleVaultSync);
+      window.removeEventListener("focus", handleVaultSync);
+    };
+  }, []);
+
   // Automatically fetch YouTube stream preview when user types or pastes YouTube link.
   // The retry chain is tracked (cancellable) and every attempt is abortable so a slow older
   // request can never overwrite the preview for a newer URL.
