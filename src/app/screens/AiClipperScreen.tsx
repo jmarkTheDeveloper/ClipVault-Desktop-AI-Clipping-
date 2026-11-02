@@ -212,16 +212,6 @@ export const AiClipperScreen: React.FC<Props> = ({
   // Navigation & View States
   const [viewMode, setViewMode] = useState<ViewMode>(initialViewMode);
 
-  // Strictly pause PhonePreview video whenever viewing generated clips, inside vault, or navigating away from ai-clipper
-  useEffect(() => {
-    if (viewMode !== "setup" || (activeScreen && activeScreen !== "ai-clipper") || previewVaultClip) {
-      setIsPlaying(false);
-      if (videoRef.current) {
-        try { videoRef.current.pause(); } catch {}
-      }
-    }
-  }, [viewMode, activeScreen, previewVaultClip]);
-
   // Security License Guard: prevent unlicensed access to Pro Manual Studio
   useEffect(() => {
     if (isLicensed === false && activeScreen === "ai-clipper") {
@@ -710,6 +700,16 @@ export const AiClipperScreen: React.FC<Props> = ({
   const [newFolderParent, setNewFolderParent] = useState<string>("root");
   const [exportNotice, setExportNotice] = useState("");
   const newFolderInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Strictly pause PhonePreview video whenever viewing generated clips, inside vault, or navigating away from ai-clipper
+  useEffect(() => {
+    if (viewMode !== "setup" || (activeScreen && activeScreen !== "ai-clipper") || previewVaultClip) {
+      setIsPlaying(false);
+      if (videoRef.current) {
+        try { videoRef.current.pause(); } catch {}
+      }
+    }
+  }, [viewMode, activeScreen, previewVaultClip]);
 
   // Dynamic Saved Vault bump & celebratory animation state
   const [vaultBumping, setVaultBumping] = useState(false);
