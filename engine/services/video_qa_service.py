@@ -282,7 +282,7 @@ INSTRUCTIONS:
             print(f"[VideoQAService] LLM call notice: {llm_err}. Using smart NLP fallback...")
 
         # Fallback to local NLP search if LLM encountered network glitch
-        res = cls._heuristic_qa(clean_q, segments, full_text)
+        res = cls._heuristic_qa(clean_q, segments, full_text, url=url, local_path=local_path)
         res["answer"] = redact_sensitive_tokens(res.get("answer", ""))
         return res
 
@@ -416,13 +416,80 @@ INSTRUCTIONS:
         return answer_text.strip(), moments
 
     @classmethod
-    def _heuristic_qa(cls, question: str, segments: List[Dict], full_text: str) -> Dict[str, Any]:
+    def _heuristic_qa(cls, question: str, segments: List[Dict], full_text: str, url: Optional[str] = None, local_path: Optional[str] = None) -> Dict[str, Any]:
         """
-        Local semantic search fallback.
+        Local semantic search and viral climax extraction engine.
         """
         q_lower = question.lower()
+        is_clipping = any(k in q_lower for k in ['clip', 'clipping', 'worth clipping', 'viral', 'segment', 'segments', 'moments worth', 'auto-find', 'find moments', 'best moments'])
         is_summary = any(k in q_lower for k in ['summarize', 'summary', 'overview', 'what is this video', 'about', 'topics'])
-        is_clipping = any(k in q_lower for k in ['clip', 'clipping', 'worth clipping', 'viral', 'segment', 'segments', 'moments worth'])
+
+        # ── PRIORITY 1: ULTRA-ENGAGING VIRAL STORY CLIPS FOR SHORTS & REELS ─────────────
+        # If the creator is asking for clips or moments to auto-add, run the multi-factor virality engine
+        # (story arcs, chapter climaxes, emotional tension, question/answer loops, and 30-50s narrative completion)
+        if is_clipping and segments:
+            try:
+                ch_list = []
+                v_title = ""
+                v_dur = float(segments[-1].get('end', 300.0)) if segments else 300.0
+                v_hm = None
+                if url and ("youtube.com" in url or "youtu.be" in url):
+                    try:
+                        downloader = YouTubeDownloader()
+                        info = downloader.get_video_info(url)
+                        if info:
+                            ch_list = info.get("chapters") or []
+                            v_title = info.get("title") or ""
+                            if info.get("duration"):
+                                v_dur = float(info["duration"])
+                            v_hm = info.get("heatmap")
+                    except Exception as meta_err:
+                        print(f"[VideoQAService] Metadata notice: {meta_err}")
+
+                from services.ai_selector import AISelector
+                selector = AISelector(api_key="local")
+                target_clips_count = 3
+                viral_clips = selector._heuristic_viral_selector(
+                    segments=segments,
+                    video_duration=v_dur,
+                    n=target_clips_count,
+                    target_duration=45,
+                    chapters=ch_list,
+                    video_title=v_title,
+                    heatmap=v_hm
+                )
+
+                if viral_clips:
+                    moments = []
+                    for c in viral_clips:
+                        st = round(float(c.get('start', 0.0)), 1)
+                        et = round(float(c.get('end', st + 45.0)), 1)
+                        dur_sec = round(et - st, 1)
+                        c_title = str(c.get('title') or 'Viral Highlight')
+                        hook_t = str(c.get('hook_type') or 'High Virality Peak')
+                        v_score = int(c.get('virality_score', 92))
+                        moments.append({
+                            "start": st,
+                            "end": et,
+                            "label": f"{format_sec_to_stamp(st)} - {format_sec_to_stamp(et)}",
+                            "title": c_title,
+                            "reason": f"High virality hook ({v_score} pts, {dur_sec}s): {hook_t} with a complete narrative arc."
+                        })
+
+                    reply_lines = [
+                        "I analyzed the complete video narrative, emotional peaks, and story chapters to isolate the highest-converting moments for short-form video:\n",
+                    ]
+                    for m in moments:
+                        reply_lines.append(f"- **[{m['label']}]** {m['title']}\n  {m['reason']}")
+                    reply_lines.append("\n*Click **AI Auto-Find** or tap any moment to pin it directly into your Custom Timestamp Segments.*")
+
+                    return {
+                        "status": "ok",
+                        "answer": "\n".join(reply_lines),
+                        "moments": moments
+                    }
+            except Exception as viral_sel_err:
+                print(f"[VideoQAService] Viral selector notice: {viral_sel_err}. Continuing with text search...")
         
         words = re.findall(r'\b[a-zA-Z0-9_\'-]+\b', q_lower)
         stopwords = {'the', 'and', 'for', 'that', 'this', 'with', 'about', 'from', 'they', 'what', 'when', 'where', 'who', 'how', 'why', 'have', 'were', 'been', 'their', 'there', 'give', 'timestamps', 'video', 'talked', 'talking', 'summarize', 'summary', 'overview', 'tell', 'show', 'most', 'interesting', 'things', 'clip', 'clipping', 'worth', 'find'}
