@@ -1481,6 +1481,47 @@ def delete_clip(data: dict = Body(...)):
             DELETED_CLIPS_TOMBSTONES.add(norm_target.stem.lower())
             DELETED_CLIPS_TOMBSTONES.add(str(norm_target).lower())
 
+            # 0. Record deleted clip's timestamp range in .rejected_ranges.json so AI Clipper never re-clips it
+            for json_cand in [
+                norm_target.parent / "metadata" / f"{norm_target.stem}_metadata.json",
+                norm_target.parent / f"{norm_target.stem}_metadata.json",
+                OUTPUT_DIR / "metadata" / f"{norm_target.stem}_metadata.json",
+            ]:
+                if json_cand.exists():
+                    try:
+                        with open(json_cand, 'r', encoding='utf-8') as fj:
+                            mdata = json.load(fj)
+                        st_v = float(mdata.get('start', 0) or 0)
+                        et_v = float(mdata.get('end', 0) or 0)
+                        if et_v > st_v:
+                            rej_dir = OUTPUT_DIR / "metadata"
+                            rej_dir.mkdir(parents=True, exist_ok=True)
+                            rej_path = rej_dir / ".rejected_ranges.json"
+                            rej_list = []
+                            if rej_path.exists():
+                                try:
+                                    with open(rej_path, 'r', encoding='utf-8') as fr:
+                                        loaded = json.load(fr)
+                                        if isinstance(loaded, list):
+                                            rej_list = loaded
+                                except Exception:
+                                    rej_list = []
+                            rej_list.append({
+                                "source_url": str(mdata.get("source_url") or ""),
+                                "source_title": str(mdata.get("source_title") or ""),
+                                "start": round(st_v, 2),
+                                "end": round(et_v, 2),
+                                "deleted_at": time.time(),
+                            })
+                            # Keep last 500 rejected ranges
+                            if len(rej_list) > 500:
+                                rej_list = rej_list[-500:]
+                            with open(rej_path, 'w', encoding='utf-8') as fw:
+                                json.dump(rej_list, fw, indent=2)
+                        break
+                    except Exception:
+                        pass
+
             # 1. Clean up all metadata and thumbnail files in same dir, parent/metadata, and root/metadata
             for meta_cand in [
                 norm_target.parent / "metadata" / f"{norm_target.stem}_metadata.txt",

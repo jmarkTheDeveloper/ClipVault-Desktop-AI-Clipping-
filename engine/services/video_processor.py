@@ -445,6 +445,56 @@ class VideoProcessor:
                 target_n = max(4, min(25, round(duration / 180)))
                 print(f" [Auto Virality]: Video length {duration:.1f}s ({duration/60:.1f}m) -> Auto-discovering top {target_n} viral moments across full video.")
 
+            # Gather previously rejected/deleted or already-generated clip ranges for this video
+            # so re-running AI Clipper NEVER repeats the same clips!
+            excluded_ranges = []
+            try:
+                cur_vid_id = self.downloader._extract_video_id(url) if not is_local else ""
+                cur_title_norm = (title or "").strip().lower()
+                cur_url_norm = (url or "").strip()
+
+                def _matches_current_video(rec_url: str, rec_title: str) -> bool:
+                    r_url = (rec_url or "").strip()
+                    r_title = (rec_title or "").strip().lower()
+                    if cur_vid_id and r_url and cur_vid_id in r_url:
+                        return True
+                    if cur_url_norm and r_url and cur_url_norm == r_url:
+                        return True
+                    if cur_title_norm and r_title and cur_title_norm == r_title:
+                        return True
+                    return False
+
+                # 1. Previously deleted/rejected ranges
+                rej_file = OUTPUT_DIR / "metadata" / ".rejected_ranges.json"
+                if rej_file.exists():
+                    with open(rej_file, 'r', encoding='utf-8') as f_rej:
+                        rej_list = json.load(f_rej)
+                    if isinstance(rej_list, list):
+                        for item in rej_list:
+                            if isinstance(item, dict) and _matches_current_video(item.get('source_url', ''), item.get('source_title', '')):
+                                st_r = float(item.get('start', 0) or 0)
+                                et_r = float(item.get('end', 0) or 0)
+                                if et_r > st_r:
+                                    excluded_ranges.append((st_r, et_r))
+
+                # 2. Currently existing clips in vault for this video
+                for meta_f in OUTPUT_DIR.rglob("*_metadata.json"):
+                    try:
+                        with open(meta_f, 'r', encoding='utf-8') as fm:
+                            mdata = json.load(fm)
+                        if isinstance(mdata, dict) and _matches_current_video(mdata.get('source_url', ''), mdata.get('source_title', '')):
+                            st_m = float(mdata.get('start', 0) or 0)
+                            et_m = float(mdata.get('end', 0) or 0)
+                            if et_m > st_m:
+                                excluded_ranges.append((st_m, et_m))
+                    except Exception:
+                        pass
+
+                if excluded_ranges:
+                    print(f"    [VideoProcessor] Excluding {len(excluded_ranges)} previously generated/deleted timestamp range(s) so new clips are 100% fresh.")
+            except Exception as ex_err:
+                print(f"    [VideoProcessor] Excluded ranges check notice: {ex_err}")
+
             clip_specs = self.ai_selector.select_clips(
                 segments,
                 duration,
@@ -455,6 +505,7 @@ class VideoProcessor:
                 heatmap=video_heatmap,
                 chapters=video_chapters,
                 video_title=title,
+                excluded_ranges=excluded_ranges,
             )
 
         if not clip_specs:
@@ -1066,7 +1117,7 @@ class VideoProcessor:
 
                     # 1. Structured JSON metadata for high-fidelity UI rendering
                     json_meta_path = (metadata_dir / f"{output_path.stem}_metadata.json").resolve()
-                    trans_conf = self.transcriber.get_last_confidence()
+                    trans_conf = clip_info.get('clarity_score') or self.transcriber.get_last_confidence()
                     json_data = {
                         "title": clean_title,
                         "description": clean_desc,

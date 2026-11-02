@@ -235,26 +235,42 @@ class YouTubeDownloader:
                 words: List[Dict] = []
                 segments: List[Dict] = []
                 full_text_list: List[str] = []
-                for idx, s in enumerate(transcript_data.snippets):
-                    text = (getattr(s, 'text', '') or '').strip()
-                    if not text:
+                raw_snippets = list(transcript_data.snippets)
+                total_snips = len(raw_snippets)
+                for idx, s in enumerate(raw_snippets):
+                    raw_text = (getattr(s, 'text', '') or '').replace('\n', ' ').strip()
+                    if not raw_text:
+                        continue
+                    speaker_turn = bool(re.search(r'(?:^|\s)>>+\s*', raw_text))
+                    # Strip YouTube '>>' speaker-turn arrows and normalize whitespace
+                    text = re.sub(r'>>+\s*', '', raw_text).strip()
+                    text = re.sub(r'\s+', ' ', text).strip()
+                    if not text or text.lower() in ('[music]', '[applause]', '[♪]'):
                         continue
                     full_text_list.append(text)
                     st = float(getattr(s, 'start', 0.0))
-                    dur = float(getattr(s, 'duration', 2.0))
-                    et = st + dur
+                    raw_dur = float(getattr(s, 'duration', 2.0))
+                    seg_words = [w for w in text.split() if w.strip(".,!?:;\"'()[]{}>")]
+                    # Clamp rollup caption duration so it never overlaps the next snippet's start timestamp
+                    max_speech_dur = max(0.8, len(seg_words) * 0.42)
+                    eff_dur = min(raw_dur, max_speech_dur)
+                    if idx + 1 < total_snips:
+                        next_st = float(getattr(raw_snippets[idx + 1], 'start', st + eff_dur))
+                        if next_st > st:
+                            eff_dur = min(eff_dur, max(0.20, next_st - st - 0.02))
+                    et = round(st + eff_dur, 3)
                     segments.append({
-                        'id': idx,
+                        'id': len(segments),
                         'start': st,
                         'end': et,
-                        'text': text
+                        'text': text,
+                        'speaker_turn': speaker_turn,
                     })
-                    seg_words = text.split()
                     if seg_words:
-                        wdur = dur / max(1, len(seg_words))
+                        wdur = eff_dur / max(1, len(seg_words))
                         for widx, w in enumerate(seg_words):
-                            cw = w.strip(".,!?:;\"'()[]{}").upper()
-                            if cw:
+                            cw = w.strip(".,!?:;\"'()[]{}>").upper()
+                            if cw and not cw.startswith('['):
                                 w_start = st + widx * wdur
                                 words.append({
                                     'word': cw,
