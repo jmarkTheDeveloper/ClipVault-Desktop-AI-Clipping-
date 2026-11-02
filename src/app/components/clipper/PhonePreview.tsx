@@ -898,7 +898,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
 
   // Synchronize play/pause state across all video + companion audio elements in the preview
   useEffect(() => {
-    const vids = containerRef.current?.querySelectorAll("video") || document.querySelectorAll("video");
+    const vids = containerRef.current?.querySelectorAll("video") || [];
     vids.forEach((v) => {
       if (isPlaying) {
         v.play().catch(() => {});
@@ -914,6 +914,18 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
       }
     }
   }, [isPlaying]);
+
+  // Strictly pause all video and companion audio elements when processing or when processing finishes
+  const prevProcessingRef = useRef(isProcessing);
+  useEffect(() => {
+    if (isProcessing || (prevProcessingRef.current && !isProcessing)) {
+      setIsPlaying(false);
+      const vids = containerRef.current?.querySelectorAll("video") || [];
+      vids.forEach((v) => { try { v.pause(); } catch {} });
+      if (audioRef.current) { try { audioRef.current.pause(); } catch {} }
+    }
+    prevProcessingRef.current = isProcessing;
+  }, [isProcessing, setIsPlaying]);
 
   // Re-synchronize newly mounted video elements whenever layout, video source, or background video changes
   useEffect(() => {
@@ -960,7 +972,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
     const maxDur = duration > 0 ? duration : (mediaDuration && mediaDuration > 0 ? mediaDuration : 3600);
     const target = Math.max(0, Math.min(timeInSeconds, maxDur));
 
-    const allVideos = containerRef.current?.querySelectorAll("video") || document.querySelectorAll("video");
+    const allVideos = containerRef.current?.querySelectorAll("video") || [];
     allVideos.forEach((vid) => {
       try {
         vid.currentTime = target;
@@ -987,7 +999,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
   const togglePlayAll = () => {
     const nextState = !isPlaying;
     setIsPlaying(nextState);
-    const allVideos = containerRef.current?.querySelectorAll("video") || document.querySelectorAll("video");
+    const allVideos = containerRef.current?.querySelectorAll("video") || [];
     allVideos.forEach((vid) => {
       if (nextState) {
         vid.play().catch(() => {});
@@ -1019,7 +1031,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
         commitSeek(detail.time);
         if (detail.autoPlay) {
           setIsPlaying(true);
-          const allVideos = containerRef.current?.querySelectorAll("video") || document.querySelectorAll("video");
+          const allVideos = containerRef.current?.querySelectorAll("video") || [];
           allVideos.forEach((vid) => {
             try {
               vid.currentTime = detail.time;
@@ -1056,7 +1068,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
     const startSec = parseTimestampToSec(targetSeg.start || "0:00");
     commitSeek(startSec);
     setIsPlaying(true);
-    const allVideos = containerRef.current?.querySelectorAll("video") || document.querySelectorAll("video");
+    const allVideos = containerRef.current?.querySelectorAll("video") || [];
     allVideos.forEach((vid) => {
       try {
         vid.currentTime = startSec;
@@ -1103,7 +1115,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
         const endSec = parseTimestampToSec(activeSeg.end);
         if (endSec > startSec && v.currentTime >= endSec) {
           commitSeek(startSec);
-          const allVideos = containerRef.current?.querySelectorAll("video") || document.querySelectorAll("video");
+          const allVideos = containerRef.current?.querySelectorAll("video") || [];
           allVideos.forEach((vid) => {
             try {
               vid.currentTime = startSec;
@@ -1269,7 +1281,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                     <video
                       ref={videoRef}
                       src={activeVideoUrl}
-                      autoPlay
+                      autoPlay={false}
                       loop
                       muted={isMuted || Boolean(activeAudioUrl)}
                       playsInline
@@ -1301,7 +1313,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                     <video
                       data-background="true"
                       src={activeVideoUrl}
-                      autoPlay
+                      autoPlay={false}
                       loop
                       muted
                       playsInline
@@ -1362,7 +1374,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                     <video
                       ref={videoRef}
                       src={activeVideoUrl}
-                      autoPlay
+                      autoPlay={false}
                       loop
                       muted={isMuted || Boolean(activeAudioUrl)}
                       playsInline
@@ -1409,7 +1421,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                     data-background="true"
                     src={activeVideoUrl}
                     className="absolute inset-0 w-full h-full object-cover filter blur-2xl scale-125 opacity-65 pointer-events-none"
-                    autoPlay
+                    autoPlay={false}
                     loop
                     muted={true}
                     playsInline
@@ -1421,7 +1433,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                       src={activeVideoUrl}
                       poster={posterUrl || undefined}
                       className="w-full h-full object-cover pointer-events-none"
-                      autoPlay
+                      autoPlay={false}
                       loop
                       muted={isMuted || Boolean(activeAudioUrl)}
                       playsInline
@@ -1451,7 +1463,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                     data-background="true"
                     src={activeVideoUrl}
                     className="absolute inset-0 w-full h-full object-cover filter blur-2xl scale-125 opacity-60 pointer-events-none"
-                    autoPlay
+                    autoPlay={false}
                     loop
                     muted={true}
                     playsInline
@@ -1461,7 +1473,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                     src={activeVideoUrl}
                     poster={posterUrl || undefined}
                     className="w-full max-h-full object-contain relative z-10 pointer-events-none shadow-2xl"
-                    autoPlay
+                    autoPlay={false}
                     loop
                     muted={isMuted || Boolean(activeAudioUrl)}
                     playsInline
@@ -1490,7 +1502,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                     src={activeVideoUrl}
                     poster={posterUrl || undefined}
                     className="w-full max-h-full object-contain relative z-10 pointer-events-none"
-                    autoPlay
+                    autoPlay={false}
                     loop
                     muted={isMuted || Boolean(activeAudioUrl)}
                     playsInline
@@ -1519,7 +1531,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                     src={activeVideoUrl}
                     poster={posterUrl || undefined}
                     className="w-full h-full object-cover object-center relative z-10 pointer-events-none"
-                    autoPlay
+                    autoPlay={false}
                     loop
                     muted={isMuted || Boolean(activeAudioUrl)}
                     playsInline

@@ -212,6 +212,16 @@ export const AiClipperScreen: React.FC<Props> = ({
   // Navigation & View States
   const [viewMode, setViewMode] = useState<ViewMode>(initialViewMode);
 
+  // Strictly pause PhonePreview video whenever viewing generated clips, inside vault, or navigating away from ai-clipper
+  useEffect(() => {
+    if (viewMode !== "setup" || (activeScreen && activeScreen !== "ai-clipper") || previewVaultClip) {
+      setIsPlaying(false);
+      if (videoRef.current) {
+        try { videoRef.current.pause(); } catch {}
+      }
+    }
+  }, [viewMode, activeScreen, previewVaultClip]);
+
   // Security License Guard: prevent unlicensed access to Pro Manual Studio
   useEffect(() => {
     if (isLicensed === false && activeScreen === "ai-clipper") {
@@ -1334,6 +1344,10 @@ export const AiClipperScreen: React.FC<Props> = ({
             currentTaskIdRef.current = null;
             setRunning(false);
             setDone(true);
+            setIsPlaying(false);
+            if (videoRef.current) {
+              try { videoRef.current.pause(); } catch {}
+            }
             const compiledClips = data.clips || [];
             setGeneratedClips(compiledClips);
             if (data.output_dir) setLastOutputFolder(data.output_dir);

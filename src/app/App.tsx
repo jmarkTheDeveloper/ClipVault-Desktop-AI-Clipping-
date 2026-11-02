@@ -78,6 +78,19 @@ export default function App() {
     return () => window.removeEventListener("clipvault-clips-updated", handleClipsUpdated);
   }, []);
 
+  // Strictly pause any media inside hidden background screens (e.g. AiClipperScreen) to prevent audio leaking
+  useEffect(() => {
+    if (screen !== "ai-clipper") {
+      const hiddenScreens = document.querySelectorAll('div[style*="display: none"]');
+      hiddenScreens.forEach((el) => {
+        const media = el.querySelectorAll("video, audio");
+        media.forEach((m: any) => {
+          try { m.pause(); } catch {}
+        });
+      });
+    }
+  }, [screen]);
+
   // Tour States
   const [tourActive, setTourActive] = useState(false);
   const [tourType, setTourType] = useState<"clipper" | "vault" | "opus">("clipper");
