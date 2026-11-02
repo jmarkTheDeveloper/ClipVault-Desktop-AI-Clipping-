@@ -877,6 +877,14 @@ app.whenReady().then(() => {
         return new Response('Not a file', { status: 400 });
       }
 
+      // Delegate to Chromium's native file URL engine for instant seek, proper duration metadata & range requests
+      try {
+        const fileUrl = pathToFileURL(resolvedPath).toString();
+        return await net.fetch(fileUrl, { bypassCustomProtocolHandlers: true });
+      } catch {
+        // Fallback to manual byte-range streaming below if net.fetch is unsupported
+      }
+
       const ext = path.extname(resolvedPath).toLowerCase();
       const mimeType = MIME_TYPES[ext] || 'application/octet-stream';
       const total = stat.size;

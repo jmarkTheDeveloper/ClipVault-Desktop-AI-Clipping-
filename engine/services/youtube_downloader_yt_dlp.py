@@ -719,34 +719,55 @@ class YouTubeDownloader:
                         )
                         v_local_ss = max(0.0, start_sec - v_seg_start)
                         a_local_ss = max(0.0, start_sec - a_seg_start)
+                        has_sep_audio = temp_a_seg.exists() and temp_a_seg.stat().st_size > 1024
+
+                        # Precise decode-level trimming via filter_complex guarantees immediate visual motion
+                        # from frame 0.0s (bypasses fMP4 keyframe-snap frozen frame artifacts)
                         hls_cmd = [
                             ffmpeg_bin,
                             "-y",
                             "-loglevel", "error",
-                            "-ss", f"{v_local_ss:.3f}",
                             "-i", str(temp_v_seg),
                         ]
-                        if temp_a_seg.exists() and temp_a_seg.stat().st_size > 1024:
+                        if has_sep_audio:
+                            hls_cmd.extend(["-i", str(temp_a_seg)])
+                            f_filter = (
+                                f"[0:v]trim=start={v_local_ss:.3f}:duration={duration_sec:.3f},setpts=PTS-STARTPTS[v];"
+                                f"[1:a]atrim=start={a_local_ss:.3f}:duration={duration_sec:.3f},asetpts=PTS-STARTPTS[a]"
+                            )
                             hls_cmd.extend([
-                                "-ss", f"{a_local_ss:.3f}",
-                                "-i", str(temp_a_seg),
-                                "-t", f"{duration_sec:.3f}",
-                                "-map", "0:v:0",
-                                "-map", "1:a:0",
+                                "-filter_complex", f_filter,
+                                "-map", "[v]",
+                                "-map", "[a]",
                             ])
                         else:
-                            hls_cmd.extend([
-                                "-t", f"{duration_sec:.3f}",
-                                "-map", "0:v:0",
-                                "-map", "0:a:0?",
-                            ])
+                            # Single-stream input: probe if audio is multiplexed in input 0
+                            probe_chk = subprocess.run([ffmpeg_bin, "-i", str(temp_v_seg)], capture_output=True, text=True, errors="ignore", creationflags=WIN_NO_WINDOW)
+                            has_v_audio = bool(probe_chk.stderr and "Audio:" in probe_chk.stderr)
+                            if has_v_audio:
+                                f_filter = (
+                                    f"[0:v]trim=start={v_local_ss:.3f}:duration={duration_sec:.3f},setpts=PTS-STARTPTS[v];"
+                                    f"[0:a]atrim=start={v_local_ss:.3f}:duration={duration_sec:.3f},asetpts=PTS-STARTPTS[a]"
+                                )
+                                hls_cmd.extend([
+                                    "-filter_complex", f_filter,
+                                    "-map", "[v]",
+                                    "-map", "[a]",
+                                ])
+                            else:
+                                f_filter = f"[0:v]trim=start={v_local_ss:.3f}:duration={duration_sec:.3f},setpts=PTS-STARTPTS[v]"
+                                hls_cmd.extend([
+                                    "-filter_complex", f_filter,
+                                    "-map", "[v]",
+                                ])
+
                         hls_cmd.extend([
                             "-c:v", "libx264",
                             "-preset", "ultrafast",
-                            "-crf", "10",
+                            "-crf", "18",
                             "-c:a", "aac",
                             "-b:a", "320k",
-                            "-avoid_negative_ts", "make_zero",
+                            "-movflags", "+faststart",
                             str(temp_slice),
                         ])
                         proc = subprocess.run(hls_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, timeout=90, creationflags=WIN_NO_WINDOW)
@@ -820,14 +841,15 @@ class YouTubeDownloader:
                         "-map", "0:a:0?",
                     ])
 
-                # Visually lossless master slice encoding (CRF 10, ultrafast preset for instant slicing)
+                # Visually lossless master slice encoding (CRF 18, ultrafast preset with faststart)
                 cmd.extend([
                     "-c:v", "libx264",
                     "-preset", "ultrafast",
-                    "-crf", "10",
+                    "-crf", "18",
                     "-sws_flags", "lanczos+accurate_rnd",
                     "-c:a", "aac",
                     "-b:a", "320k",
+                    "-movflags", "+faststart",
                     "-avoid_negative_ts", "make_zero",
                     str(temp_slice)
                 ])

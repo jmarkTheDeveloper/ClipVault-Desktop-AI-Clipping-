@@ -629,13 +629,13 @@ class VideoProcessor:
                 ffmpeg_params = ['-pix_fmt', 'yuv420p', '-threads', safe_cpu_threads, '-rc-lookahead', '12', '-crf', '16', '-maxrate', '40M', '-bufsize', '60M', '-preset', 'ultrafast', '-movflags', '+faststart', *export_scale_params]
         elif is_1440p_export:
             if best_codec == 'h264_qsv':
-                ffmpeg_params = ['-pix_fmt', 'nv12', '-b:v', '18M', '-maxrate', '25M', '-bufsize', '36M', '-global_quality', '18', '-preset', 'ultrafast', '-movflags', '+faststart', *export_scale_params]
+                ffmpeg_params = ['-pix_fmt', 'nv12', '-b:v', '12M', '-maxrate', '16M', '-bufsize', '24M', '-global_quality', '19', '-preset', 'ultrafast', '-movflags', '+faststart', *export_scale_params]
             elif best_codec == 'h264_nvenc':
-                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '18M', '-maxrate', '25M', '-bufsize', '36M', '-cq', '18', '-rc', 'vbr', '-preset', 'p4', '-movflags', '+faststart', *export_scale_params]
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '12M', '-maxrate', '16M', '-bufsize', '24M', '-cq', '19', '-rc', 'vbr', '-preset', 'p4', '-movflags', '+faststart', *export_scale_params]
             elif best_codec == 'h264_amf':
-                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '18M', '-maxrate', '25M', '-bufsize', '36M', '-rc', 'cqp', '-qp_i', '18', '-qp_p', '18', '-quality', 'quality', '-movflags', '+faststart', *export_scale_params]
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-b:v', '12M', '-maxrate', '16M', '-bufsize', '24M', '-rc', 'cqp', '-qp_i', '19', '-qp_p', '19', '-quality', 'quality', '-movflags', '+faststart', *export_scale_params]
             else:
-                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-threads', safe_cpu_threads, '-rc-lookahead', '15', '-crf', '17', '-maxrate', '25M', '-bufsize', '36M', '-preset', 'ultrafast', '-movflags', '+faststart', *export_scale_params]
+                ffmpeg_params = ['-pix_fmt', 'yuv420p', '-threads', safe_cpu_threads, '-rc-lookahead', '15', '-crf', '19', '-maxrate', '16M', '-bufsize', '24M', '-preset', 'ultrafast', '-movflags', '+faststart', *export_scale_params]
         elif not is_720p_export:
             # 1080p FHD high-clarity profile
             if best_codec == 'h264_qsv':
@@ -1025,7 +1025,7 @@ class VideoProcessor:
                             try: output_path.unlink()
                             except Exception: pass
 
-                        cpu_fallback_params = ['-pix_fmt', 'yuv420p', '-threads', safe_cpu_threads, '-rc-lookahead', '12', '-crf', '16', '-preset', 'ultrafast', '-movflags', '+faststart', *export_scale_params]
+                        cpu_fallback_params = ['-pix_fmt', 'yuv420p', '-threads', safe_cpu_threads, '-rc-lookahead', '12', '-crf', '20', '-maxrate', '14M', '-bufsize', '20M', '-preset', 'ultrafast', '-movflags', '+faststart', *export_scale_params]
                         clip.write_videofile(
                             str(output_path),
                             codec='libx264',
