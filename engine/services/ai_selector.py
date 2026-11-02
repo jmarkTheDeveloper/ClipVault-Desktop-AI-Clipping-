@@ -236,14 +236,14 @@ class AISelector:
                 print(f"[AISelector] Qwen note: {e}. Falling back to smart chapter analyzer.")
                 raise RuntimeError(e)
 
-        # 7. Google Gemini (Gemini 3.6 Flash / Gemini Flash Latest / Gemini 2.5 Flash)
+        # 7. Google Gemini (Gemini 2.5 Flash / Gemini 2.0 Flash)
         else:
+            if getattr(self, "_api_key_invalid", False):
+                raise RuntimeError("Gemini API key is invalid or revoked; skipping network retries.")
             gemini_models = [
                 "gemini-2.5-flash",
                 "gemini-2.0-flash",
-                "gemini-1.5-flash",
                 "gemini-2.5-pro",
-                "gemini-1.5-pro",
             ]
             parts = []
             if image_frames:
@@ -267,7 +267,7 @@ class AISelector:
                             "responseMimeType": "application/json"
                         }
                     }
-                    r = requests.post(url, headers=headers, json=payload, timeout=60.0)
+                    r = requests.post(url, headers=headers, json=payload, timeout=30.0)
                     if r.status_code == 200:
                         res_json = r.json()
                         candidates_list = res_json.get("candidates", [])
@@ -282,6 +282,13 @@ class AISelector:
                         class MockRes: text: str
                         m = MockRes(); m.text = text
                         return m
+                    elif r.status_code in (400, 401, 403):
+                        err_body = r.text.lower()
+                        if "api key" in err_body or "leaked" in err_body or "permission_denied" in err_body or r.status_code in (401, 403):
+                            self._api_key_invalid = True
+                            print(f"[AISelector] Gemini API key rejected (HTTP {r.status_code}). Fast-switching to local NLP Story Scorer without retrying.")
+                            break
+                        print(f"[AISelector] Google Gemini note ({model_name}): HTTP {r.status_code}")
                     else:
                         print(f"[AISelector] Google Gemini note ({model_name}): HTTP {r.status_code}")
                 except Exception as e:
@@ -1412,6 +1419,8 @@ Return ONLY valid JSON format:
                                     })
                     except Exception as ch_err:
                         print(f"[AISelector] Chapter {w_idx+1} analysis note: {ch_err}")
+                        if getattr(self, "_api_key_invalid", False):
+                            break
 
                 if all_window_clips:
                     all_window_clips.sort(key=lambda x: x['virality_score'], reverse=True)
@@ -1503,6 +1512,8 @@ Return ONLY valid JSON format:
 }}"""
         
         try:
+            if getattr(self, "_api_key_invalid", False) or not has_api_key:
+                return self._heuristic_viral_selector(segments, video_duration, n, target_duration, topic=clean_topic, heatmap=heatmap, chapters=chapters, video_title=video_title, excluded_ranges=excluded_ranges)
             image_frames = []
             if video_path and os.path.exists(video_path):
                 try:
