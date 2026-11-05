@@ -1118,8 +1118,14 @@ class VideoProcessor:
                     # 1. Structured JSON metadata for high-fidelity UI rendering
                     json_meta_path = (metadata_dir / f"{output_path.stem}_metadata.json").resolve()
                     trans_conf = clip_info.get('clarity_score') or self.transcriber.get_last_confidence()
+                    clip_cat = clip_info.get('category')
+                    if not clip_cat:
+                        clip_cat, niche_tags = self.ai_selector.classify_clip_category(clean_title, f"{curation_reason} {clean_desc}", title)
+                        if not clean_desc or "#shorts #viral #reels #clips" in clean_desc:
+                            clean_desc = f"{clean_title} - Must-watch {clip_cat} highlight! {niche_tags}"
                     json_data = {
                         "title": clean_title,
+                        "category": clip_cat,
                         "description": clean_desc,
                         "virality_score": int(virality_score),
                         "sub_scores": sub_scores,

@@ -599,6 +599,78 @@ class AISelector:
         return final_title, hook_title
 
     @classmethod
+    def classify_clip_category(cls, title: str, story_text: str = "", source_title: str = "") -> Tuple[str, str]:
+        """
+        Classifies a video clip into a specific content niche/category based on its
+        headline title, transcript body, and source context, returning (category_name, niche_hashtags).
+        Gives 3.5x weight to the clip's own title so different clips from the same interview
+        receive their own distinct topic category (e.g., Finance & Business vs Life & Motivation).
+        """
+        t_clean = str(title or "").lower()
+        body_clean = str(story_text or "").lower()
+        src_clean = str(source_title or "").lower()
+
+        CATEGORY_RULES = [
+            (
+                "Finance & Business",
+                "#business #finance #entrepreneur #wealth #success #shorts #viral",
+                r"\b(business|businesses|finance|financial|money|wealth|wealthy|rich|million|Millions|billion|billionaire|entrepreneur|company|companies|startup|brand|ceo|market|marketing|invest|investing|investment|economy|economic|revenue|profit|deal|deals|negotiation|corporate|principles that made|savage in b|savage in business|monopoly|tax|taxes|debt|bank|banking|sales|capitalism|valuation)\b",
+            ),
+            (
+                "Life & Motivation",
+                "#motivation #inspiration #lifelessons #mindset #selfimprovement #shorts #viral",
+                r"\b(motivation|motivational|inspire|inspiration|manifestation|manifest|believe in|teach his son|teach your|teaching his|son|daughter|father|mother|parents|parenting|family|growing up|childhood|life lesson|purpose|gratitude|grateful|happiness|happy|forgive|forgiveness|kindness|relationship|marriage|love|faith|god|spiritual|soul|humble|advice|regret|overcoming|struggle|hope|dream|dreams|community|good people|spectator|participant)\b",
+            ),
+            (
+                "Mindset & Success",
+                "#mindset #success #discipline #winners #ambition #shorts #viral",
+                r"\b(mindset|success|successful|luck|lucky|hard work|work ethic|discipline|disciplined|obsession|obsessed|grind|habit|habits|winner|winners|winning|loser|failure|fail|fearless|confidence|confident|focus|determination|ambition|ambitious|relentless|mentality|pressure|greatness|sacrifice|accountability|comfort zone|savage)\b",
+            ),
+            (
+                "World & Geopolitics",
+                "#geopolitics #worldnews #history #global #society #shorts #viral",
+                r"\b(world|war|ww3|world war|nuclear|geopolitics|military|president|government|country|countries|russia|china|iran|israel|ukraine|nato|empire|civilization|revolution|history|historical|threat|intelligence|cia|fbi|weapon|weapons|pentagon|treaty|invasion|foreign policy|democracy|regime|elites|society|shoulders of giants|ancient|temple)\b",
+            ),
+            (
+                "Sports & Combat",
+                "#mma #sports #fighting #ufc #athlete #shorts #viral",
+                r"\b(fight|fighting|fighter|fighters|boxing|boxer|kickboxer|kickboxing|mma|jiu-jitsu|wrestling|knockout|heavyweight|champion|championship|belt|octagon|ring|athlete|coach|training|madison square garden|the garden|muhammad ali|frazier|tyson|olympics|martial arts)\b",
+            ),
+            (
+                "Comedy & Humor",
+                "#comedy #standup #funny #humor #podcastclips #shorts #viral",
+                r"\b(comedy|comedian|comedians|standup|stand-up|joke|jokes|funny|laugh|laughter|humor|roast|heckler|punchline|hilarious|banter|pleasure bribes)\b",
+            ),
+            (
+                "Tech & AI",
+                "#ai #technology #future #innovation #tech #shorts #viral",
+                r"\b(ai|artificial intelligence|agi|robot|robotics|technology|tech|algorithm|software|computer|internet|social media|digital|openai|chatgpt|simulation|quantum|rocket|rockets|space|mars|automate)\b",
+            ),
+            (
+                "Health & Science",
+                "#health #science #psychology #wellness #mind #shorts #viral",
+                r"\b(health|doctor|doctors|medical|medicine|disease|virus|polio|asymptomatic|vaccine|drug|drugs|crystal meth|adderall|addiction|addicted|sober|sobriety|brain|dopamine|sleep|diet|nutrition|longevity|biology|evolution|apex predator|science|scientist|psychology|mental health|therapy|trauma|anxiety)\b",
+            ),
+        ]
+
+        best_cat = "Life & Motivation"
+        best_tags = "#motivation #inspiration #lifelessons #mindset #shorts #viral"
+        best_score = 0.0
+
+        for cat_name, cat_tags, pattern in CATEGORY_RULES:
+            rx = re.compile(pattern, re.IGNORECASE)
+            title_hits = len(rx.findall(t_clean))
+            body_hits = len(set(m.lower() for m in rx.findall(body_clean)))
+            src_hits = len(set(m.lower() for m in rx.findall(src_clean)))
+            score = (title_hits * 4.0) + (body_hits * 1.2) + (src_hits * 0.6)
+            if score > best_score:
+                best_score = score
+                best_cat = cat_name
+                best_tags = cat_tags
+
+        return best_cat, best_tags
+
+    @classmethod
     def _compute_clip_clarity(cls, story_text: str, first_text: str = "", wpm: float = 155.0, **kwargs) -> int:
         """
         Computes a genuine, dynamic speech & context clarity score (65-98%) for a clip
@@ -1116,6 +1188,8 @@ class AISelector:
                                 safe_start = first_sent['start']
                                 safe_end = cur_s['end']
 
+                            clip_category, niche_tags = self.classify_clip_category(candidate_title, story_text, video_title)
+
                             cand_list.append({
                                 'start': round(safe_start, 2),
                                 'end': round(safe_end, 2),
@@ -1125,6 +1199,7 @@ class AISelector:
                                 'clarity_score': clarity_score,
                                 'raw_sub_scores': raw_sub_scores,
                                 'title': candidate_title,
+                                'category': clip_category,
                                 'chapter_title': chapter_title,
                                 'quote_snippet': candidate_title,
                                 'hook_title': hook_title,
@@ -1133,7 +1208,7 @@ class AISelector:
                                 'hook_type': 'Most Replayed Peak' if hm_peak >= 0.55 else ('Complete Story Arc' if impact_hits >= 2 else 'Viral Thesis Hook'),
                                 'reason': " | ".join(reason_parts),
                                 'content_title': candidate_title,
-                                'content_description': f"{candidate_title} - Must-watch viral highlight! #shorts #viral #reels #clips"
+                                'content_description': f"{candidate_title} - Must-watch {clip_category} highlight! {niche_tags}"
                             })
             return cand_list
 
@@ -1403,11 +1478,13 @@ Return ONLY valid JSON format:
                                     clip_segs = [s for s in segments if isinstance(s, dict) and exp_st <= float(s.get('start', 0)) <= exp_et]
                                     clip_text = " ".join(s.get('text', '') for s in clip_segs).strip()
                                     clarity_score = self._compute_clip_clarity(clip_text, dur, is_question=False, ends_clean=True)
+                                    clip_cat, niche_tags = self.classify_clip_category(title_str, clip_text, video_title)
                                     all_window_clips.append({
                                         'start': exp_st,
                                         'end': exp_et,
                                         'duration': dur,
                                         'title': title_str,
+                                        'category': clip_cat,
                                         'hook_title': cd.get('hook_title', 'Key Moment'),
                                         'virality_score': score,
                                         'clarity_score': clarity_score,
@@ -1415,7 +1492,7 @@ Return ONLY valid JSON format:
                                         'hook_type': cd.get('hook_type', 'Story Arc'),
                                         'reason': cd.get('reason', 'Complete narrative arc from chapter analysis'),
                                         'content_title': title_str,
-                                        'content_description': f"{title_str} #shorts #viral #reels"
+                                        'content_description': f"{title_str} - Must-watch {clip_cat} highlight! {niche_tags}"
                                     })
                     except Exception as ch_err:
                         print(f"[AISelector] Chapter {w_idx+1} analysis note: {ch_err}")
@@ -1574,11 +1651,15 @@ Return ONLY valid JSON format:
                 clip_segs = [s for s in segments if isinstance(s, dict) and exp_st <= float(s.get('start', 0)) <= exp_et]
                 clip_text = " ".join(s.get('text', '') for s in clip_segs).strip()
                 clarity_score = self._compute_clip_clarity(clip_text, dur, is_question=False, ends_clean=True)
+                clip_cat, niche_tags = self.classify_clip_category(title, clip_text, video_title)
+                if not content_description or "#shorts #reels #tiktok #viral" in content_description:
+                    content_description = f"{title} - Must-watch {clip_cat} highlight! {niche_tags}"
 
                 validated_clips.append({
                     'start': exp_st,
                     'end': exp_et,
                     'title': title,
+                    'category': clip_cat,
                     'virality_score': comp_score,
                     'clarity_score': clarity_score,
                     'sub_scores': sub_scores.to_dict(),

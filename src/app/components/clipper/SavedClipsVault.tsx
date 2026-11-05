@@ -33,7 +33,7 @@ import {
   Clock,
   Calendar,
 } from "lucide-react";
-import type { ClipMetadata } from "./types";
+import { getCategoryBadgeStyle, type ClipMetadata } from "./types";
 
 export const formatProducedTimeline = (ts?: number): string => {
   if (!ts) return "";
@@ -571,15 +571,25 @@ const VaultClipCard = React.memo<{
           <p className="text-[10px] text-gray-400 truncate font-mono">
             {clip.filename}
           </p>
-          {clip.created_at ? (
-            <div
-              className="mt-2 inline-flex items-center gap-1.5 text-[9.5px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md"
-              title={`Produced timestamp: ${new Date((clip.created_at > 1e11 ? clip.created_at : clip.created_at * 1000)).toLocaleString()}`}
-            >
-              <Calendar className="w-2.5 h-2.5 text-emerald-400 shrink-0" />
-              <span>{formatProducedTimeline(clip.created_at)}</span>
-            </div>
-          ) : null}
+          <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+            {clip.category && (
+              <span
+                className={`inline-flex items-center text-[9.5px] font-bold border px-2 py-0.5 rounded-md ${getCategoryBadgeStyle(clip.category)}`}
+                title={`Content Category: ${clip.category}`}
+              >
+                {clip.category}
+              </span>
+            )}
+            {clip.created_at ? (
+              <div
+                className="inline-flex items-center gap-1.5 text-[9.5px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md"
+                title={`Produced timestamp: ${new Date((clip.created_at > 1e11 ? clip.created_at : clip.created_at * 1000)).toLocaleString()}`}
+              >
+                <Calendar className="w-2.5 h-2.5 text-emerald-400 shrink-0" />
+                <span>{formatProducedTimeline(clip.created_at)}</span>
+              </div>
+            ) : null}
+          </div>
         </div>
 
         <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between text-[10px] text-gray-500">
@@ -610,6 +620,7 @@ const VaultClipCard = React.memo<{
     prev.selectedCount === next.selectedCount &&
     prev.clip.path === next.clip.path &&
     prev.clip.title === next.clip.title &&
+    prev.clip.category === next.clip.category &&
     prev.clip.virality_score === next.clip.virality_score &&
     prev.clip.created_at === next.clip.created_at &&
     prev.clip.folder === next.clip.folder &&
@@ -663,6 +674,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
   const [isWindowFileDragging, setIsWindowFileDragging] = useState(false);
   const [sortBy, setSortBy] = useState<"timeline" | "newest" | "virality" | "oldest" | "alpha">("timeline");
   const [selectedSource, setSelectedSource] = useState<string>("all");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [renameModalState, setRenameModalState] = useState<{ isOpen: boolean; oldFolder: string; newName: string }>({
     isOpen: false,
     oldFolder: "",
@@ -690,6 +702,18 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
       const src = c.source_title?.trim() || "";
       if (src) {
         map.set(src, (map.get(src) || 0) + 1);
+      }
+    });
+    return Array.from(map.entries()).map(([name, count]) => ({ name, count }));
+  }, [vaultClips]);
+
+  // Discover distinct AI content categories across vault clips
+  const clipCategories = React.useMemo(() => {
+    const map = new Map<string, number>();
+    vaultClips.forEach((c) => {
+      const cat = c.category?.trim() || "";
+      if (cat) {
+        map.set(cat, (map.get(cat) || 0) + 1);
       }
     });
     return Array.from(map.entries()).map(([name, count]) => ({ name, count }));
@@ -789,19 +813,28 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
     .filter((clip) => {
       if (isSearchActive) {
         const matchesTitle = clip.title && clip.title.toLowerCase().includes(searchLower);
+        const matchesCategory = clip.category && clip.category.toLowerCase().includes(searchLower);
         const matchesFilename = clip.filename && clip.filename.toLowerCase().includes(searchLower);
         const matchesDesc = clip.description && clip.description.toLowerCase().includes(searchLower);
         const matchesReason = clip.reason && clip.reason.toLowerCase().includes(searchLower);
         const matchesHook = clip.hook_type && clip.hook_type.toLowerCase().includes(searchLower);
         const matchesFolder = clip.folder && clip.folder.toLowerCase().includes(searchLower);
         const matchesSource = clip.source_title && clip.source_title.toLowerCase().includes(searchLower);
-        return Boolean(matchesTitle || matchesFilename || matchesDesc || matchesReason || matchesHook || matchesFolder || matchesSource);
+        return Boolean(matchesTitle || matchesCategory || matchesFilename || matchesDesc || matchesReason || matchesHook || matchesFolder || matchesSource);
       }
 
       // Filter by source video project chip if selected
       if (selectedSource !== "all") {
         const cSource = clip.source_title?.trim() || "";
         if (cSource !== selectedSource) {
+          return false;
+        }
+      }
+
+      // Filter by AI content category chip if selected
+      if (selectedCategory !== "all") {
+        const cCat = clip.category?.trim() || "";
+        if (cCat !== selectedCategory) {
           return false;
         }
       }
@@ -1868,7 +1901,7 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
 
         {/* Source Video Project Filter Chips */}
         {sourceVideos.length > 0 && !isSearchActive && (
-          <div className="flex items-center gap-2 overflow-x-auto pb-2.5 mb-3 scrollbar-thin">
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-2 scrollbar-thin">
             <span className="text-[10px] text-gray-500 font-extrabold uppercase shrink-0 mr-1 flex items-center gap-1.5">
               <Film className="w-3 h-3 text-gray-400 shrink-0" />
               <span>Source Video:</span>
@@ -1901,6 +1934,47 @@ export const SavedClipsVault: React.FC<SavedClipsVaultProps> = ({
                   selectedSource === sv.name ? "bg-black/30 text-black font-bold" : "bg-white/10 text-gray-400"
                 }`}>
                   {sv.count}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* AI Niche / Category Filter Chips */}
+        {clipCategories.length > 0 && !isSearchActive && (
+          <div className="flex items-center gap-2 overflow-x-auto pb-2.5 mb-3 scrollbar-thin">
+            <span className="text-[10px] text-gray-500 font-extrabold uppercase shrink-0 mr-1 flex items-center gap-1.5">
+              <Sparkles className="w-3 h-3 text-emerald-400 shrink-0" />
+              <span>Category:</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => setSelectedCategory("all")}
+              className={`px-3 py-1 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                selectedCategory === "all"
+                  ? "bg-emerald-400 text-black shadow-md font-extrabold"
+                  : "bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/5"
+              }`}
+            >
+              All Categories ({vaultClips.length})
+            </button>
+            {clipCategories.map((cat) => (
+              <button
+                key={cat.name}
+                type="button"
+                onClick={() => setSelectedCategory(cat.name)}
+                className={`px-3 py-1 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer border ${
+                  selectedCategory === cat.name
+                    ? "bg-emerald-400 text-black border-emerald-400 shadow-md font-extrabold"
+                    : `${getCategoryBadgeStyle(cat.name)} hover:brightness-125`
+                }`}
+                title={`Filter by ${cat.name}`}
+              >
+                <span>{cat.name}</span>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                  selectedCategory === cat.name ? "bg-black/30 text-black font-bold" : "bg-black/30 text-current"
+                }`}>
+                  {cat.count}
                 </span>
               </button>
             ))}

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Download, ExternalLink, Copy, Check, Trash2, Folder, AlertTriangle, X, Film, Sparkles, Share2, Upload, Youtube, Globe, Clock, Calendar } from "lucide-react";
-import type { ClipMetadata } from "./types";
+import { getCategoryBadgeStyle, type ClipMetadata } from "./types";
 import { ClipCustomizerModal } from "./ClipCustomizerModal";
 
 interface ClipDetailsModalProps {
@@ -233,6 +233,11 @@ export const ClipDetailsModal: React.FC<ClipDetailsModalProps> = ({
               {clip.transcription_confidence !== undefined && clip.transcription_confidence !== null && (
                 <span className="text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-0.5 rounded-full font-bold">
                   Clarity: {clip.transcription_confidence}%
+                </span>
+              )}
+              {clip.category && (
+                <span className={`text-xs border px-2.5 py-0.5 rounded-full font-bold ${getCategoryBadgeStyle(clip.category)}`}>
+                  {clip.category}
                 </span>
               )}
               {clip.hook_type && (

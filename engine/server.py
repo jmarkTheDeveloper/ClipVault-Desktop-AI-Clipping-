@@ -1222,12 +1222,14 @@ async def get_saved_clips():
                 source_title = None
                 source_url = None
                 clip_index = None
+                clip_category = None
 
                 if json_meta.exists():
                     try:
                         import json as py_json
                         j_data = py_json.loads(json_meta.read_text(encoding="utf-8"))
                         title = j_data.get("title", title)
+                        clip_category = j_data.get("category")
                         description = j_data.get("description", description)
                         virality_score = int(j_data.get("virality_score", virality_score))
                         sub_scores = j_data.get("sub_scores")
@@ -1313,12 +1315,33 @@ async def get_saved_clips():
                     round(float(end_time - start_time), 2) if (start_time is not None and end_time is not None and end_time > start_time) else None
                 )
 
+                # Retroactively classify category & niche hashtags for any existing vault clip
+                if not clip_category:
+                    try:
+                        from services.ai_selector import AISelector
+                        clip_category, niche_tags = AISelector.classify_clip_category(
+                            title or path.stem,
+                            f"{reason or ''} {description or ''}",
+                            source_title or "",
+                        )
+                        if not description or "#shorts #viral #reels #clips" in description:
+                            description = f"{title} - Must-watch {clip_category} highlight! {niche_tags}"
+                        if json_meta.exists():
+                            import json as py_json
+                            j_upd = py_json.loads(json_meta.read_text(encoding="utf-8"))
+                            j_upd["category"] = clip_category
+                            j_upd["description"] = description
+                            json_meta.write_text(py_json.dumps(j_upd, indent=2), encoding="utf-8")
+                    except Exception:
+                        clip_category = "Life & Motivation"
+
                 clips.append({
                     "filename": path.name,
                     "path": str(path.resolve()),
                     "url": clip_url,
                     "thumbnail_url": thumb_url,
                     "title": title,
+                    "category": clip_category,
                     "description": description,
                     "virality_score": virality_score,
                     "sub_scores": sub_scores,

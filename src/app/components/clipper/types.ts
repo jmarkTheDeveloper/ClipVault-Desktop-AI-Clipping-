@@ -12,6 +12,7 @@ export interface ClipMetadata {
   path: string;
   url: string;
   title: string;
+  category?: string;
   description: string;
   virality_score: number;
   sub_scores?: ViralitySubScores;
@@ -29,6 +30,35 @@ export interface ClipMetadata {
   source_title?: string;
   source_url?: string;
   clip_index?: number;
+}
+
+export function getCategoryBadgeStyle(category?: string): string {
+  const cat = (category || "").toLowerCase();
+  if (cat.includes("finance") || cat.includes("business")) {
+    return "bg-amber-400/15 text-amber-300 border-amber-400/35";
+  }
+  if (cat.includes("motivation") || cat.includes("life")) {
+    return "bg-violet-400/15 text-violet-300 border-violet-400/35";
+  }
+  if (cat.includes("mindset") || cat.includes("success")) {
+    return "bg-teal-400/15 text-teal-300 border-teal-400/35";
+  }
+  if (cat.includes("world") || cat.includes("geopolitics")) {
+    return "bg-rose-400/15 text-rose-300 border-rose-400/35";
+  }
+  if (cat.includes("sports") || cat.includes("combat")) {
+    return "bg-orange-400/15 text-orange-300 border-orange-400/35";
+  }
+  if (cat.includes("comedy") || cat.includes("humor")) {
+    return "bg-fuchsia-400/15 text-fuchsia-300 border-fuchsia-400/35";
+  }
+  if (cat.includes("tech") || cat.includes("ai")) {
+    return "bg-sky-400/15 text-sky-300 border-sky-400/35";
+  }
+  if (cat.includes("health") || cat.includes("science")) {
+    return "bg-indigo-400/15 text-indigo-300 border-indigo-400/35";
+  }
+  return "bg-emerald-400/15 text-emerald-300 border-emerald-400/35";
 }
 
 export interface EngineOption {
