@@ -385,7 +385,16 @@ function createWindow() {
     }
   };
 
-  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+  let fallbackAttempted = false;
+  mainWindow.webContents.on('did-finish-load', () => {
+    fallbackAttempted = false;
+  });
+
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL, isMainFrame) => {
+    // Ignore ERR_ABORTED (-3) caused by Ctrl+R reloads or superseded navigations, and ignore subframes
+    if (errorCode === -3 || isMainFrame === false) {
+      return;
+    }
     console.warn(`[Electron]: Page failed to load (${errorCode}: ${errorDescription}) at ${validatedURL}`);
     if (isDev && currentEdition === 'developer' && loadAttempts < 5) {
       loadAttempts++;
@@ -398,9 +407,14 @@ function createWindow() {
           }
         });
       }, 1000);
-    } else if (mainWindow && !mainWindow.isDestroyed() && fs.existsSync(distPath)) {
+    } else if (!fallbackAttempted && mainWindow && !mainWindow.isDestroyed() && fs.existsSync(distPath)) {
+      fallbackAttempted = true;
       console.log('[Electron]: Falling back to built bundle dist/index.html');
-      mainWindow.loadFile(distPath, { query: { edition: currentEdition } });
+      setTimeout(() => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.loadFile(distPath, { query: { edition: currentEdition } });
+        }
+      }, 250);
     }
   });
 
@@ -451,11 +465,12 @@ function createWindow() {
     // 2. Clean UI reload (Ctrl+R / F5) & Full Reboot (Ctrl+Shift+R)
     if (
       input.type === 'keyDown' &&
+      !input.isAutoRepeat &&
       ((input.control && input.key.toLowerCase() === 'r') || input.key === 'F5')
     ) {
       event.preventDefault();
+      if (isReloading) return;
       if (input.control && input.shift) {
-        if (isReloading) return;
         isReloading = true;
         console.log('[Electron]: Ctrl+Shift+R detected. Rebooting Python backend and UI cleanly...');
         killPythonBackend();
@@ -478,9 +493,13 @@ function createWindow() {
           setTimeout(checkReady, 600);
         }, 300);
       } else {
-        // Standard Ctrl+R: reload renderer immediately in 100ms
+        // Standard Ctrl+R: debounce so rapid keypresses do not abort in-flight loads
+        isReloading = true;
         console.log('[Electron]: Ctrl+R detected. Reloading UI renderer...');
         mainWindow.webContents.reloadIgnoringCache();
+        setTimeout(() => {
+          isReloading = false;
+        }, 600);
       }
     }
   });
