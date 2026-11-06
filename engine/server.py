@@ -1842,12 +1842,26 @@ def get_video_info(url: str, refresh: bool = False):
             chosen_video_url = None
             chosen_has_audio = False
 
-            # 1. Check progressive MP4 with both video + audio first (single muxed stream, fastest startup)
+            def _audio_lang_priority(f: dict) -> tuple:
+                lang = str(f.get("language") or "").lower()
+                note = str(f.get("format_note") or "").lower()
+                u_dec = urllib.parse.unquote(str(f.get("url") or "")).lower()
+                lang_pref = f.get("language_preference")
+                if lang_pref is None:
+                    lang_pref = -1
+                is_not_dubbed = 0 if ("dubbed" in note or "acont=dubbed" in u_dec) else 1
+                is_orig = 1 if (lang_pref > 0 or "original" in note or "acont=original" in u_dec) else 0
+                is_en = 1 if (lang.startswith("en") or "english" in note or "lang=en" in u_dec) else 0
+                is_foreign = 1 if ((lang and not lang.startswith(("en", "und"))) or re.search(r"lang=(?!en)[a-z]{2}", u_dec)) else 0
+                return (is_not_dubbed, is_orig, is_en, -is_foreign, lang_pref)
+
+            # 1. Check progressive MP4 with both video + audio first (only if original/English audio, never dubbed!)
             prog_candidates = [
                 f for f in direct_fmts
                 if f.get("vcodec") not in (None, "none") and f.get("acodec") not in (None, "none")
+                and _audio_lang_priority(f)[0] == 1 and _audio_lang_priority(f)[3] == 0
             ]
-            prog_candidates.sort(key=lambda f: (1 if f.get("ext") == "mp4" else 0, f.get("height") or 0), reverse=True)
+            prog_candidates.sort(key=lambda f: (_audio_lang_priority(f), 1 if f.get("ext") == "mp4" else 0, f.get("height") or 0), reverse=True)
             for pf in prog_candidates[:1]:
                 if _probe_stream_ok(pf.get("url")):
                     chosen_video_url = pf.get("url")
@@ -1886,6 +1900,7 @@ def get_video_info(url: str, refresh: bool = False):
             ]
             aud_candidates.sort(
                 key=lambda f: (
+                    _audio_lang_priority(f),
                     1 if f.get("ext") in ("m4a", "mp4") else 0,
                     0 if "-drc" in str(f.get("format_id", "")) else 1,
                     1 if 40 <= (f.get("abr") or f.get("tbr") or 0) <= 140 else 0,

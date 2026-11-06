@@ -668,21 +668,23 @@ class YouTubeDownloader:
                             audio_url = video_url
                             audio_headers = video_headers
 
-                # 2. Look for best dedicated audio format (prioritize original/default language + ratebypass=yes)
+                # 2. Look for best dedicated audio format (strictly prioritize original/English audio over YouTube auto-dubbed tracks)
+                import urllib.parse
                 def _audio_score(f):
                     lang = str(f.get("language") or "").lower()
                     note = str(f.get("format_note") or "").lower()
-                    url_str = str(f.get("url") or "").lower()
+                    url_str = urllib.parse.unquote(str(f.get("url") or "")).lower()
                     lang_pref = f.get("language_preference")
                     if lang_pref is None:
-                        lang_pref = 0
-                    is_original = 1 if (lang_pref > 0 or "original" in note or "default" in note) else 0
-                    is_not_dubbed = 1 if ("dubbed" not in note and "dubbed" not in url_str) else 0
-                    is_english = 1 if (lang in ("en", "eng", "en-us", "en-gb") or "english" in note) else 0
+                        lang_pref = -1
+                    is_not_dubbed = 0 if ("dubbed" in note or "acont=dubbed" in url_str) else 1
+                    is_original = 1 if (lang_pref > 0 or "original" in note or "acont=original" in url_str) else 0
+                    is_english = 1 if (lang in ("en", "eng", "en-us", "en-gb") or lang.startswith("en-") or "english" in note or "lang=en" in url_str) else 0
+                    is_foreign = 1 if ((lang and not lang.startswith(("en", "und"))) or re.search(r"lang=(?!en)[a-z]{2}", url_str)) else 0
                     unthrottled = 1 if has_ratebypass(f) else 0
-                    is_audio_only = 1 if f.get("vcodec") == "none" else 0
+                    is_audio_only = 1 if f.get("vcodec") in (None, "none") else 0
                     bitrate = f.get("abr") or f.get("tbr") or 0
-                    return (is_original, is_not_dubbed, lang_pref, is_english, unthrottled, is_audio_only, bitrate)
+                    return (is_not_dubbed, is_original, is_english, -is_foreign, lang_pref, unthrottled, is_audio_only, bitrate)
 
                 audio_candidates = [
                     f for f in formats 
