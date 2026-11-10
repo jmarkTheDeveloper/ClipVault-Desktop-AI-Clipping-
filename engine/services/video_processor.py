@@ -449,7 +449,7 @@ class VideoProcessor:
             # so re-running AI Clipper NEVER repeats the same clips!
             excluded_ranges = []
             try:
-                cur_vid_id = self.downloader._extract_video_id(url) if not is_local else ""
+                cur_vid_id = self.downloader.get_video_id(url) if not os.path.isfile(url) else ""
                 cur_title_norm = (title or "").strip().lower()
                 cur_url_norm = (url or "").strip()
 

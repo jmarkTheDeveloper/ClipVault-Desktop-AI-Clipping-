@@ -162,7 +162,8 @@ class VideoQAService:
             if fallback and fallback not in placeholder_keys:
                 eff_api_key = fallback
 
-        has_api_key = bool(eff_api_key and eff_api_key not in placeholder_keys)
+        probe_selector = AISelector(api_key=eff_api_key, provider=ai_engine or "gemini")
+        has_api_key = bool(eff_api_key and eff_api_key not in placeholder_keys) or probe_selector._has_any_cloud_key()
 
         if not has_api_key:
             return {
