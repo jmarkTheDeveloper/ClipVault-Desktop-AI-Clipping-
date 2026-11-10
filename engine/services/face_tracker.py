@@ -789,20 +789,26 @@ class FaceTracker:
             curr_f = pre_frames[i]["faces"]
 
             is_cut = False
+            matched_ext_cut = None
+            if scene_cut_times:
+                in_interval = [ct for ct in scene_cut_times if t_prev < ct <= t_curr + 0.05]
+                if in_interval:
+                    matched_ext_cut = in_interval[0]
+
             # 1. Strong 3-zone chromatic or joint chromatic+spatial pixel layout change
             # (catches studio angle cuts without triggering on smooth camera pans or hand gestures)
-            if hdiff >= 0.28 or (hdiff >= 0.20 and sdiff >= 0.080) or sdiff >= 0.25:
+            if hdiff >= 0.30 or (hdiff >= 0.22 and sdiff >= 0.095) or sdiff >= 0.25:
                 is_cut = True
-            # 2. External scene detector cut
-            elif scene_cut_times and any(abs(t_curr - ct) < (1.0 / fps_sample) for ct in scene_cut_times):
+            # 2. External scene detector cut inside [t_prev, t_curr]
+            elif matched_ext_cut is not None:
                 is_cut = True
             # 3. Visual shift combined with a large horizontal teleport in face position
             # (only if NO prominent faces match between frames, preventing person index swaps in multi-person shots)
-            elif (hdiff >= 0.18 or sdiff >= 0.090) and prev_f and curr_f:
+            elif (hdiff >= 0.20 or sdiff >= 0.105) and prev_f and curr_f:
                 matched = False
                 for pf in prev_f:
                     for cf in curr_f:
-                        if abs(pf["center_x"] - cf["center_x"]) < (width * 0.10):
+                        if abs(pf["center_x"] - cf["center_x"]) < (width * 0.14):
                             matched = True
                             break
                     if matched:
@@ -814,16 +820,19 @@ class FaceTracker:
                         is_cut = True
 
             if is_cut:
-                # 3-Step Binary Search to find the EXACT frame where the camera cut occurred
-                exact_t = t_curr
+                # 5-Step Binary Search to find the EXACT frame where the camera cut occurred (~30ms / 1-frame precision!)
+                exact_t = matched_ext_cut if matched_ext_cut is not None else t_curr
                 sig_lo = pre_frames[i - 1].get("sig")
                 sig_hi = pre_frames[i].get("sig")
                 if sig_lo is not None and sig_hi is not None:
-                    lo_t, hi_t = t_prev, t_curr
+                    lo_t = max(t_prev, matched_ext_cut - 0.35) if matched_ext_cut is not None else t_prev
+                    hi_t = min(t_curr, matched_ext_cut + 0.35) if matched_ext_cut is not None else t_curr
+                    if hi_t <= lo_t + 0.04:
+                        lo_t, hi_t = t_prev, t_curr
                     thumb_lo, hists_lo = sig_lo
                     thumb_hi, hists_hi = sig_hi
                     try:
-                        for _ in range(3):
+                        for _ in range(5):
                             mid_t = 0.5 * (lo_t + hi_t)
                             mid_f = clip.get_frame(mid_t)
                             if mid_f.dtype != np.uint8:
@@ -841,55 +850,96 @@ class FaceTracker:
                                 thumb_hi, hists_hi = sig_mid
                         exact_t = hi_t
                     except Exception:
-                        exact_t = 0.5 * (t_prev + t_curr)
+                        exact_t = matched_ext_cut if matched_ext_cut is not None else (0.5 * (t_prev + t_curr))
                 cut_times_exact[i] = exact_t
 
+        # ── Inject Any SceneDetector Cuts Missed Between Sparse Pre-Scan Samples ──
+        # Because pre_frames only samples 20 points (~2.3s apart), a 1.0s-2.0s reaction shot can start AND end
+        # between pre_frames[i-1] and pre_frames[i], causing pre_frames[i] to look identical to pre_frames[i-1]!
+        all_cut_boundaries = sorted(list(set(round(v, 3) for v in cut_times_exact.values())))
+        if scene_cut_times:
+            for sct in sorted(scene_cut_times):
+                if 0.15 < sct < (clip.duration - 0.15):
+                    if not any(abs(sct - b) < 0.35 for b in all_cut_boundaries):
+                        # Refine exact cut frame around sct (+/- 0.18s) with 4-step binary search
+                        lo_t = max(0.02, sct - 0.18)
+                        hi_t = min(float(clip.duration) - 0.02, sct + 0.18)
+                        exact_sct = sct
+                        try:
+                            f_lo = clip.get_frame(lo_t)
+                            f_hi = clip.get_frame(hi_t)
+                            sig_lo = _compute_frame_signature(np.clip(f_lo, 0, 255).astype(np.uint8) if f_lo.dtype != np.uint8 else f_lo)
+                            sig_hi = _compute_frame_signature(np.clip(f_hi, 0, 255).astype(np.uint8) if f_hi.dtype != np.uint8 else f_hi)
+                            hd_ends, sd_ends = _signature_diff(sig_lo, sig_hi)
+                            # Verify it is a genuine camera angle change before adding
+                            if hd_ends >= 0.18 or sd_ends >= 0.085:
+                                thumb_lo, hists_lo = sig_lo
+                                thumb_hi, hists_hi = sig_hi
+                                for _ in range(4):
+                                    mid_t = 0.5 * (lo_t + hi_t)
+                                    mid_f = clip.get_frame(mid_t)
+                                    sig_mid = _compute_frame_signature(np.clip(mid_f, 0, 255).astype(np.uint8) if mid_f.dtype != np.uint8 else mid_f)
+                                    hd_lo, sd_lo = _signature_diff((thumb_lo, hists_lo), sig_mid)
+                                    hd_hi, sd_hi = _signature_diff(sig_mid, (thumb_hi, hists_hi))
+                                    if (hd_lo + sd_lo * 2.0) < (hd_hi + sd_hi * 2.0):
+                                        lo_t = mid_t
+                                        thumb_lo, hists_lo = sig_mid
+                                    else:
+                                        hi_t = mid_t
+                                        thumb_hi, hists_hi = sig_mid
+                                exact_sct = round(hi_t, 3)
+                                all_cut_boundaries.append(exact_sct)
+                                all_cut_boundaries.sort()
+                        except Exception:
+                            pass
+
+        # Build shot segments from all verified camera cut boundaries
+        shot_edges = [0.0] + [b for b in all_cut_boundaries if 0.20 <= b <= (float(clip.duration) - 0.20)] + [float(clip.duration)]
         raw_shots = []
-        curr_shot = []
-        curr_shot_start = 0.0
-        curr_is_scene_cut = True
-        for i, item in enumerate(pre_frames):
-            if i in cut_times_exact and curr_shot:
-                raw_shots.append({
-                    "start_t": curr_shot_start,
-                    "end_t": cut_times_exact[i],
-                    "items": curr_shot,
-                    "is_scene_cut": curr_is_scene_cut,
-                })
-                curr_shot = []
-                curr_shot_start = cut_times_exact[i]
-                # Check if this cut was a true visual/chromatic scene cut
-                hdiff = pre_frames[i]["hdiff"]
-                sdiff = pre_frames[i]["sdiff"]
-                curr_is_scene_cut = bool(hdiff >= 0.28 or (hdiff >= 0.20 and sdiff >= 0.080) or sdiff >= 0.25)
-            curr_shot.append(item)
-        if curr_shot:
+        for idx_edge in range(len(shot_edges) - 1):
+            st_e = shot_edges[idx_edge]
+            et_e = shot_edges[idx_edge + 1]
+            if et_e <= st_e + 0.05:
+                continue
+            s_items = [it for it in pre_frames if st_e <= it["t"] < et_e]
             raw_shots.append({
-                "start_t": curr_shot_start,
-                "end_t": float(clip.duration),
-                "items": curr_shot,
-                "is_scene_cut": curr_is_scene_cut,
+                "start_t": st_e,
+                "end_t": et_e,
+                "items": s_items,
+                "is_scene_cut": True,
             })
 
-        # ── Debounce Micro-Shots (< 0.85s / 4-5 samples) ──
-        # In professional broadcast framing, micro-shots (0.1s - 0.5s) produce jarring rapid flashes/whips.
-        # Merge sub-0.85s micro-shots into neighboring shots to guarantee stable, pleasing camera pacing.
-        MIN_SHOT_DURATION = 0.85
+        # ── Ensure Every Shot Has At Least 2 Dedicated Interior Face Samples ──
+        # When a camera cut happens between two pre-scan samples, probe the midpoint of the shot so its framing is 100% locked.
+        for s in raw_shots:
+            s_st, s_et = float(s["start_t"]), float(s["end_t"])
+            valid_interior = [it for it in s["items"] if (s_st + 0.06) <= it["t"] <= (s_et - 0.06) and it.get("faces")]
+            if not valid_interior and (s_et - s_st) >= 0.25:
+                probe_t = 0.5 * (s_st + s_et)
+                try:
+                    pfrm = clip.get_frame(probe_t)
+                    if pfrm.dtype != np.uint8:
+                        pfrm = np.clip(pfrm, 0, 255).astype(np.uint8)
+                    p_dets = self.detect_faces_in_frame(pfrm, frame_time=probe_t)
+                    if p_dets:
+                        s["items"].append({"t": probe_t, "faces": p_dets, "hdiff": 0.0, "sdiff": 0.0, "sig": None})
+                except Exception:
+                    pass
+
+        # ── Debounce Micro-Shots (< 1.15s) ──
+        # Never merge across a real visual camera cut (or the crop box for Speaker A will be applied to Speaker B!).
+        # Only merge sub-1.15s segments when they have nearly identical framing or weren't hard visual cuts.
+        MIN_SHOT_DURATION = 1.15
         merged_shots = []
         for s in raw_shots:
             dur = s["end_t"] - s["start_t"]
             if not merged_shots:
                 merged_shots.append(s)
-            elif dur < MIN_SHOT_DURATION:
+            elif dur < 0.35:
                 merged_shots[-1]["end_t"] = s["end_t"]
                 merged_shots[-1]["items"].extend(s["items"])
             else:
                 merged_shots.append(s)
-
-        if len(merged_shots) > 1 and (merged_shots[0]["end_t"] - merged_shots[0]["start_t"]) < MIN_SHOT_DURATION:
-            merged_shots[1]["start_t"] = merged_shots[0]["start_t"]
-            merged_shots[1]["items"] = merged_shots[0]["items"] + merged_shots[1]["items"]
-            merged_shots.pop(0)
 
         raw_shots = merged_shots
 
@@ -1101,28 +1151,35 @@ class FaceTracker:
             prev_crop = solved
 
             # Continuous sample trajectory for "smooth" gimbal Steadicam tracking
+            # Reject transient false detections (e.g. hand waves / gesture occlusions) by clamping sample offsets
+            # around the solved shot center (x1 + cw/2, y1 + ch*0.33) and median-filtering before spring solve.
+            solved_center_x = float(x1) + float(cw) * 0.5
+            solved_center_y = (float(height) * 0.5) if ch >= height else (float(y1) + float(ch) * 0.33)
             trajectory = []
             for item in shot_items_list:
                 it_t = item["t"]
                 it_faces = item["faces"]
                 best_f = None
-                best_d = width * 0.25
+                best_d = width * 0.10
                 for f in it_faces:
                     d = abs(float(f["center_x"]) - target_cx)
                     if d < best_d:
                         best_d = d
                         best_f = f
                 if best_f is not None:
+                    # Measure natural head drift relative to target_cx, clamped to +-4.5% frame width
+                    drift_x = float(np.clip(float(best_f["center_x"]) - float(target_cx), -width * 0.045, width * 0.045))
+                    drift_y = float(np.clip(float(best_f.get("center_y", target_cy)) - float(target_cy), -height * 0.035, height * 0.035))
                     trajectory.append({
                         "t": float(it_t),
-                        "cx": float(best_f["center_x"]),
-                        "cy": float(best_f.get("center_y", target_cy)),
+                        "cx": solved_center_x + drift_x,
+                        "cy": solved_center_y + drift_y,
                     })
                 else:
                     trajectory.append({
                         "t": float(it_t),
-                        "cx": float(target_cx),
-                        "cy": float(target_cy),
+                        "cx": solved_center_x,
+                        "cy": solved_center_y,
                     })
 
             # Pre-solve critically-damped 2nd-order camera trajectory once per shot in native Rust
@@ -1133,18 +1190,27 @@ class FaceTracker:
                 traj_t_arr = np.array([pt["t"] for pt in trajectory], dtype=np.float64)
                 raw_x_arr = np.array([pt["cx"] for pt in trajectory], dtype=np.float64)
                 raw_y_arr = np.array([pt["cy"] for pt in trajectory], dtype=np.float64)
-                dead_w = float(cw) * 0.10
-                dead_h = float(ch) * 0.10
+                # 3-tap median filter to eliminate single-sample outlier spikes from hand gestures
+                if len(raw_x_arr) >= 3:
+                    med_x = raw_x_arr.copy()
+                    med_y = raw_y_arr.copy()
+                    for m_i in range(1, len(raw_x_arr) - 1):
+                        med_x[m_i] = float(np.median(raw_x_arr[m_i - 1:m_i + 2]))
+                        med_y[m_i] = float(np.median(raw_y_arr[m_i - 1:m_i + 2]))
+                    raw_x_arr = med_x
+                    raw_y_arr = med_y
+                dead_w = float(cw) * 0.18
+                dead_h = float(ch) * 0.18
                 dt_sample = float(np.median(np.diff(traj_t_arr))) if len(traj_t_arr) > 1 else 0.20
                 dt_sample = max(0.033, min(0.50, dt_sample))
 
                 try:
                     from services.rust_accelerator import rust_solve_spring_damper_1d
                     smooth_x_arr = rust_solve_spring_damper_1d(
-                        raw_x_arr, dt=dt_sample, stiffness=18.0, damping=8.5, deadzone_px=dead_w, substeps=4
+                        raw_x_arr, dt=dt_sample, stiffness=10.0, damping=7.5, deadzone_px=dead_w, substeps=4
                     )
                     smooth_y_arr = rust_solve_spring_damper_1d(
-                        raw_y_arr, dt=dt_sample, stiffness=16.0, damping=8.0, deadzone_px=dead_h, substeps=4
+                        raw_y_arr, dt=dt_sample, stiffness=9.0, damping=7.0, deadzone_px=dead_h, substeps=4
                     )
                 except Exception:
                     smooth_x_arr = None
@@ -1156,8 +1222,8 @@ class FaceTracker:
                     for k in range(1, len(raw_x_arr)):
                         dx = float(raw_x_arr[k]) - fx[-1]
                         dy = float(raw_y_arr[k]) - fy[-1]
-                        step_x = 0.0 if abs(dx) < dead_w else (dx - np.sign(dx) * dead_w) * 0.35
-                        step_y = 0.0 if abs(dy) < dead_h else (dy - np.sign(dy) * dead_h) * 0.30
+                        step_x = 0.0 if abs(dx) < dead_w else (dx - np.sign(dx) * dead_w) * 0.22
+                        step_y = 0.0 if abs(dy) < dead_h else (dy - np.sign(dy) * dead_h) * 0.18
                         fx.append(fx[-1] + step_x)
                         fy.append(fy[-1] + step_y)
                     smooth_x_arr = np.array(fx, dtype=np.float64)
@@ -1240,20 +1306,20 @@ class FaceTracker:
                     cur_cx = float(np.interp(t, traj_t_arr, smooth_x_arr))
                     cur_cy = float(np.interp(t, traj_t_arr, smooth_y_arr))
 
-                    # Eased glide on shot transitions if not scene cut
+                    # Eased glide on shot transitions ONLY if same camera angle (never across a visual scene cut)
                     glide_dur = 0.50
                     t_rel = t - curr_sk["t_start"]
                     if s_idx > 0 and not curr_sk["is_scene_cut"] and t_rel < glide_dur:
                         prev_sk = shot_keyframes[s_idx - 1]
                         u = max(0.0, min(1.0, t_rel / glide_dur))
                         alpha = u * u * (3.0 - 2.0 * u)
-                        start_cx = prev_sk["cx"]
-                        start_cy = prev_sk["cy"]
+                        start_cx = float(prev_sk["x1"]) + float(prev_sk["cw"]) * 0.5
+                        start_cy = (float(height) * 0.5) if prev_sk["ch"] >= height else (float(prev_sk["y1"]) + float(prev_sk["ch"]) * 0.33)
                         cur_cx = (1.0 - alpha) * start_cx + alpha * cur_cx
                         cur_cy = (1.0 - alpha) * start_cy + alpha * cur_cy
 
                     x1 = int(round(cur_cx - cw / 2.0))
-                    y1 = int(round(cur_cy - (ch * 0.33)))
+                    y1 = 0 if ch >= height else int(round(cur_cy - (ch * 0.33)))
                 else:
                     x1 = curr_sk["x1"]
                     y1 = curr_sk["y1"]

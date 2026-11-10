@@ -14,8 +14,8 @@ class SceneDetector:
     Detects visual shot boundaries and aligns clip cut points to natural camera transitions.
     """
 
-    def __init__(self, sample_fps: float = 3.0, threshold: float = 0.40):
-        self.sample_fps = max(1.0, float(sample_fps))
+    def __init__(self, sample_fps: float = 10.0, threshold: float = 0.42):
+        self.sample_fps = max(2.0, float(sample_fps))
         self.threshold = float(threshold)
 
     def detect_cuts(
@@ -66,20 +66,30 @@ class SceneDetector:
                 if not ret:
                     break
 
-                # Downsample frame to low resolution for fast color histogram computation
-                small = cv2.resize(frame, (160, 90), interpolation=cv2.INTER_AREA)
+                # Downsample frame to low resolution for fast 3-zone spatial + HSV histogram computation
+                small = cv2.resize(frame, (128, 72), interpolation=cv2.INTER_AREA)
                 hsv = cv2.cvtColor(small, cv2.COLOR_BGR2HSV)
-                hist = cv2.calcHist([hsv], [0, 1], None, [16, 16], [0, 180, 0, 256])
-                cv2.normalize(hist, hist, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX)
+                z_hists = []
+                for z_idx in range(3):
+                    xs = z_idx * 42
+                    xe = 128 if z_idx == 2 else (z_idx + 1) * 42
+                    zh = cv2.calcHist([hsv[:, xs:xe]], [0, 1], None, [12, 12], [0, 180, 0, 256])
+                    cv2.normalize(zh, zh, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX)
+                    z_hists.append(zh)
 
                 if prev_hist is not None:
-                    # Histogram correlation: 1.0 is identical, < 0.40 indicates drastic scene shift
-                    similarity = cv2.compareHist(prev_hist, hist, cv2.HISTCMP_CORREL)
-                    if similarity < self.threshold:
-                        timestamp = current_frame_idx / fps
-                        scene_cuts.append(round(timestamp, 2))
+                    prev_zhists, prev_small = prev_hist
+                    corrs = [float(cv2.compareHist(pa, pb, cv2.HISTCMP_CORREL)) for pa, pb in zip(prev_zhists, z_hists)]
+                    min_corr = min(corrs)
+                    mean_corr = float(np.mean(corrs))
+                    luma_diff = float(np.mean(np.abs(small.astype(np.float32) - prev_small.astype(np.float32))) / 255.0)
+                    # A true camera cut has either a drastic global histogram shift, or a strong zone shift + spatial pixel jump
+                    if mean_corr < self.threshold or (min_corr < 0.45 and luma_diff >= 0.085) or luma_diff >= 0.16:
+                        timestamp = round(current_frame_idx / fps, 3)
+                        if not scene_cuts or (timestamp - scene_cuts[-1]) >= 0.35:
+                            scene_cuts.append(timestamp)
 
-                prev_hist = hist
+                prev_hist = (z_hists, small)
                 current_frame_idx += step_frames
                 # Fast forward frame buffer with grab() instead of expensive demuxer seeks
                 for _ in range(step_frames - 1):
