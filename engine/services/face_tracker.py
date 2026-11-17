@@ -174,13 +174,16 @@ class FaceTracker:
         rather than background furniture, bookshelves, or static objects.
         """
         try:
-            ycrcb = cv2.cvtColor(rgb_small, cv2.COLOR_RGB2YCrCb)
+            # Restrict skin-tone centroid search to upper 65% of frame so brown shoes, rugs, and chairs are never targeted
+            upper_h = max(8, int(rgb_small.shape[0] * 0.65))
+            upper_rgb = rgb_small[:upper_h, :]
+            ycrcb = cv2.cvtColor(upper_rgb, cv2.COLOR_RGB2YCrCb)
             cr = ycrcb[:, :, 1]
             cb = ycrcb[:, :, 2]
             skin_mask = ((cr >= 130) & (cr <= 180) & (cb >= 75) & (cb <= 135)).astype(np.uint8)
             col_sums = np.sum(skin_mask > 0, axis=0)
             total_skin = np.sum(col_sums)
-            if total_skin > (rgb_small.shape[0] * 2):
+            if total_skin > (upper_h * 2):
                 smooth_skin = cv2.GaussianBlur(col_sums.astype(np.float32).reshape(1, -1), (1, 15), 0)[0]
                 peak_idx = int(np.argmax(smooth_skin))
                 return (peak_idx / len(col_sums)) * orig_w
@@ -637,10 +640,8 @@ class FaceTracker:
         self.face_cache = {}
 
         # ── PASS 1: Global Lookahead Video Pre-Scan ("Watch the video first") ──
-        # High-speed adaptive pre-scan: sample every ~1.5s-2.0s, capped at max 20 keyframes.
-        # Eliminates 260+ seeks (which caused 5-minute CPU freezes) down to under 5 seconds,
-        # while preserving complete multi-speaker framing and camera transition accuracy.
-        num_samples = min(20, max(6, int(round(clip.duration * 0.65))))
+        # Sample every ~1.3s (up to 65 keyframes) so short reaction shots and speaker turns are never missed.
+        num_samples = min(65, max(12, int(round(clip.duration * 0.75))))
         sample_times = np.linspace(0.05, max(0.10, clip.duration - 0.05), num_samples)
         fps_sample = float(num_samples) / max(0.1, float(clip.duration))
 
@@ -909,22 +910,45 @@ class FaceTracker:
                 "is_scene_cut": True,
             })
 
-        # ── Ensure Every Shot Has At Least 2 Dedicated Interior Face Samples ──
-        # When a camera cut happens between two pre-scan samples, probe the midpoint of the shot so its framing is 100% locked.
+        # ── Ensure Every Shot Has Interior Face Samples + Visual Thumbnail for 0-Frame Cut Matching ──
         for s in raw_shots:
             s_st, s_et = float(s["start_t"]), float(s["end_t"])
-            valid_interior = [it for it in s["items"] if (s_st + 0.06) <= it["t"] <= (s_et - 0.06) and it.get("faces")]
-            if not valid_interior and (s_et - s_st) >= 0.25:
-                probe_t = 0.5 * (s_st + s_et)
+            dur_s = s_et - s_st
+            valid_interior = [it for it in s["items"] if (s_st + 0.08) <= it["t"] <= (s_et - 0.08) and it.get("faces")]
+            probe_points = []
+            if not valid_interior and dur_s >= 0.25:
+                probe_points = [s_st + dur_s * 0.35, s_st + dur_s * 0.65] if dur_s >= 0.90 else [0.5 * (s_st + s_et)]
+            elif len(valid_interior) == 1 and dur_s >= 1.20:
+                probe_points = [s_st + dur_s * 0.70 if valid_interior[0]["t"] < (s_st + dur_s * 0.5) else s_st + dur_s * 0.30]
+
+            shot_thumb = None
+            for it in s["items"]:
+                if it.get("sig") is not None and (s_st + 0.08) <= it["t"] <= (s_et - 0.08):
+                    shot_thumb = cv2.resize(it["sig"][0], (32, 18), interpolation=cv2.INTER_AREA).astype(np.float32)
+                    break
+
+            for p_t in probe_points:
                 try:
-                    pfrm = clip.get_frame(probe_t)
+                    pfrm = clip.get_frame(p_t)
                     if pfrm.dtype != np.uint8:
                         pfrm = np.clip(pfrm, 0, 255).astype(np.uint8)
-                    p_dets = self.detect_faces_in_frame(pfrm, frame_time=probe_t)
+                    if shot_thumb is None:
+                        shot_thumb = cv2.resize(pfrm, (32, 18), interpolation=cv2.INTER_AREA).astype(np.float32)
+                    p_dets = self.detect_faces_in_frame(pfrm, frame_time=p_t)
                     if p_dets:
-                        s["items"].append({"t": probe_t, "faces": p_dets, "hdiff": 0.0, "sdiff": 0.0, "sig": None})
+                        s["items"].append({"t": p_t, "faces": p_dets, "hdiff": 0.0, "sdiff": 0.0, "sig": None})
                 except Exception:
                     pass
+
+            if shot_thumb is None and dur_s >= 0.15:
+                try:
+                    mfrm = clip.get_frame(0.5 * (s_st + s_et))
+                    if mfrm.dtype != np.uint8:
+                        mfrm = np.clip(mfrm, 0, 255).astype(np.uint8)
+                    shot_thumb = cv2.resize(mfrm, (32, 18), interpolation=cv2.INTER_AREA).astype(np.float32)
+                except Exception:
+                    pass
+            s["shot_thumb"] = shot_thumb
 
         # ── Debounce Micro-Shots (< 1.15s) ──
         # Never merge across a real visual camera cut (or the crop box for Speaker A will be applied to Speaker B!).
@@ -1240,6 +1264,7 @@ class FaceTracker:
                 "cx": float(target_cx),
                 "cy": float(target_cy),
                 "is_scene_cut": bool(shot_dict.get("is_scene_cut", False)),
+                "shot_thumb": shot_dict.get("shot_thumb"),
                 "trajectory": trajectory,
                 "traj_t_arr": traj_t_arr,
                 "smooth_x_arr": smooth_x_arr,
@@ -1268,6 +1293,24 @@ class FaceTracker:
             s_idx = int(np.searchsorted(shot_starts, t, side="right")) - 1
             s_idx = max(0, min(len(shot_keyframes) - 1, s_idx))
             curr_sk = shot_keyframes[s_idx]
+
+            # 0-Frame Boundary Guard: within +/-0.18s of any camera cut, verify the actual rendered frame
+            # matches curr_sk's visual layout vs the adjacent shot so a 1-frame wall/lamp flicker NEVER happens!
+            near_prev = s_idx > 0 and (t - curr_sk["t_start"]) < 0.18 and curr_sk.get("shot_thumb") is not None and shot_keyframes[s_idx - 1].get("shot_thumb") is not None
+            near_next = s_idx < (len(shot_keyframes) - 1) and (curr_sk["t_end"] - t) < 0.18 and curr_sk.get("shot_thumb") is not None and shot_keyframes[s_idx + 1].get("shot_thumb") is not None
+            if near_prev or near_next:
+                frm_thumb = cv2.resize(frame, (32, 18), interpolation=cv2.INTER_AREA).astype(np.float32)
+                d_curr = float(np.mean(np.abs(frm_thumb - curr_sk["shot_thumb"])))
+                if near_prev:
+                    d_prev = float(np.mean(np.abs(frm_thumb - shot_keyframes[s_idx - 1]["shot_thumb"])))
+                    if d_prev + 3.0 < d_curr:
+                        s_idx -= 1
+                        curr_sk = shot_keyframes[s_idx]
+                elif near_next:
+                    d_next = float(np.mean(np.abs(frm_thumb - shot_keyframes[s_idx + 1]["shot_thumb"])))
+                    if d_next + 3.0 < d_curr:
+                        s_idx += 1
+                        curr_sk = shot_keyframes[s_idx]
 
             if active_camera_style == "instant":
                 # ── INSTANT: Rock-solid locked broadcast cut (zero wobble, instant switch) ──
