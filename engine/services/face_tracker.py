@@ -1223,35 +1223,44 @@ class FaceTracker:
                         med_y[m_i] = float(np.median(raw_y_arr[m_i - 1:m_i + 2]))
                     raw_x_arr = med_x
                     raw_y_arr = med_y
-                dead_w = float(cw) * 0.18
-                dead_h = float(ch) * 0.18
-                dt_sample = float(np.median(np.diff(traj_t_arr))) if len(traj_t_arr) > 1 else 0.20
-                dt_sample = max(0.033, min(0.50, dt_sample))
-
-                try:
-                    from services.rust_accelerator import rust_solve_spring_damper_1d
-                    smooth_x_arr = rust_solve_spring_damper_1d(
-                        raw_x_arr, dt=dt_sample, stiffness=10.0, damping=7.5, deadzone_px=dead_w, substeps=4
-                    )
-                    smooth_y_arr = rust_solve_spring_damper_1d(
-                        raw_y_arr, dt=dt_sample, stiffness=9.0, damping=7.0, deadzone_px=dead_h, substeps=4
-                    )
-                except Exception:
+                # Tripod-Lock Check: if speaker stays within 14% of crop width (normal seated podcast/talking head),
+                # lock the camera rock-solid to (x1, y1) with zero micro-drift or wobble!
+                span_x = float(np.max(raw_x_arr) - np.min(raw_x_arr))
+                span_y = float(np.max(raw_y_arr) - np.min(raw_y_arr))
+                if span_x < (float(cw) * 0.14) and span_y < (float(ch) * 0.12):
+                    traj_t_arr = None
                     smooth_x_arr = None
                     smooth_y_arr = None
+                else:
+                    dead_w = float(cw) * 0.18
+                    dead_h = float(ch) * 0.18
+                    dt_sample = float(np.median(np.diff(traj_t_arr))) if len(traj_t_arr) > 1 else 0.20
+                    dt_sample = max(0.033, min(0.50, dt_sample))
 
-                if smooth_x_arr is None or smooth_y_arr is None:
-                    fx = [float(raw_x_arr[0])]
-                    fy = [float(raw_y_arr[0])]
-                    for k in range(1, len(raw_x_arr)):
-                        dx = float(raw_x_arr[k]) - fx[-1]
-                        dy = float(raw_y_arr[k]) - fy[-1]
-                        step_x = 0.0 if abs(dx) < dead_w else (dx - np.sign(dx) * dead_w) * 0.22
-                        step_y = 0.0 if abs(dy) < dead_h else (dy - np.sign(dy) * dead_h) * 0.18
-                        fx.append(fx[-1] + step_x)
-                        fy.append(fy[-1] + step_y)
-                    smooth_x_arr = np.array(fx, dtype=np.float64)
-                    smooth_y_arr = np.array(fy, dtype=np.float64)
+                    try:
+                        from services.rust_accelerator import rust_solve_spring_damper_1d
+                        smooth_x_arr = rust_solve_spring_damper_1d(
+                            raw_x_arr, dt=dt_sample, stiffness=10.0, damping=7.5, deadzone_px=dead_w, substeps=4
+                        )
+                        smooth_y_arr = rust_solve_spring_damper_1d(
+                            raw_y_arr, dt=dt_sample, stiffness=9.0, damping=7.0, deadzone_px=dead_h, substeps=4
+                        )
+                    except Exception:
+                        smooth_x_arr = None
+                        smooth_y_arr = None
+
+                    if smooth_x_arr is None or smooth_y_arr is None:
+                        fx = [float(raw_x_arr[0])]
+                        fy = [float(raw_y_arr[0])]
+                        for k in range(1, len(raw_x_arr)):
+                            dx = float(raw_x_arr[k]) - fx[-1]
+                            dy = float(raw_y_arr[k]) - fy[-1]
+                            step_x = 0.0 if abs(dx) < dead_w else (dx - np.sign(dx) * dead_w) * 0.22
+                            step_y = 0.0 if abs(dy) < dead_h else (dy - np.sign(dy) * dead_h) * 0.18
+                            fx.append(fx[-1] + step_x)
+                            fy.append(fy[-1] + step_y)
+                        smooth_x_arr = np.array(fx, dtype=np.float64)
+                        smooth_y_arr = np.array(fy, dtype=np.float64)
 
             shot_keyframes.append({
                 "shot_idx": shot_idx,
