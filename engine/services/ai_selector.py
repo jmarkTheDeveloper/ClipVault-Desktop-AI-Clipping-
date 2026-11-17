@@ -599,17 +599,28 @@ class AISelector:
         while start_idx < end_idx and BACKCHANNEL_RX.match(clean_segs[start_idx]['text']):
             start_idx += 1
 
+        WEAK_OPENERS = {
+            'and', 'but', 'so', 'or', 'whatever', 'yeah', 'yes', 'no', 'well', 'look',
+            'right', 'okay', 'ok', 'because', 'cuz', 'then', 'like', 'meanwhile', 'also',
+            'though', 'actually', 'basically', 'literally', 'he', 'she', 'they', 'it', 'that', 'this'
+        }
+
         if is_unpunctuated:
-            # Auto-generated YouTube captions lack periods/question marks: use pause gaps (>= 0.30s) as clause boundaries
+            # Auto-generated YouTube captions lack periods/question marks: use pause gaps (>= 0.30s) as clause boundaries,
+            # and keep stepping back up to 10s if the cue begins with a weak continuation/dangling word ('and', 'whatever', 'so').
             best_pause_start = None
-            for back in range(0, min(5, start_idx + 1)):
+            for back in range(0, min(8, start_idx + 1)):
                 cand_i = start_idx - back
-                if (clean_segs[start_idx]['start'] - clean_segs[cand_i]['start']) > 6.5:
+                if (clean_segs[start_idx]['start'] - clean_segs[cand_i]['start']) > 10.5:
                     break
                 gap_before = (clean_segs[cand_i]['start'] - clean_segs[cand_i - 1]['end']) if cand_i > 0 else 1.0
+                cand_first_w = re.sub(r"[^a-z']", "", clean_segs[cand_i]['text'].split()[0].lower()) if clean_segs[cand_i]['text'].split() else ""
                 if gap_before >= 0.30:
-                    best_pause_start = cand_i
-                    break
+                    if best_pause_start is None:
+                        best_pause_start = cand_i
+                    if cand_first_w not in WEAK_OPENERS:
+                        best_pause_start = cand_i
+                        break
             if best_pause_start is not None:
                 start_idx = best_pause_start
         else:
@@ -1721,11 +1732,11 @@ YOUR MISSION:
 Read the ENTIRE conversation below and hand-pick the {ask_count} MOST MOVING, SHOCKING, HILARIOUS, OR MIND-SHIFTING standalone moments that will make a cold viewer stop scrolling in 2 seconds and watch to the end.
 
 WHAT MAKES A CLIP ACTUALLY VIRAL (DO NOT PICK BORING CLIPS):
-1. SCROLL-STOPPING HOOK IN THE FIRST 3 SECONDS:
-   - The VERY FIRST line (`start` / `opening_line`) must grab attention immediately — either a provocative/vulnerable host question (*"What was the moment you realized..."*) OR a bold, emotional, counter-intuitive opening statement.
-   - NEVER start mid-thought, mid-answer, or with filler/backchannels (*"Yeah,"*, *"So basically,"*, *"Mhm,"*, *"He told me,"*, *"That's why..."*).
-2. FULL CONTEXT ("WHY ARE THEY TALKING ABOUT THIS?"):
-   - A stranger scrolling TikTok knows NOTHING about this interview. If the speaker is answering a question or telling a story about someone, you MUST start at the host's question or the speaker's setup sentence so the viewer immediately understands the stakes and who/what it's about.
+1. SCROLL-STOPPING HOOK + STARTING CONTEXT IN THE FIRST 3 SECONDS:
+   - The VERY FIRST line (`start` / `opening_line`) MUST establish the **starting context** AND grab attention — either the host's setup question (*"If you could create one law that everyone in the world had to follow..."*) OR the speaker's story-opening premise (*"When I was 16, a friend of mine was playing Dracula in the school play..."*).
+   - STRICTLY FORBIDDEN OPENERS: NEVER start with *"And ..."*, *"So ..."*, *"But ..."*, *"Yeah ..."*, *"Whatever ..."*, *"Look ..."*, *"He told me ..."*, or mid-answer continuations! If a great quote starts with *"And the director said..."*, back up 1–2 lines to the sentence that sets up WHO is speaking and WHY it happened!
+2. FULL STANDALONE CONTEXT ("WHY ARE THEY TALKING ABOUT THIS?"):
+   - A stranger scrolling TikTok knows NOTHING about this interview. Every clip must answer *who*, *what*, and *why* in the first 5 seconds. Never drop the viewer into the middle of an explanation without the setup!
 3. GENUINE EMOTIONAL OR COMEDIC PAYOFF:
    - Prioritize raw vulnerability (family, failure, grief, sacrifice, personal turning points), counter-intuitive life/business truths, shocking confessions, or genuinely funny stories with a clear punchline.
    - STRICTLY REJECT generic small talk, polite guest compliments, podcast housekeeping, intros, outros, and surface-level filler.
