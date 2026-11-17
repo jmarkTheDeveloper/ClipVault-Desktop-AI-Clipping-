@@ -592,25 +592,43 @@ class AISelector:
             if best_open_idx is not None:
                 start_idx = best_open_idx
 
-        # Skip pure backchannels or lowercase mid-sentence continuations at start
+        punct_count = sum(1 for s in clean_segs if s['text'].rstrip('"\' )]}').endswith(('.', '!', '?')))
+        is_unpunctuated = (punct_count / max(1, len(clean_segs))) < 0.08
+
+        # Skip pure backchannels at start
         while start_idx < end_idx and BACKCHANNEL_RX.match(clean_segs[start_idx]['text']):
             start_idx += 1
-        if start_idx < end_idx and clean_segs[start_idx]['text'] and clean_segs[start_idx]['text'][0].islower():
-            start_idx += 1
-        if start_idx > 0 and not clean_segs[start_idx - 1]['text'].rstrip('"\' )]}').endswith(('.', '!', '?')):
-            moved = False
-            for back in range(1, 4):
-                if start_idx - back == 0 or clean_segs[start_idx - back - 1]['text'].rstrip('"\' )]}').endswith(('.', '!', '?')):
-                    cand_txt = clean_segs[start_idx - back]['text']
-                    if cand_txt and cand_txt[0].isupper() and (clean_segs[start_idx]['start'] - clean_segs[start_idx - back]['start']) <= 8.0:
-                        start_idx = start_idx - back
-                        moved = True
-                        break
-            if not moved:
-                for fwd in range(1, 4):
-                    if start_idx + fwd < end_idx and clean_segs[start_idx + fwd - 1]['text'].rstrip('"\' )]}').endswith(('.', '!', '?')):
-                        start_idx = start_idx + fwd
-                        break
+
+        if is_unpunctuated:
+            # Auto-generated YouTube captions lack periods/question marks: use pause gaps (>= 0.30s) as clause boundaries
+            best_pause_start = None
+            for back in range(0, min(5, start_idx + 1)):
+                cand_i = start_idx - back
+                if (clean_segs[start_idx]['start'] - clean_segs[cand_i]['start']) > 6.5:
+                    break
+                gap_before = (clean_segs[cand_i]['start'] - clean_segs[cand_i - 1]['end']) if cand_i > 0 else 1.0
+                if gap_before >= 0.30:
+                    best_pause_start = cand_i
+                    break
+            if best_pause_start is not None:
+                start_idx = best_pause_start
+        else:
+            if start_idx < end_idx and clean_segs[start_idx]['text'] and clean_segs[start_idx]['text'][0].islower():
+                start_idx += 1
+            if start_idx > 0 and not clean_segs[start_idx - 1]['text'].rstrip('"\' )]}').endswith(('.', '!', '?')):
+                moved = False
+                for back in range(1, 4):
+                    if start_idx - back == 0 or clean_segs[start_idx - back - 1]['text'].rstrip('"\' )]}').endswith(('.', '!', '?')):
+                        cand_txt = clean_segs[start_idx - back]['text']
+                        if cand_txt and cand_txt[0].isupper() and (clean_segs[start_idx]['start'] - clean_segs[start_idx - back]['start']) <= 8.0:
+                            start_idx = start_idx - back
+                            moved = True
+                            break
+                if not moved:
+                    for fwd in range(1, 4):
+                        if start_idx + fwd < end_idx and clean_segs[start_idx + fwd - 1]['text'].rstrip('"\' )]}').endswith(('.', '!', '?')):
+                            start_idx = start_idx + fwd
+                            break
 
         # 2. Snap end_idx using closing_line on the exact cue (within +/- 14s)
         close_words = _norm_words(closing_line)[-6:]
@@ -634,22 +652,35 @@ class AISelector:
             if best_close_idx is not None:
                 end_idx = best_close_idx
 
-        # Ensure end_idx ends on a complete sentence (. ! ?) without cutting off mid-thought
         max_story_ceil = min(92.0, max(72.0, float(target_duration or 45.0) * 1.65))
-        while end_idx < len(clean_segs) - 1:
-            tail_txt = clean_segs[end_idx]['text'].rstrip('"\' )]}')
-            if tail_txt.endswith(('.', '!', '?')) and not BACKCHANNEL_RX.match(tail_txt):
-                break
-            if (clean_segs[end_idx + 1]['end'] - clean_segs[start_idx]['start']) > max_story_ceil:
-                break
-            end_idx += 1
-
-        # If still not ending on terminal punctuation, step backward to nearest sentence end
-        if not clean_segs[end_idx]['text'].rstrip('"\' )]}').endswith(('.', '!', '?')):
-            for b_idx in range(end_idx, max(start_idx + 3, end_idx - 6), -1):
-                if clean_segs[b_idx]['text'].rstrip('"\' )]}').endswith(('.', '!', '?')):
-                    end_idx = b_idx
+        if is_unpunctuated:
+            # Walk forward up to 6 cues (max +9s) to land on a natural pause gap (>= 0.40s) that does not end mid-clause on a conjunction/article
+            DANGLING_TAIL = {'and', 'or', 'but', 'so', 'to', 'of', 'the', 'a', 'an', 'in', 'on', 'at', 'for', 'with', 'is', 'are', 'was', 'were', 'that', 'which', 'because'}
+            for fwd in range(0, min(7, len(clean_segs) - end_idx)):
+                cand_e = end_idx + fwd
+                if (clean_segs[cand_e]['end'] - clean_segs[start_idx]['start']) > max_story_ceil:
                     break
+                gap_after = (clean_segs[cand_e + 1]['start'] - clean_segs[cand_e]['end']) if cand_e < len(clean_segs) - 1 else 1.0
+                last_w = re.sub(r"[^a-z']", "", clean_segs[cand_e]['text'].split()[-1].lower()) if clean_segs[cand_e]['text'].split() else ""
+                if gap_after >= 0.40 and last_w not in DANGLING_TAIL:
+                    end_idx = cand_e
+                    break
+        else:
+            # Ensure end_idx ends on a complete sentence (. ! ?) without cutting off mid-thought
+            while end_idx < len(clean_segs) - 1:
+                tail_txt = clean_segs[end_idx]['text'].rstrip('"\' )]}')
+                if tail_txt.endswith(('.', '!', '?')) and not BACKCHANNEL_RX.match(tail_txt):
+                    break
+                if (clean_segs[end_idx + 1]['end'] - clean_segs[start_idx]['start']) > max_story_ceil:
+                    break
+                end_idx += 1
+
+            # If still not ending on terminal punctuation, step backward to nearest sentence end
+            if not clean_segs[end_idx]['text'].rstrip('"\' )]}').endswith(('.', '!', '?')):
+                for b_idx in range(end_idx, max(start_idx + 3, end_idx - 6), -1):
+                    if clean_segs[b_idx]['text'].rstrip('"\' )]}').endswith(('.', '!', '?')):
+                        end_idx = b_idx
+                        break
 
         new_start = max(0.0, clean_segs[start_idx]['start'] - 0.08)
         new_end = min(float(video_duration), clean_segs[end_idx]['end'] + 0.12)
