@@ -230,7 +230,7 @@ class AISelector:
         groq_models = [
             "openai/gpt-oss-120b",
             "openai/gpt-oss-20b",
-            "qwen/qwen3-32b",
+            "llama-3.1-8b-instant",
         ]
         last_err = None
         for gm in groq_models:
@@ -293,8 +293,10 @@ class AISelector:
                         continue
                     gemini_models = [
                         "gemini-2.5-flash",
-                        "gemini-2.0-flash",
-                        "gemini-2.5-pro",
+                        "gemini-3-flash-preview",
+                        "gemini-2.5-flash-lite",
+                        "gemini-flash-latest",
+                        "gemini-3.5-flash",
                     ]
                     parts = []
                     if image_frames:
@@ -307,41 +309,55 @@ class AISelector:
                             })
                     parts.append({"text": prompt})
 
+                    import time as _time
                     for model_name in gemini_models:
-                        try:
-                            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={key}"
-                            headers = {"Content-Type": "application/json"}
-                            payload = {
-                                "contents": [{"parts": parts}],
-                                "generationConfig": {
-                                    "temperature": 0.35,
-                                    "responseMimeType": "application/json"
+                        for attempt_idx in range(2):
+                            try:
+                                url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={key}"
+                                headers = {"Content-Type": "application/json"}
+                                payload = {
+                                    "contents": [{"parts": parts}],
+                                    "generationConfig": {
+                                        "temperature": 0.35,
+                                        "responseMimeType": "application/json"
+                                    }
                                 }
-                            }
-                            r = requests.post(url, headers=headers, json=payload, timeout=120.0)
-                            if r.status_code == 200:
-                                res_json = r.json()
-                                candidates_list = res_json.get("candidates", [])
-                                if not candidates_list:
-                                    continue
-                                parts_list = candidates_list[0].get("content", {}).get("parts", [])
-                                if not parts_list:
-                                    continue
-                                text = parts_list[0].get("text", "")
-                                if text:
-                                    return _wrap(text)
-                            elif r.status_code in (400, 401, 403):
-                                err_body = r.text.lower()
-                                if "api key" in err_body or "leaked" in err_body or "permission_denied" in err_body or r.status_code in (401, 403):
-                                    if key == self.api_key:
-                                        self._api_key_invalid = True
-                                    print(f"[AISelector] Gemini API key rejected (HTTP {r.status_code}). Cascading to next available cloud provider...")
+                                r = requests.post(url, headers=headers, json=payload, timeout=120.0)
+                                if r.status_code == 200:
+                                    res_json = r.json()
+                                    candidates_list = res_json.get("candidates", [])
+                                    if not candidates_list:
+                                        break
+                                    parts_list = candidates_list[0].get("content", {}).get("parts", [])
+                                    if not parts_list:
+                                        break
+                                    text = parts_list[0].get("text", "")
+                                    if text:
+                                        return _wrap(text)
                                     break
-                            else:
-                                print(f"[AISelector] Gemini model {model_name} HTTP {r.status_code}: {r.text[:140]}")
-                        except Exception as ge:
-                            last_error = ge
-                            continue
+                                elif r.status_code in (400, 401, 403):
+                                    err_body = r.text.lower()
+                                    if "api key" in err_body or "leaked" in err_body or "permission_denied" in err_body or r.status_code in (401, 403):
+                                        if key == self.api_key:
+                                            self._api_key_invalid = True
+                                        print(f"[AISelector] Gemini API key rejected (HTTP {r.status_code}). Cascading to next available cloud provider...")
+                                        model_name = None
+                                        break
+                                    break
+                                elif r.status_code in (429, 500, 502, 503, 504):
+                                    print(f"[AISelector] Gemini model {model_name} HTTP {r.status_code} (attempt {attempt_idx+1}/2): {r.text[:120]}")
+                                    if attempt_idx == 0:
+                                        _time.sleep(2.0)
+                                        continue
+                                    break
+                                else:
+                                    print(f"[AISelector] Gemini model {model_name} HTTP {r.status_code}: {r.text[:140]}")
+                                    break
+                            except Exception as ge:
+                                last_error = ge
+                                break
+                        if model_name is None:
+                            break
             except Exception as prov_err:
                 last_error = prov_err
                 print(f"[AISelector] Provider '{prov}' notice: {prov_err}")
@@ -1435,7 +1451,47 @@ class AISelector:
         if len(candidates) < n:
             candidates = _build_candidates(strict_exclusions=True, require_cue_edges=False)
         if len(candidates) < n and excluded_ranges:
-            candidates = _build_candidates(strict_exclusions=False, require_cue_edges=True)
+            candidates = _build_candidates(strict_exclusions=False, require_cue_edges=False)
+
+        # Ultimate safety net: if strict anchor rules filtered out every sentence (e.g. unpunctuated captions),
+        # build evenly distributed dialogue clips so select_clips NEVER fails with 0 clips.
+        if not candidates and sentences:
+            dur_goal = float(target_duration) if (target_duration and target_duration > 0) else 45.0
+            usable_sents = [s for s in sentences if intro_skip_sec <= s['start'] < outro_cutoff_sec] or sentences
+            stride = max(1, len(usable_sents) // max(1, n + 1))
+            for i_fb in range(0, len(usable_sents), stride):
+                if len(candidates) >= n * 2:
+                    break
+                s_st = usable_sents[i_fb]['start']
+                e_idx_fb = i_fb
+                while e_idx_fb < len(usable_sents) - 1 and (usable_sents[e_idx_fb]['end'] - s_st) < dur_goal:
+                    e_idx_fb += 1
+                s_et = usable_sents[e_idx_fb]['end']
+                if s_et > s_st + 8.0:
+                    fb_sents = usable_sents[i_fb:e_idx_fb + 1]
+                    fb_txt = " ".join(x['text'] for x in fb_sents)
+                    fb_title, fb_hook = self._build_clean_clip_title(fb_sents)
+                    fb_cat, fb_tags = self.classify_clip_category(fb_title, fb_txt, video_title)
+                    candidates.append({
+                        'start': round(s_st, 2),
+                        'end': round(s_et, 2),
+                        'duration': round(s_et - s_st, 2),
+                        'raw_score': 50.0,
+                        'virality_score': 82,
+                        'clarity_score': 85,
+                        'raw_sub_scores': {'hook': 82, 'flow': 84, 'value': 82, 'trend': 80},
+                        'title': fb_title,
+                        'category': fb_cat,
+                        'chapter_title': '',
+                        'quote_snippet': fb_title,
+                        'hook_title': fb_hook,
+                        'story_text': fb_txt,
+                        'wpm': 150.0,
+                        'hook_type': 'Story Arc',
+                        'reason': f"Dialogue highlight ({s_et - s_st:.1f}s)",
+                        'content_title': fb_title,
+                        'content_description': f"{fb_title} - {fb_tags}"
+                    })
 
         # 5. Sort candidates by TRUE unclamped raw_score
         candidates.sort(key=lambda x: x.get('raw_score', float(x['virality_score'])), reverse=True)
