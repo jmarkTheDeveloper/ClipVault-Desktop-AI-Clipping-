@@ -989,7 +989,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
     // Safety timeout in case onSeeked is delayed
     seekTimeoutRef.current = setTimeout(() => {
       isSeekingRef.current = false;
-    }, 1500);
+    }, 4000);
   };
 
   const seekAllVideos = (timeInSeconds: number) => {
@@ -1092,8 +1092,8 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
 
   // SINGLE MASTER CLOCK: Only fire timeupdate if not dragging, not seeking, and Crop Editor is closed
   const handleTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement>) => {
-    if (isDraggingRef.current || isSeekingRef.current || isCropEditorOpen) return;
     const v = e.currentTarget;
+    if (isDraggingRef.current || isSeekingRef.current || isCropEditorOpen || v.seeking) return;
     if (isBuffering && !v.paused && v.readyState >= 2) {
       setIsBuffering(false);
     }
@@ -1705,23 +1705,19 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({
                 step="0.5"
                 value={currentTime}
                 onPointerDown={() => { isDraggingRef.current = true; }}
-                onMouseDown={() => { isDraggingRef.current = true; }}
-                onTouchStart={() => { isDraggingRef.current = true; }}
                 onChange={(e) => {
                   const val = parseFloat(e.target.value);
                   setCurrentTime(val);
+                  if (!isDraggingRef.current) {
+                    commitSeek(val);
+                  }
                 }}
                 onPointerUp={(e) => {
                   isDraggingRef.current = false;
                   commitSeek(parseFloat(e.currentTarget.value));
                 }}
-                onMouseUp={(e) => {
+                onPointerCancel={() => {
                   isDraggingRef.current = false;
-                  commitSeek(parseFloat(e.currentTarget.value));
-                }}
-                onTouchEnd={(e) => {
-                  isDraggingRef.current = false;
-                  commitSeek(parseFloat(e.currentTarget.value));
                 }}
                 onKeyUp={(e) => {
                   commitSeek(parseFloat(e.currentTarget.value));

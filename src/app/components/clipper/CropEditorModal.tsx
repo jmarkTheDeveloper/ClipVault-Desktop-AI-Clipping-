@@ -114,7 +114,7 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
   if (!isOpen) return null;
 
   const handleTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement>) => {
-    if (isDraggingRef.current || isSeekingRef.current) return;
+    if (isDraggingRef.current || isSeekingRef.current || e.currentTarget.seeking) return;
     const now = Date.now();
     if (now - lastUpdateTimeRef.current > 120) {
       lastUpdateTimeRef.current = now;
@@ -152,10 +152,10 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
     const maxDur = mediaDuration > 0 ? mediaDuration : 3600;
     const target = Math.max(0, Math.min(seconds, maxDur));
 
-    const allVideos = document.querySelectorAll("video");
-    allVideos.forEach((v) => {
+    const allMedia = document.querySelectorAll("video, audio") as NodeListOf<HTMLMediaElement>;
+    allMedia.forEach((m) => {
       try {
-        v.currentTime = target;
+        m.currentTime = target;
       } catch {}
     });
 
@@ -165,7 +165,7 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
 
     seekTimeoutRef.current = setTimeout(() => {
       isSeekingRef.current = false;
-    }, 1500);
+    }, 4000);
   };
 
   const seekTo = (seconds: number) => {
@@ -298,6 +298,11 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
               muted={isMuted}
               playsInline
               onTimeUpdate={handleTimeUpdate}
+              onSeeked={() => {
+                if (seekTimeoutRef.current) clearTimeout(seekTimeoutRef.current);
+                isSeekingRef.current = false;
+                setIsBuffering(false);
+              }}
               onWaiting={() => setIsBuffering(true)}
               onPlaying={() => setIsBuffering(false)}
               onCanPlay={(e) => {
@@ -413,23 +418,19 @@ export const CropEditorModal: React.FC<CropEditorModalProps> = ({
           step="0.5"
           value={currentTime}
           onPointerDown={() => { isDraggingRef.current = true; }}
-          onMouseDown={() => { isDraggingRef.current = true; }}
-          onTouchStart={() => { isDraggingRef.current = true; }}
           onChange={(e) => {
             const val = parseFloat(e.target.value);
             if (setCurrentTime) setCurrentTime(val);
+            if (!isDraggingRef.current) {
+              commitSeek(val);
+            }
           }}
           onPointerUp={(e) => {
             isDraggingRef.current = false;
             commitSeek(parseFloat(e.currentTarget.value));
           }}
-          onMouseUp={(e) => {
+          onPointerCancel={() => {
             isDraggingRef.current = false;
-            commitSeek(parseFloat(e.currentTarget.value));
-          }}
-          onTouchEnd={(e) => {
-            isDraggingRef.current = false;
-            commitSeek(parseFloat(e.currentTarget.value));
           }}
           onKeyUp={(e) => {
             commitSeek(parseFloat(e.currentTarget.value));
