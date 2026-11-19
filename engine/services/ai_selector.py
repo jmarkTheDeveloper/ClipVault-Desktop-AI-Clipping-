@@ -848,8 +848,8 @@ class AISelector:
         CATEGORY_RULES = [
             (
                 "Gaming & Streams",
-                "#gaming #gta6 #gtavi #streamer #clips #shorts #viral",
-                r"\b(gta|gta 6|gta vi|grand theft auto|vice city|lucia|jason|rockstar|playstation|ps5|xbox|pc|game|games|gaming|gamer|gameplay|mission|boss|level|skill tree|speedrun|rage quit|rage|glitches|glitch|npc|stream|streamer|livestream|chat|twitch|kick|ishowspeed|caseoh|kai cenat|controller|robbery|jail|cops|wanted)\b",
+                "#gaming #streamer #livestream #clips #funny #shorts #viral",
+                r"\b(gta|gta 6|gta vi|grand theft auto|vice city|lucia|jason|rockstar|playstation|ps5|xbox|pc|game|games|gaming|gamer|gameplay|mission|boss|level|skill tree|speedrun|rage quit|rage|glitches|glitch|npc|stream|streamer|livestream|chat|twitch|kick|ishowspeed|caseoh|kai cenat|controller|clutch|jumpscare|valorant|fortnite|minecraft|roblox|horror|irl)\b",
             ),
             (
                 "Finance & Business",
@@ -1745,7 +1745,7 @@ WHAT MAKES A CLIP ACTUALLY VIRAL (DO NOT PICK BORING CLIPS):
 2. FULL STANDALONE CONTEXT ("WHAT'S HAPPENING & WHY?"):
    - A stranger scrolling TikTok knows NOTHING about this video or stream. In the first 3–5 seconds, the viewer must immediately understand the stakes, the joke, the challenge, or the story.
 3. GENUINE EMOTIONAL, COMEDIC, OR HIGH-ENERGY VIRAL PAYOFF:
-   - **For Gaming / GTA 6 / Streamers:** Hunt for **laugh-out-loud moments, explosive rage/panic reactions, crazy NPC/physics glitches, hilarious dialogue, wild chases, and iconic story reveals (e.g. Vice City / Lucia / Jason twists)**. ALWAYS include 4–6 seconds of buildup *before* the scream/laugh/chaos so the viewer sees what triggered it! Strictly skip loading screens, settings menus, quiet driving, or donation-reading housekeeping.
+   - **For Gaming & General Streams (IRL, Horror, FPS, RPGs, Variety):** Hunt for **laugh-out-loud moments, explosive rage/panic/jumpscare reactions, crazy bugs or physics fails, clutch plays, hilarious IRL/chat interactions, and iconic story twists**. ALWAYS include 4–6 seconds of buildup *before* the scream/laugh/chaos so the viewer sees what triggered it! Strictly skip loading screens, settings menus, quiet travel, or donation-reading housekeeping.
    - **For Podcasts / Interviews / Vlogs:** Prioritize raw emotion, unbelievable stories, bold truths, confessions, or hilarious misunderstandings with an unmistakable climax/punchline.
    - If YouTube 'Most Replayed' Retention Peaks are listed above, prioritize those exact windows—audience replay spikes pinpoint the funniest, most chaotic, or most shocking moments in the stream.
    - STRICTLY REJECT boring dead air, generic small talk, stream setup/mic checks, intros, and outros.
