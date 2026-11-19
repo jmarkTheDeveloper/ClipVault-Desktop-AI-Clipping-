@@ -847,6 +847,11 @@ class AISelector:
 
         CATEGORY_RULES = [
             (
+                "Gaming & Streams",
+                "#gaming #gta6 #gtavi #streamer #clips #shorts #viral",
+                r"\b(gta|gta 6|gta vi|grand theft auto|vice city|lucia|jason|rockstar|playstation|ps5|xbox|pc|game|games|gaming|gamer|gameplay|mission|boss|level|skill tree|speedrun|rage quit|rage|glitches|glitch|npc|stream|streamer|livestream|chat|twitch|kick|ishowspeed|caseoh|kai cenat|controller|robbery|jail|cops|wanted)\b",
+            ),
+            (
                 "Finance & Business",
                 "#business #finance #entrepreneur #wealth #success #shorts #viral",
                 r"\b(business|businesses|finance|financial|money|wealth|wealthy|rich|million|Millions|billion|billionaire|entrepreneur|company|companies|startup|brand|ceo|market|marketing|invest|investing|investment|economy|economic|revenue|profit|deal|deals|negotiation|corporate|principles that made|savage in b|savage in business|monopoly|tax|taxes|debt|bank|banking|sales|capitalism|valuation)\b",
@@ -873,8 +878,8 @@ class AISelector:
             ),
             (
                 "Comedy & Humor",
-                "#comedy #standup #funny #humor #podcastclips #shorts #viral",
-                r"\b(comedy|comedian|comedians|standup|stand-up|joke|jokes|funny|laugh|laughter|humor|roast|heckler|punchline|hilarious|banter|pleasure bribes)\b",
+                "#comedy #funny #humor #hilarious #reactions #shorts #viral",
+                r"\b(comedy|comedian|comedians|standup|stand-up|joke|jokes|funny|laugh|laughter|humor|roast|heckler|punchline|hilarious|banter|pleasure bribes|dookie|shitty|crazy|wtf|bruh|lmao|lol|scream|screaming|troll|prank|confusion|sarcasm|insane)\b",
             ),
             (
                 "Tech & AI",
@@ -1698,7 +1703,7 @@ class AISelector:
         # Build YouTube Crowd-Retention Heatmap & Chapter guidance for the LLM
         retention_context_lines = []
         if heatmap and isinstance(heatmap, list):
-            top_hm = sorted([p for p in heatmap if isinstance(p, dict) and float(p.get('start_time', 0)) >= 45.0], key=lambda x: float(x.get('value', 0)), reverse=True)[:8]
+            top_hm = sorted([p for p in heatmap if isinstance(p, dict) and float(p.get('start_time', 0)) >= 45.0], key=lambda x: float(x.get('value', 0)), reverse=True)[:12]
             if top_hm:
                 hm_strs = [f"{float(p['start_time']):.0f}s-{float(p['end_time']):.0f}s (Retention: {int(float(p['value'])*100)}%)" for p in top_hm]
                 retention_context_lines.append("YOUTUBE 'MOST REPLAYED' AUDIENCE RETENTION PEAKS (Prioritize stories around these timestamps): " + ", ".join(hm_strs))
@@ -1739,9 +1744,10 @@ WHAT MAKES A CLIP ACTUALLY VIRAL (DO NOT PICK BORING CLIPS):
    - STRICTLY FORBIDDEN OPENERS: NEVER start mid-thought or with dangling continuations (*"And ..."*, *"So ..."*, *"But ..."*, *"Whatever ..."*, *"He told me ..."*). Always back up 1–2 lines to the moment that sets up *what is happening* and *why it matters*!
 2. FULL STANDALONE CONTEXT ("WHAT'S HAPPENING & WHY?"):
    - A stranger scrolling TikTok knows NOTHING about this video or stream. In the first 3–5 seconds, the viewer must immediately understand the stakes, the joke, the challenge, or the story.
-3. GENUINE EMOTIONAL, COMEDIC, OR HIGH-STAKES PAYOFF:
-   - Prioritize raw emotion, unbelievable/chaotic stream moments, hilarious misunderstandings, bold truths, confessions, or high-tension challenges with an unmistakable climax/punchline.
-   - If YouTube 'Most Replayed' Retention Peaks are listed above, pay special attention to those timestamps—audience replays often pinpoint explosive reactions or unforgettable moments.
+3. GENUINE EMOTIONAL, COMEDIC, OR HIGH-ENERGY VIRAL PAYOFF:
+   - **For Gaming / GTA 6 / Streamers:** Hunt for **laugh-out-loud moments, explosive rage/panic reactions, crazy NPC/physics glitches, hilarious dialogue, wild chases, and iconic story reveals (e.g. Vice City / Lucia / Jason twists)**. ALWAYS include 4–6 seconds of buildup *before* the scream/laugh/chaos so the viewer sees what triggered it! Strictly skip loading screens, settings menus, quiet driving, or donation-reading housekeeping.
+   - **For Podcasts / Interviews / Vlogs:** Prioritize raw emotion, unbelievable stories, bold truths, confessions, or hilarious misunderstandings with an unmistakable climax/punchline.
+   - If YouTube 'Most Replayed' Retention Peaks are listed above, prioritize those exact windows—audience replay spikes pinpoint the funniest, most chaotic, or most shocking moments in the stream.
    - STRICTLY REJECT boring dead air, generic small talk, stream setup/mic checks, intros, and outros.
 4. NATURAL STORY ARC (NEVER CHOP THE PAYOFF):
    - Every clip needs: **Hook/Inciting Setup -> Escalation/Story -> Climax/Punchline/Reaction**.
