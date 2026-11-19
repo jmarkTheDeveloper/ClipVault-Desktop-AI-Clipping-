@@ -1386,8 +1386,9 @@ def get_clip_thumbnail(path: str):
         p.parent / "metadata" / f"{p.stem}_thumbnail.jpg",
         OUTPUT_DIR / "metadata" / f"{p.stem}_thumbnail.jpg"
     ]
+    p_mtime = p.stat().st_mtime
     for tc in thumb_candidates:
-        if tc.exists():
+        if tc.exists() and tc.stat().st_mtime >= p_mtime:
             return FileResponse(str(tc), media_type="image/jpeg")
 
     # Fast on-demand extraction of 1 frame using FFmpeg
