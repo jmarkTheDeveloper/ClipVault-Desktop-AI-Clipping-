@@ -292,11 +292,11 @@ class AISelector:
                     if getattr(self, "_api_key_invalid", False) and key == self.api_key:
                         continue
                     gemini_models = [
-                        "gemini-2.5-flash",
                         "gemini-3-flash-preview",
-                        "gemini-2.5-flash-lite",
+                        "gemini-2.5-flash",
+                        "gemini-3.8-flash",
+                        "gemini-4-hydrogen",
                         "gemini-flash-latest",
-                        "gemini-3.5-flash",
                     ]
                     parts = []
                     if image_frames:
