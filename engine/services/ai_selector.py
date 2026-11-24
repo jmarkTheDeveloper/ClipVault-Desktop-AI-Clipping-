@@ -636,26 +636,30 @@ class AISelector:
             if best_pause_start is not None:
                 start_idx = best_pause_start
         else:
-            # Punctuated captions: walk backward up to 14s to find a true sentence boundary that does NOT
+            # Punctuated captions: walk backward up to 22s to find a true sentence boundary that does NOT
             # start lowercase, mid-sentence, with a <5-word fragment, or with a dangling pronoun ('He's', 'They', 'And').
             best_clean_start = None
-            for back in range(0, min(12, start_idx + 1)):
+            fallback_sent_start = None
+            for back in range(0, min(16, start_idx + 1)):
                 cand_i = start_idx - back
-                if (clean_segs[start_idx]['start'] - clean_segs[cand_i]['start']) > 14.0:
+                if (clean_segs[start_idx]['start'] - clean_segs[cand_i]['start']) > 22.0:
                     break
                 prev_ends = (cand_i == 0) or clean_segs[cand_i - 1]['text'].rstrip('"\' )]}').endswith(('.', '!', '?'))
                 if prev_ends:
-                    if best_clean_start is None and not clean_segs[cand_i]['text'].strip()[:1].islower():
-                        best_clean_start = cand_i
-                    if not _is_weak_start(clean_segs[cand_i]['text']):
+                    cand_txt = clean_segs[cand_i]['text'].strip()
+                    if fallback_sent_start is None and cand_txt and not cand_txt[0].islower():
+                        fallback_sent_start = cand_i
+                    if not _is_weak_start(cand_txt):
                         best_clean_start = cand_i
                         break
             if best_clean_start is not None:
                 start_idx = best_clean_start
-            elif start_idx < end_idx and _is_weak_start(clean_segs[start_idx]['text']):
-                for fwd in range(1, 4):
+            elif fallback_sent_start is not None:
+                start_idx = fallback_sent_start
+            elif start_idx < end_idx and (clean_segs[start_idx]['text'].strip()[:1].islower() or _is_weak_start(clean_segs[start_idx]['text'])):
+                for fwd in range(1, 6):
                     if start_idx + fwd < end_idx and clean_segs[start_idx + fwd - 1]['text'].rstrip('"\' )]}').endswith(('.', '!', '?')):
-                        if not _is_weak_start(clean_segs[start_idx + fwd]['text']):
+                        if not clean_segs[start_idx + fwd]['text'].strip()[:1].islower():
                             start_idx = start_idx + fwd
                             break
 
