@@ -541,7 +541,7 @@ class AISelector:
 
         import bisect
         BACKCHANNEL_RX = re.compile(
-            r'^(?:mhm+|mm-?hmm+|uh-?huh+|mm+|yeah(?:\s*,?\s*yeah)*|right|okay|ok|sure)[\.\!\?,]*$',
+            r'^(?:\[[^\]]+\]\s*)*(?:mhm+|mm-?hmm+|uh-?huh+|mm+|yeah(?:\s*,?\s*yeah)*|right|okay|ok|sure|no,?\s*like)?(?:\s*\[[^\]]+\])*[\.\!\?,]*$',
             re.IGNORECASE
         )
 
@@ -595,8 +595,8 @@ class AISelector:
         punct_count = sum(1 for s in clean_segs if s['text'].rstrip('"\' )]}').endswith(('.', '!', '?')))
         is_unpunctuated = (punct_count / max(1, len(clean_segs))) < 0.08
 
-        # Skip pure backchannels at start
-        while start_idx < end_idx and BACKCHANNEL_RX.match(clean_segs[start_idx]['text']):
+        # Skip pure backchannels and bracketed stage noises ([laughter], [clears throat], [music]) at start
+        while start_idx < end_idx and (not clean_segs[start_idx]['text'].strip() or BACKCHANNEL_RX.match(clean_segs[start_idx]['text'].strip())):
             start_idx += 1
 
         WEAK_OPENERS = {
@@ -607,7 +607,7 @@ class AISelector:
         }
 
         def _is_weak_start(seg_txt: str) -> bool:
-            st_clean = str(seg_txt or "").strip()
+            st_clean = re.sub(r'\[[^\]]+\]', '', str(seg_txt or "")).strip()
             if not st_clean:
                 return True
             if st_clean[0].islower():
@@ -637,7 +637,7 @@ class AISelector:
                 start_idx = best_pause_start
         else:
             # Punctuated captions: walk backward up to 22s to find a true sentence boundary that does NOT
-            # start lowercase, mid-sentence, with a <5-word fragment, or with a dangling pronoun ('He's', 'They', 'And').
+            # start with stage noise, lowercase, a <5-word fragment, or a dangling pronoun ('He's', 'This', 'And').
             best_clean_start = None
             fallback_sent_start = None
             for back in range(0, min(16, start_idx + 1)):
@@ -645,21 +645,24 @@ class AISelector:
                 if (clean_segs[start_idx]['start'] - clean_segs[cand_i]['start']) > 22.0:
                     break
                 prev_ends = (cand_i == 0) or clean_segs[cand_i - 1]['text'].rstrip('"\' )]}').endswith(('.', '!', '?'))
-                if prev_ends:
+                gap_before = (clean_segs[cand_i]['start'] - clean_segs[cand_i - 1]['end']) if cand_i > 0 else 1.0
+                if prev_ends or (back > 0 and gap_before >= 0.40):
                     cand_txt = clean_segs[cand_i]['text'].strip()
-                    if fallback_sent_start is None and cand_txt and not cand_txt[0].islower():
+                    if BACKCHANNEL_RX.match(cand_txt):
+                        continue
+                    if back > 0 and fallback_sent_start is None and cand_txt and not cand_txt[0].islower():
                         fallback_sent_start = cand_i
                     if not _is_weak_start(cand_txt):
                         best_clean_start = cand_i
                         break
             if best_clean_start is not None:
                 start_idx = best_clean_start
-            elif fallback_sent_start is not None:
+            elif fallback_sent_start is not None and _is_weak_start(clean_segs[start_idx]['text']):
                 start_idx = fallback_sent_start
-            elif start_idx < end_idx and (clean_segs[start_idx]['text'].strip()[:1].islower() or _is_weak_start(clean_segs[start_idx]['text'])):
+            elif start_idx < end_idx and _is_weak_start(clean_segs[start_idx]['text']):
                 for fwd in range(1, 6):
                     if start_idx + fwd < end_idx and clean_segs[start_idx + fwd - 1]['text'].rstrip('"\' )]}').endswith(('.', '!', '?')):
-                        if not clean_segs[start_idx + fwd]['text'].strip()[:1].islower():
+                        if not _is_weak_start(clean_segs[start_idx + fwd]['text']):
                             start_idx = start_idx + fwd
                             break
 
