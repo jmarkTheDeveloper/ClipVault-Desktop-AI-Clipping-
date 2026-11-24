@@ -602,42 +602,60 @@ class AISelector:
         WEAK_OPENERS = {
             'and', 'but', 'so', 'or', 'whatever', 'yeah', 'yes', 'no', 'well', 'look',
             'right', 'okay', 'ok', 'because', 'cuz', 'then', 'like', 'meanwhile', 'also',
-            'though', 'actually', 'basically', 'literally', 'he', 'she', 'they', 'it', 'that', 'this'
+            'though', 'actually', 'basically', 'literally', 'he', 'she', 'they', 'it',
+            'that', 'this', 'these', 'those', 'there', 'his', 'her', 'their', 'its'
         }
+
+        def _is_weak_start(seg_txt: str) -> bool:
+            st_clean = str(seg_txt or "").strip()
+            if not st_clean:
+                return True
+            if st_clean[0].islower():
+                return True
+            w_toks = [re.sub(r"[^a-z0-9']", "", w.lower()) for w in st_clean.split() if re.sub(r"[^a-z0-9']", "", w.lower())]
+            if len(w_toks) < 5:
+                return True
+            first_stem = w_toks[0].split("'")[0]
+            return (w_toks[0] in WEAK_OPENERS) or (first_stem in WEAK_OPENERS)
 
         if is_unpunctuated:
             # Auto-generated YouTube captions lack periods/question marks: use pause gaps (>= 0.30s) as clause boundaries,
-            # and keep stepping back up to 10s if the cue begins with a weak continuation/dangling word ('and', 'whatever', 'so').
+            # and keep stepping back up to 12s if the cue begins with a weak continuation/dangling word.
             best_pause_start = None
-            for back in range(0, min(8, start_idx + 1)):
+            for back in range(0, min(10, start_idx + 1)):
                 cand_i = start_idx - back
-                if (clean_segs[start_idx]['start'] - clean_segs[cand_i]['start']) > 10.5:
+                if (clean_segs[start_idx]['start'] - clean_segs[cand_i]['start']) > 12.0:
                     break
                 gap_before = (clean_segs[cand_i]['start'] - clean_segs[cand_i - 1]['end']) if cand_i > 0 else 1.0
-                cand_first_w = re.sub(r"[^a-z']", "", clean_segs[cand_i]['text'].split()[0].lower()) if clean_segs[cand_i]['text'].split() else ""
                 if gap_before >= 0.30:
                     if best_pause_start is None:
                         best_pause_start = cand_i
-                    if cand_first_w not in WEAK_OPENERS:
+                    if not _is_weak_start(clean_segs[cand_i]['text']):
                         best_pause_start = cand_i
                         break
             if best_pause_start is not None:
                 start_idx = best_pause_start
         else:
-            if start_idx < end_idx and clean_segs[start_idx]['text'] and clean_segs[start_idx]['text'][0].islower():
-                start_idx += 1
-            if start_idx > 0 and not clean_segs[start_idx - 1]['text'].rstrip('"\' )]}').endswith(('.', '!', '?')):
-                moved = False
-                for back in range(1, 4):
-                    if start_idx - back == 0 or clean_segs[start_idx - back - 1]['text'].rstrip('"\' )]}').endswith(('.', '!', '?')):
-                        cand_txt = clean_segs[start_idx - back]['text']
-                        if cand_txt and cand_txt[0].isupper() and (clean_segs[start_idx]['start'] - clean_segs[start_idx - back]['start']) <= 8.0:
-                            start_idx = start_idx - back
-                            moved = True
-                            break
-                if not moved:
-                    for fwd in range(1, 4):
-                        if start_idx + fwd < end_idx and clean_segs[start_idx + fwd - 1]['text'].rstrip('"\' )]}').endswith(('.', '!', '?')):
+            # Punctuated captions: walk backward up to 14s to find a true sentence boundary that does NOT
+            # start lowercase, mid-sentence, with a <5-word fragment, or with a dangling pronoun ('He's', 'They', 'And').
+            best_clean_start = None
+            for back in range(0, min(12, start_idx + 1)):
+                cand_i = start_idx - back
+                if (clean_segs[start_idx]['start'] - clean_segs[cand_i]['start']) > 14.0:
+                    break
+                prev_ends = (cand_i == 0) or clean_segs[cand_i - 1]['text'].rstrip('"\' )]}').endswith(('.', '!', '?'))
+                if prev_ends:
+                    if best_clean_start is None and not clean_segs[cand_i]['text'].strip()[:1].islower():
+                        best_clean_start = cand_i
+                    if not _is_weak_start(clean_segs[cand_i]['text']):
+                        best_clean_start = cand_i
+                        break
+            if best_clean_start is not None:
+                start_idx = best_clean_start
+            elif start_idx < end_idx and _is_weak_start(clean_segs[start_idx]['text']):
+                for fwd in range(1, 4):
+                    if start_idx + fwd < end_idx and clean_segs[start_idx + fwd - 1]['text'].rstrip('"\' )]}').endswith(('.', '!', '?')):
+                        if not _is_weak_start(clean_segs[start_idx + fwd]['text']):
                             start_idx = start_idx + fwd
                             break
 
