@@ -1897,8 +1897,8 @@ Return ONLY valid JSON:
 
             validated_clips = []
             if len(transcript_with_timestamps) <= 165000:
-                ask_n = max(n + 2, min(14, int(round(n * 1.4))))
-                print(f"[AISelector] {self.provider.upper()} reading FULL transcript ({len(transcript_with_timestamps)} chars, {video_duration/60:.1f}m) to curate {n} viral stories...")
+                ask_n = max(n + 3, min(14, int(round(n * 1.5))))
+                print(f"[AISelector] {self.provider.upper()} Pass 1: Reading FULL transcript ({len(transcript_with_timestamps)} chars, {video_duration/60:.1f}m) to find {ask_n} viral candidates...")
                 prompt = _build_viral_story_prompt(transcript_with_timestamps, ask_n)
                 response = self._generate_with_fallback(
                     prompt,
@@ -1946,6 +1946,130 @@ Return ONLY valid JSON:
                     if c not in deduped_clips and not any(min(c['end'], d['end']) - max(c['start'], d['start']) > 8.0 for d in deduped_clips):
                         deduped_clips.append(c)
             validated_clips = deduped_clips
+
+            # ── PASS 2: YouTube Shorts Retention Critic & Surgical Boundary Refinement ──
+            # Inspects the exact raw cues (+/- 16s pre/post context) of every candidate clip so the AI
+            # trims dead filler/previous-topic tails, pulls in missing setup questions, and drops boring clips.
+            if validated_clips and segments:
+                try:
+                    critic_pool = validated_clips[:min(len(validated_clips), max(n + 3, n))]
+                    critic_blocks = []
+                    for idx_c, c_item in enumerate(critic_pool):
+                        w_lo = max(0.0, float(c_item['start']) - 16.0)
+                        w_hi = min(float(video_duration), float(c_item['end']) + 12.0)
+                        cue_lines = []
+                        for s in segments:
+                            if isinstance(s, dict):
+                                s_st = float(s.get('start', 0.0))
+                                s_et = float(s.get('end', s_st + float(s.get('duration', 2.0))))
+                                if s_st >= w_lo and s_st <= w_hi:
+                                    s_tx = re.sub(r'>>+\s*', '', str(s.get('text', ''))).strip()
+                                    if s_tx:
+                                        cue_lines.append(f"[{s_st:.2f}s-{s_et:.2f}s] {s_tx}")
+                        critic_blocks.append(
+                            f"CANDIDATE #{idx_c} (Draft: {c_item['start']:.2f}s - {c_item['end']:.2f}s | Title: {c_item['title']})\n"
+                            + "\n".join(cue_lines[:65])
+                        )
+
+                    critic_prompt = f"""You are a ruthless 10M-view YouTube Shorts / TikTok / Reels Retention Editor.
+Most clips get stuck at 1,000 views for 3 reasons:
+(A) DEAD OPENING: Starting on leftover tail from the previous topic ("You know what I mean?", "And that was it?", "[laughter]", "So, um yeah...") -> viewers swipe away in second 1!
+(B) HANGING CONTEXT: Starting mid-answer ("Super common.", "I'm not that guy.", "He's there...") without the host's setup question or story premise -> viewers feel confused and leave!
+(C) WEAK / CUT-OFF ENDING: Cutting off before the punchline/takeaway or ending on an unanswered question.
+
+Inspect EVERY single candidate below (return an entry for ALL {len(critic_pool)} candidates) with its exact raw caption cues (including 16s BEFORE and 12s AFTER the draft cut):
+1. Pick `refined_start`: the EXACT `[start]` cue timestamp where the hook, question, or story premise genuinely begins (TRIM dead filler/previous-topic tails like "You know what I mean?" or "[laughter]", OR EXPAND BACKWARD into the 16s pre-context to capture the setup question or who/what the story is about! NEVER start on "and...", "so...", "but...", "he's...", or "the guy..." without the setup sentence!).
+2. Pick `refined_end`: the EXACT `[end]` cue timestamp where the punchline, emotional resolution, or answer lands cleanly (NEVER end on an unanswered question!). Keep each clip complete (at least 30s unless the complete joke/moment is naturally shorter).
+3. Assign `retention_score` (0-99): Score brutally on Cold-Viewer Hook (first 2 seconds) + Complete Context + Emotional/Funny Payoff so ONLY the top {n} clips win!
+4. Polish `title` (4-8 punchy curiosity words) and `hook_title` (3-5 on-screen words).
+
+CANDIDATES WITH EXACT RAW CUES:
+<untrusted_video_transcript source="video_audio_speech">
+{chr(10).join(critic_blocks)}
+</untrusted_video_transcript>
+
+Return ONLY valid JSON:
+{{
+  "refined": [
+    {{
+      "candidate_id": 0,
+      "refined_start": 407.00,
+      "refined_end": 460.20,
+      "retention_score": 96,
+      "title": "Punchy Viral Title",
+      "hook_title": "3-5 Word Hook",
+      "reason": "1-sentence explanation of the exact opening hook and complete payoff"
+    }}
+  ]
+}}"""
+                    print(f"[AISelector] {self.provider.upper()} Pass 2: Running YouTube Shorts Retention Critic on {len(critic_pool)} candidates...")
+                    c_resp = self._generate_with_fallback(critic_prompt, generation_config={"response_mime_type": "application/json"})
+                    c_raw = getattr(c_resp, "text", str(c_resp)).strip()
+                    if c_raw.startswith("```"):
+                        c_pts = c_raw.split("```")
+                        c_raw = c_pts[1] if len(c_pts) >= 3 else c_pts[-1]
+                        if c_raw.startswith("json"):
+                            c_raw = c_raw[4:].strip()
+                    if c_raw.endswith("```"):
+                        c_raw = c_raw[:-3].strip()
+                    c_json = json.loads(c_raw)
+                    ref_list = c_json if isinstance(c_json, list) else (c_json.get("refined") or c_json.get("clips") or [])
+
+                    # Snap refined_start / refined_end strictly to the nearest exact raw cue boundary (no blind regex jump!)
+                    raw_cues = [
+                        (float(s.get('start', 0.0)), float(s.get('end', float(s.get('start', 0.0)) + float(s.get('duration', 2.0)))))
+                        for s in segments if isinstance(s, dict) and str(s.get('text', '')).strip()
+                    ]
+                    if ref_list and raw_cues:
+                        refined_clips = []
+                        seen_cids = set()
+                        for r_item in ref_list:
+                            if not isinstance(r_item, dict):
+                                continue
+                            try:
+                                cid = int(str(r_item.get("candidate_id")).lstrip("#").strip())
+                            except Exception:
+                                continue
+                            if cid < 0 or cid >= len(critic_pool) or cid in seen_cids:
+                                continue
+                            seen_cids.add(cid)
+                            base = dict(critic_pool[cid])
+                            r_st = r_item.get("refined_start")
+                            r_et = r_item.get("refined_end")
+                            if r_st is not None and r_et is not None:
+                                r_st_f, r_et_f = float(r_st), float(r_et)
+                                if r_et_f > r_st_f + 14.0 and r_et_f <= float(video_duration) + 1.0:
+                                    # Lock to exact nearest raw cue start and end
+                                    best_s = min(raw_cues, key=lambda rc: abs(rc[0] - r_st_f))[0]
+                                    best_e = min(raw_cues, key=lambda rc: abs(rc[1] - r_et_f))[1]
+                                    if best_e > best_s + 14.0:
+                                        base['start'] = round(max(0.0, best_s - 0.06), 2)
+                                        base['end'] = round(min(float(video_duration), best_e + 0.10), 2)
+                                        base['duration'] = round(base['end'] - base['start'], 2)
+                            if r_item.get("retention_score") is not None:
+                                hm_pk, _ = self._compute_heatmap_score(base['start'], base['end'], heatmap)
+                                new_sc = max(60, min(99, int(r_item["retention_score"]) + int(hm_pk * 4)))
+                                base['virality_score'] = new_sc
+                                base['sub_scores'] = normalize_sub_scores(base.get('sub_scores'), new_sc).to_dict()
+                            if r_item.get("title") and len(str(r_item["title"]).strip()) >= 8:
+                                base['title'] = str(r_item["title"]).strip().strip('"\'')[:56]
+                                base['content_title'] = base['title']
+                            if r_item.get("hook_title"):
+                                base['hook_title'] = str(r_item["hook_title"]).strip()[:36]
+                            if r_item.get("reason"):
+                                base['reason'] = str(r_item["reason"]).strip()
+                            refined_clips.append(base)
+                        if refined_clips:
+                            # Keep any Pass 1 candidates omitted by Pass 2 at lower priority so we never drop back to heuristic padding
+                            for idx_rem, rem_item in enumerate(critic_pool):
+                                if idx_rem not in seen_cids:
+                                    rem_copy = dict(rem_item)
+                                    rem_copy['virality_score'] = max(60, int(rem_copy.get('virality_score', 80)) - 12)
+                                    refined_clips.append(rem_copy)
+                            refined_clips.sort(key=lambda x: x['virality_score'], reverse=True)
+                            validated_clips = refined_clips
+                except Exception as crit_err:
+                    print(f"[AISelector] Pass 2 Retention Critic notice: {crit_err}. Keeping Pass 1 selections.")
 
             if len(validated_clips) < n:
                 needed = n - len(validated_clips)
