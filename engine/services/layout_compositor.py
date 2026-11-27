@@ -40,8 +40,8 @@ class LayoutCompositor:
         tw = target_w if target_w % 2 == 0 else target_w - 1
         th = target_h if target_h % 2 == 0 else target_h - 1
 
-        # Use INTER_AREA for downscaling (cleanest downsample) or INTER_LINEAR for upscaling (1ms SIMD speed)
-        interp = cv2.INTER_AREA if (tw < w or th < h) else cv2.INTER_LINEAR
+        # Use INTER_AREA for aliasing-free downscaling or INTER_CUBIC for crisp, detail-preserving upscaling
+        interp = cv2.INTER_AREA if (tw < w or th < h) else cv2.INTER_CUBIC
 
         def transform_frame(frame):
             if frame.dtype != np.uint8:

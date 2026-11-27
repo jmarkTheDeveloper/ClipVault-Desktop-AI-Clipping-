@@ -647,12 +647,12 @@ class VideoProcessor:
 
         print(f"    [VideoProcessor] Master Compositing Canvas: {target_w}x{target_h} -> Final Output: {final_w}x{final_h} (Aspect: {active_ar:.3f}, Export Profile: {res_str})")
 
-        # Build fast multi-threaded FFmpeg C-level Lanczos scaling + lightweight 3x3 luma detail sharpening
+        # Build fast multi-threaded FFmpeg C-level Lanczos scaling + broadcast luma detail sharpening
         vf_filters = []
         if (target_w, target_h) != (final_w, final_h):
-            vf_filters.append(f"scale={final_w}:{final_h}:flags=lanczos,unsharp=3:3:0.50:3:3:0.0")
-        elif is_8k_export or is_4k_export or is_1440p_export:
-            vf_filters.append("unsharp=3:3:0.35:3:3:0.0")
+            vf_filters.append(f"scale={final_w}:{final_h}:flags=lanczos,unsharp=5:5:0.70:5:5:0.0")
+        elif is_8k_export or is_4k_export or is_1440p_export or active_ar < 0.85:
+            vf_filters.append("unsharp=5:5:0.65:5:5:0.0")
 
         export_scale_params = ['-vf', ",".join(vf_filters)] if vf_filters else []
 

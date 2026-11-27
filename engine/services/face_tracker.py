@@ -974,12 +974,11 @@ class FaceTracker:
         if adaptive_crop and effective_max_zoom > 1.0:
             if crop_ratio < 0.85:
                 if height >= 2160:
-                    safe_zoom_cap = min(effective_max_zoom, 1.25)
+                    safe_zoom_cap = min(effective_max_zoom, 1.22)
                 elif height >= 1440:
-                    safe_zoom_cap = min(effective_max_zoom, 1.18)
-                elif height >= 1080:
-                    safe_zoom_cap = min(effective_max_zoom, 1.10)
+                    safe_zoom_cap = min(effective_max_zoom, 1.12)
                 else:
+                    # On 1080p or lower sources, 9:16 crop is already 608px wide—never digitally zoom in further!
                     safe_zoom_cap = 1.0
             else:
                 if height >= 1080:
@@ -1382,7 +1381,7 @@ class FaceTracker:
             cropped_patch = frame[y1:y1 + ch, x1:x1 + cw]
 
             if cropped_patch.shape[0] != final_out_h or cropped_patch.shape[1] != final_out_w:
-                interp = cv2.INTER_AREA if (final_out_w < cropped_patch.shape[1] or final_out_h < cropped_patch.shape[0]) else cv2.INTER_LINEAR
+                interp = cv2.INTER_AREA if (final_out_w < cropped_patch.shape[1] or final_out_h < cropped_patch.shape[0]) else cv2.INTER_CUBIC
                 return cv2.resize(cropped_patch, (final_out_w, final_out_h), interpolation=interp)
             return cropped_patch
 
